@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: verifier-management
+  data:
+    redis:
+      database: 0
+      host: localhost
+      port: 6379
+      timeout: 60000
+
+application:
+  verification-ttl: 86400
+  verifier-url: http://localhost:8080

@@ -9,9 +9,12 @@ import org.springframework.validation.annotation.Validated;
 @Configuration
 @Validated
 @Data
-@ConfigurationProperties(prefix = "application")
-public class ApplicationConfig {
+@ConfigurationProperties(prefix = "verifier-openid4vp")
+public class OpenId4VPConfig {
 
     @NotNull
-    private Integer verificationTTL;
+    private String requestObjectPattern;
+
+    @NotNull
+    private String requestObjectResponsePattern;
 }

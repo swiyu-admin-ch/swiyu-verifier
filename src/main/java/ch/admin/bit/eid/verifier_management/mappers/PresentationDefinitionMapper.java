@@ -10,7 +10,12 @@ import java.util.UUID;
 @UtilityClass
 public class PresentationDefinitionMapper {
 
+    // TODO check validation
     public static PresentationDefinition buildPresentationDefinition(PresentationDefinitionRequestDto requestDto, Integer expiresAt) {
+        if (requestDto == null || expiresAt == null) {
+            return null;
+        }
+
         return PresentationDefinition.builder()
                 .id(UUID.randomUUID())
                 .clientMetadata(mapClientMetadata(requestDto.getClientMetadata()))
@@ -20,8 +25,10 @@ public class PresentationDefinitionMapper {
     }
 
     private static ClientMetadata mapClientMetadata(ClientMetadataDto requestDto) {
+        if (requestDto == null) {
+            return null;
+        }
 
-        // TODO check if not null
         return ClientMetadata.builder()
                 .clientName(requestDto.getClient_name())
                 .logoUri(requestDto.getLogo_uri())
@@ -29,10 +36,18 @@ public class PresentationDefinitionMapper {
     }
 
     private static List<InputDescriptor> mapInputDescriptorList(List<InputDescriptorDto> requestDtoList) {
+        if (requestDtoList == null || requestDtoList.isEmpty()) {
+            return null;
+        }
+
         return requestDtoList.stream().map(PresentationDefinitionMapper::mapInputDescriptor).toList();
     }
 
     private static InputDescriptor mapInputDescriptor(InputDescriptorDto requestDto) {
+        if (requestDto == null) {
+            return null;
+        }
+
         return InputDescriptor.builder()
                 .id(requestDto.getId())
                 .format(requestDto.getFormat())
@@ -41,16 +56,28 @@ public class PresentationDefinitionMapper {
     }
 
     private static FieldsModel mapFields(FieldsDto requestDto) {
+        if (requestDto == null) {
+            return null;
+        }
+
         return FieldsModel.builder()
                 .fields(mapConstraintModelList(requestDto.getFields()))
                 .build();
     }
 
     private static List<ConstraintModel> mapConstraintModelList(List<ConstraintDto> requestDtoList) {
+        if (requestDtoList == null || requestDtoList.isEmpty()) {
+            return null;
+        }
+
         return requestDtoList.stream().map(PresentationDefinitionMapper::mapConstraintModel).toList();
     }
 
     private static ConstraintModel mapConstraintModel(ConstraintDto requestDto) {
+        if (requestDto == null) {
+            return null;
+        }
+
         return ConstraintModel.builder()
                 .path(requestDto.getPath())
                 .filter(mapFilterModel(requestDto.getFilter()))
@@ -58,6 +85,10 @@ public class PresentationDefinitionMapper {
     }
 
     private static FilterModel mapFilterModel(FilterDto requestDto) {
+        if (requestDto == null) {
+            return null;
+        }
+
         return FilterModel.builder()
                 .pattern(requestDto.getPattern())
                 .type(requestDto.getType())

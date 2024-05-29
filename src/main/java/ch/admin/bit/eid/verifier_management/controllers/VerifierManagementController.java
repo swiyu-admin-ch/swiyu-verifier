@@ -5,8 +5,9 @@ import ch.admin.bit.eid.verifier_management.models.dto.GetVerificationResponseDt
 import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionRequestDto;
 import ch.admin.bit.eid.verifier_management.models.entities.VerificationManagement;
 import ch.admin.bit.eid.verifier_management.services.AuthorizationResponseDataService;
-import ch.admin.bit.eid.verifier_management.services.PresentationService;
+import ch.admin.bit.eid.verifier_management.services.VerificationManagementService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,12 +17,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class VerifierManagementController {
 
-    private final PresentationService presentationService;
+    private final VerificationManagementService presentationService;
     private final AuthorizationResponseDataService authDataService;
 
     @PostMapping("/verifications")
     @Operation(summary = "Creates a new verification process with the given attributes")
-    public VerificationManagement createVerification(@RequestBody PresentationDefinitionRequestDto requestDto) {
+    public VerificationManagement createVerification(@Valid @RequestBody PresentationDefinitionRequestDto requestDto) {
 
         return this.presentationService.createVerificationManagement(requestDto);
     }
@@ -29,6 +30,8 @@ public class VerifierManagementController {
     @GetMapping("/verifications/{verificationId}")
     @Operation(summary = "Returns the state of the verification & if applicable the data that was sent from the holder")
     public GetVerificationResponseDto getVerification(@PathVariable UUID verificationId) {
+
+        // if not cache.verification_management_service.exists(verification_management_id):
 
         VerificationManagement verificationManagement = this.presentationService.getVerification(verificationId);
 

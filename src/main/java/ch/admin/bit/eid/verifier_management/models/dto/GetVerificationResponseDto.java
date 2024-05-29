@@ -15,7 +15,7 @@ public class GetVerificationResponseDto  {
 
     private String authorizationRequestObjectUri;
 
-    private String authorizationRequestId;
+    private UUID authorizationRequestId;
 
     private VerificationStatusEnum status;
 

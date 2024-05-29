@@ -32,5 +32,5 @@ public class VerificationRequestObject {
     private ClientMetadata clientMetadata;
 
     @TimeToLive
-    private int expiresAt;
+    private long expiresAt;
 }

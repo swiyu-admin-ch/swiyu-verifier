@@ -10,4 +10,7 @@ spring:
 
 application:
   verification-ttl: 86400
-  verifier-url: http://localhost:8080
+
+verifier-openid4vp:
+  request-object-pattern: http://localhost:8081/request-object/%s
+  request-object-response-pattern: ${request-object-pattern}/response-data

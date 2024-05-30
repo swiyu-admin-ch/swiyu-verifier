@@ -1,0 +1,11 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 60000
+  application:
+    external-url: "http://localhost:8080"
+    request-ttl: 3600
+    data-ttl: 3600
+    metadata-file: "classpath:verifier_metadata.json"

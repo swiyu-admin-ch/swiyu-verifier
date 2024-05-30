@@ -1,0 +1,15 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+  data:
+    redis:
+      database: 0
+      host: localhost
+      port: 6379
+      timeout: 60000
+  application:
+    external-url: "${EXTERNAL_URL}"
+    request-ttl: ${TOKEN_TTL}
+    data-ttl: ${DATA_TTL}
+    metadata-file: "${METADATA_CONFIG_FILE}"

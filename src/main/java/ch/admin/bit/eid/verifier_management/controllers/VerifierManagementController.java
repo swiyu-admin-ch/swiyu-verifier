@@ -3,7 +3,6 @@ package ch.admin.bit.eid.verifier_management.controllers;
 import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.dto.CreateManagementRequestDto;
 import ch.admin.bit.eid.verifier_management.models.dto.CreateManagementResponseDto;
-import ch.admin.bit.eid.verifier_management.services.AuthorizationResponseDataService;
 import ch.admin.bit.eid.verifier_management.services.ManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -17,7 +16,6 @@ import static ch.admin.bit.eid.verifier_management.mappers.ManagementMapper.mana
 public class VerifierManagementController {
 
     private final ManagementService presentationService;
-    private final AuthorizationResponseDataService authDataService;
 
     @PostMapping("/verifications")
     @Operation(summary = "Creates a new verification process with the given attributes")

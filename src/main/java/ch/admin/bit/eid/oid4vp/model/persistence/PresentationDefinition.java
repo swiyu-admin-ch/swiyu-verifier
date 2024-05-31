@@ -1,23 +1,22 @@
 package ch.admin.bit.eid.oid4vp.model.persistence;
 
-import ch.admin.bit.eid.verifier_management.models.entities.InputDescriptor;
+import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.RedisHash;
-import org.springframework.data.redis.core.TimeToLive;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
-@RedisHash("PresentationDefinition")
-@Data
+
 @Builder
-@NoArgsConstructor
+@Data
 @AllArgsConstructor
+@NotEmpty
 // TODO check
 public class PresentationDefinition implements Serializable {
 
@@ -26,7 +25,5 @@ public class PresentationDefinition implements Serializable {
 
     private List<InputDescriptor> inputDescriptors;
 
-
-    @TimeToLive
-    private int expiresAt;
+    private HashMap<String, Object> submissionRequirements;
 }

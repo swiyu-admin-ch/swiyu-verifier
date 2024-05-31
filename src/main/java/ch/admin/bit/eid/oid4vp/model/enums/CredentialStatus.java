@@ -1,5 +1,10 @@
-package ch.admin.bit.eid.oid4vp.model.credential;
+package ch.admin.bit.eid.oid4vp.model.enums;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
 public enum CredentialStatus {
         OFFERED("Offered"),
         CANCELLED("Cancelled"),
@@ -9,15 +14,7 @@ public enum CredentialStatus {
         REVOKED("Revoked"),
         EXPIRED("Expired");
 
-        private String displayName;
-
-        CredentialStatus(String displayName) {
-            this.displayName = displayName;
-        }
-
-        public String getDisplayName() {
-            return displayName;
-        }
+        private final String displayName;
 
     @Override
     public String toString() {

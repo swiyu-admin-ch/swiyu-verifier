@@ -1,11 +1,11 @@
 package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
+import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
+import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
+import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
-import ch.admin.bit.eid.oid4vp.repository.PresentationDefinitionRepository;
-import ch.admin.bit.eid.verifier_management.models.entities.ConstraintModel;
-import ch.admin.bit.eid.verifier_management.models.entities.FieldsModel;
-import ch.admin.bit.eid.verifier_management.models.entities.InputDescriptor;
+import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,12 +15,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Arrays;
-import java.util.UUID;
-
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+
+import java.util.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -29,110 +31,83 @@ public class VerificationControllerTests {
     @Autowired
     private MockMvc mock;
     @Autowired
-    private PresentationDefinitionRepository  presentationDefinitionRepository;
+    private VerificationManagementRepository verificationManagementRepository;
     @Autowired
     private ApplicationConfiguration applicationConfiguration;
 
 
 
-    private final static UUID offerId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
+    private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
     private final static UUID accessToken = UUID.fromString("deadbeef-1111-222-3333-deaddeafbeef");
 
 
-    static PresentationDefinition createPresentaitonRequestion(){
-        var  typeConstraint  = ConstraintModel.builder()
-                .path(Arrays.asList("$.type"))
-                .build();
+    static PresentationDefinition createPresentationRequest(){
 
+        HashMap<String, Object> fields = new HashMap<>() {{
+            put("path", Arrays.asList("$.type", "$.credentialSubject.test"));
+        }};
 
-        var inputDescriptor =  InputDescriptor.builder()
-                .fields(FieldsModel.builder()
-                        .fields(Arrays.asList(typeConstraint))
-                        .build()).build();
+        InputDescriptor inputDescriptor = InputDescriptor.builder()
+            .id("test_descriptor")
+            .name("Test Descriptor")
+            .constraints(
+                    new HashMap<>() {{
+                        put("fields", new HashSet() {{
+                            add(fields);
+                        }});
+                    }}
+            )
+            .build();
         PresentationDefinition pd = PresentationDefinition.builder()
-                .id(offerId)
+                .id(requestId)
                 .inputDescriptors(Arrays.asList(inputDescriptor))
                 .build();
         return pd;
     }
 
+
+
+    static ManagementEntity createTestManagementEntity() {
+        return ManagementEntity.builder()
+                .id(requestId.toString())
+                .requestedPresentation(createPresentationRequest())
+                .state(VerificationStatusEnum.PENDING)
+                .requestNonce("HelloNonce")
+                .build();
+    }
+
     @BeforeEach
     void setUp() {
-        PresentationDefinition presentationRequest = createPresentaitonRequestion();
-        presentationDefinitionRepository.save(presentationRequest);
+        ManagementEntity entity = createTestManagementEntity();
+        verificationManagementRepository.save(entity);
     }
 
     @AfterEach
     void tearDown() {
-        presentationDefinitionRepository.delete(presentationDefinitionRepository.findById(offerId).orElseThrow());
+        verificationManagementRepository.delete(verificationManagementRepository.findById(requestId.toString()).orElseThrow());
     }
 
     @Test
     void testRepository() throws Exception {
 
-        var request = presentationDefinitionRepository.findById(offerId);
-        assert request.orElseThrow().getId().equals(offerId);
+        var request = verificationManagementRepository.findById(requestId.toString());
+        assert request.orElseThrow().getId().equals(requestId.toString());
     }
 
-//    @Test
-//    void shouldGetOpenIdConifugraion() throws Exception {
-//        mock.perform(get("/.well-known/openid-configuration"))
-//                .andExpect(status().isOk())
-//                .andExpect(content().string(containsString("token_endpoint")))
-//                .andExpect(content().string(not(containsString("${external-url}"))));
-//    }
-//
-//    @Test
-//    void shouldGetIssuerMetadata() throws Exception {
-//        mock.perform(get("/.well-known/openid-credential-issuer"))
-//                .andExpect(status().isOk())
-//                .andExpect(content().string(not(containsString("${external-url}"))))
-//                .andExpect(content().string(containsString("credential_endpoint")));
-//    }
-//
-//    @Test
-//    void testHappyPathCredentialFlow() throws Exception {
-//        var response = mock.perform(post("/token")
-//                        .param("grant_type", "urn:ietf:params:oauth:grant-type:pre-authorized_code")
-//                        .param("pre-authorized_code", "deadbeef-dead-dead-dead-deaddeafbeef"))
-//                .andExpect(status().isOk())
-//                .andExpect(content().string(containsString("deadbeef")))
-//                .andExpect(content().string(containsString("expires_in")))
-//                .andExpect(content().string(containsString("access_token")))
-//                .andExpect(content().string(containsString("BEARER")))
-//                .andReturn();
-//        var token_response = new ObjectMapper().readValue(response.getResponse().getContentAsString(), HashMap.class);
-//        var token = token_response.get("access_token");
-//        assert (accessToken.toString().equals(token));
-//        response = mock.perform(post("/credential")
-//                .header("Authorization", String.format("BEARER %s", token)))
-//                .andExpect(status().isOk())
-//                .andReturn();
-//    }
-//    @Test
-//    void testTokenErrorInvalidPreAuthCode() throws Exception {
-//        mock.perform(post("/token")
-//                    .param("grant_type", "urn:ietf:params:oauth:grant-type:pre-authorized_code")
-//                    .param("pre-authorized_code", "aaaaaaaa-dead-dead-dead-deaddeafdead"))
-//                .andExpect(status().isBadRequest())
-//                .andExpect(content().string(containsString("INVALID_GRANT")));
-//    }
-//
-//    @Test
-//    void testTokenErrorInvalidGrantType() throws Exception {
-//        // With Valid preauth code
-//        mock.perform(post("/token")
-//                        .param("grant_type", "urn:ietf:params:oauth:grant-type:test-authorized_code")
-//                        .param("pre-authorized_code", "deadbeef-dead-dead-dead-deaddeafbeef"))
-//                .andExpect(status().isBadRequest())
-//                .andExpect(content().string(containsString("INVALID_REQUEST")));
-//
-//        // With Invalid preauth code
-//        mock.perform(post("/token")
-//                        .param("grant_type", "urn:ietf:params:oauth:grant-type:test-authorized_code")
-//                        .param("pre-authorized_code", "aaaaaaaa-dead-dead-dead-deaddeafdead"))
-//                .andExpect(status().isBadRequest())
-//                .andExpect(content().string(containsString("INVALID_REQUEST")));
-//    }
+    @Test
+    void shouldGetRequest() throws Exception {
+        var response = mock.perform(get(String.format("/request-object/%s", requestId.toString())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("client_id")))
+                .andExpect(content().string(containsString("client_id_scheme\":\"did\"")))
+                .andExpect(content().string(containsString("client_id\":\"did:")))
+                .andExpect(content().string(containsString("test_descriptor")))
+                .andExpect(content().string(containsString("Test Descriptor")))
+                .andExpect(content().string(not(containsString("${external-url}"))))
+                .andExpect(content().string(not(containsString("null"))))
+                .andReturn();
 
+        System.out.println(response);
+
+    }
 }

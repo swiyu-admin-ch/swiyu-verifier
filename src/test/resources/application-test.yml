@@ -3,9 +3,10 @@ spring:
     redis:
       host: localhost
       port: 6379
-      timeout: 60000
-  application:
-    external-url: "http://localhost:8080"
-    request-ttl: 3600
-    data-ttl: 3600
-    metadata-file: "classpath:verifier_metadata.json"
+      timeout: 30000
+application:
+  external-url: "http://localhost:8080"
+  client_id: "did:example:12345"
+  client_id_scheme: "did"
+  client_name: "Local Test"
+  logo_uri: "www.example.ico"

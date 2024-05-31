@@ -1,13 +1,13 @@
 package ch.admin.bit.eid.oid4vp.controller;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
-import ch.admin.bit.eid.oid4vp.repository.PresentationDefinitionRepository;
+import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
+import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import ch.admin.bit.eid.oid4vp.service.RequestObjectService;
 import lombok.AllArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -24,7 +24,9 @@ public class VerificationController {
 
     private final ApplicationConfiguration applicationConfiguration;
 
-    private final PresentationDefinitionRepository presentationDefinitionRepository;
+    private final VerificationManagementRepository presentationDefinitionRepository;
+
+    private final RequestObjectService requestObjectService;
 
 
     /**
@@ -34,9 +36,9 @@ public class VerificationController {
      * @return the request object
      */
     @GetMapping("/request-object/{request_id}")
-    public HashMap<String, Object> getRequestObject(UUID request_id) {
-        var presentationDefinition = presentationDefinitionRepository.findById(request_id).orElseThrow();
-
+    public RequestObject getRequestObject(@PathVariable UUID request_id) throws IOException {
+        // TODO Use the signed request object jwt instead of an object
+        return requestObjectService.assembleRequestObject(request_id);
     }
 
     @PostMapping("/request-object/{request_id}/response-data")

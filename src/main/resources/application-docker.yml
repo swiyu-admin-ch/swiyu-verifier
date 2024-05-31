@@ -5,11 +5,12 @@ spring:
   data:
     redis:
       database: 0
-      host: localhost
+      host: redis
       port: 6379
       timeout: 60000
-  application:
-    external-url: "${EXTERNAL_URL}"
-    request-ttl: ${TOKEN_TTL}
-    data-ttl: ${DATA_TTL}
-    metadata-file: "${METADATA_CONFIG_FILE}"
+application:
+  external-url: "${EXTERNAL_URL}"
+  "client_id": "${VERIFIER_DID}"
+  "client_id_scheme": "did"
+  client_name: "${VERIFIER_NAME}"
+  logo_uri: "${VERIFIER_LOGO}"

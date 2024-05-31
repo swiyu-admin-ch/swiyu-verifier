@@ -16,7 +16,7 @@ public class RequestObjectService {
     private final ApplicationConfiguration applicationConfiguration;
     private final VerificationManagementRepository managementRepository;
 
-    public RequestObject assembleRequestObject(UUID presentationDefinitionId) throws IOException {
+    public RequestObject assembleRequestObject(UUID presentationDefinitionId) {
         var managementEntity = managementRepository.findById(presentationDefinitionId.toString()).orElseThrow();
         return RequestObject.builder()
                 .nonce(managementEntity.getRequestNonce())
@@ -27,6 +27,11 @@ public class RequestObjectService {
                         .build())
                 .clientId(applicationConfiguration.getClientId())
                 .clientIdScheme(applicationConfiguration.getClientIdScheme())
+                .responseType("vp_token")
+                .responseMode("direct_post")
+                .responseUri(String.format("%s/request-object/%s/response-data",
+                                applicationConfiguration.getExternalUrl(),
+                                presentationDefinitionId))
                 .build();
     }
 

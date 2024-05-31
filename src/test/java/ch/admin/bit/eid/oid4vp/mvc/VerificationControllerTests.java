@@ -95,8 +95,8 @@ public class VerificationControllerTests {
     }
 
     @Test
-    void shouldGetRequest() throws Exception {
-        var response = mock.perform(get(String.format("/request-object/%s", requestId.toString())))
+    void shouldGetRequestObject() throws Exception {
+        var response = mock.perform(get(String.format("/request-object/%s", requestId)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("client_id")))
                 .andExpect(content().string(containsString("client_id_scheme\":\"did\"")))
@@ -104,10 +104,20 @@ public class VerificationControllerTests {
                 .andExpect(content().string(containsString("test_descriptor")))
                 .andExpect(content().string(containsString("Test Descriptor")))
                 .andExpect(content().string(not(containsString("${external-url}"))))
+                .andExpect(content().string(containsString(requestId.toString())))
                 .andExpect(content().string(not(containsString("null"))))
                 .andReturn();
 
-        System.out.println(response);
+    }
 
+    @Test
+    void shouldAcceptRefusal() throws Exception {
+        var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .formField("error", "I_dont_want_to")
+                        .formField("error_description", "I really just dont want to"))
+                .andExpect(status().isOk())
+                .andReturn();
+        var managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
+        assert managementEntity.getState() == VerificationStatusEnum.FAILED;
     }
 }

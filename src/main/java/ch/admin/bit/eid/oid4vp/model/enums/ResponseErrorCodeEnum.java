@@ -17,7 +17,9 @@ public enum ResponseErrorCodeEnum {
     CREDENTIAL_SUSPENDED("credential_suspended"),
     HOLDER_BINDING_MISMATCH("holder_binding_mismatch"),
     CREDENTIAL_MISSING_DATA("credential_missing_data"),
-    UNRESOLVABLE_STATUS_LIST("unresolvable_status_list");
+    UNRESOLVABLE_STATUS_LIST("unresolvable_status_list"),
+    CLIENT_REJECTED("client_rejected");
+
 
     private final String displayName;
 

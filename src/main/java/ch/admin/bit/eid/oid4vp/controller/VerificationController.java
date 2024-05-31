@@ -2,8 +2,12 @@ package ch.admin.bit.eid.oid4vp.controller;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
+import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
+import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
+import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.bit.eid.oid4vp.service.RequestObjectService;
+import ch.admin.bit.eid.oid4vp.service.VerificationService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,13 +24,11 @@ import java.util.UUID;
 @RestController
 @AllArgsConstructor
 public class VerificationController {
-    private static final String OID4VCI_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:pre-authorized_code";
 
-    private final ApplicationConfiguration applicationConfiguration;
-
-    private final VerificationManagementRepository presentationDefinitionRepository;
+    private final VerificationManagementRepository verificationManagementRepository;
 
     private final RequestObjectService requestObjectService;
+    private final VerificationService verificationService;
 
 
     /**
@@ -36,19 +38,35 @@ public class VerificationController {
      * @return the request object
      */
     @GetMapping("/request-object/{request_id}")
-    public RequestObject getRequestObject(@PathVariable UUID request_id) throws IOException {
+    public RequestObject getRequestObject(@PathVariable(name = "request_id") UUID requestId) throws IOException {
         // TODO Use the signed request object jwt instead of an object
-        return requestObjectService.assembleRequestObject(request_id);
+        return requestObjectService.assembleRequestObject(requestId);
     }
 
     @PostMapping("/request-object/{request_id}/response-data")
-    public HashMap<String, Object> receiveVerifcationPresentation(
-            UUID request_id,
+    public void receiveVerificationPresentation(
+            @PathVariable(name="request_id") UUID requestId,
             @RequestParam(name="presentation_submission", required = false) String presentationSubmission,
             @RequestParam(name="vp_token", required = false) String vpToken,
             @RequestParam(name="error", required = false) String walletError,
             @RequestParam(name="error_description", required = false) String walletErrorDescription) {
 
-        return new HashMap<>();
+        var managementObject = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
+
+        if (managementObject.getState() != VerificationStatusEnum.PENDING) {
+            // TODO Raise Exception
+        }
+
+        if (walletError != null && !walletError.isEmpty()) {
+            verificationService.processErrorResponse(managementObject, walletError, walletErrorDescription);
+            return;
+        }
+
+        if (vpToken == null || vpToken.isEmpty() || presentationSubmission == null || presentationSubmission.isEmpty()) {
+            // TODO Raise Exception
+        }
+        verificationService.processPresentation(managementObject, vpToken, presentationSubmission);
+
+
     }
 }

@@ -2,9 +2,6 @@ package ch.admin.bit.eid.verifier_management.services;
 
 import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
 import ch.admin.bit.eid.verifier_management.mappers.PresentationDefinitionMapper;
-import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionRequestDto;
-import ch.admin.bit.eid.verifier_management.models.entities.PresentationDefinition;
-import ch.admin.bit.eid.verifier_management.repositories.PresentationDefinitionRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 

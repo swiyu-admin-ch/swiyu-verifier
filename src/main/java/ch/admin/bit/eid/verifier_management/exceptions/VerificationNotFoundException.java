@@ -1,0 +1,14 @@
+package ch.admin.bit.eid.verifier_management.exceptions;
+
+import java.text.MessageFormat;
+import java.util.UUID;
+
+public class VerificationNotFoundException extends RuntimeException {
+
+    private static final MessageFormat ERR_MESSAGE = new MessageFormat("The verification with the identifier ''{0}'' was not found");
+
+
+    public VerificationNotFoundException(UUID id) {
+        super(ERR_MESSAGE.format(new Object[]{id}));
+    }
+}

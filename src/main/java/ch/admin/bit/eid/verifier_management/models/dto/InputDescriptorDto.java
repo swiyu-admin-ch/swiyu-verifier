@@ -1,18 +1,20 @@
 package ch.admin.bit.eid.verifier_management.models.dto;
 
-import lombok.Data;
+import lombok.Getter;
 
-/**
- * https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor-object
- */
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 
-@Data
+@Getter
 public class InputDescriptorDto {
+    private UUID id;
 
-    private String id;
+    private String name;
 
-    // TODO check
-    private Object format;
+    private List<String> group;
 
-    private FieldsDto fields;
+    private HashMap<String, Object> format;
+
+    private HashMap<String,Object> constraints;
 }

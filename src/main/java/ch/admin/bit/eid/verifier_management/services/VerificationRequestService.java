@@ -4,12 +4,9 @@ import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
 import ch.admin.bit.eid.verifier_management.config.OpenId4VPConfig;
 import ch.admin.bit.eid.verifier_management.models.entities.PresentationDefinition;
 import ch.admin.bit.eid.verifier_management.models.entities.VerificationRequestObject;
-import ch.admin.bit.eid.verifier_management.repositories.VerificationRequestObjectRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.UUID;
 
 import static ch.admin.bit.eid.verifier_management.utils.TimeUtils.getTTL;
@@ -46,16 +43,5 @@ public class VerificationRequestService {
                 .build();
 
         return repository.save(verificationRequest);
-    }
-
-    // TODO check -> was nonce=uuid.uuid4().hex
-    private String createNonce() {
-        final SecureRandom random = new SecureRandom();
-        final Base64.Encoder base64encoder = Base64.getEncoder().withoutPadding();
-
-        byte[] randomBytes = new byte[24];
-        random.nextBytes(randomBytes);
-
-        return base64encoder.encodeToString(randomBytes);
     }
 }

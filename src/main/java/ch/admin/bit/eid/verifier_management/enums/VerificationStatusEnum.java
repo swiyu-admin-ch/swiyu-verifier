@@ -5,9 +5,5 @@ public enum VerificationStatusEnum {
     SUCCESS("SUCCESS"),
     FAILED("FAILED");
 
-    private String displayName;
-
-    VerificationStatusEnum(String displayName) {
-        this.displayName = displayName;
-    }
+    VerificationStatusEnum(String displayName) { }
 }

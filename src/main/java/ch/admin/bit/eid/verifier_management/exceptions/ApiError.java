@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 @Data
 public class ApiError {
 
-    @JsonIgnore
     private HttpStatus status;
 
     private String detail;
@@ -15,15 +14,5 @@ public class ApiError {
     ApiError(HttpStatus status) {
         this.status = status;
         this.detail = status.getReasonPhrase();
-    }
-
-    ApiError(HttpStatus status, Throwable exception) {
-        this.status = status;
-        this.detail = exception.getMessage();
-    }
-
-    ApiError(HttpStatus status, String message) {
-        this.status = status;
-        this.detail = message;
     }
 }

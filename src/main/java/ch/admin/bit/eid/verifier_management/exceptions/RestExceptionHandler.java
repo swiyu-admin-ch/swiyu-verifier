@@ -14,10 +14,11 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @ControllerAdvice
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
+    @ExceptionHandler(VerificationNotFoundException.class)
     protected ResponseEntity<Object> handleResourceNotFoundException(
-            final ResourceNotFoundException exception, final WebRequest request
+            final VerificationNotFoundException exception, final WebRequest request
     ) {
+        // error = "verification_not_found"
         final ApiError apiError = new ApiError(NOT_FOUND);
         apiError.setDetail(exception.getMessage());
 

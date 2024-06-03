@@ -1,11 +1,14 @@
 package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
+import ch.admin.bit.eid.oid4vp.mock.CredentialEmulator;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -120,4 +123,35 @@ public class VerificationControllerTests {
         var managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
         assert managementEntity.getState() == VerificationStatusEnum.FAILED;
     }
+
+    /**
+     * The Verification of the Credential should not succeed because there is no VDR
+     */
+    @Test
+    void shouldFailVerifyingCredential() throws Exception {
+        var emulator =  new CredentialEmulator();
+
+        var credential = emulator.createVC(
+                Arrays.asList("/type", "/issuer"),
+                "{\"issuer\": \"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\": \"world\"}}");
+
+        // Fetch the Request Object
+        var response = mock.perform(get(String.format("/request-object/%s", requestId)))
+                .andExpect(status().isOk())
+                .andReturn();
+        // Get the Nonce
+        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
+        String nonce = responseContent.get("nonce").getAsString();
+        String vpToken = emulator.createVerifiablePresentation(credential, Arrays.asList("/credentialSubject/hello"), nonce);
+        String presentationSubmission = emulator.createCredentialSubmission();
+        response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                .formField("presentation_submission", presentationSubmission)
+                .formField("vp_token", vpToken))
+            .andExpect(status().isOk())
+            .andReturn();
+
+
+    }
+
+
 }

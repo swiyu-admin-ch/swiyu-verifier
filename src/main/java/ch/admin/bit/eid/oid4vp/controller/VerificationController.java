@@ -34,11 +34,11 @@ public class VerificationController {
     /**
      * Endpoint to fetch the Request Object of a Verification Request.
      *
-     * @param request_id id of the request object to be returnd
+     * @param requestId id of the request object to be returnd
      * @return the request object
      */
     @GetMapping("/request-object/{request_id}")
-    public RequestObject getRequestObject(@PathVariable(name = "request_id") UUID requestId) throws IOException {
+    public RequestObject getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
         // TODO Use the signed request object jwt instead of an object
         return requestObjectService.assembleRequestObject(requestId);
     }
@@ -55,6 +55,7 @@ public class VerificationController {
 
         if (managementObject.getState() != VerificationStatusEnum.PENDING) {
             // TODO Raise Exception
+
         }
 
         if (walletError != null && !walletError.isEmpty()) {

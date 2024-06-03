@@ -3,6 +3,9 @@ package ch.admin.bit.eid.oid4vp.model.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * Custom Error Codes expanding on OID4VP defined errors to give additional information on what is wrong
+ */
 @Getter
 @AllArgsConstructor
 public enum ResponseErrorCodeEnum {

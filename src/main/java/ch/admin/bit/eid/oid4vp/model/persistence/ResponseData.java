@@ -22,7 +22,7 @@ public class ResponseData {
 
     private ResponseErrorCodeEnum errorCode;
 
-    private HashMap<String, Object> credentialSubjectData;
+    private String credentialSubjectData;
 
     @TimeToLive
     private long expirationInSeconds;

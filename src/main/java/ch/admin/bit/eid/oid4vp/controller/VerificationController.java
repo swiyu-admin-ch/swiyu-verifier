@@ -1,18 +1,15 @@
 package ch.admin.bit.eid.oid4vp.controller;
 
-import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
+import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
-import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
+import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
-import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.bit.eid.oid4vp.service.RequestObjectService;
 import ch.admin.bit.eid.oid4vp.service.VerificationService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.UUID;
 
 /**
@@ -54,17 +51,18 @@ public class VerificationController {
         var managementObject = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
 
         if (managementObject.getState() != VerificationStatusEnum.PENDING) {
-            // TODO Raise Exception
+            throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED);
 
         }
 
         if (walletError != null && !walletError.isEmpty()) {
-            verificationService.processErrorResponse(managementObject, walletError, walletErrorDescription);
+            verificationService.processHolderVerificationRejection(managementObject, walletError, walletErrorDescription);
             return;
         }
 
-        if (vpToken == null || vpToken.isEmpty() || presentationSubmission == null || presentationSubmission.isEmpty()) {
-            // TODO Raise Exception
+        if (vpToken == null || vpToken.isEmpty()
+                || presentationSubmission == null || presentationSubmission.isEmpty()) {
+            throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
         }
         verificationService.processPresentation(managementObject, vpToken, presentationSubmission);
 

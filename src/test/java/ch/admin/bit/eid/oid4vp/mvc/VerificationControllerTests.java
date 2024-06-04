@@ -235,5 +235,16 @@ public class VerificationControllerTests {
 
     }
 
+    @Test
+    void shouldRespond404() throws Exception {
+        UUID notExistingRequestId = UUID.fromString("00000000-0000-0000-0000-000000000000");
+        mock.perform(get(String.format("/request-object/%s", notExistingRequestId)))
+                .andExpect(status().isNotFound());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", notExistingRequestId)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(containsString(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND.toString())));
+
+    }
 
 }

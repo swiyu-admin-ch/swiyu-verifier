@@ -48,7 +48,8 @@ public class VerificationController {
             @RequestParam(name="error", required = false) String walletError,
             @RequestParam(name="error_description", required = false) String walletErrorDescription) {
 
-        var managementObject = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
+        var managementObject = verificationManagementRepository.findById(requestId.toString()).orElseThrow(
+                () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
 
         if (managementObject.getState() != VerificationStatusEnum.PENDING) {
             throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED);

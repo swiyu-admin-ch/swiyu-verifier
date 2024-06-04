@@ -64,6 +64,9 @@ public class VerificationService {
 
         var credentialSubject = parser.parseMap(verifiedDocument).get("credentialSubject");
         walletResponseBuilder.credentialSubjectData(new Gson().toJson(credentialSubject));
+        managementEntity.setWalletResponse(walletResponseBuilder.build());
+        managementEntity.setState(VerificationStatusEnum.SUCCESS);
+        verificationManagementRepository.save(managementEntity);
 
     }
 

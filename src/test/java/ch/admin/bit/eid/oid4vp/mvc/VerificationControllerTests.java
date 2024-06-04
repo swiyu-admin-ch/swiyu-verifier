@@ -3,6 +3,8 @@ package ch.admin.bit.eid.oid4vp.mvc;
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.mock.CredentialEmulator;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
+import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
+import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
@@ -17,6 +19,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.util.Assert;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -128,7 +131,7 @@ public class VerificationControllerTests {
      * The Verification of the Credential should not succeed because there is no VDR
      */
     @Test
-    void shouldFailVerifyingCredential() throws Exception {
+    void shouldSucceedVerifyingCredential() throws Exception {
         var emulator =  new CredentialEmulator();
 
         var credential = emulator.createVC(
@@ -150,6 +153,85 @@ public class VerificationControllerTests {
             .andExpect(status().isOk())
             .andReturn();
 
+        var managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains("world")  == true;
+
+        // Test Resending after Success
+
+        response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        //Data should be unchanged
+        managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains("world")  == true;
+
+        // Error that verification is closed should be returned to wallet
+        var responseBody = response.getResponse().getContentAsString();
+        Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
+        assert responseBody.contains(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED.toString());
+    }
+
+    @Test
+    void shouldFailVerifyingCredentialWrongNonce() throws Exception {
+        var emulator =  new CredentialEmulator();
+
+        var credential = emulator.createVC(
+                Arrays.asList("/type", "/issuer"),
+                "{\"issuer\": \"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\": \"world\"}}");
+
+        // Fetch the Request Object
+        var response = mock.perform(get(String.format("/request-object/%s", requestId)))
+                .andExpect(status().isOk())
+                .andReturn();
+        // Get the Nonce
+        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
+//        String nonce = responseContent.get("nonce").getAsString();
+        String nonce = "wrong_nonce";
+        String vpToken = emulator.createVerifiablePresentation(credential, Arrays.asList("/credentialSubject/hello"), nonce);
+        String presentationSubmission = emulator.createCredentialSubmission();
+        response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        var managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
+        // Should be failed state
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+        // Data should not be saved
+        Assert.doesNotContain(managementEntity.getWalletResponse().getCredentialSubjectData(), "world",
+                String.format("Expecting no data to be saved on failure, found %s",
+                        managementEntity.getWalletResponse().getCredentialSubjectData()));
+        // Error code should be set in management entity
+        Assert.state(managementEntity.getWalletResponse().getErrorCode() == ResponseErrorCodeEnum.CREDENTIAL_INVALID,
+                String.format("Expecting error code to be %s but was %s",
+                        ResponseErrorCodeEnum.CREDENTIAL_INVALID,
+                        managementEntity.getWalletResponse().getErrorCode()));
+        // Error & error code should be returned to wallet
+        var responseBody = response.getResponse().getContentAsString();
+        Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
+        assert responseBody.contains(ResponseErrorCodeEnum.CREDENTIAL_INVALID.toString());
+        assert responseBody.contains(VerificationErrorEnum.INVALID_REQUEST.toString());
+
+        // Resending after failure
+        response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        // Error that verification is closed should be returned to wallet
+        responseBody = response.getResponse().getContentAsString();
+        Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
+        assert responseBody.contains(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED.toString());
 
     }
 

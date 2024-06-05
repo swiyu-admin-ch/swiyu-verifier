@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 import static ch.admin.bit.eid.verifier_management.mappers.ManagementMapper.managementToManagementDto;
 
 @RestController
@@ -26,6 +28,10 @@ public class VerifierManagementController {
         return managementToManagementDto(verificationManagement);
     }
 
+    @GetMapping("/verifications/{verificationId}")
+    public Management getVerification(@PathVariable UUID verificationId) {
+        return presentationService.getManagement(verificationId);
+    }
     /*@GetMapping("/verifications/{verificationId}")
     @Operation(summary = "Returns the state of the verification & if applicable the data that was sent from the holder")
     public GetVerificationResponseDto getVerification(@PathVariable UUID verificationId) {

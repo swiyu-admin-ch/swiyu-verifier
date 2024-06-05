@@ -8,6 +8,7 @@ import java.util.UUID;
 
 @Getter
 public class InputDescriptorDto {
+
     private UUID id;
 
     private String name;
@@ -16,5 +17,5 @@ public class InputDescriptorDto {
 
     private HashMap<String, Object> format;
 
-    private HashMap<String,Object> constraints;
+    private HashMap<String, Object> constraints;
 }

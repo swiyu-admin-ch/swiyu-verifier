@@ -3,6 +3,8 @@ package ch.admin.bit.eid.verifier_management.services;
 import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
 import ch.admin.bit.eid.verifier_management.config.OpenId4VPConfig;
 import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
+import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFinishedException;
+import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFoundException;
 import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
 import ch.admin.bit.eid.verifier_management.models.ResponseData;
@@ -24,6 +26,12 @@ public class ManagementService {
     private final ManagementRepository repository;
 
     private final ApplicationConfig applicationConfig;
+
+    public Management getManagement(UUID id) {
+        Management mgmt = repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
+
+        return mgmt;
+    }
 
     public Management createVerificationManagement(CreateManagementRequestDto requestDto) {
 
@@ -50,7 +58,9 @@ public class ManagementService {
                 .walletResponse(responseData)
                 .build();
 
-        return repository.save(management);
+        Management savedManagement = repository.save(management);
+
+        return savedManagement;
     }
 
     // TODO check -> was nonce=uuid.uuid4().hex

@@ -20,7 +20,6 @@ public class InputDescriptorMapper {
         }
 
         return InputDescriptor.builder()
-                // TODO check
                 .id(dto.getId() == null ? dto.getId() : UUID.randomUUID())
                 .constraints(dto.getConstraints())
                 .format(dto.getFormat())

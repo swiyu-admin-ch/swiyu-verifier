@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-public class VerifierManagementIntegrationTest {
+public class CreateManagementIntegrationTest {
 
     @Autowired
     protected MockMvc mvc;
@@ -45,22 +45,16 @@ public class VerifierManagementIntegrationTest {
 
     @Test
     void testCreateOffer_thenSuccess() throws Exception {
-        String test = "{\"id\": \"32f54163-7166-48f1-93d8-ff217bdb0653\",\"input_descriptors\": [{\"id\": \"driver_license\",\"name\": \"Driver License\",\"constraints\": {\"fields\": [{\"path\": [\"$.credentialSubject.dateOfBirth\",\"$.vc.credentialSubject.dateOfBirth\",\"$.vc.credentialSubject.dob\"]}]}}]}";
-
-        /*
-        "expires_at": 0,
-  "id": "string",
-  "authorization_request_object_uri": "string",
-  "authorization_request_id": "string",
-  "status": "PENDING"
-         */
+        String test = "{\"inputDescriptors\": [{\"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\"name\": \"string\",\"group\": [\"string\"],\"format\": {\"additionalProp1\": {\"test\": \"test\"}},\"constraints\": {\"additionalProp1\": {\"test\": \"test\"}}}]}";
 
         mvc.perform(post("/verifications").contentType(MediaType.APPLICATION_JSON).content(test))
                 .andExpect(status().isOk())
+
+                // check management dto
                 .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.authorization_request_id").isNotEmpty())
-                .andExpect(jsonPath("$.authorization_request_object_uri").isNotEmpty())
-                .andExpect(jsonPath("$.status").value(VerificationStatusEnum.PENDING.toString()))
-                .andExpect(jsonPath("$.expires_at").isNotEmpty());
+                .andExpect(jsonPath("$.requestNonce").isNotEmpty())
+                .andExpect(jsonPath("$.state").value(VerificationStatusEnum.PENDING.toString()));
+                //.andExpect(jsonPath("$.requestedPresentation").isNotEmpty())
+                // .andExpect(jsonPath("$.walletResponse").isNotEmpty());
     }
 }

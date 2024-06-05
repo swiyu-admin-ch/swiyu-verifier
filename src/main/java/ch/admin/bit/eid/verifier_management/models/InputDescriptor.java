@@ -5,12 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.TimeToLive;
+import org.springframework.data.redis.core.RedisHash;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
+@RedisHash("InputDescriptor")
 @Builder
 @Data
 @NoArgsConstructor
@@ -26,8 +27,5 @@ public class InputDescriptor {
 
     private HashMap<String, Object> format;
 
-    private HashMap<String,Object> constraints;
-
-    @TimeToLive
-    private long expirationInSeconds;
+    private HashMap<String, Object> constraints;
 }

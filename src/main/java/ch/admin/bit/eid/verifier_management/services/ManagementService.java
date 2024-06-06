@@ -1,9 +1,7 @@
 package ch.admin.bit.eid.verifier_management.services;
 
 import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
-import ch.admin.bit.eid.verifier_management.config.OpenId4VPConfig;
 import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
-import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFinishedException;
 import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFoundException;
 import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
@@ -18,6 +16,7 @@ import java.util.Base64;
 import java.util.UUID;
 
 import static ch.admin.bit.eid.verifier_management.mappers.InputDescriptorMapper.InputDescriptorDTOsToInputDescriptors;
+import static ch.admin.bit.eid.verifier_management.utils.MapperUtil.MapToJsonString;
 
 @Service
 @AllArgsConstructor
@@ -42,11 +41,12 @@ public class ManagementService {
         PresentationDefinition presentationDefinition = PresentationDefinition.builder()
                 .id(UUID.randomUUID())
                 .inputDescriptors(InputDescriptorDTOsToInputDescriptors(requestDto.getInputDescriptors()))
-                // TODO add submission requirements
+                .submissionRequirements(MapToJsonString(requestDto.getCredentialSubjectData()))
                 .build();
 
         ResponseData responseData = ResponseData.builder()
                 .id(UUID.randomUUID())
+                .credentialSubjectData(MapToJsonString(requestDto.getCredentialSubjectData()))
                 .build();
 
         Management management = Management.builder()

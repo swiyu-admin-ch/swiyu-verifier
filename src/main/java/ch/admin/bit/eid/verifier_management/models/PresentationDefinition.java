@@ -1,27 +1,29 @@
 package ch.admin.bit.eid.verifier_management.models;
 
-import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.TimeToLive;
 
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
+@Data
+@RedisHash
 @Builder
 @AllArgsConstructor
-@NotEmpty
-public class PresentationDefinition {
+public class PresentationDefinition implements Serializable {
 
     @Id
     private UUID id;
 
     private List<InputDescriptor> inputDescriptors;
 
-    private HashMap<String, Object> submissionRequirements;
+    private String submissionRequirements;
 
     @TimeToLive
-    private long expirationInSeconds;// **
+    private long expirationInSeconds;
 }

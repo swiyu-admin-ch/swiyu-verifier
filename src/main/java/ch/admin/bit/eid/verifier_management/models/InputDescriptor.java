@@ -1,22 +1,18 @@
 package ch.admin.bit.eid.verifier_management.models;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.io.Serializable;
+import java.util.*;
 
-@RedisHash("InputDescriptor")
-@Builder
+@RedisHash
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InputDescriptor {
+public class InputDescriptor implements Serializable {
 
     @Id
     private UUID id;
@@ -25,7 +21,7 @@ public class InputDescriptor {
 
     private List<String> group;
 
-    private HashMap<String, Object> format;
+    private String format;
 
-    private HashMap<String, Object> constraints;
+    private String constraints;
 }

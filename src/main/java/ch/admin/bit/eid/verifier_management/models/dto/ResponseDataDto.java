@@ -1,25 +1,21 @@
 package ch.admin.bit.eid.verifier_management.models.dto;
 
+import ch.admin.bit.eid.verifier_management.enums.ResponseErrorCodeEnum;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Builder
 @Getter
 @Setter
-@Builder
-public class InputDescriptorDto {
+public class ResponseDataDto {
 
     private UUID id;
 
-    private String name;
+    private ResponseErrorCodeEnum errorCode;
 
-    private List<String> group;
-
-    private Map<String, Object> format;
-
-    private Map<String, Object> constraints;
+    private Map<String, Object> credentialSubjectData;
 }

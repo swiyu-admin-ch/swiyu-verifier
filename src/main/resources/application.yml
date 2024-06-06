@@ -7,10 +7,22 @@ spring:
       host: localhost
       port: 6379
       timeout: 60000
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          authorization-uri: "http://localhost:8180/issuer1/mock_issuer"
+          issuer-uri: "http://localhost:8180/mock_issuer"
+          jwk-set-uri: "http://localhost:8180/mock_issuer/jwks"
+
+springdoc:
+  swagger-ui:
+    path: swagger-ui.html
+    csrf:
+      enabled: true
+    oauth:
+      client-id: swagger-client-id
+      client-secret: secret
 
 application:
   verification-ttl: 86400
-
-verifier-openid4vp:
-  request-object-pattern: http://localhost:8081/request-object/%s
-  request-object-response-pattern: ${request-object-pattern}/response-data

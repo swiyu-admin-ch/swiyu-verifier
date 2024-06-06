@@ -3,8 +3,6 @@ package ch.admin.bit.eid.verifier_management.models;
 import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
 import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.TimeToLive;
@@ -15,8 +13,6 @@ import java.util.UUID;
 @RedisHash("Management")
 @Data
 @Builder
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(onlyExplicitlyIncluded = true)
 public class Management implements Serializable {
 
     @Id

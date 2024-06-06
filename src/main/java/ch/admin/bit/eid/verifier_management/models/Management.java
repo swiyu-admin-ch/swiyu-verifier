@@ -12,7 +12,7 @@ import org.springframework.data.redis.core.TimeToLive;
 import java.io.Serializable;
 import java.util.UUID;
 
-@RedisHash
+@RedisHash("Management")
 @Data
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)

@@ -11,6 +11,7 @@ import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,8 +19,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.Assert;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -30,7 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.*;
 
-@SpringBootTest
+@Testcontainers(disabledWithoutDocker = true)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class VerificationControllerTests {
@@ -41,7 +47,16 @@ public class VerificationControllerTests {
     @Autowired
     private ApplicationConfiguration applicationConfiguration;
 
+    @Container
+    private static final RedisContainer REDIS_CONTAINER = new RedisContainer(
+            RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG)
+    ).withExposedPorts(6379);
 
+    @DynamicPropertySource
+    private static void registerRedisProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.redis.host", REDIS_CONTAINER::getHost);
+        registry.add("spring.data.redis.port", () -> REDIS_CONTAINER.getMappedPort(6379).toString());
+    }
 
     private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
     private final static UUID accessToken = UUID.fromString("deadbeef-1111-222-3333-deaddeafbeef");

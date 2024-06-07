@@ -9,9 +9,8 @@ import java.util.Map;
 @Getter
 public class CreateManagementRequestDto {
 
+    @NotEmpty
     private List<InputDescriptorDto> inputDescriptors;
-
-    private Map<String, Object> credentialSubjectData;
 
     private Map<String, Object> submissionRequirements;
 }

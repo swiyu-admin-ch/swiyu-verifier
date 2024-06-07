@@ -36,6 +36,5 @@ public class MapperUtil {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-
     }
 }

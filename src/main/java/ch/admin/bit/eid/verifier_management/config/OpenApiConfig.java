@@ -2,7 +2,6 @@ package ch.admin.bit.eid.verifier_management.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.OAuthFlow;
 import io.swagger.v3.oas.annotations.security.OAuthFlows;
@@ -13,13 +12,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @OpenAPIDefinition(
         info = @Info(
-                title = "Issuer management service",
-                description = "Generic Issuer management service",
-                contact = @Contact(
-                        email = "eid@bit.admin.ch",
-                        name = "eID",
-                        url = "https://confluence.eap.bit.admin.ch/display/YOUR_TEAM/"
-                )
+                title = "Verifier management service",
+                description = "Generic Verifier management service"
         ),
         security = @SecurityRequirement(name = "bearerAuth")
 )

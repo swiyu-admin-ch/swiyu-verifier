@@ -9,7 +9,7 @@ import java.util.Map;
 @UtilityClass
 public class MapperUtil {
 
-    public static Map<String, Object> JsonStringToMap(String jsonString) {
+    public static Map<String, Object> jsonStringToMap(String jsonString) {
         if (jsonString == null) {
             return null;
         }
@@ -24,7 +24,7 @@ public class MapperUtil {
     }
 
 
-    public static String MapToJsonString(Map<?, ?> map) {
+    public static String mapToJsonString(Map<?, ?> map) {
         if (map == null) {
             return null;
         }

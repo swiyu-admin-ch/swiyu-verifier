@@ -10,7 +10,7 @@ public class VerificationNotFinishedException extends RuntimeException  {
     /*
     error = "verification_not_finished"
     error_description = "The verification has not reached a final state (error, success)"
-     */
+    */
     public VerificationNotFinishedException(UUID id) {
         super(ERR_MESSAGE.format(new Object[]{id}));
     }

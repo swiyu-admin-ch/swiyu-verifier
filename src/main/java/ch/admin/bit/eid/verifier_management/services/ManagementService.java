@@ -15,8 +15,8 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.UUID;
 
-import static ch.admin.bit.eid.verifier_management.mappers.InputDescriptorMapper.InputDescriptorDTOsToInputDescriptors;
-import static ch.admin.bit.eid.verifier_management.utils.MapperUtil.MapToJsonString;
+import static ch.admin.bit.eid.verifier_management.mappers.InputDescriptorMapper.inputDescriptorDTOsToInputDescriptors;
+import static ch.admin.bit.eid.verifier_management.utils.MapperUtil.mapToJsonString;
 
 @Service
 @AllArgsConstructor
@@ -27,9 +27,7 @@ public class ManagementService {
     private final ApplicationConfig applicationConfig;
 
     public Management getManagement(UUID id) {
-        Management mgmt = repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
-
-        return mgmt;
+        return repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
     }
 
     public Management createVerificationManagement(CreateManagementRequestDto requestDto) {
@@ -40,13 +38,13 @@ public class ManagementService {
 
         PresentationDefinition presentationDefinition = PresentationDefinition.builder()
                 .id(UUID.randomUUID())
-                .inputDescriptors(InputDescriptorDTOsToInputDescriptors(requestDto.getInputDescriptors()))
-                .submissionRequirements(MapToJsonString(requestDto.getCredentialSubjectData()))
+                .inputDescriptors(inputDescriptorDTOsToInputDescriptors(requestDto.getInputDescriptors()))
+                .submissionRequirements(mapToJsonString(requestDto.getCredentialSubjectData()))
                 .build();
 
         ResponseData responseData = ResponseData.builder()
                 .id(UUID.randomUUID())
-                .credentialSubjectData(MapToJsonString(requestDto.getCredentialSubjectData()))
+                .credentialSubjectData(mapToJsonString(requestDto.getCredentialSubjectData()))
                 .build();
 
         Management management = Management.builder()
@@ -58,12 +56,9 @@ public class ManagementService {
                 .walletResponse(responseData)
                 .build();
 
-        Management savedManagement = repository.save(management);
-
-        return savedManagement;
+        return repository.save(management);
     }
 
-    // TODO check -> was nonce=uuid.uuid4().hex
     private String createNonce() {
         final SecureRandom random = new SecureRandom();
         final Base64.Encoder base64encoder = Base64.getEncoder().withoutPadding();

@@ -18,7 +18,6 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handleResourceNotFoundException(
             final VerificationNotFoundException exception, final WebRequest request
     ) {
-        // error = "verification_not_found"
         final ApiError apiError = new ApiError(NOT_FOUND);
         apiError.setDetail(exception.getMessage());
 

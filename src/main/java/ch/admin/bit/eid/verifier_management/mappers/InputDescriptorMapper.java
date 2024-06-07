@@ -2,18 +2,16 @@ package ch.admin.bit.eid.verifier_management.mappers;
 
 import ch.admin.bit.eid.verifier_management.models.InputDescriptor;
 import ch.admin.bit.eid.verifier_management.models.dto.InputDescriptorDto;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ch.admin.bit.eid.verifier_management.utils.MapperUtil;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @UtilityClass
 public class InputDescriptorMapper {
 
-    public static List<InputDescriptor> InputDescriptorDTOsToInputDescriptors(List<InputDescriptorDto> dtos) {
+    public static List<InputDescriptor> inputDescriptorDTOsToInputDescriptors(List<InputDescriptorDto> dtos) {
         return dtos.stream().map(InputDescriptorMapper::toModel).toList();
     }
 
@@ -22,18 +20,16 @@ public class InputDescriptorMapper {
             throw new IllegalArgumentException("InputDescriptor cannot be null");
         }
 
-        String constraints = MapToJsonString(dto.getConstraints());
-        String formats = MapToJsonString(dto.getFormat());
+        String constraints = MapperUtil.mapToJsonString(dto.getConstraints());
+        String formats = MapperUtil.mapToJsonString(dto.getFormat());
 
-        InputDescriptor descriptor = InputDescriptor.builder()
-                .id(dto.getId() == null ? dto.getId() : UUID.randomUUID())
+        return InputDescriptor.builder()
+                .id(dto.getId() != null ? dto.getId() : UUID.randomUUID())
                 .constraints(constraints)
                 .format(formats)
                 .group(dto.getGroup())
                 .name(dto.getName())
                 .build();
-
-        return descriptor;
     }
 
     public static List<InputDescriptorDto> toDTOs(List<InputDescriptor> inputDescriptors) {
@@ -49,30 +45,8 @@ public class InputDescriptorMapper {
                 .id(inputDescriptor.getId())
                 .name(inputDescriptor.getName())
                 .group(inputDescriptor.getGroup())
-                .format(JsonStringToMap(inputDescriptor.getFormat()))
-                .constraints(JsonStringToMap(inputDescriptor.getConstraints()))
+                .format(MapperUtil.jsonStringToMap(inputDescriptor.getFormat()))
+                .constraints(MapperUtil.jsonStringToMap(inputDescriptor.getConstraints()))
                 .build();
-    }
-
-    private static Map<String, Object> JsonStringToMap(String jsonString) {
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        try {
-            return objectMapper.readValue(jsonString, Map.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    private static String MapToJsonString(Map<?, ?> map) {
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-
     }
 }

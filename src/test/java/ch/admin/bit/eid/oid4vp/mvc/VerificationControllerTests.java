@@ -256,10 +256,11 @@ public class VerificationControllerTests {
         mock.perform(get(String.format("/request-object/%s", notExistingRequestId)))
                 .andExpect(status().isNotFound());
 
-        mock.perform(post(String.format("/request-object/%s/response-data", notExistingRequestId)))
+        mock.perform(post(String.format("/request-object/%s/response-data", notExistingRequestId))
+                    .formField("error", "trying_to_get_404")
+                    .formField("error_description", ""))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(containsString(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND.toString())));
-
     }
 
 }

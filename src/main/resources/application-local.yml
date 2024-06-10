@@ -1,3 +1,5 @@
+server:
+  port: 8003
 spring:
   data:
     redis:
@@ -5,7 +7,7 @@ spring:
       port: 6379
       timeout: 60000
 application:
-  external-url: "http://localhost:8080"
+  external-url: "http://localhost:8003"
   client_id: "did:example:12345"
   client_id_scheme: "did"
   client_name: "Local Test"

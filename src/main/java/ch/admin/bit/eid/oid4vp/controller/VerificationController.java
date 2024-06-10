@@ -8,8 +8,11 @@ import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.bit.eid.oid4vp.service.RequestObjectService;
 import ch.admin.bit.eid.oid4vp.service.VerificationService;
 import lombok.AllArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -40,8 +43,10 @@ public class VerificationController {
         return requestObjectService.assembleRequestObject(requestId);
     }
 
-    @PostMapping("/request-object/{request_id}/response-data")
-    public void receiveVerificationPresentation(
+    @PostMapping(value = "/request-object/{request_id}/response-data",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> receiveVerificationPresentation(
             @PathVariable(name="request_id") UUID requestId,
             @RequestParam(name="presentation_submission", required = false) String presentationSubmission,
             @RequestParam(name="vp_token", required = false) String vpToken,
@@ -58,7 +63,7 @@ public class VerificationController {
 
         if (walletError != null && !walletError.isEmpty()) {
             verificationService.processHolderVerificationRejection(managementObject, walletError, walletErrorDescription);
-            return;
+            return null;
         }
 
         if (vpToken == null || vpToken.isEmpty()
@@ -66,7 +71,7 @@ public class VerificationController {
             throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
         }
         verificationService.processPresentation(managementObject, vpToken, presentationSubmission);
-
+        return new HashMap<String, Object>();
 
     }
 }

@@ -14,10 +14,10 @@ import org.springframework.context.annotation.Configuration;
         info = @Info(
                 title = "Verifier management service",
                 description = "Generic Verifier management service"
-        ),
-        security = @SecurityRequirement(name = "bearerAuth")
+        )/*,
+        security = @SecurityRequirement(name = "bearerAuth")*/
 )
 @SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.OAUTH2,
-        flows = @OAuthFlows(clientCredentials  = @OAuthFlow(tokenUrl = "http://localhost:8180/mock_issuer/token?scope=scope1")))
+        flows = @OAuthFlows(clientCredentials  = @OAuthFlow(tokenUrl = "http://host.docker.internal:8180/mock_issuer/token?scope=scope1")))
 public class OpenApiConfig {
 }

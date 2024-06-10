@@ -8,10 +8,12 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ManagementMapper {
 
-    public static ManagementResponseDto toDto(final Management management) {
+    public static ManagementResponseDto toDto(final Management management, final String oid4vpUrl) {
         if (management == null) {
             throw new IllegalArgumentException("Management must not be null");
         }
+
+        String verificationUrl = String.format("%s/request-object/%s", oid4vpUrl, management.getWalletResponse().getId());
 
         PresentationDefinitionDto presentationDefinitionDto = management.getRequestedPresentation() != null
                 ? PresentationDefinitionMapper.toDto(management.getRequestedPresentation())
@@ -23,6 +25,7 @@ public class ManagementMapper {
                 .state(management.getState())
                 .presentationDefinition(presentationDefinitionDto)
                 .walletResponse(ResponseDataMapper.toDto(management.getWalletResponse()))
+                .verificationUrl(verificationUrl)
                 .build();
     }
 }

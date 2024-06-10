@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+// import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -21,12 +22,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+//import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-public class CreateManagementIntegrationTest {
+class CreateManagementIntegrationTest {
 
     @Autowired
     protected MockMvc mvc;
@@ -47,10 +49,14 @@ public class CreateManagementIntegrationTest {
     }
 
     @Test
+    //@WithAnonymousUser
     void testCreateOffer_thenSuccess() throws Exception {
         String test = "{\"inputDescriptors\": [{\"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\"name\": \"string\",\"group\": [\"string\"],\"format\": {\"formatProp\": {\"test\": \"test\"}},\"constraints\": {\"constraintsProp\": {\"test\": \"test\"}}}],\"credentialSubjectData\": {\"credentialSubjectDataProp\": {\"test\": \"test\"}},\"submissionRequirements\": {\"submissionRequirementsProp\": {\"test\": \"test\"}}}";
 
-        MvcResult result = mvc.perform(post("/verifications").contentType(MediaType.APPLICATION_JSON).content(test))
+        MvcResult result = mvc.perform(post("/verifications")
+                        //.with(anonymous())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(test))
                 .andExpect(status().isOk())
 
                 // check management dto

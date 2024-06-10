@@ -24,4 +24,6 @@ public class ManagementResponseDto {
 
     private ResponseDataDto walletResponse;
 
+    private String verificationUrl;
+
 }

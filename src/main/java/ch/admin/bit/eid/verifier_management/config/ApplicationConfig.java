@@ -14,4 +14,7 @@ public class ApplicationConfig {
 
     @NotNull
     private Integer verificationTTL;
+
+    @NotNull
+    private String oid4vpUrl;
 }

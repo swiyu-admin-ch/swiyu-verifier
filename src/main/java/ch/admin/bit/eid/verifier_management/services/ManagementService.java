@@ -5,7 +5,6 @@ import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFoundException;
 import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
-import ch.admin.bit.eid.verifier_management.models.ResponseData;
 import ch.admin.bit.eid.verifier_management.models.dto.CreateManagementRequestDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
 import lombok.AllArgsConstructor;
@@ -36,8 +35,6 @@ public class ManagementService {
             throw new IllegalArgumentException("PresentationDefinition is null");
         }
 
-        ResponseData responseData = ResponseData.builder().id(UUID.randomUUID()).build();
-
         PresentationDefinition presentationDefinition = PresentationDefinition.builder()
                 .id(UUID.randomUUID())
                 .inputDescriptors(inputDescriptorDTOsToInputDescriptors(requestDto.getInputDescriptors()))
@@ -50,7 +47,6 @@ public class ManagementService {
                 .requestNonce(createNonce())
                 .expirationInSeconds(applicationConfig.getVerificationTTL())
                 .requestedPresentation(presentationDefinition)
-                .walletResponse(responseData)
                 .build();
 
         return repository.save(management);

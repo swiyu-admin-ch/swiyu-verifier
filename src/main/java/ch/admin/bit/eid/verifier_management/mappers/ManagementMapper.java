@@ -13,7 +13,7 @@ public class ManagementMapper {
             throw new IllegalArgumentException("Management must not be null");
         }
 
-        String verificationUrl = String.format("%s/request-object/%s", oid4vpUrl, management.getWalletResponse().getId());
+        String verificationUrl = String.format("%s/request-object/%s", oid4vpUrl, management.getId());
 
         PresentationDefinitionDto presentationDefinitionDto = management.getRequestedPresentation() != null
                 ? PresentationDefinitionMapper.toDto(management.getRequestedPresentation())

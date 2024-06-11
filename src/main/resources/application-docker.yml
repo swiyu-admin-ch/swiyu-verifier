@@ -13,6 +13,8 @@ spring:
           authorization-uri: "http://localhost:8180/issuer1/mock_issuer"
           issuer-uri: "http://localhost:8180/mock_issuer"
           jwk-set-uri: "http://localhost:8180/mock_issuer/jwks"
+server:
+  port: 8002
 
 application:
   oid4vp-url: http://localhost:8003

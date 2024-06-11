@@ -19,6 +19,5 @@ import org.springframework.context.annotation.Configuration;
 )
 @SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.OAUTH2,
         flows = @OAuthFlows(clientCredentials  = @OAuthFlow(tokenUrl = "http://localhost:8180/mock_issuer/token?scope=scope1")))
-        // flows = @OAuthFlows(clientCredentials  = @OAuthFlow(tokenUrl = "http://mock-oauth2-server:8180/mock_issuer/token?scope=scope1")))
 public class OpenApiConfig {
 }

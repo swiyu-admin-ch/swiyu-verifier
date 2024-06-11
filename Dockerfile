@@ -1,6 +1,6 @@
 FROM eclipse-temurin:21
 
-EXPOSE 8080
+EXPOSE 8002
 
 ARG JAR_FILE=target/*.jar
 ADD ${JAR_FILE} app.jar

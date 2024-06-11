@@ -24,7 +24,7 @@ public class ManagementMapper {
                 .requestNonce(management.getRequestNonce())
                 .state(management.getState())
                 .presentationDefinition(presentationDefinitionDto)
-                .walletResponse(ResponseDataMapper.toDto(management.getWalletResponse()))
+                .walletResponse(management.getWalletResponse() != null ? ResponseDataMapper.toDto(management.getWalletResponse()) : null)
                 .verificationUrl(verificationUrl)
                 .build();
     }

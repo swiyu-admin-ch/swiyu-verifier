@@ -27,4 +27,4 @@ springdoc:
 
 application:
   verification-ttl: 86400
-  oid4vp-url:  http://localhost:8180
+  oid4vp-url: "http://localhost:8180"

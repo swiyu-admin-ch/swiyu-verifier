@@ -88,6 +88,5 @@ class CreateManagementIntegrationTest {
                 .andReturn();
 
         result1.getResponse();
-
     }
 }

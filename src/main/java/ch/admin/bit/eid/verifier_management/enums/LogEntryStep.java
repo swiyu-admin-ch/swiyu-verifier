@@ -10,6 +10,5 @@ public enum LogEntryStep {
     VERIFICATION_RESPONSE("RESPONSE");
 
 
-    LogEntryStep(String displayName) {
-    }
+    LogEntryStep(String displayName) {}
 }

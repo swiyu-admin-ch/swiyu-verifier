@@ -14,5 +14,5 @@ public enum ResponseErrorCodeEnum {
     CREDENTIAL_MISSING_DATA("credential_missing_data"),
     UNRESOLVABLE_STATUS_LIST("unresolvable_status_list");
 
-    ResponseErrorCodeEnum(String displayName) { }
+    ResponseErrorCodeEnum(String displayName) {}
 }

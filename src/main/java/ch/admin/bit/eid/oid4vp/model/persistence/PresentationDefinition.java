@@ -25,5 +25,9 @@ public class PresentationDefinition implements Serializable {
 
     private List<InputDescriptor> inputDescriptors;
 
+    // https://identity.foundation/presentation-exchange/#submission-requirements
+    /**
+     * Optional
+     */
     private HashMap<String, Object> submissionRequirements;
 }

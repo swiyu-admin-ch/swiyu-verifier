@@ -1,12 +1,14 @@
 package ch.admin.bit.eid.oid4vp.controller;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.PresentationSubmissionDto;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.bit.eid.oid4vp.service.RequestObjectService;
 import ch.admin.bit.eid.oid4vp.service.VerificationService;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +16,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import static java.util.Objects.isNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNoneBlank;
 
 /**
  * OpenID4VC Issuance Controller
@@ -47,8 +53,8 @@ public class VerificationController {
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> receiveVerificationPresentation(
-            @PathVariable(name="request_id") UUID requestId,
-            @RequestParam(name="presentation_submission", required = false) String presentationSubmission,
+            @NotEmpty @PathVariable(name="request_id") UUID requestId,
+            @RequestParam(name= "presentationSubmissionDto", required = false) PresentationSubmissionDto presentationSubmissionDto,
             @RequestParam(name="vp_token", required = false) String vpToken,
             @RequestParam(name="error", required = false) String walletError,
             @RequestParam(name="error_description", required = false) String walletErrorDescription) {
@@ -61,17 +67,17 @@ public class VerificationController {
 
         }
 
-        if (walletError != null && !walletError.isEmpty()) {
+        if (isNoneBlank(walletError)) {
             verificationService.processHolderVerificationRejection(managementObject, walletError, walletErrorDescription);
             return null;
         }
 
-        if (vpToken == null || vpToken.isEmpty()
-                || presentationSubmission == null || presentationSubmission.isEmpty()) {
+        if (isBlank(vpToken) || isNull(presentationSubmissionDto)) {
             throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
         }
-        verificationService.processPresentation(managementObject, vpToken, presentationSubmission);
-        return new HashMap<String, Object>();
+        verificationService.processPresentation(managementObject, vpToken, presentationSubmissionDto);
+
+        return new HashMap<>();
 
     }
 }

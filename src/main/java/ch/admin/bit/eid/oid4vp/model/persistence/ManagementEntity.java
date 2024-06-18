@@ -7,13 +7,15 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.TimeToLive;
 
+import java.util.UUID;
+
 @RedisHash("Management")
 @Data
 @Builder
 public class ManagementEntity {
 
     @Id
-    private String id;
+    private UUID id;
 
     private String requestNonce;
 

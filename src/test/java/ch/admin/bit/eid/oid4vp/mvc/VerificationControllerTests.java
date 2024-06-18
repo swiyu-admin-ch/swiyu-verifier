@@ -68,20 +68,20 @@ public class VerificationControllerTests {
             put("path", Arrays.asList("$.type", "$.credentialSubject.test"));
         }};
 
-        InputDescriptor inputDescriptor = InputDescriptor.builder()
-            .id("test_descriptor")
-            .name("Test Descriptor")
-            .constraints(
-                    new HashMap<>() {{
-                        put("fields", new HashSet() {{
-                            add(fields);
-                        }});
-                    }}
-            )
-            .build();
+//        InputDescriptor inputDescriptor = InputDescriptor.builder()
+//            .id("test_descriptor")
+//            .name("Test Descriptor")
+//            .constraints(
+//                    new HashMap<>() {{
+//                        put("fields", new HashSet() {{
+//                            add(fields);
+//                        }});
+//                    }}
+//            )
+//            .build();
         PresentationDefinition pd = PresentationDefinition.builder()
                 .id(requestId)
-                .inputDescriptors(Arrays.asList(inputDescriptor))
+                //.inputDescriptors(Arrays.asList(inputDescriptor))
                 .build();
         return pd;
     }
@@ -90,7 +90,7 @@ public class VerificationControllerTests {
 
     static ManagementEntity createTestManagementEntity() {
         return ManagementEntity.builder()
-                .id(requestId.toString())
+                .id(requestId)
                 .requestedPresentation(createPresentationRequest())
                 .state(VerificationStatusEnum.PENDING)
                 .requestNonce("HelloNonce")

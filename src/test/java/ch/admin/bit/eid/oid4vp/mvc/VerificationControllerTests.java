@@ -2,12 +2,10 @@ package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.mock.CredentialEmulator;
-import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
-import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -26,11 +24,13 @@ import org.springframework.util.Assert;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import static ch.admin.bit.eid.oid4vp.mock.CredentialEmulator.ExampleJson;
+import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEntityMock;
+import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMock;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
 import java.util.*;
@@ -39,7 +39,8 @@ import java.util.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-public class VerificationControllerTests {
+class VerificationControllerTests {
+
     @Autowired
     private MockMvc mock;
     @Autowired
@@ -61,45 +62,10 @@ public class VerificationControllerTests {
     private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
     private final static UUID accessToken = UUID.fromString("deadbeef-1111-222-3333-deaddeafbeef");
 
-
-    static PresentationDefinition createPresentationRequest(){
-
-        HashMap<String, Object> fields = new HashMap<>() {{
-            put("path", Arrays.asList("$.type", "$.credentialSubject.test"));
-        }};
-
-//        InputDescriptor inputDescriptor = InputDescriptor.builder()
-//            .id("test_descriptor")
-//            .name("Test Descriptor")
-//            .constraints(
-//                    new HashMap<>() {{
-//                        put("fields", new HashSet() {{
-//                            add(fields);
-//                        }});
-//                    }}
-//            )
-//            .build();
-        PresentationDefinition pd = PresentationDefinition.builder()
-                .id(requestId)
-                //.inputDescriptors(Arrays.asList(inputDescriptor))
-                .build();
-        return pd;
-    }
-
-
-
-    static ManagementEntity createTestManagementEntity() {
-        return ManagementEntity.builder()
-                .id(requestId)
-                .requestedPresentation(createPresentationRequest())
-                .state(VerificationStatusEnum.PENDING)
-                .requestNonce("HelloNonce")
-                .build();
-    }
-
     @BeforeEach
     void setUp() {
-        ManagementEntity entity = createTestManagementEntity();
+        ManagementEntity entity = getManagementEntityMock(requestId,
+                createPresentationDefinitionMock(requestId, List.of("$.hello")));
         verificationManagementRepository.save(entity);
     }
 
@@ -109,15 +75,8 @@ public class VerificationControllerTests {
     }
 
     @Test
-    void testRepository() throws Exception {
-
-        var request = verificationManagementRepository.findById(requestId.toString());
-        assert request.orElseThrow().getId().equals(requestId.toString());
-    }
-
-    @Test
     void shouldGetRequestObject() throws Exception {
-        var response = mock.perform(get(String.format("/request-object/%s", requestId)))
+        mock.perform(get(String.format("/request-object/%s", requestId)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("client_id")))
                 .andExpect(content().string(containsString("client_id_scheme\":\"did\"")))
@@ -126,18 +85,15 @@ public class VerificationControllerTests {
                 .andExpect(content().string(containsString("Test Descriptor")))
                 .andExpect(content().string(not(containsString("${external-url}"))))
                 .andExpect(content().string(containsString(requestId.toString())))
-                .andExpect(content().string(not(containsString("null"))))
-                .andReturn();
-
+                .andExpect(content().string(not(containsString("null"))));
     }
 
     @Test
     void shouldAcceptRefusal() throws Exception {
-        var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .formField("error", "I_dont_want_to")
                         .formField("error_description", "I really just dont want to"))
-                .andExpect(status().isOk())
-                .andReturn();
+                .andExpect(status().isOk());
         var managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
         assert managementEntity.getState() == VerificationStatusEnum.FAILED;
     }
@@ -151,27 +107,28 @@ public class VerificationControllerTests {
 
         var credential = emulator.createVC(
                 Arrays.asList("/type", "/issuer"),
-                "{\"issuer\": \"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\": \"world\"}}");
+                ExampleJson);
 
         // Fetch the Request Object
         var response = mock.perform(get(String.format("/request-object/%s", requestId)))
                 .andExpect(status().isOk())
                 .andReturn();
+
         // Get the Nonce
         JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
         String nonce = responseContent.get("nonce").getAsString();
         String vpToken = emulator.createVerifiablePresentation(credential, Arrays.asList("/credentialSubject/hello"), nonce);
-        String presentationSubmission = emulator.createCredentialSubmission();
-        response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+        String presentationSubmission = emulator.createCredentialSubmission(); // emulator.createCredentialSubmissionURLEncoder();
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                 .formField("presentation_submission", presentationSubmission)
                 .formField("vp_token", vpToken))
-            .andExpect(status().isOk())
-            .andReturn();
+            .andExpect(status().isOk());
 
         var managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
-        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains("world")  == true;
+        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains("world");
 
         // Test Resending after Success
 
@@ -198,20 +155,19 @@ public class VerificationControllerTests {
         var emulator =  new CredentialEmulator();
 
         var credential = emulator.createVC(
-                Arrays.asList("/type", "/issuer"),
+                List.of("/type", "/issuer"),
                 "{\"issuer\": \"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\": \"world\"}}");
 
         // Fetch the Request Object
-        var response = mock.perform(get(String.format("/request-object/%s", requestId)))
+        mock.perform(get(String.format("/request-object/%s", requestId)))
                 .andExpect(status().isOk())
                 .andReturn();
-        // Get the Nonce
-        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
-//        String nonce = responseContent.get("nonce").getAsString();
+
+        // TODO Get & check Nonce
         String nonce = "wrong_nonce";
         String vpToken = emulator.createVerifiablePresentation(credential, Arrays.asList("/credentialSubject/hello"), nonce);
         String presentationSubmission = emulator.createCredentialSubmission();
-        response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+        var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
@@ -260,7 +216,6 @@ public class VerificationControllerTests {
                     .formField("error", "trying_to_get_404")
                     .formField("error_description", ""))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string(containsString(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND.toString())));
+                .andExpect(jsonPath("$.error").value(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND.toString()));
     }
-
 }

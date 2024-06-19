@@ -19,7 +19,7 @@ public class Descriptor {
      */
 
     @NotNull
-    private UUID id;
+    private String id;
 
     @NotBlank
     private String format;

@@ -34,6 +34,7 @@ public class InputDescriptor {
 
     private List<String> group;
 
+    // TODO should be defined
     private HashMap<String, Object> format;
 
     @NotNull

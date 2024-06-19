@@ -1,15 +1,19 @@
 package ch.admin.bit.eid.oid4vp.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.UUID;
 
-@Getter
+@Data
 @Builder
-public class PresentationSubmissionDto {
+@AllArgsConstructor
+@NoArgsConstructor
+public class PresentationSubmission {
 /**
  * The presentation_submission object MUST be included at the top-level of an Embed Target, or in the specific location described in the Embed Locations table in the Embed Target section below.
  * The presentation_submission object MUST contain an id property. The value of this property MUST be a unique identifier, such as a UUID.
@@ -17,8 +21,8 @@ public class PresentationSubmissionDto {
  * The presentation_submission object MUST include a descriptor_map property. The value of this property MUST be an array of Input Descriptor Mapping Objects, composed as follows:
  */
 
-    // must fields
-    private UUID id;
+    @NotBlank
+    private String id;
 
     @JsonProperty("definition_id")
     private String definitionId;

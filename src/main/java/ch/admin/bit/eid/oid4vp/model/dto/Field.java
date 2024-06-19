@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Builder;
 import lombok.Getter;
@@ -8,6 +9,7 @@ import java.util.List;
 
 @Getter
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Field {
     /**
      * The fields object MUST contain a path property. The value of this property MUST be an array of one or more JSONPath string expressions (as defined in the JSONPath Syntax Definition section) that select a target value from the input. The array MUST be evaluated from 0-index forward, breaking as soon as a Field Query Result is found (as described in Input Evaluation), which will be used for the rest of the entry’s evaluation. The ability to declare multiple expressions in this way allows the Verifier to account for format differences - for example: normalizing the differences in structure between JSON-LD/JWT-based Verifiable Credentials and vanilla JSON Web Tokens (JWTs) [RFC7519].

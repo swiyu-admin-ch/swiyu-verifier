@@ -1,12 +1,10 @@
 package ch.admin.bit.eid.oid4vp.service;
 
-import ch.admin.bit.eid.oid4vp.exception.VerificationError;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.Descriptor;
-import ch.admin.bit.eid.oid4vp.model.PresentationSubmissionDto;
+import ch.admin.bit.eid.oid4vp.model.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
-import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
@@ -22,8 +20,8 @@ import uniffi.cryptosuite.BbsCryptoSuite;
 import uniffi.cryptosuite.CryptoSuiteVerificationResult;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Objects.isNull;
@@ -53,47 +51,37 @@ public class VerificationService {
         verificationManagementRepository.save(managementEntity);
     }
 
-    public void processPresentation(ManagementEntity managementEntity, String vpToken, PresentationSubmissionDto presentationSubmission) {
+    public void processPresentation(ManagementEntity managementEntity, String vpToken, PresentationSubmission presentationSubmission) {
         // TODO - Parse presentationSubmission and find out that we need to process it as BBS, ECDSA VC-DI or SD-JWT or JWT
 
-        /**
-         * Verifiers MUST validate the VP Token in the following manner:
-         *
-         * Determine the number of VPs returned in the VP Token and identify in which VP which requested VC is included, using the Input Descriptor Mapping Object(s) in the Presentation Submission.
-         * Validate the integrity, authenticity, and Holder Binding of any Verifiable Presentation provided in the VP Token according to the rules of the respective Presentation format. See Section 12.1 for the checks required to prevent replay of a VP.
-         * Perform the checks on the Credential(s) specific to the Credential Format (i.e., validation of the signature(s) on each VC).
-         * Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
-         * Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
-         */
-
         var walletResponseBuilder = ResponseData.builder();
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
-        boolean test = validateSubmissionComplete(managementEntity, vpToken, presentationSubmission);
+        /**
+         * Determine the number of VPs returned in the VP Token and identify in which VP which requested VC is included,
+         * using the Input Descriptor Mapping Object(s) in the Presentation Submission.
+         */
+        String jsonpathToCredential = getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission);
 
-        if (!test) {
-            try {
-                throw new Exception("Nope");
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
+        // TODO - Validate the integrity, authenticity, and Holder Binding of any Verifiable Presentation provided in the VP Token according to the rules of the respective Presentation format
         String verifiedDocument;
         try {
             verifiedDocument = verifyProofBBS(vpToken, managementEntity.getRequestNonce());
         } catch (Exception e) {
+            String errorDescription = "The credential data integrity signature could not be verified";
             var errorCode = ResponseErrorCodeEnum.CREDENTIAL_INVALID;
             walletResponseBuilder.errorCode(errorCode);
             managementEntity.setWalletResponse(walletResponseBuilder.build());
             managementEntity.setState(VerificationStatusEnum.FAILED);
             verificationManagementRepository.save(managementEntity);
-            throw VerificationException.credentialError(errorCode,
-                    "The credential data integrity signature could not be verified");
+            throw VerificationException.credentialError(errorCode, errorDescription);
         }
-        // TODO See if the presentationSubmission matches with the request object
-        // TODO  See if the requested data is actually here
-        // TODO Validate VC validity
-        // TODO Validate
+
+        // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
+        boolean test2 = checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
+        
+        // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
+
         managementEntity.setState(VerificationStatusEnum.SUCCESS);
         var parser = new GsonJsonParser();
 
@@ -105,10 +93,9 @@ public class VerificationService {
 
     }
 
-    // https://identity.foundation/presentation-exchange/spec/v2.0.0/#processing-of-submission-entries
-    protected Boolean validateSubmissionComplete(final ManagementEntity managementEntity,
-                                                 final String vpToken,
-                                                 final PresentationSubmissionDto presentationSubmission) {
+    protected String getPathToSupportedCredential(final ManagementEntity managementEntity,
+                                                  final String vpToken,
+                                                  final PresentationSubmission presentationSubmission) {
 
         if (isBlank(vpToken) || isNull(managementEntity) || isNull(presentationSubmission)) {
             throw new IllegalArgumentException("vpToken, management and presentation submission cannot be null");
@@ -118,32 +105,62 @@ public class VerificationService {
 
         List<Descriptor> descriptorMap = presentationSubmission.getDescriptorMap();
 
-        Integer numberOfProvidedCreds = JsonPath.read(document, "$.length()");
+        boolean isCredentialList = JsonPath.read(document, "$") instanceof ArrayList<?>;
 
-        if (descriptorMap.size() != numberOfProvidedCreds) {
-            throw new VerificationException(VerificationError.builder()
-                    .error(VerificationErrorEnum.INVALID_REQUEST)
-                    .errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID)
-                    .errorDescription("Credential description does not match, credential")
-                    .build());
+        if (isCredentialList) {
+            Integer numberOfProvidedCreds = JsonPath.read(document, "$.length()");
+
+            if (descriptorMap.size() != numberOfProvidedCreds) {
+                var errorMessage = "Credential description does not match, credential";
+
+                updateManagementObjectAndThrowVerificationError(errorMessage, managementEntity);
+            }
         }
 
-        /**
-         * For each Submission Entry in the descriptor_map array:
-         * 1. Execute the path field’s JSONPath expression string on the Current Traversal Object, or if none is designated, the top level of the Embed Target.
-         * 1.1. Decode and parse the value returned from JSONPath execution in accordance with the Claim Format Designation specified in the object’s format property. If the value parses and validates in accordance with the Claim Format Designation specified, let the resulting object be the Current Traversal Object
-         * 1.2. If the path_nested property is present, process the Nested Submission Traversal Object value using the process described in Step 1.
-         * 2. If parsing of the Submission Entry (and any Nested Submission Traversal Objects present within it) produces a valid result, process it as the submission against the Input Descriptor indicated by the id property of the containing Input Descriptor Mapping Object.
-         */
+        List<String> supportedCredentialPaths = descriptorMap.stream().map(descriptor -> getCredentialPath(vpToken, descriptor)).filter(Objects::nonNull).toList();
 
-        List<String> credentialPaths= descriptorMap.stream().map(descriptor -> getCredentialPath(vpToken, descriptor)).toList();
+        // TODO check supported formats from inputdescriptor?
+        if (supportedCredentialPaths.isEmpty()) {
+            var errorMessage = "No supported credential format found";
 
-        // TODO otherwise throw vp_formats_not_supported
+            updateManagementObjectAndThrowVerificationError(errorMessage, managementEntity);
+        }
 
         // TODO: assume only 1 credential at the moment
-        String credentialPath = credentialPaths.getFirst();
+        String credentialPath = supportedCredentialPaths.getFirst();
 
-        return checkIfAllFieldsAreSet(vpToken, managementEntity.getRequestedPresentation(), credentialPath);
+        return credentialPath;
+    }
+
+    protected boolean checkPresentationDefinitionCriteria(Object document,
+                                                          String jsonPathToCredential,
+                                                          ManagementEntity management) throws VerificationException {
+
+        if (jsonPathToCredential == null) {
+            updateManagementObjectAndThrowVerificationError("Invalid credential path", management);
+        }
+
+        try {
+            List<String> pathList = getAbsolutePaths(management.getRequestedPresentation().getInputDescriptors(), jsonPathToCredential);
+
+            if(!pathList.isEmpty()) {
+                return pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
+            }
+        } catch(PathNotFoundException pathNotFoundException) {
+            updateManagementObjectAndThrowVerificationError(pathNotFoundException.getMessage(), management);
+        }
+
+        return false;
+    }
+
+    private void updateManagementObjectAndThrowVerificationError(String errorMessage, ManagementEntity management) throws VerificationException {
+
+        management.setWalletResponse(ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+        management.setState(VerificationStatusEnum.FAILED);
+        verificationManagementRepository.save(management);
+
+        throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, errorMessage);
+
     }
 
     private String getCredentialPath(String vpToken, Descriptor descriptor) {
@@ -157,39 +174,18 @@ public class VerificationService {
             getCredentialPath(vpToken, descriptor.getPathNested());
         }
 
-        Set<String> validCredentialFormats = Set.of("bbs");
+        Set<String> validCredentialFormats = Set.of("ldp_vc");
         String credFormat = descriptor.getFormat();
 
         return validCredentialFormats.contains(credFormat.toLowerCase()) ? descriptor.getPath(): null;
     }
 
-    private boolean checkIfAllFieldsAreSet(String vpToken, PresentationDefinition definition, String credentialPath) {
-
-        try {
-            Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
-
-            List<String> pathList = getAbsolutePaths(definition.getInputDescriptors(), credentialPath);
-
-            if(!pathList.isEmpty()) {
-                return pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
-            }
-            // TODO check if inputDescriptor can be empty (no paths)
-        } catch(PathNotFoundException pathNotFoundException) {
-            throw new VerificationException(
-                    VerificationError.builder()
-                            .error(VerificationErrorEnum.INVALID_REQUEST)
-                            .errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID)
-                            .errorDescription(pathNotFoundException.getMessage())
-                            .build());
-        }
-
-        return false;
-    }
-
     private List<String> getAbsolutePaths(List<InputDescriptor> inputDescriptorList, String credentialPath) {
         List<String> pathList = new ArrayList<>();
 
-        inputDescriptorList.forEach(descriptor -> descriptor.getConstraints().forEach(constraint -> constraint.getFields().forEach(field -> pathList.addAll(field.getPath().stream().map(str -> credentialPath + str.replace("$", "")).toList()))));
+        inputDescriptorList.forEach(descriptor -> descriptor.getConstraints()
+                .forEach(constraint -> constraint.getFields()
+                        .forEach(field -> pathList.addAll(field.getPath().stream().map(str -> credentialPath + str.replace("$", "")).toList()))));
 
         return pathList;
     }

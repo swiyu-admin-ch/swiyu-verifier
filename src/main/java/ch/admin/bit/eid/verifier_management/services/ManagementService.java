@@ -59,7 +59,7 @@ public class ManagementService {
         PresentationDefinition presentationDefinition = PresentationDefinition.builder()
                 .id(UUID.randomUUID())
                 .inputDescriptors(inputDescriptorDTOsToInputDescriptors(requestDto.getInputDescriptors()))
-                .submissionRequirements(mapToJsonString(requestDto.getSubmissionRequirements()))
+                //.submissionRequirements(mapToJsonString(requestDto.getSubmissionRequirements()))
                 .build();
 
         Management management = repository.save(Management.builder()

@@ -20,14 +20,11 @@ public class InputDescriptorMapper {
             throw new IllegalArgumentException("InputDescriptor cannot be null");
         }
 
-        String constraints = MapperUtil.mapToJsonString(dto.getConstraints());
-        String formats = MapperUtil.mapToJsonString(dto.getFormat());
-
         return InputDescriptor.builder()
-                .id(dto.getId() != null ? dto.getId() : UUID.randomUUID())
-                .constraints(constraints)
-                .format(formats)
-                .group(dto.getGroup())
+                .id(dto.getId() != null ? dto.getId() : UUID.randomUUID().toString())
+                .constraints(dto.getConstraints())
+                .format(dto.getFormat())
+                // .group(dto.getGroup())
                 .name(dto.getName())
                 .build();
     }
@@ -44,9 +41,9 @@ public class InputDescriptorMapper {
         return InputDescriptorDto.builder()
                 .id(inputDescriptor.getId())
                 .name(inputDescriptor.getName())
-                .group(inputDescriptor.getGroup())
-                .format(MapperUtil.jsonStringToMap(inputDescriptor.getFormat()))
-                .constraints(MapperUtil.jsonStringToMap(inputDescriptor.getConstraints()))
+                // .group(inputDescriptor.getGroup())
+                .format(inputDescriptor.getFormat())
+                .constraints(inputDescriptor.getConstraints())
                 .build();
     }
 }

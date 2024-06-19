@@ -16,7 +16,7 @@ public class LoggingUtil {
                                               LogEntryStep step,
                                               UUID managementId) {
 
-        return String.format("%s. status=%s, operation=%s, step=%s, managementId=%s", message, status.name(), operation.name(), step.name(), managementId);
+        return String.format("%s. status=%s, operation=%s, step=%s, managementId=%s", message, status.name(), operation.name(), step.getDisplayName(), managementId);
     }
 
     public static String createLoggingMessage(String message,

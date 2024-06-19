@@ -1,5 +1,10 @@
 package ch.admin.bit.eid.verifier_management.enums;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
 public enum ResponseErrorCodeEnum {
 
     CREDENTIAL_INVALID("credential_invalid"),
@@ -14,5 +19,5 @@ public enum ResponseErrorCodeEnum {
     CREDENTIAL_MISSING_DATA("credential_missing_data"),
     UNRESOLVABLE_STATUS_LIST("unresolvable_status_list");
 
-    ResponseErrorCodeEnum(String displayName) {}
+    private final String displayName;
 }

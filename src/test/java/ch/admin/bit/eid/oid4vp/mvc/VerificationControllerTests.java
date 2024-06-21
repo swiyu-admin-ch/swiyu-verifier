@@ -118,7 +118,7 @@ class VerificationControllerTests {
         JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
         String nonce = responseContent.get("nonce").getAsString();
         String vpToken = emulator.createVerifiablePresentation(credential, Arrays.asList("/credentialSubject/hello"), nonce);
-        String presentationSubmission = emulator.createCredentialSubmission(); // emulator.createCredentialSubmissionURLEncoder();
+        String presentationSubmission = emulator.getCredentialSubmission(); // emulator.createCredentialSubmissionURLEncoder();
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                 .formField("presentation_submission", presentationSubmission)
@@ -166,7 +166,7 @@ class VerificationControllerTests {
         // TODO Get & check Nonce
         String nonce = "wrong_nonce";
         String vpToken = emulator.createVerifiablePresentation(credential, Arrays.asList("/credentialSubject/hello"), nonce);
-        String presentationSubmission = emulator.createCredentialSubmission();
+        String presentationSubmission = emulator.getCredentialSubmission();
         var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))

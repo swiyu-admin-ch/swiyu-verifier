@@ -8,7 +8,6 @@ import uniffi.cryptosuite.BbsCryptoSuite;
 import uniffi.cryptosuite.CryptoSuiteOptions;
 import uniffi.cryptosuite.CryptoSuiteType;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -30,12 +29,12 @@ public class CredentialEmulator {
         return this.cryptoSuite.addProof(vcCredentialSubjectDataJson, options);
     }
 
-    public String createCredentialSubmission() {
+    public String getCredentialSubmission() {
         return "{\"id\":\"test_ldp_vc_presentation_definition\",\"definition_id\":\"ldp_vc\",\"descriptor_map\":[{\"id\":\"test_descriptor\",\"format\":\"ldp_vc\",\"path\":\"$.credentialSubject\"}]}";
     }
 
     public String createCredentialSubmissionURLEncoder() {
-        return URLEncoder.encode(createCredentialSubmission(), StandardCharsets.UTF_8);
+        return URLEncoder.encode(getCredentialSubmission(), StandardCharsets.UTF_8);
     }
 
     public String createVerifiablePresentation(String verifiableCredential, List<String> revealedData, String presentationNonce) {

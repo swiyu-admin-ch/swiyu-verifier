@@ -21,7 +21,7 @@ public class PresentationSubmission {
  * The presentation_submission object MUST include a descriptor_map property. The value of this property MUST be an array of Input Descriptor Mapping Objects, composed as follows:
  */
 
-    @NotBlank
+    @NotBlank(message = "Presentation submission id is mandatory")
     private String id;
 
     @JsonProperty("definition_id")

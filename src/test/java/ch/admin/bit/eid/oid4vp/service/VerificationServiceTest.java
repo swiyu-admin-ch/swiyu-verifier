@@ -5,6 +5,7 @@ import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
+import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.jayway.jsonpath.Configuration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,10 @@ public class VerificationServiceTest {
 
     @MockBean
     private ApplicationConfiguration applicationConfiguration;
+
+    @MockBean
+    private VerificationManagementRepository verificationManagementRepository;
+
 
     @Test
     void contextLoads() throws Exception {

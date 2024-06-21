@@ -47,12 +47,6 @@ public class VerificationController {
     private final ObjectMapper objectMapper;
 
 
-    /**
-     * Endpoint to fetch the Request Object of a Verification Request.
-     *
-     * @param requestId id of the request object to be returnd
-     * @return the request object
-     */
     @GetMapping("/request-object/{request_id}")
     public RequestObject getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
         // TODO Use the signed request object jwt instead of an object

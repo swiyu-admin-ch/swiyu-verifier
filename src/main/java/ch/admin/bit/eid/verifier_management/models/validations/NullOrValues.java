@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.verifier_management.models.validations;
 
+import ch.admin.bit.eid.verifier_management.models.validations.implementations.NullOrValuesValidator;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 

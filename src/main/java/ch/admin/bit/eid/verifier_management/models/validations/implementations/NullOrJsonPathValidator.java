@@ -1,5 +1,6 @@
-package ch.admin.bit.eid.verifier_management.models.validations;
+package ch.admin.bit.eid.verifier_management.models.validations.implementations;
 
+import ch.admin.bit.eid.verifier_management.models.validations.NullOrJsonPath;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.validation.ConstraintValidator;

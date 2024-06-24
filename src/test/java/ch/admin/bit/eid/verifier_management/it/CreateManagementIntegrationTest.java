@@ -176,7 +176,6 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors.length()").value(1))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].id").value("inputDescriptors_id"))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name").value("inputDescriptors_name"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format").isNotEmpty())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints").isArray())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.length()").value(1))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields").isArray())

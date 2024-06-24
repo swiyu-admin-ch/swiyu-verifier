@@ -1,4 +1,4 @@
-package ch.admin.bit.eid.oid4vp.model;
+package ch.admin.bit.eid.oid4vp.model.dto;
 
 import ch.admin.bit.eid.oid4vp.model.validations.ValidJsonPath;
 import com.fasterxml.jackson.annotation.JsonProperty;

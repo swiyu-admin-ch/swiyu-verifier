@@ -1,10 +1,9 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
-import ch.admin.bit.eid.oid4vp.model.Descriptor;
-import ch.admin.bit.eid.oid4vp.model.PresentationSubmission;
+import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import lombok.experimental.UtilityClass;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

@@ -1,7 +1,7 @@
 package ch.admin.bit.eid.oid4vp.controller;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
-import ch.admin.bit.eid.oid4vp.model.PresentationSubmission;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;

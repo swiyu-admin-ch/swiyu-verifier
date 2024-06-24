@@ -1,8 +1,8 @@
 package ch.admin.bit.eid.oid4vp.service;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
-import ch.admin.bit.eid.oid4vp.model.Descriptor;
-import ch.admin.bit.eid.oid4vp.model.PresentationSubmission;
+import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
@@ -116,7 +116,7 @@ public class VerificationService {
         }
 
         List<String> supportedCredentialPaths = descriptorMap.stream()
-                .map(descriptor -> getCredentialPath(vpToken, descriptor, managementEntity))
+                .map(descriptor -> getCredentialPath(descriptor, managementEntity, null))
                 .filter(Objects::nonNull)
                 .toList();
 
@@ -164,23 +164,22 @@ public class VerificationService {
 
     }
 
-    private String getCredentialPath(String vpToken, Descriptor descriptor, ManagementEntity management) {
+    private String getCredentialPath(Descriptor descriptor, ManagementEntity management, String currentPath) {
 
-        if (isBlank(vpToken) || isNull(descriptor) || isNull(management)) {
+        if (isNull(descriptor) || isNull(management)) {
             throw new IllegalArgumentException("Vp token and descriptor cannot be null");
         }
 
-        // TODO handle multiple input descriptors
-
-        // TODO check properly due to recursion
         if (descriptor.getPathNested() != null) {
-            getCredentialPath(vpToken, descriptor.getPathNested(), management);
+            getCredentialPath(descriptor.getPathNested(), management, descriptor.getPath());
         }
 
         String credFormat = descriptor.getFormat();
         Set<String> requestedFormats = management.getRequestedPresentation().getFormat().keySet();
 
-        return requestedFormats.contains(credFormat.toLowerCase()) ? descriptor.getPath(): null;
+        String path = currentPath != null ? concatPaths(currentPath, descriptor.getPath()) : descriptor.getPath();
+
+        return requestedFormats.contains(credFormat.toLowerCase()) ? path : null;
     }
 
     private List<String> getAbsolutePaths(List<InputDescriptor> inputDescriptorList, String credentialPath) {
@@ -188,7 +187,7 @@ public class VerificationService {
 
         inputDescriptorList.forEach(descriptor -> descriptor.getConstraints()
                 .forEach(constraints -> constraints.getFields()
-                        .forEach(field -> pathList.addAll(field.getPath().stream().map(str -> credentialPath + str.replace("$", "")).toList()))));
+                        .forEach(field -> pathList.addAll(field.getPath().stream().map(str -> concatPaths(credentialPath, str)).toList()))));
 
         return pathList;
     }
@@ -202,5 +201,9 @@ public class VerificationService {
             throw new Exception();
         }
         return verificationResult.getVerifiedDocument();
+    }
+
+    private String concatPaths(String parentPath, String path) {
+        return parentPath + path.replace("$", "");
     }
 }

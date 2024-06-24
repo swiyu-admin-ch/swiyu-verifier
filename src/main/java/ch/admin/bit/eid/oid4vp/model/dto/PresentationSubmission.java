@@ -1,4 +1,4 @@
-package ch.admin.bit.eid.oid4vp.model;
+package ch.admin.bit.eid.oid4vp.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;

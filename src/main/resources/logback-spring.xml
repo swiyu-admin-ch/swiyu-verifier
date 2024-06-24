@@ -1,0 +1,15 @@
+<configuration>
+    <springProperty scope="context" name="springApplicationName" source="spring.application.name"/>
+
+    <springProfile name="!cloud">
+        <include resource="logging/logback-text.xml"/>
+    </springProfile>
+
+    <springProfile name="!loud">
+        <include resource="logging/logback-json.xml"/>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="MAIN_APPENDER"/>
+    </root>
+</configuration>

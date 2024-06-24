@@ -30,7 +30,7 @@ public class CredentialEmulator {
     }
 
     public String getCredentialSubmission() {
-        return "{\"id\":\"test_ldp_vc_presentation_definition\",\"definition_id\":\"ldp_vc\",\"descriptor_map\":[{\"id\":\"test_descriptor\",\"format\":\"ldp_vc\",\"path\":\"$.credentialSubject\"}]}";
+        return "{\"id\":\"test_ldp_vc_presentation_definition\",\"definition_id\":\"ldp_vc\",\"descriptor_map\":[{\"id\":\"test_descriptor\",\"format\":\"ldp_vp\",\"path\":\"$.credentialSubject\"}]}";
     }
 
     public String createCredentialSubmissionURLEncoder() {

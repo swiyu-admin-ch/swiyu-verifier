@@ -12,7 +12,7 @@ import java.util.UUID;
 @UtilityClass
 public class CredentialSubmissionMock {
 
-    private static final String DEFAULT_FORMAT = "ldp_vc";
+    private static final String DEFAULT_FORMAT = "ldp_vp";
 
     public static final String CredentialPath = String.format("$.verifiableCredential[%s].credentialSubject",0);
 

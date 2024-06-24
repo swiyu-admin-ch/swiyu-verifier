@@ -7,7 +7,6 @@ import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
-import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.google.gson.Gson;
@@ -90,7 +89,6 @@ public class VerificationService {
         managementEntity.setWalletResponse(walletResponseBuilder.build());
         managementEntity.setState(VerificationStatusEnum.SUCCESS);
         verificationManagementRepository.save(managementEntity);
-
     }
 
     protected String getPathToSupportedCredential(final ManagementEntity managementEntity,
@@ -117,9 +115,12 @@ public class VerificationService {
             }
         }
 
-        List<String> supportedCredentialPaths = descriptorMap.stream().map(descriptor -> getCredentialPath(vpToken, descriptor)).filter(Objects::nonNull).toList();
+        List<String> supportedCredentialPaths = descriptorMap.stream()
+                .map(descriptor -> getCredentialPath(vpToken, descriptor, managementEntity))
+                .filter(Objects::nonNull)
+                .toList();
 
-        // TODO check supported formats from inputdescriptor?
+        // TODO check supported formats from input descriptor?
         if (supportedCredentialPaths.isEmpty()) {
             var errorMessage = "No supported credential format found";
 
@@ -163,33 +164,34 @@ public class VerificationService {
 
     }
 
-    private String getCredentialPath(String vpToken, Descriptor descriptor) {
+    private String getCredentialPath(String vpToken, Descriptor descriptor, ManagementEntity management) {
 
-        if (isBlank(vpToken) || isNull(descriptor)) {
+        if (isBlank(vpToken) || isNull(descriptor) || isNull(management)) {
             throw new IllegalArgumentException("Vp token and descriptor cannot be null");
         }
 
+        // TODO handle multiple input descriptors
+
         // TODO check properly due to recursion
         if (descriptor.getPathNested() != null) {
-            getCredentialPath(vpToken, descriptor.getPathNested());
+            getCredentialPath(vpToken, descriptor.getPathNested(), management);
         }
 
-        Set<String> validCredentialFormats = Set.of("ldp_vc");
         String credFormat = descriptor.getFormat();
+        Set<String> requestedFormats = management.getRequestedPresentation().getFormat().keySet();
 
-        return validCredentialFormats.contains(credFormat.toLowerCase()) ? descriptor.getPath(): null;
+        return requestedFormats.contains(credFormat.toLowerCase()) ? descriptor.getPath(): null;
     }
 
     private List<String> getAbsolutePaths(List<InputDescriptor> inputDescriptorList, String credentialPath) {
         List<String> pathList = new ArrayList<>();
 
         inputDescriptorList.forEach(descriptor -> descriptor.getConstraints()
-                .forEach(constraint -> constraint.getFields()
+                .forEach(constraints -> constraints.getFields()
                         .forEach(field -> pathList.addAll(field.getPath().stream().map(str -> credentialPath + str.replace("$", "")).toList()))));
 
         return pathList;
     }
-
 
     private String verifyProofBBS(String bbsCredential, String nonce) throws Exception {
         // TODO Get the keys from VDR
@@ -201,6 +203,4 @@ public class VerificationService {
         }
         return verificationResult.getVerifiedDocument();
     }
-
-
 }

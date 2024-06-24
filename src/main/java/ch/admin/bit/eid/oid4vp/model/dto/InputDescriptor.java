@@ -1,6 +1,8 @@
 package ch.admin.bit.eid.oid4vp.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -27,16 +29,18 @@ public class InputDescriptor {
      */
 
     @Id
-    @NotBlank
+    @NotBlank(message = "Input descriptor is mandatory")
+    @Schema(description = "(Mandatory) unique string with no conflict with another id in the Presentation Definition")
     private String id;
 
+    @Schema(description = "(Optional) If present human-friendly name which describes the target field")
     private String name;
 
-    private List<String> group;
+    @Schema(description = "(Optional) Purpose for which the data is requested")
+    private String purpose;
 
-    // TODO should be defined
-    private HashMap<String, Object> format;
+    // TODO check if format should also be set here in addition to presentation definition
 
     @NotNull
-    private List<Constraint> constraints;
+    private List<@Valid Constraint> constraints;
 }

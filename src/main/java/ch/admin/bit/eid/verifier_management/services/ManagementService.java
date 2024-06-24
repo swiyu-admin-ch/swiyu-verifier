@@ -9,6 +9,7 @@ import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFoundExcep
 import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
 import ch.admin.bit.eid.verifier_management.models.dto.CreateManagementRequestDto;
+import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,16 +51,17 @@ public class ManagementService {
         return management;
     }
 
-    public Management createVerificationManagement(CreateManagementRequestDto requestDto) {
+    public Management createVerificationManagement(PresentationDefinitionDto requestDto) {
 
         if (requestDto == null) {
             throw new IllegalArgumentException("PresentationDefinition is null");
         }
 
         PresentationDefinition presentationDefinition = PresentationDefinition.builder()
-                .id(UUID.randomUUID())
-                .inputDescriptors(inputDescriptorDTOsToInputDescriptors(requestDto.getInputDescriptors()))
-                //.submissionRequirements(mapToJsonString(requestDto.getSubmissionRequirements()))
+                .id(UUID.randomUUID().toString())
+                .inputDescriptors(requestDto.getInputDescriptors())
+                .purpose(requestDto.getPurpose())
+                .format(requestDto.getFormat())
                 .build();
 
         Management management = repository.save(Management.builder()

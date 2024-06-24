@@ -2,8 +2,8 @@ package ch.admin.bit.eid.verifier_management.controllers;
 
 import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
 import ch.admin.bit.eid.verifier_management.mappers.ManagementMapper;
-import ch.admin.bit.eid.verifier_management.models.dto.CreateManagementRequestDto;
 import ch.admin.bit.eid.verifier_management.models.dto.ManagementResponseDto;
+import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
 import ch.admin.bit.eid.verifier_management.services.ManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -22,7 +22,7 @@ public class VerifierManagementController {
 
     @PostMapping("/verifications")
     @Operation(summary = "Creates a new verification process with the given attributes")
-    public ManagementResponseDto createVerification(@Valid @RequestBody CreateManagementRequestDto requestDto) {
+    public ManagementResponseDto createVerification(@Valid @RequestBody PresentationDefinitionDto requestDto) {
 
         return ManagementMapper.toDto(presentationService.createVerificationManagement(requestDto), applicationConfig.getOid4vpUrl());
     }

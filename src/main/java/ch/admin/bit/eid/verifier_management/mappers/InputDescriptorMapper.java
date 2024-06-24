@@ -24,8 +24,8 @@ public class InputDescriptorMapper {
                 .id(dto.getId() != null ? dto.getId() : UUID.randomUUID().toString())
                 .constraints(dto.getConstraints())
                 .format(dto.getFormat())
-                // .group(dto.getGroup())
                 .name(dto.getName())
+                .purpose(dto.getPurpose())
                 .build();
     }
 
@@ -41,7 +41,7 @@ public class InputDescriptorMapper {
         return InputDescriptorDto.builder()
                 .id(inputDescriptor.getId())
                 .name(inputDescriptor.getName())
-                // .group(inputDescriptor.getGroup())
+                .purpose(inputDescriptor.getPurpose())
                 .format(inputDescriptor.getFormat())
                 .constraints(inputDescriptor.getConstraints())
                 .build();

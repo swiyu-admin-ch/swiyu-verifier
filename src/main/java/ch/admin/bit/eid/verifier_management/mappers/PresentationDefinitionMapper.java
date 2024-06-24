@@ -15,8 +15,10 @@ public class PresentationDefinitionMapper {
 
         return PresentationDefinitionDto.builder()
                 .id(presentation.getId())
-                .inputDescriptors(InputDescriptorMapper.toDTOs(presentation.getInputDescriptors()))
-                // .submissionRequirements(jsonStringToMap(presentation.getSubmissionRequirements()))
+                .name(presentation.getName())
+                .purpose(presentation.getPurpose())
+                .inputDescriptors(presentation.getInputDescriptors())
+                .format(presentation.getFormat())
                 .build();
     }
 }

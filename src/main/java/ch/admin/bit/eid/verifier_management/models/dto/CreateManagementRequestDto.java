@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 
 import java.util.List;
-import java.util.Map;
 
 @Getter
 public class CreateManagementRequestDto {
@@ -15,6 +14,4 @@ public class CreateManagementRequestDto {
     @NotEmpty
     @JsonProperty("input_descriptors")
     private List<InputDescriptorDto> inputDescriptors;
-
-    // private Map<String, Object> submissionRequirements;
 }

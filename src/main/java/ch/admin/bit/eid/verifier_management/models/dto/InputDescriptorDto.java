@@ -22,7 +22,6 @@ public class InputDescriptorDto {
     // TODO add schema
 
     /**
-     * The Input Descriptor Object MAY contain a purpose property. If present, its value MUST be a string that describes the purpose for which the Claim's data is being requested.
      * The Input Descriptor Object MAY contain a format property. If present, its value MUST be an object with one or more properties matching the registered Claim Format Designations (e.g., jwt, jwt_vc, jwt_vp, etc.). This format property is identical in value signature to the top-level format object, but can be used to specifically constrain submission of a single input to a subset of formats or algorithms.
      */
 
@@ -34,11 +33,12 @@ public class InputDescriptorDto {
     @Schema(description = "(Optional) If present human-friendly name which describes the target field")
     private String name;
 
-    // TODO should be defined && add example
-    @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
-    private HashMap<String, Object> format;
+    @Schema(description = "(Optional) Purpose for which the data is requested")
+    private String purpose;
 
-    // The Input Descriptor Object MUST contain a constraints property. Its value MUST be an object composed as follows, unless otherwise specified by a Feature:
+    @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
+    private HashMap<String, FormatAlgorithmDto> format;
+
     @NotNull
     private List<@Valid ConstraintDto> constraints;
 }

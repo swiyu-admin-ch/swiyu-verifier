@@ -61,7 +61,7 @@ class CreateManagementIntegrationTest {
 
     @Test
     void testCreateOffer_thenSuccess() throws Exception {
-        String test = "{\"input_descriptors\":[{\"id\":\"string\",\"name\":\"string\",\"format\": {\"additionalProp1\":{},\"additionalProp2\":{},\"additionalProp3\":{}},\"constraints\":[{\"fields\":[{\"path\":[\"string\"],\"id\":\"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\"name\":\"string\",\"purpose\":\"string\"}],\"limit_disclosure\":\"string\"}]}]}";
+        String test = "{\"id\":\"string\",\"name\":\"string\",\"purpose\":\"string\",\"format\": {\"ldp_vp\": {\"proof_type\":[\"BBS-2023\"]}},\"input_descriptors\":[{\"id\":\"string\",\"name\":\"string\",\"format\": {\"ldp_vp\": {\"proof_type\":[\"BBS-2023\"]}},\"constraints\":[{\"fields\":[{\"path\":[\"$.teest\"],\"id\":\"string\",\"name\":\"string\",\"purpose\":\"string\"}]}]}]}";
 
         MvcResult result = mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
@@ -162,7 +162,7 @@ class CreateManagementIntegrationTest {
 
     @Test
     void testCreateCompleteExample_thenSuccess() throws Exception {
-        String test = "{\"input_descriptors\":[{\"id\":\"inputDescriptors_id\",\"name\":\"inputDescriptors_name\",\"format\": {\"ldp_vc\": {\"proof_type\":[\"bbs-2023\"]}},\"constraints\":[{\"fields\":[{\"path\":[\"constraints_path_1\",\"constraints_path_2\"],\"id\":\"field_id\",\"name\":\"field_name\",\"purpose\":\"field_purpose\"}],\"limit_disclosure\":\"limit_disclosure\"}]}]}";
+        String test = "{\"id\":\"string\",\"name\":\"string\",\"purpose\":\"string\",\"format\": {\"ldp_vp\": {\"proof_type\":[\"BBS-2023\"]}},\"input_descriptors\":[{\"id\":\"inputDescriptors_id\",\"name\":\"inputDescriptors_name\",\"format\": {\"ldp_vp\": {\"proof_type\":[\"BBS-2023\"]}},\"constraints\":[{\"fields\":[{\"path\":[\"$.constraints_path_1\",\"$.constraints_path_2\"],\"id\":\"field_id\",\"name\":\"field_name\",\"purpose\":\"field_purpose\"}]}]}]}";
         MvcResult result = mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -179,12 +179,11 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format").isNotEmpty())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints").isArray())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.length()").value(1))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].limit_disclosure").value("limit_disclosure"))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields").isArray())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path").isArray())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path.length()").value(2))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path[0]").value("constraints_path_1"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path[1]").value("constraints_path_2"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path[0]").value("$.constraints_path_1"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path[1]").value("$.constraints_path_2"))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].id").value("field_id"))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].name").value("field_name"))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].purpose").value("field_purpose"))

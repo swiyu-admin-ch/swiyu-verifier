@@ -1,5 +1,7 @@
 package ch.admin.bit.eid.verifier_management.models;
 
+import ch.admin.bit.eid.verifier_management.models.dto.FormatAlgorithmDto;
+import ch.admin.bit.eid.verifier_management.models.dto.InputDescriptorDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +12,6 @@ import org.springframework.data.redis.core.TimeToLive;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @RedisHash
@@ -19,11 +20,15 @@ import java.util.UUID;
 public class PresentationDefinition implements Serializable {
 
     @Id
-    private UUID id;
+    private String id;
 
-    private List<InputDescriptor> inputDescriptors;
+    private String name;
 
-    // private HashMap<String, Object> submissionRequirements;
+    private String purpose;
+
+    private HashMap<String, FormatAlgorithmDto> format;
+
+    private List<InputDescriptorDto> inputDescriptors;
 
     @TimeToLive
     private long expirationInSeconds;

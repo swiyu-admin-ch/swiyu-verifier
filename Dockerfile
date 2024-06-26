@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21
+FROM bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:17-jre-ubi9-minimal
 
 EXPOSE 8002
 

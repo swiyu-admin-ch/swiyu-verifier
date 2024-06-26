@@ -5,7 +5,7 @@
         <include resource="logging/logback-text.xml"/>
     </springProfile>
 
-    <springProfile name="!loud">
+    <springProfile name="cloud">
         <include resource="logging/logback-json.xml"/>
     </springProfile>
 

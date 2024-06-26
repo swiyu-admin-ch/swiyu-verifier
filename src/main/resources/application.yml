@@ -10,3 +10,7 @@ spring:
   docker:
     compose:
       enabled: false
+
+
+server:
+  max-http-request-header-size: 40KB

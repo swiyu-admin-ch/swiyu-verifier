@@ -1,6 +1,10 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
 
+import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import uniffi.api.KeyPair;
@@ -8,8 +12,8 @@ import uniffi.cryptosuite.BbsCryptoSuite;
 import uniffi.cryptosuite.CryptoSuiteOptions;
 import uniffi.cryptosuite.CryptoSuiteType;
 
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 
 public class CredentialEmulator {
@@ -29,12 +33,29 @@ public class CredentialEmulator {
         return this.cryptoSuite.addProof(vcCredentialSubjectDataJson, options);
     }
 
-    public String getCredentialSubmission() {
-        return "{\"id\":\"test_ldp_vc_presentation_definition\",\"definition_id\":\"ldp_vc\",\"descriptor_map\":[{\"id\":\"test_descriptor\",\"format\":\"ldp_vp\",\"path\":\"$.credentialSubject\"}]}";
+    public PresentationSubmission getCredentialSubmission() {
+        Descriptor descriptor = Descriptor.builder()
+                .format("ldp_vp")
+                .id("test_descriptor")
+                .path("$.credentialSubject")
+                .build();
+
+        return PresentationSubmission.builder()
+                .id("test_ldp_vc_presentation_definition")
+                .definitionId("ldp_vc")
+                .descriptorMap(List.of(descriptor))
+                .build();
     }
 
     public String createCredentialSubmissionURLEncoder() {
-        return URLEncoder.encode(getCredentialSubmission(), StandardCharsets.UTF_8);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            String presentationSubmissionString = objectMapper.writeValueAsString(getCredentialSubmission());
+            return Base64.getUrlEncoder().encodeToString(presentationSubmissionString.getBytes(StandardCharsets.UTF_8));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String createVerifiablePresentation(String verifiableCredential, List<String> revealedData, String presentationNonce) {

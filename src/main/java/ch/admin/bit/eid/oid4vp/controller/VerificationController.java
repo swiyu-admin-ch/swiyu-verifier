@@ -13,7 +13,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,10 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static ch.admin.bit.eid.oid4vp.model.mapper.PresentationSubmissionMapper.base64UrlEncodedStringToPresentationSubmission;
 import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNoneBlank;
@@ -44,7 +45,6 @@ public class VerificationController {
 
     private final RequestObjectService requestObjectService;
     private final VerificationService verificationService;
-    private final ObjectMapper objectMapper;
 
 
     @GetMapping("/request-object/{request_id}")
@@ -60,12 +60,10 @@ public class VerificationController {
                     mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
     public Map<String, Object> receiveVerificationPresentation(
             @PathVariable(name="request_id") UUID requestId,
-            @Valid @RequestParam(name= "presentation_submission", required = false) String presentationSubmissionString,
-            @Valid @RequestParam(name="vp_token", required = false) String vpToken,
+            @RequestParam(name= "presentation_submission", required = false) String presentationSubmissionString,
+            @RequestParam(name="vp_token", required = false) String vpToken,
             @RequestParam(name="error", required = false) String walletError,
             @RequestParam(name="error_description", required = false) String walletErrorDescription) {
-
-        PresentationSubmission presentationSubmission = getPresentationSubmissionDto(presentationSubmissionString);
 
         ManagementEntity management = verificationManagementRepository.findById(requestId.toString()).orElseThrow(
                 () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
@@ -79,28 +77,14 @@ public class VerificationController {
             return null;
         }
 
+        PresentationSubmission presentationSubmission = base64UrlEncodedStringToPresentationSubmission(presentationSubmissionString);
+
         if (isBlank(vpToken) || isNull(presentationSubmission)) {
             throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
         }
 
         verificationService.processPresentation(management, vpToken, presentationSubmission);
 
-        // TODO check if this is correct
         return new HashMap<>();
-    }
-
-    private PresentationSubmission getPresentationSubmissionDto(String presentationSubmissionString) {
-        PresentationSubmission presentationSubmission;
-
-        if (isNull(presentationSubmissionString)) {
-            return null;
-        }
-
-        try {
-            presentationSubmission = objectMapper.readValue(presentationSubmissionString, PresentationSubmission.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException(e);
-        }
-        return presentationSubmission;
     }
 }

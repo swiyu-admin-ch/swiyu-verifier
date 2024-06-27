@@ -1,4 +1,4 @@
-FROM openjdk:21-bookworm
+FROM bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:17-jre-ubi9-minimal
 
 RUN mkdir -p /app
 WORKDIR /app

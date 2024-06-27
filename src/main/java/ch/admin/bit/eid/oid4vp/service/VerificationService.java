@@ -60,7 +60,7 @@ public class VerificationService {
          * Determine the number of VPs returned in the VP Token and identify in which VP which requested VC is included,
          * using the Input Descriptor Mapping Object(s) in the Presentation Submission.
          */
-        String jsonpathToCredential = getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission);
+        String jsonpathToCredential = getPathToSupportedCredential(managementEntity, document, presentationSubmission);
 
         // TODO - Validate the integrity, authenticity, and Holder Binding of any Verifiable Presentation provided in the VP Token according to the rules of the respective Presentation format
         String verifiedDocument;
@@ -92,14 +92,12 @@ public class VerificationService {
     }
 
     protected String getPathToSupportedCredential(final ManagementEntity managementEntity,
-                                                  final String vpToken,
+                                                  final Object document,
                                                   final PresentationSubmission presentationSubmission) {
 
-        if (isBlank(vpToken) || isNull(managementEntity) || isNull(presentationSubmission)) {
-            throw new IllegalArgumentException("vpToken, management and presentation submission cannot be null");
+        if (isNull(document) || isNull(managementEntity) || isNull(presentationSubmission)) {
+            throw new IllegalArgumentException("Document, management and presentation submission cannot be null");
         }
-
-        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
         List<Descriptor> descriptorMap = presentationSubmission.getDescriptorMap();
 

@@ -49,8 +49,8 @@ public class VerificationServiceTest {
         ManagementEntity managementEntity = getManagementEntityMock(requestId, presentationDefinition);
         PresentationSubmission presentationSubmission = getPresentationDefinitionMock(1, false);
 
-        assertThrows(IllegalArgumentException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, "", presentationSubmission));
-        assertThrows(IllegalArgumentException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, "12", null));
+        assertThrows(IllegalArgumentException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, null, presentationSubmission));
+        assertThrows(IllegalArgumentException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, new Object(), null));
     }
 
     @Test
@@ -60,7 +60,9 @@ public class VerificationServiceTest {
         PresentationSubmission presentationSubmission = getPresentationDefinitionMock(1, true);
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
         ManagementEntity managementEntity = getManagementEntityMock(requestId, presentationDefinition);
-        assertEquals(CredentialPathList, verificationService.getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
+
+        assertEquals(CredentialPathList, verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
     }
 
     @Test
@@ -115,8 +117,9 @@ public class VerificationServiceTest {
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"));
         ManagementEntity managementEntity = getManagementEntityMock(UUID.randomUUID(), presentationDefinition);
         PresentationSubmission presentationSubmission = getPresentationDefinitionMock(1, false);
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
-        assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
+        assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
     }
 
     @Test
@@ -126,8 +129,9 @@ public class VerificationServiceTest {
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"));
         ManagementEntity managementEntity = getManagementEntityMock(UUID.randomUUID(), presentationDefinition);
         PresentationSubmission presentationSubmission = getPresentationDefinitionMock(2, false);
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
-        assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
+        assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
     }
 
     @Test
@@ -137,8 +141,9 @@ public class VerificationServiceTest {
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"));
         ManagementEntity managementEntity = getManagementEntityMock(UUID.randomUUID(), presentationDefinition);
         PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(2, true, "wrong_format");
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
-        Exception ex = assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
+        Exception ex = assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
         // TODO fix assertEquals("No supported credential format found", ex.getMessage());
     }
 }

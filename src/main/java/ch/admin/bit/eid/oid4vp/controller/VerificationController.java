@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static ch.admin.bit.eid.oid4vp.model.mapper.PresentationSubmissionMapper.base64UrlEncodedStringToPresentationSubmission;
+import static ch.admin.bit.eid.oid4vp.model.mapper.PresentationSubmissionMapper.decodeBase64;
 import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNoneBlank;
@@ -61,7 +62,7 @@ public class VerificationController {
     public Map<String, Object> receiveVerificationPresentation(
             @PathVariable(name="request_id") UUID requestId,
             @RequestParam(name= "presentation_submission", required = false) String presentationSubmissionString,
-            @RequestParam(name="vp_token", required = false) String vpToken,
+            @RequestParam(name="vp_token", required = false) String vpTokenString,
             @RequestParam(name="error", required = false) String walletError,
             @RequestParam(name="error_description", required = false) String walletErrorDescription) {
 
@@ -78,6 +79,8 @@ public class VerificationController {
         }
 
         PresentationSubmission presentationSubmission = base64UrlEncodedStringToPresentationSubmission(presentationSubmissionString);
+
+        String vpToken = decodeBase64(vpTokenString);
 
         if (isBlank(vpToken) || isNull(presentationSubmission)) {
             throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);

@@ -58,13 +58,14 @@ public class CredentialEmulator {
         }
     }
 
-    public String createVerifiablePresentation(String verifiableCredential, List<String> revealedData, String presentationNonce) {
-        JsonObject vcWithBaseProof = JsonParser.parseString(verifiableCredential).getAsJsonObject();
+    public String createVerifiablePresentation(String vc, List<String> revealedData, String nonce) {
+        JsonObject vcWithBaseProof = JsonParser.parseString(vc).getAsJsonObject();
         String baseProof = vcWithBaseProof.get("proof").getAsJsonObject().get("proof_value").getAsString();
-        return this.cryptoSuite.addDerivedProof(
-                verifiableCredential,
-                baseProof,
-                revealedData,
-                presentationNonce);
+        return this.cryptoSuite.addDerivedProof(vc, baseProof, revealedData, nonce);
+    }
+
+    public String createVerifiablePresentationUrlEncoded(String vc, List<String> revealedData, String nonce) {
+        String unencodedVpToken = createVerifiablePresentation(vc, revealedData, nonce);
+        return Base64.getUrlEncoder().encodeToString(unencodedVpToken.getBytes(StandardCharsets.UTF_8));
     }
 }

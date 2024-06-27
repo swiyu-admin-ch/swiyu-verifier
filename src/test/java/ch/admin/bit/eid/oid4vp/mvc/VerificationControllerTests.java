@@ -117,7 +117,7 @@ class VerificationControllerTests {
         // Get the Nonce
         JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
         String nonce = responseContent.get("nonce").getAsString();
-        String vpToken = emulator.createVerifiablePresentation(credential, Arrays.asList("/credentialSubject/hello"), nonce);
+        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, Arrays.asList("/credentialSubject/hello"), nonce);
         String presentationSubmission = emulator.createCredentialSubmissionURLEncoder();
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
@@ -165,7 +165,7 @@ class VerificationControllerTests {
 
         // TODO Get & check Nonce
         String nonce = "wrong_nonce";
-        String vpToken = emulator.createVerifiablePresentation(credential, Arrays.asList("/credentialSubject/hello"), nonce);
+        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, Arrays.asList("/credentialSubject/hello"), nonce);
         String presentationSubmission = emulator.createCredentialSubmissionURLEncoder();
 
         var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))

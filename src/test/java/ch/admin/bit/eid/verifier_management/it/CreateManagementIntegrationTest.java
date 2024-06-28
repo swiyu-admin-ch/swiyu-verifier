@@ -49,7 +49,27 @@ class CreateManagementIntegrationTest {
 
     @Test
     void testCreateOffer_thenUnauthorized() throws Exception {
-        String test = "{\"inputDescriptors\": [{\"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\"name\": \"string\",\"group\": [\"string\"],\"format\": {\"formatProp\": {\"test\": \"test\"}},\"constraints\": {\"constraintsProp\": {\"test\": \"test\"}}}],\"credentialSubjectData\": {\"credentialSubjectDataProp\": {\"test\": \"test\"}},\"submissionRequirements\": {\"submissionRequirementsProp\": {\"test\": \"test\"}}}";
+        String test = """
+        {
+            "id":"string",
+            "name":"string",
+            "purpose":"string",
+            "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+            "input_descriptors":[{
+                "id":"string",
+                "name":"string",
+                "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                "constraints":[{
+                    "fields":[{
+                        "path":["$.teest"],
+                        "id":"string",
+                        "name":"string",
+                        "purpose":"string"
+                    }]
+                }]
+            }]
+        }
+        """;
 
         mvc.perform(post("/verifications")
                         .with(anonymous())
@@ -61,7 +81,27 @@ class CreateManagementIntegrationTest {
 
     @Test
     void testCreateOffer_thenSuccess() throws Exception {
-        String test = "{\"id\":\"string\",\"name\":\"string\",\"purpose\":\"string\",\"format\": {\"ldp_vp\": {\"proof_type\":[\"BBS-2023\"]}},\"input_descriptors\":[{\"id\":\"string\",\"name\":\"string\",\"format\": {\"ldp_vp\": {\"proof_type\":[\"BBS-2023\"]}},\"constraints\":[{\"fields\":[{\"path\":[\"$.teest\"],\"id\":\"string\",\"name\":\"string\",\"purpose\":\"string\"}]}]}]}";
+        String test = """
+        {
+            "id":"string",
+            "name":"string",
+            "purpose":"string",
+            "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+            "input_descriptors":[{
+                "id":"string",
+                "name":"string",
+                "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                "constraints":[{
+                    "fields":[{
+                        "path":["$.teest"],
+                        "id":"string",
+                        "name":"string",
+                        "purpose":"string"
+                    }]
+                }]
+            }]
+        }
+        """;
 
         MvcResult result = mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
@@ -90,8 +130,26 @@ class CreateManagementIntegrationTest {
     }
 
     @Test
-    void testCreateOfferValidation_thenException() throws Exception {
-        String noInputDescriptorId = "{\"input_descriptors\":[{\"name\":\"string\",\"format\": {\"additionalProp1\":{},\"additionalProp2\":{},\"additionalProp3\":{}},\"constraints\":[{\"fields\":[{\"path\":[\"string\"],\"id\":\"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\"name\":\"string\",\"purpose\":\"string\"}],\"limit_disclosure\":\"string\"}]}]}";
+    void testCreateOfferValidation_noInputDescriptor_thenException() throws Exception {
+        String noInputDescriptorId = """
+                {
+                    "id":"string",
+                    "name":"string",
+                    "purpose":"string",
+                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                    "input_descriptors":[{
+                        "name":"string",
+                        "constraints":[{
+                            "fields":[{
+                                "path":["$.teest"],
+                                "id":"string",
+                                "name":"string",
+                                "purpose":"string"
+                            }]
+                        }]
+                    }]
+                }
+                """;
         mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,8 +158,22 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.detail").value("Invalid request content."))
                 .andReturn();
+    }
 
-        String noConstraints = "{\"input_descriptors\":[{\"id\":\"string\",\"name\":\"string\",\"format\": {\"additionalProp1\":{},\"additionalProp2\":{},\"additionalProp3\":{}}}]}";
+    @Test
+    void testCreateOfferValidation_noConstraints_thenException() throws Exception {
+        String noConstraints = """
+                {
+                    "id":"string",
+                    "name":"string",
+                    "purpose":"string",
+                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                    "input_descriptors":[{
+                        "id":"string",
+                        "name":"string"
+                    }]
+                }
+                """;
         mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,16 +182,54 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.detail").value("Invalid request content."))
                 .andReturn();
+    }
 
-        String emptyConstraints = "{\"input_descriptors\":[{\"id\":\"string\",\"constraints\":[]}]}";
+    @Test
+    void testCreateOfferValidation_emptyConstraints_thenException() throws Exception {
+
+        String emptyConstraints = """
+                {
+                    "id":"string",
+                    "name":"string",
+                    "purpose":"string",
+                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                    "input_descriptors":[{
+                        "id":"string",
+                        "name":"string",
+                        "constraints":[]
+                        }]
+                    }]
+                }
+                """;
         mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(emptyConstraints))
                 .andExpect(status().isOk())
                 .andReturn();
+    }
 
-        String noFieldPath = "{\"input_descriptors\":[{\"id\":\"string\",\"constraints\":[{\"fields\":[{}]}]}]}";
+    @Test
+    void testCreateOfferValidation_noFieldPath_thenException() throws Exception {
+        String noFieldPath = """
+                {
+                    "id":"string",
+                    "name":"string",
+                    "purpose":"string",
+                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                    "input_descriptors":[{
+                        "name":"string",
+                        "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                        "constraints":[{
+                            "fields":[{
+                                "id":"string",
+                                "name":"string",
+                                "purpose":"string"
+                            }]
+                        }]
+                    }]
+                }
+                """;
         mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -128,8 +238,25 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.detail").value("Invalid request content."))
                 .andReturn();
+    }
 
-        String emptyFieldPath = "{\"input_descriptors\":[{\"id\":\"string\",\"constraints\":[{\"fields\":[{\"paths\":[]}]}]}]}";
+    @Test
+    void testCreateOfferValidation_emptyFieldPath_thenException() throws Exception {
+        String emptyFieldPath = """
+        {
+            "id":"string",
+            "name":"string",
+            "purpose":"string",
+            "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+            "input_descriptors":[{
+                "name":"string",
+                "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                "constraints":[{
+                    "fields":[]
+                }]
+            }]
+        }
+        """;
         mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -142,7 +269,19 @@ class CreateManagementIntegrationTest {
 
     @Test
     void testCreateMinimalExample_thenSuccess() throws Exception {
-        String emptyFieldPath = "{\"input_descriptors\":[{\"id\":\"string\",\"constraints\":[{\"fields\":[{\"path\":[\"string\"]}]}]}]}";
+        String emptyFieldPath = """
+        {
+            "input_descriptors":[{
+                "id":"string",
+                "constraints":[{
+                    "fields":[{
+                        "path":["string"]
+                    }]
+                }]
+            }]
+        }
+        """;
+
         MvcResult result = mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -162,7 +301,30 @@ class CreateManagementIntegrationTest {
 
     @Test
     void testCreateCompleteExample_thenSuccess() throws Exception {
-        String test = "{\"id\":\"string\",\"name\":\"string\",\"purpose\":\"string\",\"format\": {\"ldp_vp\": {\"proof_type\":[\"BBS-2023\"]}},\"input_descriptors\":[{\"id\":\"inputDescriptors_id\",\"name\":\"inputDescriptors_name\",\"format\": {\"ldp_vp\": {\"proof_type\":[\"BBS-2023\"]}},\"constraints\":[{\"fields\":[{\"path\":[\"$.constraints_path_1\",\"$.constraints_path_2\"],\"id\":\"field_id\",\"name\":\"field_name\",\"purpose\":\"field_purpose\"}]}]}]}";
+        String test = """
+        {
+            "id":"string",
+            "name":"string",
+            "purpose":"string",
+            "format": {
+                "ldp_vp": {
+                    "proof_type":["BBS-2023"]
+                }
+            },
+            "input_descriptors":[{
+                "id":"inputDescriptors_id",
+                "name":"inputDescriptors_name",
+                "constraints":[{
+                    "fields":[{
+                        "path":["$.constraints_path_1","$.constraints_path_2"],
+                        "id":"field_id",
+                        "name":"field_name",
+                        "purpose":"field_purpose"
+                    }]
+                }]
+            }]
+        }
+        """;
         MvcResult result = mvc.perform(post("/verifications")
                         .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -187,8 +349,6 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].name").value("field_name"))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].purpose").value("field_purpose"))
                 .andReturn();
-
-        // {"presentationDefinition":{"id":"921967dc-54d4-4019-b9ac-8923343828fc","inputDescriptors":[{"id":"inputDescriptors_id","name":"inputDescriptors_name","format":{"ldp_vc":{"proof_ty
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
     }

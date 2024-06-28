@@ -3,18 +3,23 @@ package ch.admin.bit.eid.verifier_management.models.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Getter
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@AllArgsConstructor
+@NoArgsConstructor
 public class FieldDto {
 
     @NotEmpty
     @Schema(description = "(Mandatory) Array of one or more JSONPath string expressions")
+    // TODO NullOrJsonPath
     private List<String> path;
 
     @Schema(description = "(Optional) If present value MUST be a string that is unique")

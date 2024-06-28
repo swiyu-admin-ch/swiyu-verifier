@@ -5,14 +5,12 @@ import ch.admin.bit.eid.verifier_management.models.validations.NullOrFormat;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
-public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, HashMap<String, FormatAlgorithmDto>> {
+public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, Map<String, FormatAlgorithmDto>> {
     @Override
-    public boolean isValid(HashMap<String, FormatAlgorithmDto> format, ConstraintValidatorContext constraintValidatorContext) {
+    public boolean isValid(Map<String, FormatAlgorithmDto> format, ConstraintValidatorContext constraintValidatorContext) {
         if (format == null) {
             return true;
         }
@@ -23,7 +21,7 @@ public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, 
             return false;
         }
 
-        Set<String> acceptedLDPFormats = new HashSet<>(Arrays.asList("ldp_vp", "ldp_vc", "ldp"));
+        final Set<String> acceptedLDPFormats = Set.of("ldp_vp", "ldp_vc", "ldp");
 
         for (var entry : format.entrySet()) {
             isValid = acceptedLDPFormats.contains(entry.getKey())

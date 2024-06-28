@@ -32,5 +32,4 @@ public class ManagementResponseDto {
 
     @JsonProperty("verification_url")
     private String verificationUrl;
-
 }

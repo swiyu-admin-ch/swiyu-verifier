@@ -1,19 +1,36 @@
 package ch.admin.bit.eid.oid4vp.controller;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
+import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.bit.eid.oid4vp.service.RequestObjectService;
 import ch.admin.bit.eid.oid4vp.service.VerificationService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import static ch.admin.bit.eid.oid4vp.model.mapper.PresentationSubmissionMapper.base64UrlEncodedStringToPresentationSubmission;
+import static ch.admin.bit.eid.oid4vp.model.mapper.PresentationSubmissionMapper.decodeBase64;
+import static java.util.Objects.isNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNoneBlank;
 
 /**
  * OpenID4VC Issuance Controller
@@ -31,12 +48,6 @@ public class VerificationController {
     private final VerificationService verificationService;
 
 
-    /**
-     * Endpoint to fetch the Request Object of a Verification Request.
-     *
-     * @param requestId id of the request object to be returnd
-     * @return the request object
-     */
     @GetMapping("/request-object/{request_id}")
     public RequestObject getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
         // TODO Use the signed request object jwt instead of an object
@@ -44,34 +55,39 @@ public class VerificationController {
     }
 
     @PostMapping(value = "/request-object/{request_id}/response-data",
-            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @RequestBody(description = "dummy description", content = @Content(
+                    mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
     public Map<String, Object> receiveVerificationPresentation(
             @PathVariable(name="request_id") UUID requestId,
-            @RequestParam(name="presentation_submission", required = false) String presentationSubmission,
-            @RequestParam(name="vp_token", required = false) String vpToken,
+            @RequestParam(name= "presentation_submission", required = false) String presentationSubmissionString,
+            @RequestParam(name="vp_token", required = false) String vpTokenString,
             @RequestParam(name="error", required = false) String walletError,
             @RequestParam(name="error_description", required = false) String walletErrorDescription) {
 
-        var managementObject = verificationManagementRepository.findById(requestId.toString()).orElseThrow(
+        ManagementEntity management = verificationManagementRepository.findById(requestId.toString()).orElseThrow(
                 () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
 
-        if (managementObject.getState() != VerificationStatusEnum.PENDING) {
+        if (management.getState() != VerificationStatusEnum.PENDING) {
             throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED);
-
         }
 
-        if (walletError != null && !walletError.isEmpty()) {
-            verificationService.processHolderVerificationRejection(managementObject, walletError, walletErrorDescription);
+        if (isNoneBlank(walletError)) {
+            verificationService.processHolderVerificationRejection(management, walletError, walletErrorDescription);
             return null;
         }
 
-        if (vpToken == null || vpToken.isEmpty()
-                || presentationSubmission == null || presentationSubmission.isEmpty()) {
+        PresentationSubmission presentationSubmission = base64UrlEncodedStringToPresentationSubmission(presentationSubmissionString);
+
+        String vpToken = decodeBase64(vpTokenString);
+
+        if (isBlank(vpToken) || isNull(presentationSubmission)) {
             throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
         }
-        verificationService.processPresentation(managementObject, vpToken, presentationSubmission);
-        return new HashMap<String, Object>();
 
+        verificationService.processPresentation(management, vpToken, presentationSubmission);
+
+        return new HashMap<>();
     }
 }

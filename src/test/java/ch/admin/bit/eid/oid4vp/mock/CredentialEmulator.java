@@ -1,6 +1,10 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
 
+import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import uniffi.api.KeyPair;
@@ -8,10 +12,14 @@ import uniffi.cryptosuite.BbsCryptoSuite;
 import uniffi.cryptosuite.CryptoSuiteOptions;
 import uniffi.cryptosuite.CryptoSuiteType;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 
 public class CredentialEmulator {
     private final BbsCryptoSuite cryptoSuite;
+    
+    public static final String ExampleJson = "{\"issuer\":\"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\":\"world\"}}";
 
     public CredentialEmulator() {
         this.cryptoSuite = new BbsCryptoSuite(new KeyPair());
@@ -25,31 +33,39 @@ public class CredentialEmulator {
         return this.cryptoSuite.addProof(vcCredentialSubjectDataJson, options);
     }
 
-    public String createCredentialSubmission() {
-        return """
-                {
-                "presentation_submission": {
-                "id": "test_ldp_vc_presentation_definition",
-                "definition_id": "test_ldp_vc",
-                "descriptor_map": [
-                        {
-                        "id": "test_descriptor",
-                        "format": "ldp_vc",
-                        "path": "$"
-                        }
-                    ]
-                    }
-                }
-                """;
+    public PresentationSubmission getCredentialSubmission() {
+        Descriptor descriptor = Descriptor.builder()
+                .format("ldp_vp")
+                .id("test_descriptor")
+                .path("$.credentialSubject")
+                .build();
+
+        return PresentationSubmission.builder()
+                .id("test_ldp_vc_presentation_definition")
+                .definitionId("ldp_vc")
+                .descriptorMap(List.of(descriptor))
+                .build();
     }
 
-    public String createVerifiablePresentation(String verifiableCredential, List<String> revealedData, String presentationNonce) {
-        JsonObject vcWithBaseProof = JsonParser.parseString(verifiableCredential).getAsJsonObject();
+    public String createCredentialSubmissionURLEncoder() {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            String presentationSubmissionString = objectMapper.writeValueAsString(getCredentialSubmission());
+            return Base64.getUrlEncoder().encodeToString(presentationSubmissionString.getBytes(StandardCharsets.UTF_8));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String createVerifiablePresentation(String vc, List<String> revealedData, String nonce) {
+        JsonObject vcWithBaseProof = JsonParser.parseString(vc).getAsJsonObject();
         String baseProof = vcWithBaseProof.get("proof").getAsJsonObject().get("proof_value").getAsString();
-        return this.cryptoSuite.addDerivedProof(
-                verifiableCredential,
-                baseProof,
-                revealedData,
-                presentationNonce);
+        return this.cryptoSuite.addDerivedProof(vc, baseProof, revealedData, nonce);
+    }
+
+    public String createVerifiablePresentationUrlEncoded(String vc, List<String> revealedData, String nonce) {
+        String unencodedVpToken = createVerifiablePresentation(vc, revealedData, nonce);
+        return Base64.getUrlEncoder().encodeToString(unencodedVpToken.getBytes(StandardCharsets.UTF_8));
     }
 }

@@ -33,7 +33,7 @@ public class RequestObject {
     @JsonProperty("client_id_scheme")
     private String clientIdScheme = "did";
 
-    @JsonProperty("responseType")
+    @JsonProperty("response_type")
     private String responseType = "vp_token";
 
     @JsonProperty("response_mode")

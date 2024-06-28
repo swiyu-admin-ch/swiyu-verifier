@@ -16,10 +16,8 @@ public enum VerificationErrorEnum {
     INVALID_PRESENTATION_DEFINITION("invalid_presentation_definition"),
     INVALID_REQUEST("invalid_request");
 
-
-
-
     private final String displayName;
+
     @JsonValue
     @Override
     public String toString() {

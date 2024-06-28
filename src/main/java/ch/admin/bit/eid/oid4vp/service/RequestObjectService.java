@@ -20,6 +20,7 @@ public class RequestObjectService {
     public RequestObject assembleRequestObject(UUID presentationDefinitionId) {
         var managementEntity = managementRepository.findById(presentationDefinitionId.toString()).orElseThrow(
                 () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
+
         return RequestObject.builder()
                 .nonce(managementEntity.getRequestNonce())
                 .inputDescriptors(managementEntity.getRequestedPresentation().getInputDescriptors())

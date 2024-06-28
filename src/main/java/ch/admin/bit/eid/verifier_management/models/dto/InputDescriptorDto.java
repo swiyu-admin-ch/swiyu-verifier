@@ -8,8 +8,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 
-import java.util.Formattable;
-import java.util.HashMap;
 import java.util.List;
 
 @Data

@@ -8,7 +8,6 @@ import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFoundException;
 import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
-import ch.admin.bit.eid.verifier_management.models.dto.CreateManagementRequestDto;
 import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
 import lombok.AllArgsConstructor;
@@ -19,9 +18,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.UUID;
 
-import static ch.admin.bit.eid.verifier_management.mappers.InputDescriptorMapper.inputDescriptorDTOsToInputDescriptors;
 import static ch.admin.bit.eid.verifier_management.utils.LoggingUtil.createLoggingMessage;
-import static ch.admin.bit.eid.verifier_management.utils.MapperUtil.mapToJsonString;
 
 @Service
 @AllArgsConstructor

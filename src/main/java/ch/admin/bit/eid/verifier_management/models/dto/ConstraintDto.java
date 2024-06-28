@@ -1,6 +1,5 @@
 package ch.admin.bit.eid.verifier_management.models.dto;
 
-import ch.admin.bit.eid.verifier_management.models.validations.NullOrJsonPath;
 import ch.admin.bit.eid.verifier_management.models.validations.NullOrValues;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

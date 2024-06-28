@@ -2,7 +2,6 @@ package ch.admin.bit.eid.verifier_management.mappers;
 
 import ch.admin.bit.eid.verifier_management.models.InputDescriptor;
 import ch.admin.bit.eid.verifier_management.models.dto.InputDescriptorDto;
-import ch.admin.bit.eid.verifier_management.utils.MapperUtil;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;

@@ -61,14 +61,19 @@
 			<artifactId>logback-classic</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-parent</artifactId>
+			<version>1.4.14</version>
+		</dependency>
+		<dependency>
 			<groupId>ch.qos.logback.contrib</groupId>
 			<artifactId>logback-json-classic</artifactId>
-			<version>1.2.0</version>
+			<version>0.1.5</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback.contrib</groupId>
 			<artifactId>logback-jackson</artifactId>
-			<version>1.2.0</version>
+			<version>0.1.5</version>
 		</dependency>
 
 		<dependency>

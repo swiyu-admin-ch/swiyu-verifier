@@ -1,21 +1,37 @@
 <included>
     <appender name="MAIN_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
-        <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
-            <jsonFormatter
-                    class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
-                <prettyPrint>true</prettyPrint>
-            </jsonFormatter>
-            <stackTrace>
-                <fieldName>exception</fieldName>
-                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
-                    <maxDepthPerThrowable>40</maxDepthPerThrowable>
-                    <maxLength>4096</maxLength>
-                    <shortenedClassNameLength>20</shortenedClassNameLength>
-                    <rootCauseFirst>true</rootCauseFirst>
-                    <exclude>sun\.reflect\..*\.invoke.*</exclude>
-                </throwableConverter>
-            </stackTrace>
-            <timestampFormat>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampFormat>
-        </layout>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <provider class="ch.admin.astra.elfa.trotti.util.FieldValueJsonProvider">
+                    <fieldName>app</fieldName>
+                    <value>${springApplicationName}</value>
+                </provider>
+                <loggerName>
+                    <fieldName>logger</fieldName>
+                    <shortenedLoggerNameLength>20</shortenedLoggerNameLength>
+                </loggerName>
+                <logLevel/>
+                <tags/>
+                <threadName/>
+                <mdc/>
+                <arguments/>
+                <logstashMarkers/>
+                <stackHash>
+                    <fieldName>exception-hash</fieldName>
+                </stackHash>
+                <stackTrace>
+                    <fieldName>exception</fieldName>
+                    <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                        <maxDepthPerThrowable>40</maxDepthPerThrowable>
+                        <maxLength>4096</maxLength>
+                        <shortenedClassNameLength>20</shortenedClassNameLength>
+                        <rootCauseFirst>true</rootCauseFirst>
+                        <exclude>sun\.reflect\..*\.invoke.*</exclude>
+                    </throwableConverter>
+                </stackTrace>
+                <message/>
+            </providers>
+        </encoder>
     </appender>
 </included>

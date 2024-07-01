@@ -1,4 +1,5 @@
 FROM bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:17-jre-ubi9-minimal
+USER 0
 
 EXPOSE 8080
 
@@ -11,5 +12,6 @@ RUN set -uxe && \
     chmod g=u /app/entrypoint.sh &&\
     chmod +x /app/entrypoint.s
 # ENV spring_profiles_active=docker
+USER 1001
 
 ENTRYPOINT ["/app/entrypoint.sh","-jar","/app.jar"]

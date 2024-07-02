@@ -12,6 +12,7 @@ if ls /certs-app/*.crt &> /dev/null; then
 else
     echo " => No certificates found, skipping"
 fi
+
 java -Duser.timezone=Europe/Zurich \
 -Dspring.config.location=classpath:application.yml \
 -Dfile.encoding=UTF-8 \

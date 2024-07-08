@@ -1,4 +1,4 @@
-FROM bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:17-jre-ubi9-minimal
+FROM bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:21-jre-ubi9-minimal
 USER 0
 
 EXPOSE 8080

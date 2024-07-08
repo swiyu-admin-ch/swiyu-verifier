@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Objects.isNull;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Service

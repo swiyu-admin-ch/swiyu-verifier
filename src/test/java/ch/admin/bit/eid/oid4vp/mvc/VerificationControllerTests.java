@@ -2,11 +2,13 @@ package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.mock.CredentialEmulator;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.redis.testcontainers.RedisContainer;
@@ -29,6 +31,7 @@ import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEnt
 import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMock;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -118,11 +121,15 @@ class VerificationControllerTests {
         JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
         String nonce = responseContent.get("nonce").getAsString();
         String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, Arrays.asList("/credentialSubject/hello"), nonce);
-        String presentationSubmission = emulator.createCredentialSubmissionURLEncoder();
+        PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String test = objectMapper.writeValueAsString(presentationSubmission);
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                .formField("presentation_submission", presentationSubmission)
-                .formField("vp_token", vpToken))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", test)
+                        .formField("vp_token", vpToken))
             .andExpect(status().isOk());
 
         var managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
@@ -133,7 +140,7 @@ class VerificationControllerTests {
         // Test Resending after Success
 
         response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                        .formField("presentation_submission", presentationSubmission)
+                        .formField("presentation_submission", test)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andReturn();
@@ -166,11 +173,14 @@ class VerificationControllerTests {
         // TODO Get & check Nonce
         String nonce = "wrong_nonce";
         String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, Arrays.asList("/credentialSubject/hello"), nonce);
-        String presentationSubmission = emulator.createCredentialSubmissionURLEncoder();
+        PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String test = objectMapper.writeValueAsString(presentationSubmission);
 
         var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", vpToken)
+                        .formField("presentation_submission", test))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
@@ -195,8 +205,8 @@ class VerificationControllerTests {
 
         // Resending after failure
         response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
+                        .param("vp_token", vpToken)
+                        .formField("presentation_submission", test))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 

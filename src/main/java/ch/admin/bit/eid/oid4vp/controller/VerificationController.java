@@ -13,14 +13,14 @@ import ch.admin.bit.eid.oid4vp.service.VerificationService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import static ch.admin.bit.eid.oid4vp.model.mapper.PresentationSubmissionMapper.stringToPresentationSubmission;
@@ -54,9 +54,10 @@ public class VerificationController {
     @PostMapping(value = "/request-object/{request_id}/response-data",
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE})
+    @ResponseStatus(HttpStatus.OK)
     @RequestBody(description = "dummy description", content = @Content(
             mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
-    public Map<String, Object> receiveVerificationPresentation(
+    public void receiveVerificationPresentation(
             @PathVariable(name="request_id") UUID requestId,
             VerificationPresentationRequest request) {
 
@@ -72,7 +73,7 @@ public class VerificationController {
 
         if (isNoneBlank(walletError)) {
             verificationService.processHolderVerificationRejection(management, walletError, walletErrorDescription);
-            return new HashMap<>();
+            return;
         }
 
         PresentationSubmission presentationSubmission = stringToPresentationSubmission(request.getPresentation_submission());
@@ -84,7 +85,5 @@ public class VerificationController {
         }
 
         verificationService.processPresentation(management, vpToken, presentationSubmission);
-
-        return new HashMap<>();
     }
 }

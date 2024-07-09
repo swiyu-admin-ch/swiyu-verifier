@@ -6,6 +6,9 @@ spring:
       host: localhost
       port: 6379
       timeout: 60000
+  docker:
+    compose:
+      enabled: false
 application:
   external-url: "http://localhost:8003"
   client_id: "did:example:12345"

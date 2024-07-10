@@ -1,6 +1,7 @@
 package ch.admin.bit.eid.oid4vp.model.mapper;
 
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
@@ -17,11 +18,12 @@ public class PresentationSubmissionMapper {
 
         PresentationSubmission presentationSubmission;
         ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
         try {
             presentationSubmission = objectMapper.readValue(presentationSubmissionString, PresentationSubmission.class);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException(e);
+            throw new IllegalArgumentException("Invalid presentation submission");
         }
         return presentationSubmission;
     }

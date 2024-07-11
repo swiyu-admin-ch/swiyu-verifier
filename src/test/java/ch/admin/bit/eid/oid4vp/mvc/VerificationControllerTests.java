@@ -126,11 +126,11 @@ class VerificationControllerTests {
         String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
         PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
 
-        String test = objectMapper.writeValueAsString(presentationSubmission);
+        String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", test)
+                        .formField("presentation_submission", presentationSubmissionString)
                         .formField("vp_token", vpToken))
             .andExpect(status().isOk());
 
@@ -142,7 +142,7 @@ class VerificationControllerTests {
         // Test Resending after Success
 
         response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                        .formField("presentation_submission", test)
+                        .formField("presentation_submission", presentationSubmissionString)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andReturn();

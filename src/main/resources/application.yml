@@ -1,6 +1,6 @@
 spring:
   application:
-    name: verifier-management
+    name: verifier-oid4vp
   data:
     redis:
       database: 0

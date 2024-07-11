@@ -11,13 +11,13 @@
 	<groupId>ch.admin.bit.eid</groupId>
 	<artifactId>verifier-oid4vp</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>verifier-management</name>
+	<name>verifier-oid4vp</name>
 	<description>Generic verifier for public beta</description>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 		<sonar.jacoco.itReportPath>${project.basedir}/../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 		<sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
-		<jacoco-maven-plugin.version>0.8.8</jacoco-maven-plugin.version>
+		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -86,11 +86,6 @@
 			<artifactId>jna</artifactId>
 			<version>5.14.0</version>
 		</dependency>
-		<dependency>
-			<groupId>uniffi</groupId>
-			<artifactId>bbscryptosuite</artifactId>
-			<version>1.0.1</version>
-		</dependency>
 		<!-- End BBS -->
 
 		<!-- logging -->
@@ -127,7 +122,13 @@
 			<version>2.2.2</version>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>uniffi</groupId>
+			<artifactId>bbscryptosuite</artifactId>
+			<version>1.0.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/bbscryptosuite-1.0.0.jar</systemPath>
+		</dependency>
     </dependencies>
 
 	<build>

@@ -47,17 +47,6 @@ public class CredentialEmulator {
                 .build();
     }
 
-    public String createCredentialSubmissionURLEncoder() {
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            String presentationSubmissionString = objectMapper.writeValueAsString(getCredentialSubmission());
-            return Base64.getUrlEncoder().encodeToString(presentationSubmissionString.getBytes(StandardCharsets.UTF_8));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public String createVerifiablePresentation(String vc, List<String> revealedData, String nonce) {
         JsonObject vcWithBaseProof = JsonParser.parseString(vc).getAsJsonObject();
         String baseProof = vcWithBaseProof.get("proof").getAsJsonObject().get("proof_value").getAsString();

@@ -2,7 +2,6 @@ package ch.admin.bit.eid.oid4vp.exception;
 
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
-import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import lombok.Getter;
 
 @Getter

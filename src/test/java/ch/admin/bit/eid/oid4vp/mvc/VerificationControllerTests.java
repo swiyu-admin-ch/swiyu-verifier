@@ -2,11 +2,13 @@ package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.mock.CredentialEmulator;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.redis.testcontainers.RedisContainer;
@@ -29,10 +31,12 @@ import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEnt
 import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMock;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Testcontainers(disabledWithoutDocker = true)
@@ -47,6 +51,9 @@ class VerificationControllerTests {
     private VerificationManagementRepository verificationManagementRepository;
     @Autowired
     private ApplicationConfiguration applicationConfiguration;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final CredentialEmulator emulator =  new CredentialEmulator();;
 
     @Container
     private static final RedisContainer REDIS_CONTAINER = new RedisContainer(
@@ -103,10 +110,9 @@ class VerificationControllerTests {
      */
     @Test
     void shouldSucceedVerifyingCredential() throws Exception {
-        var emulator =  new CredentialEmulator();
 
         var credential = emulator.createVC(
-                Arrays.asList("/type", "/issuer"),
+                List.of("/type", "/issuer"),
                 ExampleJson);
 
         // Fetch the Request Object
@@ -117,12 +123,15 @@ class VerificationControllerTests {
         // Get the Nonce
         JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
         String nonce = responseContent.get("nonce").getAsString();
-        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, Arrays.asList("/credentialSubject/hello"), nonce);
-        String presentationSubmission = emulator.createCredentialSubmissionURLEncoder();
+        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
+
+        String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                .formField("presentation_submission", presentationSubmission)
-                .formField("vp_token", vpToken))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmissionString)
+                        .formField("vp_token", vpToken))
             .andExpect(status().isOk());
 
         var managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
@@ -133,7 +142,7 @@ class VerificationControllerTests {
         // Test Resending after Success
 
         response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                        .formField("presentation_submission", presentationSubmission)
+                        .formField("presentation_submission", presentationSubmissionString)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andReturn();
@@ -142,7 +151,7 @@ class VerificationControllerTests {
         managementEntity = verificationManagementRepository.findById(requestId.toString()).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
-        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains("world")  == true;
+        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains("world");
 
         // Error that verification is closed should be returned to wallet
         var responseBody = response.getResponse().getContentAsString();
@@ -151,8 +160,49 @@ class VerificationControllerTests {
     }
 
     @Test
+    void shouldFailOnInvalidPresentationSubmissionWithAdditionallyEncodedString() throws Exception {
+
+        var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
+        var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
+
+        // Get the Nonce
+        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
+        String nonce = responseContent.get("nonce").getAsString();
+        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
+
+        String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", Base64.getUrlEncoder().encodeToString(presentationSubmissionString.getBytes(StandardCharsets.UTF_8)))
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Invalid presentation submission"));
+    }
+
+    @Test
+    void shouldFailOnInvalidPresentationSubmissionWithInvalidJson() throws Exception {
+
+        var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
+        var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
+
+        // Get the Nonce
+        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
+        String nonce = responseContent.get("nonce").getAsString();
+        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        String presentationSubmission = "{\"id\":\"test_ldp_vc_presentation_definition\",\"definition_id\":\"ldp_vc\",\"descriptor_map\":[{\"id\":\"test_descriptor\",\"format\":\"ldp_vp\",\"path\":\"$.credentialSubject\",\"path_nested\":null";
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Invalid presentation submission"));
+    }
+
+    @Test
     void shouldFailVerifyingCredentialWrongNonce() throws Exception {
-        var emulator =  new CredentialEmulator();
 
         var credential = emulator.createVC(
                 List.of("/type", "/issuer"),
@@ -163,14 +213,15 @@ class VerificationControllerTests {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        // TODO Get & check Nonce
         String nonce = "wrong_nonce";
-        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, Arrays.asList("/credentialSubject/hello"), nonce);
-        String presentationSubmission = emulator.createCredentialSubmissionURLEncoder();
+        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
+
+        String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
 
         var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", vpToken)
+                        .formField("presentation_submission", presentationSubmissionString))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
@@ -195,8 +246,8 @@ class VerificationControllerTests {
 
         // Resending after failure
         response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
+                        .param("vp_token", vpToken)
+                        .formField("presentation_submission", presentationSubmissionString))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 

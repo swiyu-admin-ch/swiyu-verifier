@@ -31,13 +31,13 @@ public class RequestObject {
      * For our purposes will be likely always did
      */
     @JsonProperty("client_id_scheme")
-    private String clientIdScheme = "did";
+    private String clientIdScheme;
 
     @JsonProperty("response_type")
-    private String responseType = "vp_token";
+    private String responseType;
 
     @JsonProperty("response_mode")
-    private String responseMode = "direct_post";
+    private String responseMode;
 
     @JsonProperty("response_uri")
     private String responseUri;

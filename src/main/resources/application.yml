@@ -4,8 +4,8 @@ spring:
   data:
     redis:
       database: 0
-      host: localhost
-      port: 6379
+      host: "${REDIS_URL}"
+      port: "${REDIS_PORT}"
       timeout: 60000
   security:
     oauth2:

@@ -26,6 +26,9 @@ services:
     image: verifier-mgmt-service:latest
     ports:
       - "8002:8002"
+    environment:
+      REDIS_URL: localhost
+      REDIS_PORT: 6379
     depends_on:
       - redis
       - mock-oauth2-server

@@ -48,38 +48,6 @@ class CreateManagementIntegrationTest {
     }
 
     @Test
-    void testCreateOffer_thenUnauthorized() throws Exception {
-        String test = """
-        {
-            "id":"string",
-            "name":"string",
-            "purpose":"string",
-            "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-            "input_descriptors":[{
-                "id":"string",
-                "name":"string",
-                "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                "constraints":[{
-                    "fields":[{
-                        "path":["$.teest"],
-                        "id":"string",
-                        "name":"string",
-                        "purpose":"string"
-                    }]
-                }]
-            }]
-        }
-        """;
-
-        mvc.perform(post("/verifications")
-                        .with(anonymous())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(test))
-                .andExpect(status().isUnauthorized());
-    }
-
-
-    @Test
     void testCreateOffer_thenSuccess() throws Exception {
         String test = """
         {

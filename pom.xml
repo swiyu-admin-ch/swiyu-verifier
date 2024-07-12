@@ -125,9 +125,9 @@
 		<dependency>
 			<groupId>uniffi</groupId>
 			<artifactId>bbscryptosuite</artifactId>
-			<version>1.0.0</version>
+			<version>1.0.1</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/bbscryptosuite-1.0.0.jar</systemPath>
+			<systemPath>${project.basedir}/lib/bbscryptosuite-1.0.1.jar</systemPath>
 		</dependency>
     </dependencies>
 

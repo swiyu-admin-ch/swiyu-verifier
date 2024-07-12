@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: verifier-oid4vp
+
+  data:
+    redis:
+      database: 0
+      host: "${REDIS_HOST}"
+      port: ${REDIS_PORT}
+      timeout: 30000
+
+  docker:
+    compose:
+      enabled: false
+
+server:
+  max-http-request-header-size: 40KB
+
+application:
+  external-url: "${EXTERNAL_URL}"
+  client_id: "${VERIFIER_DID}"
+  client_id_scheme: "did"
+  client_name: "${VERIFIER_NAME}"
+  logo_uri: "${VERIFIER_LOGO}"

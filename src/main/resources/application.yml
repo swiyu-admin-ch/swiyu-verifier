@@ -4,7 +4,7 @@ spring:
   data:
     redis:
       database: 0
-      host: "${REDIS_URL}"
+      host: ${REDIS_URL}
       port: ${REDIS_PORT}
       timeout: 60000
   security:

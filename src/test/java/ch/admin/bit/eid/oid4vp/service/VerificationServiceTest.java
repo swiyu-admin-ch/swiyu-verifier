@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
-public class VerificationServiceTest {
+class VerificationServiceTest {
 
     private final UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
 
@@ -38,7 +38,7 @@ public class VerificationServiceTest {
 
 
     @Test
-    void contextLoads() throws Exception {
+    void contextLoads() {
         assertThat(verificationService).isNotNull();
     }
 
@@ -48,9 +48,10 @@ public class VerificationServiceTest {
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
         ManagementEntity managementEntity = getManagementEntityMock(requestId, presentationDefinition);
         PresentationSubmission presentationSubmission = getPresentationDefinitionMock(1, false);
+        Object emptyDocument = new Object();
 
         assertThrows(IllegalArgumentException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, null, presentationSubmission));
-        assertThrows(IllegalArgumentException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, new Object(), null));
+        assertThrows(IllegalArgumentException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, emptyDocument, null));
     }
 
     @Test
@@ -69,29 +70,17 @@ public class VerificationServiceTest {
     void testProcessPresentationIncompleteData_thenThrowException() {
         String vpToken = "{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\"}}]}";
 
-        PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"));
-        ManagementEntity managementEntity = getManagementEntityMock(requestId, presentationDefinition);
-        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
-
-        assertThrows(VerificationException.class, () -> verificationService.checkPresentationDefinitionCriteria(document, CredentialPath, managementEntity));
+        testProcessWithToken(vpToken);
     }
 
     @Test
     void testProcessPresentationWrongToken_thenThrowException() {
         String vpToken = "[\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\"}}]}";
 
-        PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"));
-        ManagementEntity managementEntity = getManagementEntityMock(requestId, presentationDefinition);
-        PresentationSubmission presentationSubmission = getPresentationDefinitionMock(1, false);
-        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
-
-        assertThrows(VerificationException.class, () -> verificationService.checkPresentationDefinitionCriteria(document, CredentialPath, managementEntity));
+        testProcessWithToken(vpToken);
     }
 
-    @Test
-    void testProcessTokenWithMissingField_thenThrowException() {
-        String vpToken = "{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\"}}]}";
-
+    private void testProcessWithToken(String vpToken) {
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"));
         ManagementEntity managementEntity = getManagementEntityMock(requestId, presentationDefinition);
         Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
@@ -107,7 +96,7 @@ public class VerificationServiceTest {
         ManagementEntity managementEntity = getManagementEntityMock(UUID.randomUUID(), presentationDefinition);
         PresentationSubmission presentationSubmission = getPresentationDefinitionMock(2, true);
 
-        assertEquals(verificationService.getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission), CredentialPathList);
+        assertEquals(CredentialPathList, verificationService.getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
     }
 
     @Test
@@ -143,7 +132,7 @@ public class VerificationServiceTest {
         PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(2, true, "wrong_format");
         Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
-        Exception ex = assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
+        assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
         // TODO fix assertEquals("No supported credential format found", ex.getMessage());
     }
 }

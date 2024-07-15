@@ -3,8 +3,6 @@ package ch.admin.bit.eid.oid4vp.mock;
 
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import uniffi.api.KeyPair;

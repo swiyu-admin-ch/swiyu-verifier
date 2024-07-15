@@ -2,6 +2,7 @@ package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.mock.CredentialEmulator;
+import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
@@ -83,16 +84,22 @@ class VerificationControllerTests {
 
     @Test
     void shouldGetRequestObject() throws Exception {
+        ManagementEntity entity = getManagementEntityMock(requestId, createPresentationDefinitionMock(requestId, List.of("$.hello")));
+        InputDescriptor inputDescriptor = entity.getRequestedPresentation().getInputDescriptors().getFirst();
         mock.perform(get(String.format("/request-object/%s", requestId)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("client_id")))
-                .andExpect(content().string(containsString("client_id_scheme\":\"did\"")))
-                .andExpect(content().string(containsString("client_id\":\"did:")))
-                .andExpect(content().string(containsString("test_descriptor")))
-                .andExpect(content().string(containsString("Test Descriptor")))
-                .andExpect(content().string(not(containsString("${external-url}"))))
-                .andExpect(content().string(containsString(requestId.toString())))
-                .andExpect(content().string(not(containsString("null"))));
+                .andExpect(jsonPath("$.client_id").value(applicationConfiguration.getClientId()))
+                .andExpect(jsonPath("$.client_id_scheme").value(applicationConfiguration.getClientIdScheme()))
+                .andExpect(jsonPath("$.response_type").value("vp_token"))
+                .andExpect(jsonPath("$.response_mode").value("direct_post"))
+                .andExpect(jsonPath("$.nonce").isNotEmpty())
+                .andExpect(jsonPath("$.response_uri").value(String.format("%s/request-object/%s/response-data", applicationConfiguration.getExternalUrl(), entity.getId())))
+                .andExpect(jsonPath("$.presentation_definition[0].id").value(inputDescriptor.getId()))
+                .andExpect(jsonPath("$.presentation_definition[0].name").value(inputDescriptor.getName()))
+                .andExpect(jsonPath("client_metadata.client_name").value(applicationConfiguration.getClientName()))
+                .andExpect(jsonPath("client_metadata.logo_uri").value(applicationConfiguration.getLogoUri()))
+
+                .andExpect(content().string(not(containsString("null")))).andReturn();
     }
 
     @Test

@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.TimeToLive;
 
-import java.util.HashMap;
 import java.util.UUID;
 
 @Data

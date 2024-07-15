@@ -26,5 +26,5 @@ public class Field {
     @Schema(description = "(Optional) If present describes purpose for which the field is requested")
     private String purpose;
 
-// TODO other fields are currently ignored -> check https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor
+    // TODO other fields are currently ignored -> check https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor
 }

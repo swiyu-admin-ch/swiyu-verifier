@@ -39,13 +39,12 @@ public class VerificationService {
      * @param errorDescription
      */
     public void processHolderVerificationRejection(ManagementEntity managementEntity, String error, String errorDescription) {
+        // TODO check if reasons (error and errorDescription) needed
         managementEntity.setWalletResponse(
                 ResponseData.builder()
                         .errorCode(ResponseErrorCodeEnum.CLIENT_REJECTED)
-                        .build()
-        );
+                        .build());
         managementEntity.setState(VerificationStatusEnum.FAILED);
-
         verificationManagementRepository.save(managementEntity);
     }
 
@@ -55,7 +54,7 @@ public class VerificationService {
         var walletResponseBuilder = ResponseData.builder();
         Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
-        /**
+        /*
          * Determine the number of VPs returned in the VP Token and identify in which VP which requested VC is included,
          * using the Input Descriptor Mapping Object(s) in the Presentation Submission.
          */
@@ -76,7 +75,7 @@ public class VerificationService {
         }
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
-        boolean test2 = checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
+        checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
         
         // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
 
@@ -125,14 +124,14 @@ public class VerificationService {
         }
 
         // TODO: assume only 1 credential at the moment
-        String credentialPath = supportedCredentialPaths.getFirst();
-
-        return credentialPath;
+        return supportedCredentialPaths.getFirst();
     }
 
-    protected boolean checkPresentationDefinitionCriteria(Object document,
+    protected void checkPresentationDefinitionCriteria(Object document,
                                                           String jsonPathToCredential,
                                                           ManagementEntity management) throws VerificationException {
+
+        boolean isValid = false;
 
         if (jsonPathToCredential == null) {
             updateManagementObjectAndThrowVerificationError("Invalid credential path", management);
@@ -142,13 +141,16 @@ public class VerificationService {
             List<String> pathList = getAbsolutePaths(management.getRequestedPresentation().getInputDescriptors(), jsonPathToCredential);
 
             if(!pathList.isEmpty()) {
-                return pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
+                isValid = pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
             }
         } catch(PathNotFoundException pathNotFoundException) {
+            // TODO check if nothing is revealed in logs || response
             updateManagementObjectAndThrowVerificationError(pathNotFoundException.getMessage(), management);
         }
 
-        return false;
+        if (!isValid) {
+            updateManagementObjectAndThrowVerificationError("Presentation definition error", management);
+        }
     }
 
     private void updateManagementObjectAndThrowVerificationError(String errorMessage, ManagementEntity management) throws VerificationException {
@@ -189,14 +191,20 @@ public class VerificationService {
         return pathList;
     }
 
-    private String verifyProofBBS(String bbsCredential, String nonce) throws Exception {
+    private String verifyProofBBS(String bbsCredential, String nonce) throws VerificationException {
         // TODO Get the keys from VDR
         KeyPair keys = new KeyPair();
-        BbsCryptoSuite suite = new BbsCryptoSuite(keys);
-        CryptoSuiteVerificationResult verificationResult =  suite.verifyProof(bbsCredential, nonce, keys.getPublicKey());
-        if ( ! verificationResult.component1()){
-            throw new Exception();
+        CryptoSuiteVerificationResult verificationResult;
+
+        try (BbsCryptoSuite suite = new BbsCryptoSuite(keys)) {
+            verificationResult = suite.verifyProof(bbsCredential, nonce, keys.getPublicKey());
         }
+
+        if (!verificationResult.component1()) {
+            String errorDescription = "Verification error";
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, errorDescription);
+        }
+
         return verificationResult.getVerifiedDocument();
     }
 

@@ -10,12 +10,10 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import org.springframework.data.annotation.Id;
 
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
 
 @Builder

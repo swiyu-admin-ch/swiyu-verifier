@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -18,7 +17,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -72,7 +70,6 @@ class CreateManagementIntegrationTest {
         """;
 
         MvcResult result = mvc.perform(post("/verifications")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(test))
                 .andExpect(status().isOk())
@@ -86,7 +83,7 @@ class CreateManagementIntegrationTest {
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
-        MvcResult result1  = mvc.perform(get("/verifications/" + id).with(SecurityMockMvcRequestPostProcessors.jwt()))
+        MvcResult result1  = mvc.perform(get("/verifications/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.request_nonce").isNotEmpty())
@@ -119,7 +116,6 @@ class CreateManagementIntegrationTest {
                 }
                 """;
         mvc.perform(post("/verifications")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(noInputDescriptorId))
                 .andExpect(status().isBadRequest())
@@ -143,7 +139,6 @@ class CreateManagementIntegrationTest {
                 }
                 """;
         mvc.perform(post("/verifications")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(noConstraints))
                 .andExpect(status().isBadRequest())
@@ -170,7 +165,6 @@ class CreateManagementIntegrationTest {
                 }
                 """;
         mvc.perform(post("/verifications")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(emptyConstraints))
                 .andExpect(status().isOk())
@@ -199,7 +193,6 @@ class CreateManagementIntegrationTest {
                 }
                 """;
         mvc.perform(post("/verifications")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(noFieldPath))
                 .andExpect(status().isBadRequest())
@@ -226,7 +219,6 @@ class CreateManagementIntegrationTest {
         }
         """;
         mvc.perform(post("/verifications")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(emptyFieldPath))
                 .andExpect(status().isBadRequest())
@@ -251,7 +243,6 @@ class CreateManagementIntegrationTest {
         """;
 
         MvcResult result = mvc.perform(post("/verifications")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(emptyFieldPath))
                 .andExpect(status().isOk())
@@ -259,7 +250,7 @@ class CreateManagementIntegrationTest {
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
-        MvcResult result1  = mvc.perform(get("/verifications/" + id).with(SecurityMockMvcRequestPostProcessors.jwt()))
+        MvcResult result1  = mvc.perform(get("/verifications/" + id))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
@@ -294,7 +285,6 @@ class CreateManagementIntegrationTest {
         }
         """;
         MvcResult result = mvc.perform(post("/verifications")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(test))
                 .andExpect(status().isOk())

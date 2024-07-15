@@ -4,9 +4,11 @@ import ch.admin.bit.eid.verifier_management.controllers.VerifierManagementContro
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ActiveProfiles("test")
 @SpringBootTest
 class VerifierManagementApplicationTests {
 
@@ -17,5 +19,4 @@ class VerifierManagementApplicationTests {
 	void contextLoads() {
 		assertThat(verifierManagementController).isNotNull();
 	}
-
 }

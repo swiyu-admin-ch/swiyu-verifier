@@ -284,7 +284,7 @@ class CreateManagementIntegrationTest {
             }]
         }
         """;
-        MvcResult result = mvc.perform(post("/verifications")
+        mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(test))
                 .andExpect(status().isOk())
@@ -307,7 +307,5 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].name").value("field_name"))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].purpose").value("field_purpose"))
                 .andReturn();
-
-        String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
     }
 }

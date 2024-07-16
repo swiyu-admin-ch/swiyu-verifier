@@ -10,7 +10,7 @@ public class VerificationNotFoundException extends RuntimeException {
 
     private static final MessageFormat ERR_MESSAGE = new MessageFormat("The verification with the identifier ''{0}'' was not found");
 
-    private UUID managementId;
+    private final UUID managementId;
 
     public VerificationNotFoundException(UUID id) {
 

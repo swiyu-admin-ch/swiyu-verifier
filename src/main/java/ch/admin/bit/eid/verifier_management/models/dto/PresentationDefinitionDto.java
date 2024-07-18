@@ -1,6 +1,5 @@
 package ch.admin.bit.eid.verifier_management.models.dto;
 
-import ch.admin.bit.eid.verifier_management.models.validations.NullOrFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,7 +10,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.Map;
 
 @Getter
 @Setter

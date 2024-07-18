@@ -12,15 +12,14 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @Builder
 @Data
 @AllArgsConstructor
 @NotEmpty
-// TODO check
 public class PresentationDefinition implements Serializable {
 
     private String id;
@@ -32,7 +31,7 @@ public class PresentationDefinition implements Serializable {
     private String purpose;
 
     @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
-    private HashMap<String, FormatAlgorithm> format;
+    private Map<String, FormatAlgorithm> format;
 
     @Valid
     @NotNull

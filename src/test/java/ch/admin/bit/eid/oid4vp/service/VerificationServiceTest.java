@@ -3,6 +3,8 @@ package ch.admin.bit.eid.oid4vp.service;
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
+import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
+import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
@@ -132,7 +134,10 @@ class VerificationServiceTest {
         PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(2, true, "wrong_format");
         Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
-        assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
-        // TODO fix assertEquals("No supported credential format found", ex.getMessage());
+        VerificationException exception = assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
+
+        assertEquals(VerificationErrorEnum.INVALID_REQUEST, exception.getError().getError());
+        assertEquals(ResponseErrorCodeEnum.CREDENTIAL_INVALID, exception.getError().getErrorCode());
+        assertEquals("No supported credential format found", exception.getError().getErrorDescription());
     }
 }

@@ -17,8 +17,4 @@ public class VerificationError {
     private VerificationErrorEnum error;
     private ResponseErrorCodeEnum errorCode;
     private String errorDescription;
-
-
-
-
 }

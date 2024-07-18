@@ -34,6 +34,7 @@ public class VerificationService {
 
     /**
      * Process the answer of a holder refusing to verify.
+     *
      * @param managementEntity
      * @param error
      * @param errorDescription

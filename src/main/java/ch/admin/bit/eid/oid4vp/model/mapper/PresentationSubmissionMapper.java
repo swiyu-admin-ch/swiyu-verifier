@@ -25,6 +25,7 @@ public class PresentationSubmissionMapper {
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Invalid presentation submission");
         }
+        
         return presentationSubmission;
     }
 }

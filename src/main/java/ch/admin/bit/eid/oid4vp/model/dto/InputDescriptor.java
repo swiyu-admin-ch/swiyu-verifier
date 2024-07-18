@@ -31,8 +31,6 @@ public class InputDescriptor {
     @Schema(description = "(Optional) Purpose for which the data is requested")
     private String purpose;
 
-    // TODO check if format should also be set here in addition to presentation definition
-
     @NotNull
     private List<@Valid Constraint> constraints;
 }

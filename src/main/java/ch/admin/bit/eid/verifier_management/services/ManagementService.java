@@ -58,7 +58,6 @@ public class ManagementService {
                 .id(UUID.randomUUID().toString())
                 .inputDescriptors(requestDto.getInputDescriptors())
                 .purpose(requestDto.getPurpose())
-                .format(requestDto.getFormat())
                 .build();
 
         Management management = repository.save(Management.builder()

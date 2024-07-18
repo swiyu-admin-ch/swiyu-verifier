@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.verifier_management.models.dto;
 
+import ch.admin.bit.eid.verifier_management.models.validations.NullOrFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.data.annotation.Id;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -29,7 +31,9 @@ public class InputDescriptorDto implements Serializable {
     @Schema(description = "(Optional) Purpose for which the data is requested")
     private String purpose;
 
-    // TODO check if format should also be set here in addition to presentation definition
+    @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
+    @NullOrFormat
+    private Map<String, FormatAlgorithmDto> format;
 
     @NotNull
     private List<@Valid ConstraintDto> constraints;

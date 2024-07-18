@@ -18,7 +18,6 @@ public class PresentationDefinitionMapper {
                 .name(presentation.getName())
                 .purpose(presentation.getPurpose())
                 .inputDescriptors(presentation.getInputDescriptors())
-                .format(presentation.getFormat())
                 .build();
     }
 }

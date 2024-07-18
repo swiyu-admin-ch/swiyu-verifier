@@ -27,10 +27,6 @@ public class PresentationDefinitionDto {
     @Schema(description = "(Optional) Purpose for which the presentation definition is requested")
     private String purpose;
 
-    @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
-    @NullOrFormat
-    private Map<String, FormatAlgorithmDto> format;
-
     @Valid
     @NotNull
     @JsonProperty("input_descriptors")

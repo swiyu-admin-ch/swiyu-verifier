@@ -10,10 +10,6 @@ import java.util.UUID;
 @UtilityClass
 public class InputDescriptorMapper {
 
-    public static List<InputDescriptor> inputDescriptorDTOsToInputDescriptors(List<InputDescriptorDto> dtos) {
-        return dtos.stream().map(InputDescriptorMapper::toModel).toList();
-    }
-
     public static InputDescriptor toModel(InputDescriptorDto dto) {
         if (dto == null) {
             throw new IllegalArgumentException("InputDescriptor cannot be null");
@@ -23,6 +19,7 @@ public class InputDescriptorMapper {
                 .id(dto.getId() != null ? dto.getId() : UUID.randomUUID().toString())
                 .constraints(dto.getConstraints())
                 .name(dto.getName())
+                .format(dto.getFormat())
                 .purpose(dto.getPurpose())
                 .build();
     }

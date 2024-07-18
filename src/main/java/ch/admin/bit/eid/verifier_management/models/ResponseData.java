@@ -6,13 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.RedisHash;
-import org.springframework.data.redis.core.TimeToLive;
 
 import java.io.Serializable;
 import java.util.UUID;
 
-@RedisHash
 @Data
 @Builder
 @NoArgsConstructor
@@ -26,7 +23,6 @@ public class ResponseData implements Serializable {
 
     private String credentialSubjectData;
 
-    @TimeToLive
     private long expirationInSeconds;
 }
 

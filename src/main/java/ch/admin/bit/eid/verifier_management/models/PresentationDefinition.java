@@ -1,21 +1,16 @@
 package ch.admin.bit.eid.verifier_management.models;
 
-import ch.admin.bit.eid.verifier_management.models.dto.FormatAlgorithmDto;
 import ch.admin.bit.eid.verifier_management.models.dto.InputDescriptorDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.RedisHash;
-import org.springframework.data.redis.core.TimeToLive;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
 @Data
-@RedisHash
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -28,10 +23,7 @@ public class PresentationDefinition implements Serializable {
 
     private String purpose;
 
-    private Map<String, FormatAlgorithmDto> format;
-
     private List<InputDescriptorDto> inputDescriptors;
 
-    @TimeToLive
     private long expirationInSeconds;
 }

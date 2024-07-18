@@ -1,12 +1,15 @@
 spring:
   application:
     name: verifier-management
-  data:
-    redis:
-      database: 0
-      host: ${REDIS_URL}
-      port: ${REDIS_PORT}
-      timeout: 60000
+  datasource:
+    url: "${POSTGRES_JDBC}"
+    username: "${secret.db.username:${POSTGRES_USER}}"
+    password: "${secret.db.password:${POSTGRES_PASSWORD}}"
+    driver-class-name: org.postgresql.Driver
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 springdoc:
   swagger-ui:

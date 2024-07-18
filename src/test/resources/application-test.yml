@@ -1,7 +1,9 @@
 spring:
-  data:
-    redis:
-      database: 0
-      host: localhost
-      port: 6380
-      timeout: 60000
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:test_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;
+    username: sa
+    password: sa
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:/db/h2

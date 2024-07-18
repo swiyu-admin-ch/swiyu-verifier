@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.verifier_management.models.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -14,6 +15,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class FormatAlgorithmDto implements Serializable {
 
     @Schema(description = "(Optional) algorithm string from the JW* family")

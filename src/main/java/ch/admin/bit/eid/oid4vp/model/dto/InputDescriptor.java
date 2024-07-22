@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -30,6 +31,10 @@ public class InputDescriptor {
 
     @Schema(description = "(Optional) Purpose for which the data is requested")
     private String purpose;
+
+    @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
+    // TODO @NullOrFormat
+    private Map<String, FormatAlgorithm> format;
 
     @NotNull
     private List<@Valid Constraint> constraints;

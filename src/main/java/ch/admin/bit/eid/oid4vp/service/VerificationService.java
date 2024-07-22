@@ -2,15 +2,17 @@ package ch.admin.bit.eid.oid4vp.service;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
-import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.google.gson.Gson;
-import com.jayway.jsonpath.*;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.json.GsonJsonParser;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import uniffi.cryptosuite.BbsCryptoSuite;
 import uniffi.cryptosuite.CryptoSuiteVerificationResult;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -41,11 +44,14 @@ public class VerificationService {
      */
     public void processHolderVerificationRejection(ManagementEntity managementEntity, String error, String errorDescription) {
         // TODO check if reasons (error and errorDescription) needed
-        managementEntity.setWalletResponse(
-                ResponseData.builder()
-                        .errorCode(ResponseErrorCodeEnum.CLIENT_REJECTED)
-                        .build());
+        ResponseData responseData = ResponseData
+                .builder()
+                .errorCode(ResponseErrorCodeEnum.CLIENT_REJECTED)
+                .build();
+
+        managementEntity.setWalletResponse(responseData);
         managementEntity.setState(VerificationStatusEnum.FAILED);
+
         verificationManagementRepository.save(managementEntity);
     }
 
@@ -77,7 +83,7 @@ public class VerificationService {
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
         checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
-        
+
         // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
 
         managementEntity.setState(VerificationStatusEnum.SUCCESS);
@@ -129,8 +135,8 @@ public class VerificationService {
     }
 
     protected void checkPresentationDefinitionCriteria(Object document,
-                                                          String jsonPathToCredential,
-                                                          ManagementEntity management) throws VerificationException {
+                                                       String jsonPathToCredential,
+                                                       ManagementEntity management) throws VerificationException {
 
         boolean isValid = false;
 
@@ -141,10 +147,10 @@ public class VerificationService {
         try {
             List<String> pathList = getAbsolutePaths(management.getRequestedPresentation().getInputDescriptors(), jsonPathToCredential);
 
-            if(!pathList.isEmpty()) {
+            if (!pathList.isEmpty()) {
                 isValid = pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
             }
-        } catch(PathNotFoundException pathNotFoundException) {
+        } catch (PathNotFoundException pathNotFoundException) {
             // TODO check if nothing is revealed in logs || response
             updateManagementObjectAndThrowVerificationError(pathNotFoundException.getMessage(), management);
         }
@@ -175,11 +181,20 @@ public class VerificationService {
         }
 
         String credFormat = descriptor.getFormat();
-        Set<String> requestedFormats = management.getRequestedPresentation().getFormat().keySet();
-
+        Set<String> requestedFormats = getRequestedFormats(management);
         String path = currentPath != null ? concatPaths(currentPath, descriptor.getPath()) : descriptor.getPath();
 
         return requestedFormats.contains(credFormat.toLowerCase()) ? path : null;
+    }
+
+    private Set<String> getRequestedFormats(ManagementEntity management) {
+
+        Set<String> requestedFormats = new HashSet<>();
+
+        management.getRequestedPresentation().getInputDescriptors().forEach(descriptor -> requestedFormats.addAll(descriptor.getFormat().keySet()));
+
+        return requestedFormats;
+
     }
 
     private List<String> getAbsolutePaths(List<InputDescriptor> inputDescriptorList, String credentialPath) {

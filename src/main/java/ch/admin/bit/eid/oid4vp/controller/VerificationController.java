@@ -58,10 +58,10 @@ public class VerificationController {
     @RequestBody(description = "dummy description", content = @Content(
             mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
     public void receiveVerificationPresentation(
-            @PathVariable(name="request_id") UUID requestId,
+            @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRequest request) {
 
-        ManagementEntity management = verificationManagementRepository.findById(requestId.toString()).orElseThrow(
+        ManagementEntity management = verificationManagementRepository.findById(requestId).orElseThrow(
                 () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
 
         if (management.getState() != VerificationStatusEnum.PENDING) {

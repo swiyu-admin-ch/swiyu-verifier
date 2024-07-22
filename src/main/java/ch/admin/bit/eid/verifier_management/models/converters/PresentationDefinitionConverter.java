@@ -14,7 +14,7 @@ public class PresentationDefinitionConverter implements AttributeConverter<Prese
     public String convertToDatabaseColumn(PresentationDefinition presentationDefinition) {
         try {
             return objectMapper.writeValueAsString(presentationDefinition);
-        } catch (JsonProcessingException ex) {
+        } catch (JsonProcessingException e) {
             log.warn("Cannot convert PresentationDefinition to JSON");
             return null;
         }

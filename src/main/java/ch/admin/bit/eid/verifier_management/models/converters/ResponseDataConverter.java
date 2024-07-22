@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 public class ResponseDataConverter implements AttributeConverter<ResponseData, String> {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-
     @Override
     public String convertToDatabaseColumn(ResponseData responseData) {
         try {

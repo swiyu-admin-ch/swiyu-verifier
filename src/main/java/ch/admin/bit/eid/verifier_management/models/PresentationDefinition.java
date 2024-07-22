@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -23,7 +25,6 @@ public class PresentationDefinition implements Serializable {
 
     private String purpose;
 
+    @JsonProperty("input_descriptors")
     private List<InputDescriptorDto> inputDescriptors;
-
-    private long expirationInSeconds;
 }

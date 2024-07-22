@@ -5,6 +5,7 @@ import ch.admin.bit.eid.verifier_management.models.dto.ResponseDataDto;
 import lombok.experimental.UtilityClass;
 
 import static ch.admin.bit.eid.verifier_management.utils.MapperUtil.jsonStringToMap;
+import static java.util.Objects.nonNull;
 
 @UtilityClass
 public class ResponseDataMapper {
@@ -15,10 +16,11 @@ public class ResponseDataMapper {
             throw new IllegalArgumentException("Response data cannot be null");
         }
 
+        String credentialSubjectDataString = responseData.getCredentialSubjectData();
+
         return ResponseDataDto.builder()
-                .id(responseData.getId())
                 .errorCode(responseData.getErrorCode())
-                .credentialSubjectData(jsonStringToMap(responseData.getCredentialSubjectData()))
+                .credentialSubjectData(nonNull(credentialSubjectDataString) ? jsonStringToMap(credentialSubjectDataString) : null)
                 .build();
 
     }

@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.verifier_management.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -21,4 +22,9 @@ public enum ResponseErrorCodeEnum {
     CLIENT_REJECTED("client_rejected");
 
     private final String displayName;
+
+    @JsonCreator
+    public static ResponseErrorCodeEnum fromString(String key) {
+        return key == null ? null : ResponseErrorCodeEnum.valueOf(key.toUpperCase());
+    }
 }

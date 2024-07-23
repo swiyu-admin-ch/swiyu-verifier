@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: verifier-oid4vp-local
+  flyway:
+    enabled: true
+    locations: classpath:db/migration

@@ -1,27 +1,29 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
 
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
+import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
+import ch.admin.eid.bbscryptosuite.BbsDerivedProofInit;
+import ch.admin.eid.bbscryptosuite.CryptoSuiteOptions;
+import ch.admin.eid.bbscryptosuite.CryptoSuiteType;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import uniffi.api.KeyPair;
-import uniffi.cryptosuite.BbsCryptoSuite;
-import uniffi.cryptosuite.CryptoSuiteOptions;
-import uniffi.cryptosuite.CryptoSuiteType;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 
-public class CredentialEmulator {
+public class CredentialMock {
+
     private final BbsCryptoSuite cryptoSuite;
 
-    public static final String ExampleJson = "{\"issuer\":\"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\":\"world\"}}";
-
-    public CredentialEmulator() {
-        this.cryptoSuite = new BbsCryptoSuite(new KeyPair());
+    public CredentialMock(final BBSKeyConfiguration bbsKeyConfiguration) {
+        cryptoSuite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey());
     }
+
+    public static final String ExampleJson = "{\"issuer\":\"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\":\"world\"}}";
 
     public String createVC(List<String> requiredFields, String vcCredentialSubjectDataJson) {
         CryptoSuiteOptions options = new CryptoSuiteOptions(
@@ -48,11 +50,19 @@ public class CredentialEmulator {
     public String createVerifiablePresentation(String vc, List<String> revealedData, String nonce) {
         JsonObject vcWithBaseProof = JsonParser.parseString(vc).getAsJsonObject();
         String baseProof = vcWithBaseProof.get("proof").getAsJsonObject().get("proof_value").getAsString();
-        return this.cryptoSuite.addDerivedProof(vc, baseProof, revealedData, nonce);
+
+        BbsDerivedProofInit bbsDerivedProofInit = cryptoSuite.initDerivedProof(
+                vc,
+                baseProof,
+                revealedData,
+                nonce
+        );
+
+        return this.cryptoSuite.addDerivedProof(bbsDerivedProofInit, null);
     }
 
     public String createVerifiablePresentationUrlEncoded(String vc, List<String> revealedData, String nonce) {
-        String unencodedVpToken = createVerifiablePresentation(vc, revealedData, nonce);
-        return Base64.getUrlEncoder().encodeToString(unencodedVpToken.getBytes(StandardCharsets.UTF_8));
+        String vpToken = createVerifiablePresentation(vc, revealedData, nonce);
+        return Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8));
     }
 }

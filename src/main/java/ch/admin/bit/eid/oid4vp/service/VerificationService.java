@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.oid4vp.service;
 
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
@@ -9,6 +10,8 @@ import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
+import ch.admin.eid.bbscryptosuite.CryptoSuiteVerificationResult;
 import com.google.gson.Gson;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
@@ -16,9 +19,6 @@ import com.jayway.jsonpath.PathNotFoundException;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.json.GsonJsonParser;
 import org.springframework.stereotype.Service;
-import uniffi.api.KeyPair;
-import uniffi.cryptosuite.BbsCryptoSuite;
-import uniffi.cryptosuite.CryptoSuiteVerificationResult;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -32,16 +32,12 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 @Service
 @AllArgsConstructor
 public class VerificationService {
+
     private final VerificationManagementRepository verificationManagementRepository;
 
+    private final BBSKeyConfiguration bbsKeyConfiguration;
 
-    /**
-     * Process the answer of a holder refusing to verify.
-     *
-     * @param managementEntity
-     * @param error
-     * @param errorDescription
-     */
+
     public void processHolderVerificationRejection(ManagementEntity managementEntity, String error, String errorDescription) {
         // TODO check if reasons (error and errorDescription) needed
         ResponseData responseData = ResponseData
@@ -208,12 +204,12 @@ public class VerificationService {
     }
 
     private String verifyProofBBS(String bbsCredential, String nonce) throws VerificationException {
-        // TODO Get the keys from VDR
-        KeyPair keys = new KeyPair();
+
         CryptoSuiteVerificationResult verificationResult;
 
-        try (BbsCryptoSuite suite = new BbsCryptoSuite(keys)) {
-            verificationResult = suite.verifyProof(bbsCredential, nonce, keys.getPublicKey());
+        try (BbsCryptoSuite suite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey())) {
+            // TODO Get the keys from VDR
+            verificationResult = suite.verifyProof(bbsCredential, nonce, bbsKeyConfiguration.getPublicBBSKey());
         }
 
         if (!verificationResult.component1()) {

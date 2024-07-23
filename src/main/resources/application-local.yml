@@ -4,3 +4,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+application:
+  key:
+    bbs:
+      seed: "1KsifbxMbLLVNn4alWDy4JDdkrjY5mAU"
+      verification-method: "did:example:123546789#key-1"

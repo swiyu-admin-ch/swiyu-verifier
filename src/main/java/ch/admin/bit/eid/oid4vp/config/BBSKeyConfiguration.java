@@ -1,0 +1,32 @@
+package ch.admin.bit.eid.oid4vp.config;
+
+import ch.admin.eid.bbs.KeyPair;
+import ch.admin.eid.bbs.PublicKey;
+import ch.admin.eid.bbs.SecretKey;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.annotation.Validated;
+
+@Configuration
+@Validated
+@ConfigurationProperties(prefix = "application.key.bbs")
+@Data
+public class BBSKeyConfiguration {
+
+    @NotNull
+    private String seed;
+
+    @NotNull
+    private String verificationMethod;
+
+    public SecretKey getBBSKey() {
+        return SecretKey.Companion.from(seed);
+    }
+
+    // TODO Get the keys from VDR
+    public PublicKey getPublicBBSKey() {
+        return KeyPair.Companion.from(getBBSKey()).getPublicKey();
+    }
+}

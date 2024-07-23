@@ -24,3 +24,7 @@ application:
   client_id_scheme: "did"
   client_name: "Local Test"
   logo_uri: "www.example.ico"
+  key:
+    bbs:
+      seed: "testtesttest"
+      verification-method: "did:example:localhost%3A8080:abcabc#deadbeef"

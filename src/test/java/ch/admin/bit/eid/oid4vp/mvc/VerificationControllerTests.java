@@ -1,7 +1,8 @@
 package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
-import ch.admin.bit.eid.oid4vp.mock.CredentialEmulator;
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
+import ch.admin.bit.eid.oid4vp.mock.CredentialMock;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
@@ -26,7 +27,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
-import static ch.admin.bit.eid.oid4vp.mock.CredentialEmulator.ExampleJson;
+import static ch.admin.bit.eid.oid4vp.mock.CredentialMock.ExampleJson;
 import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEntityMock;
 import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMock;
 import static org.hamcrest.Matchers.containsString;
@@ -41,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
+// @ExtendWith(SpringExtension.class)
 class VerificationControllerTests {
 
     @Autowired
@@ -52,8 +54,10 @@ class VerificationControllerTests {
     @Autowired
     private ApplicationConfiguration applicationConfiguration;
 
+    @Autowired
+    private BBSKeyConfiguration bbsKeyConfiguration;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final CredentialEmulator emulator = new CredentialEmulator();
 
     private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
 
@@ -97,9 +101,9 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingCredential() throws Exception {
 
-        var credential = emulator.createVC(
-                List.of("/type", "/issuer"),
-                ExampleJson);
+        var emulator = new CredentialMock(bbsKeyConfiguration);
+
+        var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
 
         // Fetch the Request Object
         var response = mock.perform(get(String.format("/request-object/%s", requestId)))
@@ -150,6 +154,8 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnInvalidPresentationSubmissionWithAdditionallyEncodedString() throws Exception {
 
+        var emulator = new CredentialMock(bbsKeyConfiguration);
+
         var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
         var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
 
@@ -173,6 +179,8 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnInvalidPresentationSubmissionWithInvalidJson() throws Exception {
+
+        var emulator = new CredentialMock(bbsKeyConfiguration);
 
         ManagementEntity entity = verificationManagementRepository.save(getManagementEntityMock(requestId,
                 createPresentationDefinitionMock(requestId, List.of("$.hello"))));
@@ -198,6 +206,8 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailVerifyingCredentialWrongNonce() throws Exception {
+
+        var emulator = new CredentialMock(bbsKeyConfiguration);
 
         var credential = emulator.createVC(
                 List.of("/type", "/issuer"),

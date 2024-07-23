@@ -100,7 +100,21 @@
             <artifactId>jna</artifactId>
             <version>5.14.0</version>
         </dependency>
+        <dependency>
+            <groupId>ch.admin.eid</groupId>
+            <artifactId>bbscryptosuite</artifactId>
+            <version>0.0.1</version>
+        </dependency>
         <!-- End BBS -->
+
+        <!-- SD-JWT -->
+        <!-- https://mvnrepository.com/artifact/com.authlete/sd-jwt -->
+        <dependency>
+            <groupId>com.authlete</groupId>
+            <artifactId>sd-jwt</artifactId>
+            <version>1.4</version>
+        </dependency>
+        <!-- End SD-JWT -->
 
         <!-- Logging -->
         <dependency>
@@ -125,11 +139,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>uniffi</groupId>
-            <artifactId>bbscryptosuite</artifactId>
-            <version>1.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -163,6 +172,36 @@
                             <goal>prepare-agent</goal>
                             <goal>prepare-agent-integration</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <groupId>ch.admin.eid</groupId>
+                    <artifactId>bbscryptosuite</artifactId>
+                    <version>0.0.1</version>
+                    <packaging>jar</packaging>
+                    <file>${project.basedir}/lib/bbscryptosuite-0.0.1.jar</file>
+                    <generatePom>true</generatePom>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-jar-lib</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <phase>validate</phase>
+                        <configuration>
+                            <groupId>ch.admin.eid</groupId>
+                            <artifactId>bbscryptosuite</artifactId>
+                            <version>0.0.1</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/bbscryptosuite-0.0.1.jar</file>
+                            <generatePom>true</generatePom>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

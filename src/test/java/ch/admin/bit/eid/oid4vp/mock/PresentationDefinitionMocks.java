@@ -23,21 +23,21 @@ public class PresentationDefinitionMocks {
                 .fields(List.of(field))
                 .build();
 
-        InputDescriptor inputDescriptor = InputDescriptor.builder()
-                .id("test_descriptor_id")
-                .name("Test Descriptor Name")
-                .constraints(List.of(constraint))
-                .build();
-
         HashMap<String, FormatAlgorithm> formats = new HashMap<>();
         formats.put("ldp_vp", FormatAlgorithm.builder()
                 .proofType(List.of("BBS2023"))
                 .build());
 
+        InputDescriptor inputDescriptor = InputDescriptor.builder()
+                .id("test_descriptor_id")
+                .name("Test Descriptor Name")
+                .constraints(List.of(constraint))
+                .format(formats)
+                .build();
+
         return PresentationDefinition.builder()
                 .id(requestId.toString())
                 .inputDescriptors(List.of(inputDescriptor))
-                .format(formats)
                 .build();
     }
 }

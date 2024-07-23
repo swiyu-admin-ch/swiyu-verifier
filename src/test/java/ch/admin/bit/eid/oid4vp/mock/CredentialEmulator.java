@@ -16,14 +16,14 @@ import java.util.List;
 
 public class CredentialEmulator {
     private final BbsCryptoSuite cryptoSuite;
-    
+
     public static final String ExampleJson = "{\"issuer\":\"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\":\"world\"}}";
 
     public CredentialEmulator() {
         this.cryptoSuite = new BbsCryptoSuite(new KeyPair());
     }
 
-    public String createVC(List<String> requiredFields, String vcCredentialSubjectDataJson){
+    public String createVC(List<String> requiredFields, String vcCredentialSubjectDataJson) {
         CryptoSuiteOptions options = new CryptoSuiteOptions(
                 requiredFields,
                 CryptoSuiteType.BBS2023,
@@ -35,7 +35,7 @@ public class CredentialEmulator {
         Descriptor descriptor = Descriptor.builder()
                 .format("ldp_vp")
                 .id("test_descriptor")
-                .path("$.credentialSubject")
+                .path("$")
                 .build();
 
         return PresentationSubmission.builder()

@@ -3,7 +3,6 @@ package ch.admin.bit.eid.oid4vp.model.persistence;
 import ch.admin.bit.eid.oid4vp.model.converter.PresentationDefinitionConverter;
 import ch.admin.bit.eid.oid4vp.model.converter.ResponseDataConverter;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -25,7 +24,6 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ManagementEntity {
 
     @Id

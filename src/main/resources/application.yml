@@ -7,7 +7,7 @@ spring:
     password: "${secret.db.password:${POSTGRES_PASSWORD}}"
     driver-class-name: org.postgresql.Driver
   flyway:
-    enabled: true
+    enabled: false
     locations: classpath:db/migration
   docker:
     compose:

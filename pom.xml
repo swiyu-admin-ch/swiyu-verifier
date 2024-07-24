@@ -10,7 +10,7 @@
     </parent>
     <groupId>ch.admin.bit.eid</groupId>
     <artifactId>verifier-oid4vp</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>verifier-oid4vp</name>
     <description>Generic verifier for public beta</description>
     <properties>
@@ -206,5 +206,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

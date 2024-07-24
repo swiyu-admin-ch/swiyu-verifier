@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.verifier_management.models;
 
+import ch.admin.bit.eid.verifier_management.models.dto.FormatAlgorithmDto;
 import ch.admin.bit.eid.verifier_management.models.dto.InputDescriptorDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,16 +8,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class PresentationDefinition implements Serializable {
+public class PresentationDefinition {
 
     @Id
     private String id;
@@ -25,6 +24,7 @@ public class PresentationDefinition implements Serializable {
 
     private String purpose;
 
-    @JsonProperty("input_descriptors")
+    private Map<String, FormatAlgorithmDto> format;
+
     private List<InputDescriptorDto> inputDescriptors;
 }

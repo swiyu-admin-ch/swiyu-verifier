@@ -1,11 +1,12 @@
 package ch.admin.bit.eid.verifier_management.services;
 
+import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
 import ch.admin.bit.eid.verifier_management.enums.LogEntryOperation;
 import ch.admin.bit.eid.verifier_management.enums.LogEntryStatus;
 import ch.admin.bit.eid.verifier_management.enums.LogEntryStep;
-import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
 import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFoundException;
+import ch.admin.bit.eid.verifier_management.mappers.PresentationDefinitionMapper;
 import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
 import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
@@ -54,11 +55,7 @@ public class ManagementService {
             throw new IllegalArgumentException("PresentationDefinition is null");
         }
 
-        PresentationDefinition presentationDefinition = PresentationDefinition.builder()
-                .id(UUID.randomUUID().toString())
-                .inputDescriptors(requestDto.getInputDescriptors())
-                .purpose(requestDto.getPurpose())
-                .build();
+        PresentationDefinition presentationDefinition = PresentationDefinitionMapper.map(requestDto);
 
         Management management = repository.save(Management.builder()
                 .id(UUID.randomUUID())

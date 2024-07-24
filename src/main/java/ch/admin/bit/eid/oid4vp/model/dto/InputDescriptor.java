@@ -33,7 +33,6 @@ public class InputDescriptor {
     private String purpose;
 
     @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
-    // TODO @NullOrFormat
     private Map<String, FormatAlgorithm> format;
 
     @NotNull

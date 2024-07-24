@@ -2,6 +2,7 @@ package ch.admin.bit.eid.oid4vp.service;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
@@ -15,12 +16,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bit.eid.oid4vp.mock.CredentialSubmissionMock.*;
 import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEntityMock;
 import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMock;
+import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMockWithDescriptorFormat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -140,6 +143,58 @@ class VerificationServiceTest {
 
         assertEquals(VerificationErrorEnum.INVALID_REQUEST, exception.getError().getError());
         assertEquals(ResponseErrorCodeEnum.CREDENTIAL_INVALID, exception.getError().getErrorCode());
-        assertEquals("No supported credential format found", exception.getError().getErrorDescription());
+        assertEquals("No supported credential format found - check if formats are supported and set in descriptor or presentation", exception.getError().getErrorDescription());
+    }
+
+    @Test
+    void testWhenNoSupportedCredFormatsInDescriptor_thenThrowException() {
+        String vpToken = "[{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\",\"zip\": \"1000\"}}]}, {\"verifiableCredential\": [{\"credentialSubject\": {\"zip\": \"1000\"}}]}]";
+
+        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
+        formats.put("ldp_vp", FormatAlgorithm.builder()
+                .proofType(List.of("BBS2023"))
+                .build());
+
+        PresentationDefinition presentationDefinition = createPresentationDefinitionMockWithDescriptorFormat(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"), formats);
+        ManagementEntity managementEntity = getManagementEntityMock(UUID.randomUUID(), presentationDefinition);
+        PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(2, true, "wrong_format");
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
+
+        VerificationException exception = assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
+
+        assertEquals(VerificationErrorEnum.INVALID_REQUEST, exception.getError().getError());
+        assertEquals(ResponseErrorCodeEnum.CREDENTIAL_INVALID, exception.getError().getErrorCode());
+        assertEquals("No supported credential format found - check if formats are supported and set in descriptor or presentation", exception.getError().getErrorDescription());
+    }
+
+    @Test
+    void testWhenCredFormatsInDescriptor_thenSuccess() {
+        String vpToken = "[{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\",\"zip\": \"1000\"}}]}, {\"verifiableCredential\": [{\"credentialSubject\": {\"zip\": \"1000\"}}]}]";
+
+        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
+        formats.put("ldp_vp", FormatAlgorithm.builder()
+                .proofType(List.of("BBS2023"))
+                .build());
+
+        PresentationDefinition presentationDefinition = createPresentationDefinitionMockWithDescriptorFormat(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"), formats);
+        ManagementEntity managementEntity = getManagementEntityMock(UUID.randomUUID(), presentationDefinition);
+        PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(2, true, "ldp_vp");
+
+        assertEquals(CredentialPathList, verificationService.getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
+    }
+
+    @Test
+    void testWhenNoFormats_thenSuccess() {
+        String vpToken = "[{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\",\"zip\": \"1000\"}}]}, {\"verifiableCredential\": [{\"credentialSubject\": {\"zip\": \"1000\"}}]}]";
+
+        PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"), null, null);
+        ManagementEntity managementEntity = getManagementEntityMock(UUID.randomUUID(), presentationDefinition);
+        PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(2, true, "ldp_vp");
+
+        VerificationException exception = assertThrows(VerificationException.class, () -> verificationService.getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
+
+        assertEquals(VerificationErrorEnum.INVALID_REQUEST, exception.getError().getError());
+        assertEquals(ResponseErrorCodeEnum.CREDENTIAL_INVALID, exception.getError().getErrorCode());
+        assertEquals("No supported credential format found - check if formats are supported and set in descriptor or presentation", exception.getError().getErrorDescription());
     }
 }

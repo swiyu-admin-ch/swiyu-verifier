@@ -3,11 +3,13 @@ package ch.admin.bit.eid.oid4vp.service;
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
+import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
+import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
@@ -21,12 +23,14 @@ import org.springframework.boot.json.GsonJsonParser;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Service
@@ -119,9 +123,8 @@ public class VerificationService {
                 .filter(Objects::nonNull)
                 .toList();
 
-        // TODO check supported formats from input descriptor?
         if (supportedCredentialPaths.isEmpty()) {
-            var errorMessage = "No supported credential format found";
+            var errorMessage = "No supported credential format found - check if formats are supported and set in descriptor or presentation";
 
             updateManagementObjectAndThrowVerificationError(errorMessage, managementEntity);
         }
@@ -166,6 +169,7 @@ public class VerificationService {
 
     }
 
+    // TODO check
     private String getCredentialPath(Descriptor descriptor, ManagementEntity management, String currentPath) {
 
         if (isNull(descriptor) || isNull(management)) {
@@ -185,12 +189,19 @@ public class VerificationService {
 
     private Set<String> getRequestedFormats(ManagementEntity management) {
 
-        Set<String> requestedFormats = new HashSet<>();
+        PresentationDefinition presentationDefinition = management.getRequestedPresentation();
+        Map<String, FormatAlgorithm> formats = new HashMap<>();
 
-        management.getRequestedPresentation().getInputDescriptors().forEach(descriptor -> requestedFormats.addAll(descriptor.getFormat().keySet()));
+        addFormatsToMap(presentationDefinition.getFormat(), formats);
+        presentationDefinition.getInputDescriptors().forEach(descriptor -> addFormatsToMap(descriptor.getFormat(), formats));
 
-        return requestedFormats;
+        return formats.keySet();
+    }
 
+    private void addFormatsToMap(Map<String, FormatAlgorithm> inputFormats, Map<String, FormatAlgorithm> outputFormats) {
+        if (nonNull(inputFormats) && !inputFormats.isEmpty()) {
+            outputFormats.putAll(inputFormats);
+        }
     }
 
     private List<String> getAbsolutePaths(List<InputDescriptor> inputDescriptorList, String credentialPath) {

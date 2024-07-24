@@ -9,12 +9,32 @@ import lombok.experimental.UtilityClass;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @UtilityClass
 public class PresentationDefinitionMocks {
     public static PresentationDefinition createPresentationDefinitionMock(UUID requestId, List<String> requiredFields) {
 
+        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
+        formats.put("ldp_vp", FormatAlgorithm.builder()
+                .proofType(List.of("BBS2023"))
+                .build());
+
+        return createPresentationDefinitionMock(requestId, requiredFields, null, formats);
+    }
+
+    public static PresentationDefinition createPresentationDefinitionMockWithDescriptorFormat(UUID requestId,
+                                                                                              List<String> requiredFields,
+                                                                                              Map<String, FormatAlgorithm> descriptorFormats) {
+
+        return createPresentationDefinitionMock(requestId, requiredFields, descriptorFormats, null);
+    }
+
+    public static PresentationDefinition createPresentationDefinitionMock(UUID requestId,
+                                                                          List<String> requiredFields,
+                                                                          Map<String, FormatAlgorithm> descriptorFormats,
+                                                                          Map<String, FormatAlgorithm> presentationFormats) {
         Field field = Field.builder()
                 .path(requiredFields)
                 .build();
@@ -23,21 +43,17 @@ public class PresentationDefinitionMocks {
                 .fields(List.of(field))
                 .build();
 
-        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
-        formats.put("ldp_vp", FormatAlgorithm.builder()
-                .proofType(List.of("BBS2023"))
-                .build());
-
         InputDescriptor inputDescriptor = InputDescriptor.builder()
                 .id("test_descriptor_id")
                 .name("Test Descriptor Name")
                 .constraints(List.of(constraint))
-                .format(formats)
+                .format(presentationFormats)
                 .build();
 
         return PresentationDefinition.builder()
                 .id(requestId.toString())
                 .inputDescriptors(List.of(inputDescriptor))
+                .format(descriptorFormats)
                 .build();
     }
 }

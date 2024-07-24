@@ -179,21 +179,13 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
                 <version>3.1.2</version>
-                <configuration>
-                    <groupId>ch.admin.eid</groupId>
-                    <artifactId>bbscryptosuite</artifactId>
-                    <version>0.0.1</version>
-                    <packaging>jar</packaging>
-                    <file>${project.basedir}/lib/bbscryptosuite-0.0.1.jar</file>
-                    <generatePom>true</generatePom>
-                </configuration>
                 <executions>
                     <execution>
-                        <id>install-jar-lib</id>
+                        <id>install-bbs-lib</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
-                        <phase>validate</phase>
                         <configuration>
                             <groupId>ch.admin.eid</groupId>
                             <artifactId>bbscryptosuite</artifactId>

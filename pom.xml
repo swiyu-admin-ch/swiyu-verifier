@@ -103,8 +103,6 @@
             <groupId>ch.admin.eid</groupId>
             <artifactId>bbscryptosuite</artifactId>
             <version>0.0.1</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/bbscryptosuite-0.0.1.jar</systemPath>
         </dependency>
         <!-- End BBS -->
 
@@ -183,10 +181,10 @@
                 <executions>
                     <execution>
                         <id>install-jar-lib</id>
-                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
                             <groupId>ch.admin.eid</groupId>
                             <artifactId>bbscryptosuite</artifactId>

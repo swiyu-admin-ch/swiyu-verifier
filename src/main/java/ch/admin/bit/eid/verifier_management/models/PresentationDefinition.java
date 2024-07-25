@@ -2,6 +2,7 @@ package ch.admin.bit.eid.verifier_management.models;
 
 import ch.admin.bit.eid.verifier_management.models.dto.FormatAlgorithmDto;
 import ch.admin.bit.eid.verifier_management.models.dto.InputDescriptorDto;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,5 +27,6 @@ public class PresentationDefinition {
 
     private Map<String, FormatAlgorithmDto> format;
 
+    @JsonProperty("input_descriptors")
     private List<InputDescriptorDto> inputDescriptors;
 }

@@ -16,6 +16,7 @@ public class ResponseDataConverter implements AttributeConverter<ResponseData, S
             return objectMapper.writeValueAsString(responseData);
         } catch (JsonProcessingException ex) {
             log.warn("Cannot convert ResponseData to JSON");
+            log.debug(e.toString());
             return null;
         }
     }
@@ -26,6 +27,7 @@ public class ResponseDataConverter implements AttributeConverter<ResponseData, S
             return objectMapper.readValue(value, ResponseData.class);
         } catch (JsonProcessingException e) {
             log.warn("Cannot convert JSON to ResponseData");
+            log.debug(e.toString());
             return null;
         }
     }

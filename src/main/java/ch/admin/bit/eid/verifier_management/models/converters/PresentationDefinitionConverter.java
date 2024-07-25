@@ -16,6 +16,7 @@ public class PresentationDefinitionConverter implements AttributeConverter<Prese
             return objectMapper.writeValueAsString(presentationDefinition);
         } catch (JsonProcessingException e) {
             log.warn("Cannot convert PresentationDefinition to JSON");
+            log.debug(e.toString());
             return null;
         }
     }
@@ -27,6 +28,7 @@ public class PresentationDefinitionConverter implements AttributeConverter<Prese
             return objectMapper.readValue(value, PresentationDefinition.class);
         } catch (JsonProcessingException e) {
             log.warn("Cannot convert String to PresentationDefinition");
+            log.debug(e.toString());
             return null;
         }
     }

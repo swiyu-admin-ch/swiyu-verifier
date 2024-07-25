@@ -124,7 +124,7 @@ public class VerificationService {
                 .toList();
 
         if (supportedCredentialPaths.isEmpty()) {
-            var errorMessage = "No supported credential format found - check if formats are supported and set in descriptor or presentation";
+            var errorMessage = "No matching paths with correct formats found";
 
             updateManagementObjectAndThrowVerificationError(errorMessage, managementEntity);
         }
@@ -155,7 +155,7 @@ public class VerificationService {
         }
 
         if (!isValid) {
-            updateManagementObjectAndThrowVerificationError("Presentation definition error", management);
+            updateManagementObjectAndThrowVerificationError("Validation criteria not matched, check the structure and values of the token", management);
         }
     }
 

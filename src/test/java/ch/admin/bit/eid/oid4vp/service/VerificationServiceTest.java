@@ -143,7 +143,7 @@ class VerificationServiceTest {
 
         assertEquals(VerificationErrorEnum.INVALID_REQUEST, exception.getError().getError());
         assertEquals(ResponseErrorCodeEnum.CREDENTIAL_INVALID, exception.getError().getErrorCode());
-        assertEquals("No supported credential format found - check if formats are supported and set in descriptor or presentation", exception.getError().getErrorDescription());
+        assertEquals("No matching paths with correct formats found", exception.getError().getErrorDescription());
     }
 
     @Test
@@ -164,7 +164,7 @@ class VerificationServiceTest {
 
         assertEquals(VerificationErrorEnum.INVALID_REQUEST, exception.getError().getError());
         assertEquals(ResponseErrorCodeEnum.CREDENTIAL_INVALID, exception.getError().getErrorCode());
-        assertEquals("No supported credential format found - check if formats are supported and set in descriptor or presentation", exception.getError().getErrorDescription());
+        assertEquals("No matching paths with correct formats found", exception.getError().getErrorDescription());
     }
 
     @Test
@@ -195,6 +195,6 @@ class VerificationServiceTest {
 
         assertEquals(VerificationErrorEnum.INVALID_REQUEST, exception.getError().getError());
         assertEquals(ResponseErrorCodeEnum.CREDENTIAL_INVALID, exception.getError().getErrorCode());
-        assertEquals("No supported credential format found - check if formats are supported and set in descriptor or presentation", exception.getError().getErrorDescription());
+        assertEquals("No matching paths with correct formats found", exception.getError().getErrorDescription());
     }
 }

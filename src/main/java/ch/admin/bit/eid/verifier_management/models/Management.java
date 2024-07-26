@@ -23,7 +23,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Management implements Serializable {
+public class Management {
 
     @Id
     private UUID id;

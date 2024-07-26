@@ -37,15 +37,16 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(apiError, apiError.getStatus());
     }
 
-     @ExceptionHandler(Exception.class)
-     protected ResponseEntity<Object> handleGeneralException(final Exception exception, final WebRequest request) {
-         final ApiError apiError = new ApiError(INTERNAL_SERVER_ERROR);
-         apiError.setDetail("Internal Server Error. Please check again later");
+    @ExceptionHandler(Exception.class)
+    protected ResponseEntity<Object> handleGeneralException(final Exception exception, final WebRequest request) {
+        final ApiError apiError = new ApiError(INTERNAL_SERVER_ERROR);
+        apiError.setDetail("Internal Server Error. Please check again later");
 
-         log.info(createLoggingMessage("General verification error",
-                 LogEntryStatus.ERROR,
-                 LogEntryOperation.VERIFICATION));
+        log.info(createLoggingMessage("General verification error",
+                LogEntryStatus.ERROR,
+                LogEntryOperation.VERIFICATION));
+        log.info(exception.toString());
 
-         return new ResponseEntity<>(apiError, apiError.getStatus());
-     }
+        return new ResponseEntity<>(apiError, apiError.getStatus());
+    }
 }

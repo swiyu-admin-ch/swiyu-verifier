@@ -19,6 +19,7 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.json.GsonJsonParser;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class VerificationService {
@@ -72,6 +74,7 @@ public class VerificationService {
         try {
             verifiedDocument = verifyProofBBS(vpToken, managementEntity.getRequestNonce());
         } catch (Exception e) {
+            log.error(e.toString());
             String errorDescription = "The credential data integrity signature could not be verified";
             var errorCode = ResponseErrorCodeEnum.CREDENTIAL_INVALID;
             walletResponseBuilder.errorCode(errorCode);
@@ -169,7 +172,6 @@ public class VerificationService {
 
     }
 
-    // TODO check
     private String getCredentialPath(Descriptor descriptor, ManagementEntity management, String currentPath) {
 
         if (isNull(descriptor) || isNull(management)) {
@@ -219,13 +221,11 @@ public class VerificationService {
         CryptoSuiteVerificationResult verificationResult;
 
         try (BbsCryptoSuite suite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey())) {
-            // TODO Get the keys from VDR
             verificationResult = suite.verifyProof(bbsCredential, nonce, bbsKeyConfiguration.getPublicBBSKey());
         }
 
         if (!verificationResult.component1()) {
-            String errorDescription = "Verification error";
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, errorDescription);
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Verification error");
         }
 
         return verificationResult.getVerifiedDocument();

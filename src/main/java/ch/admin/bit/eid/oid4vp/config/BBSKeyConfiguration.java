@@ -24,8 +24,7 @@ public class BBSKeyConfiguration {
     public SecretKey getBBSKey() {
         return SecretKey.Companion.from(seed);
     }
-
-    // TODO Get the keys from VDR
+    
     public PublicKey getPublicBBSKey() {
         return KeyPair.Companion.from(getBBSKey()).getPublicKey();
     }

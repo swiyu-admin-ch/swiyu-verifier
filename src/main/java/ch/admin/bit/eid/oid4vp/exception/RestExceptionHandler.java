@@ -36,12 +36,12 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(responseMessage, responseStatus);
     }
 
-    /*@ExceptionHandler(Exception.class)
+    @ExceptionHandler(Exception.class)
     protected ResponseEntity<Object> handleGeneralException(
-            final Exception exception, final WebRequest request){
+            final Exception exception, final WebRequest request) {
         HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         String responseMessage = nonNull(exception.getMessage()) ? exception.getMessage() : "Internal server error. Please check again later";
 
         return new ResponseEntity<>(responseMessage, responseStatus);
-    }*/
+    }
 }

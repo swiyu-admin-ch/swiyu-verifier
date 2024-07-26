@@ -19,7 +19,3 @@ application:
   client_id_scheme: "did"
   client_name: "${VERIFIER_NAME}"
   logo_uri: "${VERIFIER_LOGO}"
-  key:
-    bbs:
-      seed: "1KsifbxMbLLVNn4alWDy4JDdkrjY5mAU"
-      verification-method: "did:example:123546789#key-1"

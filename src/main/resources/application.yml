@@ -2,10 +2,11 @@ spring:
   application:
     name: verifier-management
   datasource:
+    type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
-    url: ${POSTGRES_JDBC}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    url: "${POSTGRES_JDBC}"
+    username: "${POSTGRES_USER}"
+    password: "${POSTGRES_PASSWORD}"
 
   flyway:
     enabled: true

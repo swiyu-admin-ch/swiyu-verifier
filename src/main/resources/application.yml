@@ -11,7 +11,7 @@ spring:
     locations: classpath:db/migration
   docker:
     compose:
-      enabled: true
+      enabled: false
 
 application:
   external-url: "${EXTERNAL_URL}"
@@ -19,3 +19,7 @@ application:
   client_id_scheme: "did"
   client_name: "${VERIFIER_NAME}"
   logo_uri: "${VERIFIER_LOGO}"
+  key:
+    bbs:
+      seed: "${BBS_KEY_SEED}"
+      verification-method: "${DID_BBS_AUTHENTICATION_METHOD}"

@@ -1,77 +1,49 @@
-package ch.admin.bit.eid.oid4vp.service;
+package ch.admin.bit.eid.oid4vp.model;
 
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
-import ch.admin.bit.eid.oid4vp.model.PresentationFormatFactory;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
-import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
-import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
-import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteVerificationResult;
 import com.google.gson.Gson;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.json.GsonJsonParser;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import static ch.admin.bit.eid.oid4vp.utils.Base64Utils.decodeBase64;
 import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Slf4j
-@Service
-@AllArgsConstructor
-public class VerificationService {
-
-    private final VerificationManagementRepository verificationManagementRepository;
+public class LdpCredential extends CredentialBuilder {
 
     private final BBSKeyConfiguration bbsKeyConfiguration;
 
-    private final PresentationFormatFactory presentationFormatFactory;
-
-    public void processHolderVerificationRejection(ManagementEntity managementEntity, String error, String errorDescription) {
-        // TODO check if reasons (error and errorDescription) needed
-        ResponseData responseData = ResponseData
-                .builder()
-                .errorCode(ResponseErrorCodeEnum.CLIENT_REJECTED)
-                .build();
-
-        managementEntity.setWalletResponse(responseData);
-        managementEntity.setState(VerificationStatusEnum.FAILED);
-
-        verificationManagementRepository.save(managementEntity);
+    LdpCredential(BBSKeyConfiguration bbsKeyConfiguration) {
+        this.bbsKeyConfiguration = bbsKeyConfiguration;
     }
 
-    public void verifyCredential(String vpToken, ManagementEntity managementEntity, PresentationSubmission presentationSubmission) {
+    @Override
+    public ManagementEntity verifyPresentation() {
+        String decodedVpToken = decodeBase64(vpToken);
 
-        var mimi = presentationFormatFactory
-                .getFormatBuilder(presentationSubmission)
-                .credentialOffer(vpToken, managementEntity, presentationSubmission)
-                .verify();
-    }
-
-    public void processPresentation(ManagementEntity managementEntity, String vpToken, PresentationSubmission presentationSubmission) {
         // TODO - Parse presentationSubmission and find out that we need to process it as BBS, ECDSA VC-DI or SD-JWT or JWT
 
         var walletResponseBuilder = ResponseData.builder();
-        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(decodedVpToken);
 
         /*
          * Determine the number of VPs returned in the VP Token and identify in which VP which requested VC is included,
@@ -82,7 +54,7 @@ public class VerificationService {
         // TODO - Validate the integrity, authenticity, and Holder Binding of any Verifiable Presentation provided in the VP Token according to the rules of the respective Presentation format
         String verifiedDocument;
         try {
-            verifiedDocument = verifyProofBBS(vpToken, managementEntity.getRequestNonce());
+            verifiedDocument = verifyProofBBS(decodedVpToken, managementEntity.getRequestNonce());
         } catch (Exception e) {
             log.error(e.toString());
             String errorDescription = "The credential data integrity signature could not be verified";
@@ -90,8 +62,8 @@ public class VerificationService {
             walletResponseBuilder.errorCode(errorCode);
             managementEntity.setWalletResponse(walletResponseBuilder.build());
             managementEntity.setState(VerificationStatusEnum.FAILED);
-            verificationManagementRepository.save(managementEntity);
-            throw VerificationException.credentialError(errorCode, errorDescription);
+            updateManagementObjectAndThrowVerificationError(errorDescription, managementEntity);
+            throw VerificationException.credentialError(errorCode, errorDescription); // TODO check why still needed
         }
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
@@ -106,7 +78,7 @@ public class VerificationService {
         walletResponseBuilder.credentialSubjectData(new Gson().toJson(credentialSubject));
         managementEntity.setWalletResponse(walletResponseBuilder.build());
         managementEntity.setState(VerificationStatusEnum.SUCCESS);
-        verificationManagementRepository.save(managementEntity);
+        return managementEntity;
     }
 
     protected String getPathToSupportedCredential(final ManagementEntity managementEntity,
@@ -172,14 +144,19 @@ public class VerificationService {
         }
     }
 
-    private void updateManagementObjectAndThrowVerificationError(String errorMessage, ManagementEntity management) throws VerificationException {
+    private String verifyProofBBS(String bbsCredential, String nonce) throws VerificationException {
 
-        management.setWalletResponse(ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-        management.setState(VerificationStatusEnum.FAILED);
-        verificationManagementRepository.save(management);
+        CryptoSuiteVerificationResult verificationResult;
 
-        throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, errorMessage);
+        try (BbsCryptoSuite suite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey())) {
+            verificationResult = suite.verifyProof(bbsCredential, nonce, bbsKeyConfiguration.getPublicBBSKey());
+        }
 
+        if (!verificationResult.component1()) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Verification error");
+        }
+
+        return verificationResult.getVerifiedDocument();
     }
 
     private String getCredentialPath(Descriptor descriptor, ManagementEntity management, String currentPath) {
@@ -199,23 +176,6 @@ public class VerificationService {
         return requestedFormats.contains(credFormat.toLowerCase()) ? path : null;
     }
 
-    private Set<String> getRequestedFormats(ManagementEntity management) {
-
-        PresentationDefinition presentationDefinition = management.getRequestedPresentation();
-        Map<String, FormatAlgorithm> formats = new HashMap<>();
-
-        addFormatsToMap(presentationDefinition.getFormat(), formats);
-        presentationDefinition.getInputDescriptors().forEach(descriptor -> addFormatsToMap(descriptor.getFormat(), formats));
-
-        return formats.keySet();
-    }
-
-    private void addFormatsToMap(Map<String, FormatAlgorithm> inputFormats, Map<String, FormatAlgorithm> outputFormats) {
-        if (nonNull(inputFormats) && !inputFormats.isEmpty()) {
-            outputFormats.putAll(inputFormats);
-        }
-    }
-
     private List<String> getAbsolutePaths(List<InputDescriptor> inputDescriptorList, String credentialPath) {
         List<String> pathList = new ArrayList<>();
 
@@ -224,21 +184,6 @@ public class VerificationService {
                         .forEach(field -> pathList.addAll(field.getPath().stream().map(str -> concatPaths(credentialPath, str)).toList()))));
 
         return pathList;
-    }
-
-    private String verifyProofBBS(String bbsCredential, String nonce) throws VerificationException {
-
-        CryptoSuiteVerificationResult verificationResult;
-
-        try (BbsCryptoSuite suite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey())) {
-            verificationResult = suite.verifyProof(bbsCredential, nonce, bbsKeyConfiguration.getPublicBBSKey());
-        }
-
-        if (!verificationResult.component1()) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Verification error");
-        }
-
-        return verificationResult.getVerifiedDocument();
     }
 
     private String concatPaths(String parentPath, String path) {

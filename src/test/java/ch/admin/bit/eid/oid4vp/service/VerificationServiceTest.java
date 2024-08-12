@@ -197,4 +197,19 @@ class VerificationServiceTest {
         assertEquals(ResponseErrorCodeEnum.CREDENTIAL_INVALID, exception.getError().getErrorCode());
         assertEquals("No matching paths with correct formats found", exception.getError().getErrorDescription());
     }
+
+
+    @Test
+    void testVerifyCredential() {
+        String vpToken = "[{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\"}}]}]";
+
+        PresentationSubmission presentationSubmission = getPresentationDefinitionMock(1, true);
+
+
+        PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
+        ManagementEntity managementEntity = getManagementEntityMock(requestId, presentationDefinition);
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
+
+        assertEquals(CredentialPathList, verificationService.getPathToSupportedCredential(managementEntity, document, presentationSubmission));
+    }
 }

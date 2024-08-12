@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 import static ch.admin.bit.eid.oid4vp.model.mapper.PresentationSubmissionMapper.stringToPresentationSubmission;
-import static ch.admin.bit.eid.oid4vp.utils.Base64Utils.decodeBase64;
 import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNoneBlank;
@@ -78,12 +77,13 @@ public class VerificationController {
 
         PresentationSubmission presentationSubmission = stringToPresentationSubmission(request.getPresentation_submission());
 
-        String vpToken = decodeBase64(request.getVp_token());
+        // TODO: readd for sd-jwt
+        // String vpToken = decodeBase64(request.getVp_token());
 
-        if (isBlank(vpToken) || isNull(presentationSubmission)) {
+        if (isBlank(request.getVp_token()) || isNull(presentationSubmission)) {
             throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
         }
 
-        verificationService.processPresentation(management, vpToken, presentationSubmission);
+        verificationService.processPresentation(management, request.getVp_token(), presentationSubmission);
     }
 }

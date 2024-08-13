@@ -5,6 +5,7 @@ import ch.admin.bit.eid.oid4vp.model.PresentationFormatFactory;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
+import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,6 +27,9 @@ class PresentationFormatFactoryTest {
     private final UUID requestId = UUID.randomUUID();
 
     @MockBean
+    private VerificationManagementRepository verificationManagementRepository;
+
+    @MockBean
     private BBSKeyConfiguration bbsKeyConfiguration;
 
     private final String vpToken = """
@@ -36,13 +40,12 @@ class PresentationFormatFactoryTest {
             """;
 
     private PresentationFormatFactory presentationFormatFactory;
-    private PresentationDefinition presentationDefinition;
     private ManagementEntity managementEntity;
 
     @BeforeEach
     void setUp() {
         presentationFormatFactory = new PresentationFormatFactory(bbsKeyConfiguration);
-        presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
+        PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
         managementEntity = getManagementEntityMock(requestId, presentationDefinition);
     }
 
@@ -53,7 +56,7 @@ class PresentationFormatFactoryTest {
 
         assertThrows(IllegalArgumentException.class, () -> presentationFormatFactory
                 .getFormatBuilder(presentationSubmission)
-                .credentialOffer(vpToken, managementEntity, presentationSubmission)
+                .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
                 .verify());
     }
 
@@ -63,18 +66,18 @@ class PresentationFormatFactoryTest {
 
         assertThrows(IllegalArgumentException.class, () -> presentationFormatFactory
                 .getFormatBuilder(presentationSubmission)
-                .credentialOffer(vpToken, managementEntity, presentationSubmission)
+                .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
                 .verify());
     }
 
     @Test
-    void teystMimi() {
+    void testSDJWTFormat_thenSuccess() {
         // Todo fix format
         PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(1, true, "sdjwt");
 
         var result = presentationFormatFactory
                 .getFormatBuilder(presentationSubmission)
-                .credentialOffer(vpToken, managementEntity, presentationSubmission)
+                .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
                 .verify();
     }
 }

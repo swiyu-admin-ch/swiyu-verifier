@@ -22,7 +22,7 @@ public class PresentationFormatFactory {
 
         return switch (format) {
             case "ldp_vp" -> new LdpCredential(bbsKeyConfiguration);
-            case "sdjwt" -> new SDJWTCredential();
+            case "jwt_vp_json", "jwt_vc" -> new SDJWTCredential();
             default -> throw new IllegalArgumentException("Unknown format: " + format);
         };
     }

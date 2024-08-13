@@ -1,6 +1,8 @@
 package ch.admin.bit.eid.oid4vp.model;
 
+import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
+import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import com.authlete.sd.Disclosure;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -33,24 +35,33 @@ public class SDJWTCredential extends CredentialBuilder {
     public ManagementEntity verifyPresentation() {
 
         Jwt<?, ?> jwt;
+
+        // TODO replace
         var publicKey = loadPublicKey();
 
-        // Separates SD-JWT into the Issuer-signed JWT and the Disclosures
         String[] parts = tokenString.split("~");
         var issuerSignedJWTToken = parts[0];
 
         Jws<Claims> claims = Jwts.parser()
                 .verifyWith(publicKey)
                 .build()
-                .parseClaimsJws(issuerSignedJWTToken);
+                .parseSignedClaims(issuerSignedJWTToken);
 
         // check signature
         try {
+            // todo check -> should fail
             jwt = parseAndValidateJWT(issuerSignedJWTToken, publicKey);
+
+            Object document = claims.getPayload();
+            String jsonpathToCredential = getPathToSupportedCredential(managementEntity, document, presentationSubmission);
+
+            // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
+            // TODO check if contains _sd maybe... checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
 
             // Checks if the presentation is expired and if it can already be used
             var header = jwt.getHeader();
 
+            // TODO check format
             if (!suggestedAlgorithms.contains(header.getAlgorithm()) || !Objects.equals(header.getType(), "vc+sd-jwt")) {
                 throw new Exception("Unsupported algorithm: " + header.getAlgorithm());
             }
@@ -77,6 +88,11 @@ public class SDJWTCredential extends CredentialBuilder {
                 throw new Exception("Could not verify JWT presentation is expired");
             }
 
+            var walletResponseBuilder = ResponseData.builder();
+            walletResponseBuilder.credentialSubjectData(vpToken);
+            updateManagementObject(VerificationStatusEnum.SUCCESS, walletResponseBuilder.build());
+
+            return managementEntity;
         } catch (Exception e) {
             log.warn(e.getMessage());
         }

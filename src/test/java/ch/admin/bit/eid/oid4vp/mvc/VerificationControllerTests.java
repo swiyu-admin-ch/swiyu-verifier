@@ -2,7 +2,8 @@ package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
-import ch.admin.bit.eid.oid4vp.mock.CredentialMock;
+import ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock;
+import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
@@ -27,7 +28,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
-import static ch.admin.bit.eid.oid4vp.mock.CredentialMock.ExampleJson;
+import static ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock.ExampleJson;
 import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEntityMock;
 import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMock;
 import static org.hamcrest.Matchers.containsString;
@@ -101,7 +102,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingCredential() throws Exception {
 
-        var emulator = new CredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
         var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
 
@@ -154,7 +155,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnInvalidPresentationSubmissionWithAdditionallyEncodedString() throws Exception {
 
-        var emulator = new CredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
         var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
         var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
@@ -180,7 +181,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnInvalidPresentationSubmissionWithInvalidJson() throws Exception {
 
-        var emulator = new CredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
         ManagementEntity entity = verificationManagementRepository.save(getManagementEntityMock(requestId,
                 createPresentationDefinitionMock(requestId, List.of("$.hello"))));
@@ -207,7 +208,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailVerifyingCredentialWrongNonce() throws Exception {
 
-        var emulator = new CredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
         var credential = emulator.createVC(
                 List.of("/type", "/issuer"),
@@ -283,5 +284,62 @@ class VerificationControllerTests {
                         .formField("error_description", "mimi"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND.toString()));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock(null, null);
+        var nonce = getNonceFromRequestObjectCall(requestId);
+
+        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", sdJWT))
+                .andExpect(status().isOk());
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains(sdJWT);
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void shouldSucceedVerifyingNestedSDJWTCredentialSD_thenSuccess() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createNestedSDJWTMock(null, null);
+        var nonce = getNonceFromRequestObjectCall(requestId);
+
+        String presentationSubmission = emulator.getNestedPresentationSubmissionString(UUID.randomUUID());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", sdJWT))
+                .andExpect(status().isOk());
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains(sdJWT);
+    }
+
+    private String getNonceFromRequestObjectCall(UUID requestId) throws Exception {
+        var response = mock.perform(get(String.format("/request-object/%s", requestId)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
+        return responseContent.get("nonce").getAsString();
     }
 }

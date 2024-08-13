@@ -15,11 +15,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 
-public class CredentialMock {
+public class BBSCredentialMock {
 
     private final BbsCryptoSuite cryptoSuite;
 
-    public CredentialMock(final BBSKeyConfiguration bbsKeyConfiguration) {
+    public BBSCredentialMock(final BBSKeyConfiguration bbsKeyConfiguration) {
         cryptoSuite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey());
     }
 

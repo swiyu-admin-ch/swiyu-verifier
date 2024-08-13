@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Objects.isNull;
@@ -88,11 +87,12 @@ public abstract class CredentialBuilder {
         }
 
         List<String> supportedCredentialPaths = descriptorMap.stream()
-                .map(descriptor -> getCredentialPaths(descriptor).getFirst())
-                .filter(Objects::nonNull)
-                .toList();
+                .map(this::getCredentialPaths)
+                .filter(l -> !l.isEmpty())
+                .findFirst()
+                .orElse(null);
 
-        if (supportedCredentialPaths.isEmpty()) {
+        if (supportedCredentialPaths == null || supportedCredentialPaths.isEmpty()) {
             updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
             throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "No matching paths with correct formats found");
         }

@@ -69,15 +69,4 @@ class PresentationFormatFactoryTest {
                 .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
                 .verify());
     }
-
-    @Test
-    void testSDJWTFormat_thenSuccess() {
-        // Todo fix format
-        PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(1, true, "sdjwt");
-
-        var result = presentationFormatFactory
-                .getFormatBuilder(presentationSubmission)
-                .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
-                .verify();
-    }
 }

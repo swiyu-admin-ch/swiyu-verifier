@@ -1,24 +1,27 @@
 package ch.admin.bit.eid.oid4vp.model;
 
+import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import com.authlete.sd.Disclosure;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.PrematureJwtException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,91 +37,71 @@ public class SDJWTCredential extends CredentialBuilder {
     // follows https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt#section-8.1-4.3.2.4
     public ManagementEntity verifyPresentation() {
 
-        Jwt<?, ?> jwt;
+        Jws<Claims> claims;
 
-        // TODO replace
+        // TODO Check that the _sd_alg claim value is understood and the hash algorithm is deemed secure
         var publicKey = loadPublicKey();
 
-        String[] parts = tokenString.split("~");
+        String[] parts = vpToken.split("~");
         var issuerSignedJWTToken = parts[0];
 
-        Jws<Claims> claims = Jwts.parser()
-                .verifyWith(publicKey)
-                .build()
-                .parseSignedClaims(issuerSignedJWTToken);
-
-        // check signature
         try {
-            // todo check -> should fail
-            jwt = parseAndValidateJWT(issuerSignedJWTToken, publicKey);
-
-            Object document = claims.getPayload();
-            String jsonpathToCredential = getPathToSupportedCredential(managementEntity, document, presentationSubmission);
-
-            // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
-            // TODO check if contains _sd maybe... checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
-
-            // Checks if the presentation is expired and if it can already be used
-            var header = jwt.getHeader();
-
-            // TODO check format
-            if (!suggestedAlgorithms.contains(header.getAlgorithm()) || !Objects.equals(header.getType(), "vc+sd-jwt")) {
-                throw new Exception("Unsupported algorithm: " + header.getAlgorithm());
-            }
-
-            Claims payload = claims.getPayload();
-
-            var disclosures = Arrays.copyOfRange(parts, 1, parts.length - 1);
-            var digests = Arrays.stream(disclosures).map(this::getDigestForDisclosure).toList();
-
-            // todo test 2 mal s gliiche
-            // todo check If any Disclosure was not referenced by digest value in the Issuer-signed JWT (directly or recursively via other Disclosures), the SD-JWT MUST be rejected.
-            if (!digests.stream().allMatch(dig -> Collections.frequency(payload.get("_sd", List.class), dig) == 1)) {
-                throw new Exception("Could not verify JWT problem with disclosures and _sd field");
-            }
-
-            Long exp = payload.get("exp", Long.class);
-            Long nbf = payload.get("nbf", Long.class);
-
-            if (nbf != null && Instant.now().isBefore(Instant.ofEpochSecond(nbf))) {
-                throw new Exception("Could not verify JWT presentation is not yet valid");
-            }
-
-            if (exp != null && Instant.now().isAfter(Instant.ofEpochSecond(exp))) {
-                throw new Exception("Could not verify JWT presentation is expired");
-            }
-
-            var walletResponseBuilder = ResponseData.builder();
-            walletResponseBuilder.credentialSubjectData(vpToken);
-            updateManagementObject(VerificationStatusEnum.SUCCESS, walletResponseBuilder.build());
-
-            return managementEntity;
-        } catch (Exception e) {
-            log.warn(e.getMessage());
+            claims = Jwts.parser()
+                    .verifyWith(publicKey)
+                    .build()
+                    .parseSignedClaims(issuerSignedJWTToken);
+        } catch (PrematureJwtException e) {
+            log.error("JWT verification failed", e);
+            updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is not yet valid");
+        } catch (ExpiredJwtException e) {
+            log.error("JWT verification failed", e);
+            updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is expired");
+        } catch (JwtException e) {
+            log.error("JWT verification failed", e);
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Signature mismatch");
         }
 
-        return null;
-    }
+        // Checks if the presentation is expired and if it can already be used
+        var header = claims.getHeader();
 
-    // From https://www.baeldung.com/java-jwt-token-decode
-    private Jwt<?, ?> parseAndValidateJWT(String token, PublicKey publicKey) throws Exception {
-
-        JwtParser jwtParser = Jwts.parser()
-                .verifyWith(publicKey)
-                .build();
-
-        try {
-            Jwt<?, ?> test = jwtParser.parseSignedClaims(token);
-            return test;
-        } catch (Exception e) {
-            // raise CredentialInvalidError
-            throw new Exception("Could not verify JWT token integrity!", e);
+        // TODO check format
+        if (!suggestedAlgorithms.contains(header.getAlgorithm()) || !Objects.equals(header.getType(), "vc+sd-jwt")) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.UNSUPPORTED_FORMAT, "Unsupported algorithm: " + header.getAlgorithm());
         }
+
+        Claims payload = claims.getPayload();
+
+        // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
+        // TODO check if contains _sd maybe... checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
+
+        var digests = payload.get("_sd", List.class);
+        var disclosures = Arrays.copyOfRange(parts, 1, parts.length);
+        var digestsFromDisclosures = Arrays.stream(disclosures).map(this::getDigestForDisclosure).toList();
+
+        // check if distinct disclosures
+        if (new HashSet<>(Arrays.asList(disclosures)).size() != disclosures.length) {
+            updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Request contains non-distinct disclosures");
+        }
+
+        if (!digestsFromDisclosures.stream().allMatch(dig -> Collections.frequency(digests, dig) == 1)) {
+            updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT problem with disclosures and _sd field");
+        }
+
+        var walletResponseBuilder = ResponseData.builder();
+        walletResponseBuilder.credentialSubjectData(vpToken);
+        updateManagementObject(VerificationStatusEnum.SUCCESS, walletResponseBuilder.build());
+
+        return managementEntity;
     }
 
+    // TODO replace with actual functionality
     private PublicKey loadPublicKey() {
         try {
-            var sanitized = publicKeyString.replaceAll("\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");
+            var sanitized = publicKeyString.replace("\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");
             byte[] encoded = Base64.getDecoder().decode(sanitized);
             KeyFactory kf = KeyFactory.getInstance("EC");
             EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
@@ -132,9 +115,4 @@ public class SDJWTCredential extends CredentialBuilder {
     private String getDigestForDisclosure(String disclosureString) {
         return Disclosure.parse(disclosureString).digest();
     }
-
-    // TODO test
-    /*
-    For example, the SHA-256 digest of the Disclosure WyI2cU1RdlJMNWhhaiIsICJmYW1pbHlfbmFtZSIsICJNw7ZiaXVzIl0 would be uutlBuYeMDyjLLTpf6Jxi7yNkEF35jdyWMn9U7b_RYY.
-     */
 }

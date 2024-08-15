@@ -8,12 +8,15 @@ import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
-import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import jakarta.transaction.Transactional;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -24,13 +27,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.Assert;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock.ExampleJson;
-import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEntityMock;
-import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMock;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
@@ -183,9 +187,6 @@ class VerificationControllerTests {
 
         var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
-        ManagementEntity entity = verificationManagementRepository.save(getManagementEntityMock(requestId,
-                createPresentationDefinitionMock(requestId, List.of("$.hello"))));
-
         var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
         var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
 
@@ -293,9 +294,7 @@ class VerificationControllerTests {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
-        var sdJWT = emulator.createSDJWTMock(null, null);
-        var nonce = getNonceFromRequestObjectCall(requestId);
-
+        var sdJWT = emulator.createSDJWTMock(null, null, null);
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
@@ -313,13 +312,136 @@ class VerificationControllerTests {
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var parts = sdJWT.split("~");
+
+        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
+        var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~";
+
+        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", newCred))
+                .andExpect(status().isOk());
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void twoTimesSameDisclosures_thenError() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var parts = sdJWT.split("~");
+
+        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
+        var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~" + StringUtils.join(sd, "~") + "~";
+
+        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", newCred))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription").value("Request contains non-distinct disclosures"));
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void notYetValid_thenError() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock(Instant.now().plus(7, ChronoUnit.DAYS).getEpochSecond(), null, null);
+        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", sdJWT))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription").value("Could not verify JWT credential is not yet valid"));
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void sdJWTExpired_thenError() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock(null, Instant.now().minus(10, ChronoUnit.MINUTES).getEpochSecond(), null);
+
+        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", sdJWT))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription").value("Could not verify JWT credential is expired"));
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void sdJWTAdditionalDisclosure_thenError() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var additionalDisclosure = new Disclosure("additional", "definetly_wrong");
+
+        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", sdJWT + additionalDisclosure + "~"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription").value("Could not verify JWT problem with disclosures and _sd field"));
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingNestedSDJWTCredentialSD_thenSuccess() throws Exception {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
         var sdJWT = emulator.createNestedSDJWTMock(null, null);
-        var nonce = getNonceFromRequestObjectCall(requestId);
-
         String presentationSubmission = emulator.getNestedPresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
@@ -331,15 +453,24 @@ class VerificationControllerTests {
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
-        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains(sdJWT);
     }
 
-    private String getNonceFromRequestObjectCall(UUID requestId) throws Exception {
-        var response = mock.perform(get(String.format("/request-object/%s", requestId)))
-                .andExpect(status().isOk())
-                .andReturn();
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void shouldVerifyingSDJWTCredentialSDWithDifferentPrivKey_thenException() throws Exception {
 
-        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
-        return responseContent.get("nonce").getAsString();
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock(null, null, new ECKeyGenerator(Curve.P_256).generate().toECPrivateKey());
+        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", sdJWT))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription").value("Signature mismatch"));
     }
 }

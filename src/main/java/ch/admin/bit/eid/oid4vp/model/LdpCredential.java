@@ -10,10 +10,14 @@ import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteVerificationResult;
 import com.google.gson.Gson;
 import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.json.GsonJsonParser;
 
-import static ch.admin.bit.eid.oid4vp.utils.Base64Utils.decodeBase64;
+import java.util.List;
+
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Slf4j
 public class LdpCredential extends CredentialBuilder {
@@ -26,23 +30,15 @@ public class LdpCredential extends CredentialBuilder {
 
     @Override
     public ManagementEntity verifyPresentation() {
-        String decodedVpToken = decodeBase64(vpToken);
-
         // TODO - Parse presentationSubmission and find out that we need to process it as BBS, ECDSA VC-DI or SD-JWT or JWT
 
         var walletResponseBuilder = ResponseData.builder();
-        Object document = Configuration.defaultConfiguration().jsonProvider().parse(decodedVpToken);
-
-        /*
-         * Determine the number of VPs returned in the VP Token and identify in which VP which requested VC is included,
-         * using the Input Descriptor Mapping Object(s) in the Presentation Submission.
-         */
-        String jsonpathToCredential = getPathToSupportedCredential(managementEntity, document, presentationSubmission);
+        Object document = Configuration.defaultConfiguration().jsonProvider().parse(vpToken);
 
         // TODO - Validate the integrity, authenticity, and Holder Binding of any Verifiable Presentation provided in the VP Token according to the rules of the respective Presentation format
         String verifiedDocument;
         try {
-            verifiedDocument = verifyProofBBS(decodedVpToken, managementEntity.getRequestNonce());
+            verifiedDocument = verifyProofBBS(vpToken, managementEntity.getRequestNonce());
         } catch (Exception e) {
             log.error(e.toString());
             var errorCode = ResponseErrorCodeEnum.CREDENTIAL_INVALID;
@@ -52,7 +48,7 @@ public class LdpCredential extends CredentialBuilder {
         }
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
-        checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
+        checkPresentationDefinitionCriteria(document, managementEntity);
 
         // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
 
@@ -77,5 +73,33 @@ public class LdpCredential extends CredentialBuilder {
         }
 
         return verificationResult.getVerifiedDocument();
+    }
+
+    private void checkPresentationDefinitionCriteria(Object document, ManagementEntity management) throws VerificationException {
+
+        boolean isValid = false;
+
+        /*
+        if (jsonPathToCredential == null) {
+            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Invalid credential path");
+        }*/
+
+        try {
+            List<String> pathList = getAbsolutePaths(management.getRequestedPresentation().getInputDescriptors(), "$");
+
+            if (!pathList.isEmpty()) {
+                isValid = pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
+            }
+        } catch (PathNotFoundException pathNotFoundException) {
+            // TODO check if nothing is revealed in logs || response
+            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, pathNotFoundException.getMessage());
+        }
+
+        if (!isValid) {
+            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Validation criteria not matched, check the structure and values of the token");
+        }
     }
 }

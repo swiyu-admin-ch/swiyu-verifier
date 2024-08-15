@@ -190,6 +190,10 @@ public abstract class CredentialBuilder {
         verificationManagementRepository.save(managementEntity);
     }
 
+    protected void updateManagementOnError(ResponseErrorCodeEnum errorCode) {
+        updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(errorCode).build());
+    }
+
     private void addFormatsToMap(Map<String, FormatAlgorithm> inputFormats, Map<String, FormatAlgorithm> outputFormats) {
         if (nonNull(inputFormats) && !inputFormats.isEmpty()) {
             outputFormats.putAll(inputFormats);

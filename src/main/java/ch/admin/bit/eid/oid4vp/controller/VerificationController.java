@@ -77,9 +77,6 @@ public class VerificationController {
 
         PresentationSubmission presentationSubmission = stringToPresentationSubmission(request.getPresentation_submission());
 
-        // TODO: readd for sd-jwt
-        // String vpToken = decodeBase64(request.getVp_token());
-
         if (isBlank(request.getVp_token()) || isNull(presentationSubmission)) {
             throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
         }

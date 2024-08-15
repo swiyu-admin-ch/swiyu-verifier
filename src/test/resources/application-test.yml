@@ -28,3 +28,5 @@ application:
     bbs:
       seed: "testtesttest"
       verification-method: "did:example:localhost%3A8080:abcabc#deadbeef"
+    sdjwt:
+      public_key: "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQgjeqGSdu+2jq8+n78+6fXk2Yh22\nlQKBYCnu5FWPvKtat3wFEsQXqNHYgPXBxWmOBw5l2PE/gUDUJqGJSc1LuQ==\n-----END PUBLIC KEY-----\n"

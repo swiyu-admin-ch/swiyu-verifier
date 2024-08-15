@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
+import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.CredentialBuilder;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;

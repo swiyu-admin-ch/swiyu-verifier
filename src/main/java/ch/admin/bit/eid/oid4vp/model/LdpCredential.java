@@ -51,13 +51,33 @@ public class LdpCredential extends CredentialBuilder {
         checkPresentationDefinitionCriteria(document, managementEntity);
 
         // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
-
         var parser = new GsonJsonParser();
         var credentialSubject = parser.parseMap(verifiedDocument).get("credentialSubject");
         walletResponseBuilder.credentialSubjectData(new Gson().toJson(credentialSubject));
         updateManagementObject(VerificationStatusEnum.SUCCESS, walletResponseBuilder.build());
 
         return managementEntity;
+    }
+
+    private void checkPresentationDefinitionCriteria(Object document, ManagementEntity management) throws VerificationException {
+
+        boolean isValid = false;
+
+        try {
+            List<String> pathList = getAbsolutePaths(management.getRequestedPresentation().getInputDescriptors(), "$");
+
+            if (!pathList.isEmpty()) {
+                isValid = pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
+            }
+        } catch (PathNotFoundException pathNotFoundException) {
+            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, pathNotFoundException.getMessage());
+        }
+
+        if (!isValid) {
+            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Validation criteria not matched, check the structure and values of the token");
+        }
     }
 
     private String verifyProofBBS(String bbsCredential, String nonce) throws VerificationException {
@@ -73,33 +93,5 @@ public class LdpCredential extends CredentialBuilder {
         }
 
         return verificationResult.getVerifiedDocument();
-    }
-
-    private void checkPresentationDefinitionCriteria(Object document, ManagementEntity management) throws VerificationException {
-
-        boolean isValid = false;
-
-        /*
-        if (jsonPathToCredential == null) {
-            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Invalid credential path");
-        }*/
-
-        try {
-            List<String> pathList = getAbsolutePaths(management.getRequestedPresentation().getInputDescriptors(), "$");
-
-            if (!pathList.isEmpty()) {
-                isValid = pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
-            }
-        } catch (PathNotFoundException pathNotFoundException) {
-            // TODO check if nothing is revealed in logs || response
-            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, pathNotFoundException.getMessage());
-        }
-
-        if (!isValid) {
-            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Validation criteria not matched, check the structure and values of the token");
-        }
     }
 }

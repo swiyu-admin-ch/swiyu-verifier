@@ -1,6 +1,7 @@
 package ch.admin.bit.eid.oid4vp.model;
 
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
+import ch.admin.bit.eid.oid4vp.config.SDJWTConfiguration;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 public class PresentationFormatFactory {
 
     private final BBSKeyConfiguration bbsKeyConfiguration;
+    private final SDJWTConfiguration sdjwtConfiguration;
 
     public CredentialBuilder getFormatBuilder(PresentationSubmission presentationSubmission) {
 
@@ -22,7 +24,7 @@ public class PresentationFormatFactory {
 
         return switch (format) {
             case "ldp_vp" -> new LdpCredential(bbsKeyConfiguration);
-            case "jwt_vp_json", "jwt_vc" -> new SDJWTCredential();
+            case "jwt_vp_json", "jwt_vc" -> new SDJWTCredential(sdjwtConfiguration);
             default -> throw new IllegalArgumentException("Unknown format: " + format);
         };
     }

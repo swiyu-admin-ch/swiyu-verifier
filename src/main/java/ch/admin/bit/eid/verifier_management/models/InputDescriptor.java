@@ -2,10 +2,13 @@ package ch.admin.bit.eid.verifier_management.models;
 
 import ch.admin.bit.eid.verifier_management.models.dto.ConstraintDto;
 import ch.admin.bit.eid.verifier_management.models.dto.FormatAlgorithmDto;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Map;
 
 @Data
 @Builder
@@ -21,5 +24,5 @@ public class InputDescriptor implements Serializable {
 
     private Map<String, FormatAlgorithmDto> format;
 
-    private List<ConstraintDto> constraints;
+    private ConstraintDto constraints;
 }

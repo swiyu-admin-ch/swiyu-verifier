@@ -6,11 +6,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 
 @Data
@@ -36,5 +38,6 @@ public class InputDescriptorDto implements Serializable {
     private Map<String, FormatAlgorithmDto> format;
 
     @NotNull
-    private List<@Valid ConstraintDto> constraints;
+    @Valid
+    private ConstraintDto constraints;
 }

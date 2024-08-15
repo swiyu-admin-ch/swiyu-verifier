@@ -12,7 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -28,33 +28,33 @@ class CreateManagementIntegrationTest {
     @Test
     void testCreateOffer_thenSuccess() throws Exception {
         String test = """
-        {
-            "id":"string",
-            "name":"string",
-            "purpose":"string",
-            "input_descriptors":[{
-                "id":"string",
-                "name":"string",
-                "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                "constraints":[{
-                    "fields":[{
-                        "path":["$.teest"],
+                {
+                    "id":"string",
+                    "name":"string",
+                    "purpose":"string",
+                    "input_descriptors":[{
                         "id":"string",
                         "name":"string",
-                        "purpose":"string"
+                        "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                        "constraints":{
+                            "fields":[{
+                                "path":["$.teest"],
+                                "id":"string",
+                                "name":"string",
+                                "purpose":"string"
+                            }]
+                        }
                     }]
-                }]
-            }]
-        }
-        """;
+                }
+                """;
 
         DocumentContext expectedJsonContext = JsonPath.parse(test);
         String inputDescriptor0JsonPath = "$.presentation_definition.input_descriptors[0]";
-        String fieldsPath = inputDescriptor0JsonPath + ".constraints.[0].fields[0]";
+        String fieldsPath = inputDescriptor0JsonPath + ".constraints.fields[0]";
         String proofPath = inputDescriptor0JsonPath + ".format.ldp_vp.proof_type[0]";
 
         String reqDescriptor0JsonPath = "$.input_descriptors[0]";
-        String reqField0JsonPath = reqDescriptor0JsonPath + ".constraints.[0].fields[0]";
+        String reqField0JsonPath = reqDescriptor0JsonPath + ".constraints.fields[0]";
         String reqProofJsonPath = reqDescriptor0JsonPath + ".format.ldp_vp.proof_type[0]";
 
 
@@ -68,7 +68,7 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.request_nonce").isNotEmpty())
                 .andExpect(jsonPath("$.state").value(VerificationStatusEnum.PENDING.toString()))
                 .andExpect(jsonPath("$.verification_url").isNotEmpty())
-                .andExpect(jsonPath(inputDescriptor0JsonPath + ".id").value(expectedJsonContext.read(reqDescriptor0JsonPath +".id").toString()))
+                .andExpect(jsonPath(inputDescriptor0JsonPath + ".id").value(expectedJsonContext.read(reqDescriptor0JsonPath + ".id").toString()))
                 .andExpect(jsonPath(inputDescriptor0JsonPath + ".name").value(expectedJsonContext.read(reqDescriptor0JsonPath + ".name").toString()))
                 .andExpect(jsonPath(proofPath).value(expectedJsonContext.read(reqProofJsonPath).toString()))
                 .andExpect(jsonPath(fieldsPath + ".id").value(expectedJsonContext.read(reqField0JsonPath + ".id").toString()))
@@ -79,7 +79,7 @@ class CreateManagementIntegrationTest {
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
-        MvcResult result1  = mvc.perform(get("/verifications/" + id))
+        MvcResult result1 = mvc.perform(get("/verifications/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.request_nonce").isNotEmpty())
@@ -109,14 +109,14 @@ class CreateManagementIntegrationTest {
                     "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
                     "input_descriptors":[{
                         "name":"string",
-                        "constraints":[{
+                        "constraints":{
                             "fields":[{
                                 "path":["$.teest"],
                                 "id":"string",
                                 "name":"string",
                                 "purpose":"string"
                             }]
-                        }]
+                        }
                     }]
                 }
                 """;
@@ -164,7 +164,7 @@ class CreateManagementIntegrationTest {
                     "input_descriptors":[{
                         "id":"string",
                         "name":"string",
-                        "constraints":[]
+                        "constraints":{}
                         }]
                     }]
                 }
@@ -172,7 +172,7 @@ class CreateManagementIntegrationTest {
         mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(emptyConstraints))
-                .andExpect(status().isOk())
+                .andExpect(status().isBadRequest())
                 .andReturn();
     }
 
@@ -187,13 +187,13 @@ class CreateManagementIntegrationTest {
                     "input_descriptors":[{
                         "name":"string",
                         "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                        "constraints":[{
+                        "constraints":{
                             "fields":[{
                                 "id":"string",
                                 "name":"string",
                                 "purpose":"string"
                             }]
-                        }]
+                        }
                     }]
                 }
                 """;
@@ -209,20 +209,20 @@ class CreateManagementIntegrationTest {
     @Test
     void testCreateOfferValidation_emptyFieldPath_thenException() throws Exception {
         String emptyFieldPath = """
-        {
-            "id":"string",
-            "name":"string",
-            "purpose":"string",
-            "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-            "input_descriptors":[{
-                "name":"string",
-                "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                "constraints":[{
-                    "fields":[]
-                }]
-            }]
-        }
-        """;
+                {
+                    "id":"string",
+                    "name":"string",
+                    "purpose":"string",
+                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                    "input_descriptors":[{
+                        "name":"string",
+                        "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
+                        "constraints":{
+                            "fields":[]
+                        }
+                    }]
+                }
+                """;
         mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(emptyFieldPath))
@@ -235,17 +235,17 @@ class CreateManagementIntegrationTest {
     @Test
     void testCreateMinimalExample_thenSuccess() throws Exception {
         String emptyFieldPath = """
-        {
-            "input_descriptors":[{
-                "id":"string",
-                "constraints":[{
-                    "fields":[{
-                        "path":["string"]
+                {
+                    "input_descriptors":[{
+                        "id":"string",
+                        "constraints":{
+                            "fields":[{
+                                "path":["string"]
+                            }]
+                        }
                     }]
-                }]
-            }]
-        }
-        """;
+                }
+                """;
 
         MvcResult result = mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -255,7 +255,7 @@ class CreateManagementIntegrationTest {
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
-        MvcResult result1  = mvc.perform(get("/verifications/" + id))
+        MvcResult result1 = mvc.perform(get("/verifications/" + id))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
@@ -266,29 +266,29 @@ class CreateManagementIntegrationTest {
     @Test
     void testCreateCompleteExample_thenSuccess() throws Exception {
         String test = """
-        {
-            "id":"string",
-            "name":"string",
-            "purpose":"string",
-            "format": {
-                "ldp_vp": {
-                    "proof_type":["BBS-2023"]
-                }
-            },
-            "input_descriptors":[{
-                "id":"inputDescriptors_id",
-                "name":"inputDescriptors_name",
-                "constraints":[{
-                    "fields":[{
-                        "path":["$.constraints_path_1","$.constraints_path_2"],
-                        "id":"field_id",
-                        "name":"field_name",
-                        "purpose":"field_purpose"
+                {
+                    "id":"string",
+                    "name":"string",
+                    "purpose":"string",
+                    "format": {
+                        "ldp_vp": {
+                            "proof_type":["BBS-2023"]
+                        }
+                    },
+                    "input_descriptors":[{
+                        "id":"inputDescriptors_id",
+                        "name":"inputDescriptors_name",
+                        "constraints":{
+                            "fields":[{
+                                "path":["$.constraints_path_1","$.constraints_path_2"],
+                                "id":"field_id",
+                                "name":"field_name",
+                                "purpose":"field_purpose"
+                            }]
+                        }
                     }]
-                }]
-            }]
-        }
-        """;
+                }
+                """;
         mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(test))
@@ -301,16 +301,15 @@ class CreateManagementIntegrationTest {
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors.length()").value(1))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].id").value("inputDescriptors_id"))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name").value("inputDescriptors_name"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints").isArray())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.length()").value(1))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields").isArray())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path").isArray())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path.length()").value(2))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path[0]").value("$.constraints_path_1"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].path[1]").value("$.constraints_path_2"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].id").value("field_id"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].name").value("field_name"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints[0].fields[0].purpose").value("field_purpose"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints").isNotEmpty())
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields").isArray())
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path").isArray())
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path.length()").value(2))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[0]").value("$.constraints_path_1"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[1]").value("$.constraints_path_2"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].id").value("field_id"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].name").value("field_name"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].purpose").value("field_purpose"))
                 .andReturn();
     }
 }

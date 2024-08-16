@@ -46,7 +46,7 @@ public class PresentationDefinitionMocks {
         InputDescriptor inputDescriptor = InputDescriptor.builder()
                 .id("test_descriptor_id")
                 .name("Test Descriptor Name")
-                .constraints(List.of(constraint))
+                .constraints(constraint)
                 .format(presentationFormats)
                 .build();
 

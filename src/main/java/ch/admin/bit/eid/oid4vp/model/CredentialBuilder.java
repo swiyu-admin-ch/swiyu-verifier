@@ -47,9 +47,8 @@ public abstract class CredentialBuilder {
     protected List<String> getPathToRequestedFields(final List<InputDescriptor> inputDescriptorList, final String credentialPath) {
         List<String> pathList = new ArrayList<>();
 
-        inputDescriptorList.forEach(descriptor -> descriptor.getConstraints()
-                .forEach(constraints -> constraints.getFields()
-                        .forEach(field -> pathList.addAll(field.getPath().stream().map(str -> concatPaths(credentialPath, str)).toList()))));
+        inputDescriptorList.forEach(descriptor -> descriptor.getConstraints().getFields()
+                .forEach(field -> pathList.addAll(field.getPath().stream().map(str -> concatPaths(credentialPath, str)).toList())));
 
         return pathList;
     }

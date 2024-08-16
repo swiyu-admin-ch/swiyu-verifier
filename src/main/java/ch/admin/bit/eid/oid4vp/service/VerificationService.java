@@ -192,12 +192,4 @@ public class VerificationService {
             outputFormats.putAll(inputFormats);
         }
     }
-
-    private String resolveJsonPath(Object obj, String jsonPath) {
-
-        ObjectMapper mapper = new ObjectMapper();
-        Map mappedObject = mapper.convertValue(obj, Map.class);
-
-        return JsonPath.read(mappedObject, jsonPath);
-    }
 }

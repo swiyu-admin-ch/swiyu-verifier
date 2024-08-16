@@ -2,11 +2,17 @@ package ch.admin.bit.eid.oid4vp.model;
 
 import ch.admin.bit.eid.oid4vp.config.SDJWTConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
+import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.authlete.sd.Disclosure;
+import com.authlete.sd.SDObjectDecoder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.PathNotFoundException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
@@ -22,8 +28,10 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
@@ -35,6 +43,15 @@ public class SDJWTCredential extends CredentialBuilder {
     private final List<String> suggestedAlgorithms = List.of("ES256");
 
     SDJWTCredential(SDJWTConfiguration sdjwtConfig) {
+        this.sdjwtConfig = sdjwtConfig;
+    }
+
+    public SDJWTCredential(final String vpToken,
+                           final ManagementEntity managementEntity,
+                           final PresentationSubmission presentationSubmission,
+                           final VerificationManagementRepository verificationManagementRepository,
+                           SDJWTConfiguration sdjwtConfig) {
+        credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
         this.sdjwtConfig = sdjwtConfig;
     }
 
@@ -68,36 +85,54 @@ public class SDJWTCredential extends CredentialBuilder {
         // Checks if the presentation is expired and if it can already be used
         var header = claims.getHeader();
 
-        // TODO check format
         if (!suggestedAlgorithms.contains(header.getAlgorithm()) || !Objects.equals(header.getType(), "vc+sd-jwt")) {
             throw VerificationException.credentialError(ResponseErrorCodeEnum.UNSUPPORTED_FORMAT, "Unsupported algorithm: " + header.getAlgorithm());
         }
 
         Claims payload = claims.getPayload();
 
-        // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
-        // TODO check if contains _sd maybe... checkPresentationDefinitionCriteria(document, jsonpathToCredential, managementEntity);
-
-        var digests = payload.get("_sd", List.class);
-        var disclosures = Arrays.copyOfRange(parts, 1, parts.length);
-        var digestsFromDisclosures = Arrays.stream(disclosures).map(this::getDigestForDisclosure).toList();
+        List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, parts.length)).map(Disclosure::parse).toList();
+        List<String> digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
 
         // check if distinct disclosures
-        if (new HashSet<>(Arrays.asList(disclosures)).size() != disclosures.length) {
+        if (new HashSet<>(disclosures).size() != disclosures.size()) {
             updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
             throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Request contains non-distinct disclosures");
         }
 
-        if (!digestsFromDisclosures.stream().allMatch(dig -> Collections.frequency(digests, dig) == 1)) {
+        if (!digestsFromDisclosures.stream().allMatch(dig -> Collections.frequency(payload.get("_sd", List.class), dig) == 1)) {
             updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
             throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT problem with disclosures and _sd field");
         }
+
+        // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
+        checkPresentationDefinitionCriteria(payload, disclosures);
 
         var walletResponseBuilder = ResponseData.builder();
         walletResponseBuilder.credentialSubjectData(vpToken);
         updateManagementObject(VerificationStatusEnum.SUCCESS, walletResponseBuilder.build());
 
         return managementEntity;
+    }
+
+    public boolean checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
+        Map<String, Object> expectedMap = new HashMap<>(claims);
+        SDObjectDecoder decoder = new SDObjectDecoder();
+        ObjectMapper objectMapper = new ObjectMapper();
+        String sdJWTString;
+
+        try {
+            Map<String, Object> decodedSDJWT = decoder.decode(expectedMap, disclosures);
+            sdJWTString = objectMapper.writeValueAsString(decodedSDJWT);
+        } catch (PathNotFoundException e) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage());
+        } catch (JsonProcessingException e) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occurred while parsing SDJWT");
+        }
+
+        super.checkPresentationDefinitionCriteria(sdJWTString);
+
+        return true;
     }
 
     // TODO replace with actual functionality
@@ -112,9 +147,5 @@ public class SDJWTCredential extends CredentialBuilder {
             log.error("Failed to load public key", e);
             return null;
         }
-    }
-
-    private String getDigestForDisclosure(String disclosureString) {
-        return Disclosure.parse(disclosureString).digest();
     }
 }

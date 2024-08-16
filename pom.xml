@@ -128,7 +128,7 @@
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-gson</artifactId>
+            <artifactId>jjwt-jackson</artifactId>
             <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>

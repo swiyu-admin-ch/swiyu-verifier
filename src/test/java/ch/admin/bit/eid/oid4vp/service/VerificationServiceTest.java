@@ -156,7 +156,7 @@ class VerificationServiceTest {
     }
 
     @Test
-    void testWhenNoFormats_thenSuccess() {
+    void testWhenNoFormats_thenError() {
         String vpToken = "[{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\",\"zip\": \"1000\"}}]}, {\"verifiableCredential\": [{\"credentialSubject\": {\"zip\": \"1000\"}}]}]";
 
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"), null, null);

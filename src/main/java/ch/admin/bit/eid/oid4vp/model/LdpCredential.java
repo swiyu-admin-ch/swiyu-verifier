@@ -10,14 +10,8 @@ import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteVerificationResult;
 import com.google.gson.Gson;
 import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.json.GsonJsonParser;
-
-import java.util.List;
-
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Slf4j
 public class LdpCredential extends CredentialBuilder {
@@ -48,7 +42,7 @@ public class LdpCredential extends CredentialBuilder {
         }
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
-        checkPresentationDefinitionCriteria(document, managementEntity);
+        checkPresentationDefinitionCriteria(vpToken);
 
         // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
         var parser = new GsonJsonParser();
@@ -57,27 +51,6 @@ public class LdpCredential extends CredentialBuilder {
         updateManagementObject(VerificationStatusEnum.SUCCESS, walletResponseBuilder.build());
 
         return managementEntity;
-    }
-
-    private void checkPresentationDefinitionCriteria(Object document, ManagementEntity management) throws VerificationException {
-
-        boolean isValid = false;
-
-        try {
-            List<String> pathList = getAbsolutePaths(management.getRequestedPresentation().getInputDescriptors(), "$");
-
-            if (!pathList.isEmpty()) {
-                isValid = pathList.stream().allMatch(path -> isNotBlank(JsonPath.read(document, path)));
-            }
-        } catch (PathNotFoundException pathNotFoundException) {
-            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, pathNotFoundException.getMessage());
-        }
-
-        if (!isValid) {
-            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Validation criteria not matched, check the structure and values of the token");
-        }
     }
 
     private String verifyProofBBS(String bbsCredential, String nonce) throws VerificationException {

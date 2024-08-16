@@ -102,6 +102,7 @@ public class VerificationService {
 
         boolean isCredentialList = JsonPath.read(document, "$") instanceof ArrayList<?>;
 
+        // todo
         if (isCredentialList) {
             Integer numberOfProvidedCreds = JsonPath.read(document, "$.length()");
 

@@ -54,9 +54,17 @@ public class VerificationService {
         verificationManagementRepository.save(managementEntity);
     }
 
-    public void processPresentation(ManagementEntity managementEntity, String request, PresentationSubmission presentationSubmission) {
+    public void updateManagement(ManagementEntity managementEntity) {
+        if (managementEntity == null) {
+            throw new IllegalArgumentException("ManagementEntity cannot be null");
+        }
 
-        var credentialToBeProcessed = request;
+        verificationManagementRepository.save(managementEntity);
+    }
+
+    public void processPresentation(ManagementEntity managementEntity, String vpToken, PresentationSubmission presentationSubmission) {
+
+        var credentialToBeProcessed = vpToken;
         var isList = presentationSubmission.getDescriptorMap().size() > 1;
         // Todo consider more than 1 format
         var format = presentationSubmission.getDescriptorMap().getFirst().getFormat();
@@ -67,20 +75,21 @@ public class VerificationService {
         }
 
         if (isList || format.contains("ldp")) {
-            Object decodedToken = Configuration.defaultConfiguration().jsonProvider().parse(decodeBase64(request));
+            Object decodedToken = Configuration.defaultConfiguration().jsonProvider().parse(decodeBase64(vpToken));
 
             String jsonpathToCredential = getPathToSupportedCredential(managementEntity, decodedToken, presentationSubmission);
-            Object vpToken = JsonPath.read(decodedToken, jsonpathToCredential);
+            Object credential = JsonPath.read(decodedToken, jsonpathToCredential);
 
             if (format.contains("ldp")) {
                 try {
                     ObjectMapper mapper = new ObjectMapper();
-                    credentialToBeProcessed = mapper.writeValueAsString(vpToken);
+                    credentialToBeProcessed = mapper.writeValueAsString(credential);
                 } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
+                    log.error(e.getMessage());
+                    throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occured while processing the credential", managementEntity);
                 }
             } else {
-                credentialToBeProcessed = (String) vpToken;
+                credentialToBeProcessed = (String) credential;
             }
         }
 
@@ -106,9 +115,7 @@ public class VerificationService {
             Integer numberOfProvidedCreds = JsonPath.read(document, "$.length()");
 
             if (descriptorMap.size() != numberOfProvidedCreds) {
-
-                // updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-                throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Credential description does not match, credential");
+                throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Credential description does not match, credential", managementEntity);
             }
         }
 
@@ -119,8 +126,7 @@ public class VerificationService {
                 .orElse(null);
 
         if (supportedCredentialPaths == null || supportedCredentialPaths.isEmpty()) {
-            // updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "No matching paths with correct formats found");
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "No matching paths with correct formats found", managementEntity);
         }
 
         // TODO: assume only 1 credential at the moment

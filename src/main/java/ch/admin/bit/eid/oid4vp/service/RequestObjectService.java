@@ -24,9 +24,9 @@ public class RequestObjectService {
     public RequestObject assembleRequestObject(UUID presentationDefinitionId) {
 
         log.info("Prepare request object for mgmt-id {}", presentationDefinitionId);
-        
+
         ManagementEntity managementEntity = managementRepository.findById(presentationDefinitionId).orElseThrow(
-                () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
+                () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, null));
 
         PresentationDefinition presentation = managementEntity.getRequestedPresentation();
 

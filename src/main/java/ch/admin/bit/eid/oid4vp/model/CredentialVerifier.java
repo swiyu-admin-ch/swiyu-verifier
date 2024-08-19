@@ -4,9 +4,7 @@ import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
-import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
-import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
@@ -37,7 +35,7 @@ public abstract class CredentialVerifier {
 
     }
 
-    public abstract ManagementEntity verifyPresentation();
+    public abstract void verifyPresentation();
 
     protected List<String> getPathToRequestedFields(final List<InputDescriptor> inputDescriptorList, final String credentialPath) {
         List<String> pathList = new ArrayList<>();
@@ -48,30 +46,18 @@ public abstract class CredentialVerifier {
         return pathList;
     }
 
-    protected void updateManagementObject(VerificationStatusEnum status, ResponseData responseData) {
-        managementEntity.setState(status);
-        managementEntity.setWalletResponse(responseData);
-        verificationManagementRepository.save(managementEntity);
-    }
-
-    protected void updateManagementOnError(ResponseErrorCodeEnum errorCode) {
-        updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(errorCode).build());
-    }
-
     protected void checkPresentationDefinitionCriteria(String credential) throws VerificationException {
         List<String> pathList = getPathToRequestedFields(managementEntity.getRequestedPresentation().getInputDescriptors(), "$");
 
         if (pathList.isEmpty()) {
-            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Validation criteria not matched, check the structure and values of the token");
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Validation criteria not matched, check the structure and values of the token", managementEntity);
         }
 
         try {
             ReadContext ctx = JsonPath.parse(credential);
             pathList.forEach(ctx::read);
         } catch (PathNotFoundException e) {
-            updateManagementObject(VerificationStatusEnum.FAILED, ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage());
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
         }
     }
 

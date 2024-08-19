@@ -16,7 +16,7 @@ public class TestCredential extends CredentialVerifier {
     }
 
     @Override
-    public ManagementEntity verifyPresentation() {
-        return null;
+    public void verifyPresentation() {
+        return;
     }
 }

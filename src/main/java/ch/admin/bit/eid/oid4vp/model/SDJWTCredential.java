@@ -54,7 +54,9 @@ public class SDJWTCredential extends CredentialVerifier {
 
     @Override
     // follows https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt#section-8.1-4.3.2.4
-    public ManagementEntity verifyPresentation() {
+    public void verifyPresentation() {
+
+        // TODO check nonce
 
         Jws<Claims> claims;
         String[] parts = vpToken.split("~");
@@ -67,23 +69,18 @@ public class SDJWTCredential extends CredentialVerifier {
                     .build()
                     .parseSignedClaims(issuerSignedJWTToken);
         } catch (PrematureJwtException e) {
-            log.error("JWT verification failed", e);
-            updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is not yet valid");
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is not yet valid", managementEntity);
         } catch (ExpiredJwtException e) {
-            log.error("JWT verification failed", e);
-            updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is expired");
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is expired", managementEntity);
         } catch (JwtException e) {
-            log.error("JWT verification failed", e);
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Signature mismatch");
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Signature mismatch", managementEntity);
         }
 
         // Checks if the presentation is expired and if it can already be used
         var header = claims.getHeader();
 
         if (!suggestedAlgorithms.contains(header.getAlgorithm()) || !Objects.equals(header.getType(), "vc+sd-jwt")) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.UNSUPPORTED_FORMAT, "Unsupported algorithm: " + header.getAlgorithm());
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.UNSUPPORTED_FORMAT, "Unsupported algorithm: " + header.getAlgorithm(), managementEntity);
         }
 
         Claims payload = claims.getPayload();
@@ -93,23 +90,19 @@ public class SDJWTCredential extends CredentialVerifier {
 
         // check if distinct disclosures
         if (new HashSet<>(disclosures).size() != disclosures.size()) {
-            updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Request contains non-distinct disclosures");
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Request contains non-distinct disclosures", managementEntity);
         }
 
         if (!digestsFromDisclosures.stream().allMatch(dig -> Collections.frequency(payload.get("_sd", List.class), dig) == 1)) {
-            updateManagementOnError(ResponseErrorCodeEnum.CREDENTIAL_INVALID);
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT problem with disclosures and _sd field");
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT problem with disclosures and _sd field", managementEntity);
         }
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
         checkPresentationDefinitionCriteria(payload, disclosures);
 
-        var walletResponseBuilder = ResponseData.builder();
-        walletResponseBuilder.credentialSubjectData(vpToken);
-        updateManagementObject(VerificationStatusEnum.SUCCESS, walletResponseBuilder.build());
-
-        return managementEntity;
+        managementEntity.setState(VerificationStatusEnum.SUCCESS);
+        managementEntity.setWalletResponse(ResponseData.builder().credentialSubjectData(vpToken).build());
+        verificationManagementRepository.save(managementEntity);
     }
 
     public boolean checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
@@ -122,9 +115,9 @@ public class SDJWTCredential extends CredentialVerifier {
             Map<String, Object> decodedSDJWT = decoder.decode(expectedMap, disclosures);
             sdJWTString = objectMapper.writeValueAsString(decodedSDJWT);
         } catch (PathNotFoundException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage());
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
         } catch (JsonProcessingException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occurred while parsing SDJWT");
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occurred while parsing SDJWT", managementEntity);
         }
 
         super.checkPresentationDefinitionCriteria(sdJWTString);
@@ -142,7 +135,7 @@ public class SDJWTCredential extends CredentialVerifier {
             return kf.generatePublic(keySpec);
         } catch (Exception e) {
             log.error("Failed to load public key", e);
-            return null;
+            throw new IllegalArgumentException("Public key could not be loaded - Please check the env variables and try again");
         }
     }
 }

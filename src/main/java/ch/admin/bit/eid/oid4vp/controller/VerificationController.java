@@ -60,27 +60,27 @@ public class VerificationController {
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRequest request) {
 
-        ManagementEntity management = verificationManagementRepository.findById(requestId).orElseThrow(
-                () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
+        ManagementEntity managementEntity = verificationManagementRepository.findById(requestId).orElseThrow(
+                () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, null));
 
-        if (management.getState() != VerificationStatusEnum.PENDING) {
-            throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED);
+        if (managementEntity.getState() != VerificationStatusEnum.PENDING) {
+            throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED, null);
         }
 
         String walletError = request.getError();
         String walletErrorDescription = request.getError_description();
 
         if (isNoneBlank(walletError)) {
-            verificationService.processHolderVerificationRejection(management, walletError, walletErrorDescription);
+            verificationService.processHolderVerificationRejection(managementEntity, walletError, walletErrorDescription);
             return;
         }
 
         PresentationSubmission presentationSubmission = stringToPresentationSubmission(request.getPresentation_submission());
 
         if (isBlank(request.getVp_token()) || isNull(presentationSubmission)) {
-            throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
+            throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, managementEntity);
         }
 
-        verificationService.processPresentation(management, request.getVp_token(), presentationSubmission);
+        verificationService.processPresentation(managementEntity, request.getVp_token(), presentationSubmission);
     }
 }

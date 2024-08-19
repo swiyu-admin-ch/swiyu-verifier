@@ -123,11 +123,11 @@ class VerificationControllerTests {
 
         String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
 
-        var test = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
-                .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                .formField("presentation_submission", presentationSubmissionString)
-                .formField("vp_token", vpToken)).andReturn();
-        // .andExpect(status().isOk());
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmissionString)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isOk());
 
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,

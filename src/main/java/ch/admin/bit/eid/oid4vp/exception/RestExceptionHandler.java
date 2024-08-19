@@ -1,6 +1,13 @@
 package ch.admin.bit.eid.oid4vp.exception;
 
+import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
+import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
+import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
+import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
+import ch.admin.bit.eid.oid4vp.service.VerificationService;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -15,7 +22,11 @@ import static java.util.Objects.nonNull;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice
+@AllArgsConstructor
+@Slf4j
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
+
+    private final VerificationService verificationService;
 
     @ExceptionHandler(VerificationException.class)
     protected ResponseEntity<Object> handleVerificationException(
@@ -24,6 +35,17 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         if (exception.getError().getError().equals(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND)) {
             responseStatus = HttpStatus.NOT_FOUND;
         }
+
+        ManagementEntity managementEntity = exception.getManagementEntity();
+
+        if (managementEntity != null) {
+            managementEntity.setState(VerificationStatusEnum.FAILED);
+            managementEntity.setWalletResponse(ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+            verificationService.updateManagement(exception.getManagementEntity());
+        }
+
+        log.error(exception.getMessage());
+
         return new ResponseEntity<>(exception.getError(), responseStatus);
     }
 
@@ -33,15 +55,8 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         HttpStatus responseStatus = HttpStatus.BAD_REQUEST;
         String responseMessage = nonNull(exception.getMessage()) ? exception.getMessage() : "Bad request";
 
+
+        log.error(exception.getMessage());
         return new ResponseEntity<>(responseMessage, responseStatus);
     }
-
-    /*@ExceptionHandler(Exception.class)
-    protected ResponseEntity<Object> handleGeneralException(
-            final Exception exception, final WebRequest request) {
-        HttpStatus responseStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-        String responseMessage = nonNull(exception.getMessage()) ? exception.getMessage() : "Internal server error. Please check again later";
-
-        return new ResponseEntity<>(responseMessage, responseStatus);
-    }*/
 }

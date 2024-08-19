@@ -2,10 +2,12 @@ package ch.admin.bit.eid.oid4vp.model;
 
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
+import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteVerificationResult;
 import com.google.gson.Gson;
@@ -18,7 +20,12 @@ public class LdpCredential extends CredentialVerifier {
 
     private final BBSKeyConfiguration bbsKeyConfiguration;
 
-    LdpCredential(BBSKeyConfiguration bbsKeyConfiguration) {
+    LdpCredential(final String vpToken,
+                  final ManagementEntity managementEntity,
+                  final PresentationSubmission presentationSubmission,
+                  final VerificationManagementRepository verificationManagementRepository,
+                  BBSKeyConfiguration bbsKeyConfiguration) {
+        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
         this.bbsKeyConfiguration = bbsKeyConfiguration;
     }
 

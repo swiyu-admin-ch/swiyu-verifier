@@ -59,8 +59,7 @@ class PresentationFormatFactoryTest {
         PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(1, true, "wrong-format");
 
         assertThrows(IllegalArgumentException.class, () -> presentationFormatFactory
-                .getFormatBuilder(presentationSubmission)
-                .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
+                .getFormatBuilder(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
                 .verifyPresentation());
     }
 
@@ -69,8 +68,7 @@ class PresentationFormatFactoryTest {
         PresentationSubmission presentationSubmission = getPresentationDefinitionMockWithFormat(1, true, null);
 
         assertThrows(IllegalArgumentException.class, () -> presentationFormatFactory
-                .getFormatBuilder(presentationSubmission)
-                .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
+                .getFormatBuilder(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
                 .verifyPresentation());
     }
 }

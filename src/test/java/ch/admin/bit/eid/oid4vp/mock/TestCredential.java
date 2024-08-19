@@ -12,7 +12,7 @@ public class TestCredential extends CredentialVerifier {
             final PresentationSubmission presentationSubmission,
             final VerificationManagementRepository verificationManagementRepository
     ) {
-        credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
+        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
     }
 
     @Override

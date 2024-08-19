@@ -26,16 +26,15 @@ public abstract class CredentialVerifier {
     protected PresentationSubmission presentationSubmission;
     protected VerificationManagementRepository verificationManagementRepository;
 
-    public CredentialVerifier credentialOffer(final String vpToken,
-                                              final ManagementEntity managementEntity,
-                                              final PresentationSubmission presentationSubmission,
-                                              final VerificationManagementRepository verificationManagementRepository) {
+    public CredentialVerifier(final String vpToken,
+                              final ManagementEntity managementEntity,
+                              final PresentationSubmission presentationSubmission,
+                              final VerificationManagementRepository verificationManagementRepository) {
         this.managementEntity = managementEntity;
         this.vpToken = vpToken;
         this.presentationSubmission = presentationSubmission;
         this.verificationManagementRepository = verificationManagementRepository;
 
-        return this;
     }
 
     public abstract ManagementEntity verifyPresentation();

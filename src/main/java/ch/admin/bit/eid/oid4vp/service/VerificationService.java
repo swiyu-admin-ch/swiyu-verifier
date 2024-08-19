@@ -85,8 +85,7 @@ public class VerificationService {
         }
 
         presentationFormatFactory
-                .getFormatBuilder(presentationSubmission)
-                .credentialOffer(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository)
+                .getFormatBuilder(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository)
                 .verifyPresentation();
     }
 

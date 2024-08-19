@@ -42,16 +42,13 @@ public class SDJWTCredential extends CredentialVerifier {
     // TODO check what should be supported
     private final List<String> suggestedAlgorithms = List.of("ES256");
 
-    SDJWTCredential(SDJWTConfiguration sdjwtConfig) {
-        this.sdjwtConfig = sdjwtConfig;
-    }
-
     public SDJWTCredential(final String vpToken,
                            final ManagementEntity managementEntity,
                            final PresentationSubmission presentationSubmission,
                            final VerificationManagementRepository verificationManagementRepository,
                            SDJWTConfiguration sdjwtConfig) {
-        credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
+
+        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
         this.sdjwtConfig = sdjwtConfig;
     }
 

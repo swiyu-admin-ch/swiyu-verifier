@@ -19,17 +19,17 @@ import java.util.List;
 
 @Getter
 @Slf4j
-public abstract class CredentialBuilder {
+public abstract class CredentialVerifier {
 
     protected ManagementEntity managementEntity;
     protected String vpToken;
     protected PresentationSubmission presentationSubmission;
     protected VerificationManagementRepository verificationManagementRepository;
 
-    public CredentialBuilder credentialOffer(final String vpToken,
-                                             final ManagementEntity managementEntity,
-                                             final PresentationSubmission presentationSubmission,
-                                             final VerificationManagementRepository verificationManagementRepository) {
+    public CredentialVerifier credentialOffer(final String vpToken,
+                                              final ManagementEntity managementEntity,
+                                              final PresentationSubmission presentationSubmission,
+                                              final VerificationManagementRepository verificationManagementRepository) {
         this.managementEntity = managementEntity;
         this.vpToken = vpToken;
         this.presentationSubmission = presentationSubmission;
@@ -39,10 +39,6 @@ public abstract class CredentialBuilder {
     }
 
     public abstract ManagementEntity verifyPresentation();
-
-    public ManagementEntity verify() {
-        return verifyPresentation();
-    }
 
     protected List<String> getPathToRequestedFields(final List<InputDescriptor> inputDescriptorList, final String credentialPath) {
         List<String> pathList = new ArrayList<>();

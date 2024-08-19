@@ -61,7 +61,7 @@ class PresentationFormatFactoryTest {
         assertThrows(IllegalArgumentException.class, () -> presentationFormatFactory
                 .getFormatBuilder(presentationSubmission)
                 .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
-                .verify());
+                .verifyPresentation());
     }
 
     @Test
@@ -71,6 +71,6 @@ class PresentationFormatFactoryTest {
         assertThrows(IllegalArgumentException.class, () -> presentationFormatFactory
                 .getFormatBuilder(presentationSubmission)
                 .credentialOffer(vpToken, managementEntity, presentationSubmission, verificationManagementRepository)
-                .verify());
+                .verifyPresentation());
     }
 }

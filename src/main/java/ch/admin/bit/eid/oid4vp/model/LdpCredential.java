@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.json.GsonJsonParser;
 
 @Slf4j
-public class LdpCredential extends CredentialBuilder {
+public class LdpCredential extends CredentialVerifier {
 
     private final BBSKeyConfiguration bbsKeyConfiguration;
 

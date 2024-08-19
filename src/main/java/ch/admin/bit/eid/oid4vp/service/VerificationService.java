@@ -87,7 +87,7 @@ public class VerificationService {
         presentationFormatFactory
                 .getFormatBuilder(presentationSubmission)
                 .credentialOffer(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository)
-                .verify();
+                .verifyPresentation();
     }
 
     public String getPathToSupportedCredential(final ManagementEntity managementEntity,

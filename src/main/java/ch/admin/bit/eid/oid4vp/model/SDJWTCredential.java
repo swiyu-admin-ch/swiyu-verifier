@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
-public class SDJWTCredential extends CredentialBuilder {
+public class SDJWTCredential extends CredentialVerifier {
 
     private final SDJWTConfiguration sdjwtConfig;
 

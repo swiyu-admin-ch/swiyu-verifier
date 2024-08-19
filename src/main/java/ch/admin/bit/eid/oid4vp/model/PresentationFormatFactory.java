@@ -13,7 +13,7 @@ public class PresentationFormatFactory {
     private final BBSKeyConfiguration bbsKeyConfiguration;
     private final SDJWTConfiguration sdjwtConfiguration;
 
-    public CredentialBuilder getFormatBuilder(PresentationSubmission presentationSubmission) {
+    public CredentialVerifier getFormatBuilder(PresentationSubmission presentationSubmission) {
 
         // TODO assume only 1 submission at the moment
         var format = presentationSubmission.getDescriptorMap().getFirst().getFormat();

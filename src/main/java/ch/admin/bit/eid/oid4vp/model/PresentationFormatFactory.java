@@ -28,7 +28,7 @@ public class PresentationFormatFactory {
         }
 
         return switch (format) {
-            case "ldp_vp" ->
+            case "ldp_vp", "ldp_vc" ->
                     new LdpCredential(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository, bbsKeyConfiguration);
             case "jwt_vp_json", "jwt_vc" ->
                     new SDJWTCredential(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository, sdjwtConfiguration);

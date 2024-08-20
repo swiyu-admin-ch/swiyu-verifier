@@ -21,12 +21,17 @@ public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, 
             return false;
         }
 
-        final Set<String> acceptedLDPFormats = Set.of("ldp_vp", "ldp_vc", "ldp", "jwt_vp", "jwt_vc");
+        final Set<String> acceptedLDPFormats = Set.of("ldp_vp", "ldp_vc", "ldp");
+        final Set<String> acceptedSDJWTSFormats = Set.of("jwt_vp", "jwt_vc");
 
         for (var entry : format.entrySet()) {
-            isValid = acceptedLDPFormats.contains(entry.getKey())
-                    && (entry.getValue().getProofType() != null
-                    && !entry.getValue().getProofType().isEmpty());
+            if (acceptedLDPFormats.contains(entry.getKey())) {
+                isValid = (entry.getValue().getProofType() != null
+                        && !entry.getValue().getProofType().isEmpty());
+            } else if (acceptedSDJWTSFormats.contains(entry.getKey())) {
+                isValid = (entry.getValue().getAlg() != null
+                        && !entry.getValue().getAlg().isEmpty());
+            }
 
             if (!isValid) {
                 break;
@@ -36,5 +41,3 @@ public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, 
         return isValid;
     }
 }
-
-

@@ -76,7 +76,7 @@ class SDJWTCredentialTest {
         var managementEntity = getManagementEntityMock(id, presentationDefinition);
         var cred = new SDJWTCredential(sdJWTCredential, managementEntity, presentationSubmission, verificationManagementRepository, sdjwtConfiguration);
 
-        assertTrue(cred.checkPresentationDefinitionCriteria(claims.getPayload(), disclosures));
+        assertFalse(cred.checkPresentationDefinitionCriteria(claims.getPayload(), disclosures).isEmpty());
     }
 
     @Test

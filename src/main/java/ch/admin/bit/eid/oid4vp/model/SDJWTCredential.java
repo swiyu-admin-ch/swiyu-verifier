@@ -98,14 +98,14 @@ public class SDJWTCredential extends CredentialVerifier {
         }
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
-        checkPresentationDefinitionCriteria(payload, disclosures);
+        var sdjwt = checkPresentationDefinitionCriteria(payload, disclosures);
 
         managementEntity.setState(VerificationStatusEnum.SUCCESS);
-        managementEntity.setWalletResponse(ResponseData.builder().credentialSubjectData(vpToken).build());
+        managementEntity.setWalletResponse(ResponseData.builder().credentialSubjectData(sdjwt).build());
         verificationManagementRepository.save(managementEntity);
     }
 
-    public boolean checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
+    public String checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
         Map<String, Object> expectedMap = new HashMap<>(claims);
         SDObjectDecoder decoder = new SDObjectDecoder();
         ObjectMapper objectMapper = new ObjectMapper();
@@ -122,7 +122,7 @@ public class SDJWTCredential extends CredentialVerifier {
 
         super.checkPresentationDefinitionCriteria(sdJWTString);
 
-        return true;
+        return sdJWTString;
     }
 
     // TODO replace with actual functionality

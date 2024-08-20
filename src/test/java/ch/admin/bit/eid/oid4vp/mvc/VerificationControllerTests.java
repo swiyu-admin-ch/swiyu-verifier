@@ -306,7 +306,6 @@ class VerificationControllerTests {
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
-        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains(sdJWT);
     }
 
     @Test
@@ -324,7 +323,7 @@ class VerificationControllerTests {
 
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
 
-        var etst = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", newCred))

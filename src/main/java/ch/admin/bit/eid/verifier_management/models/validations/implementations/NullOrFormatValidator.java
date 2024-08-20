@@ -21,7 +21,7 @@ public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, 
             return false;
         }
 
-        final Set<String> acceptedLDPFormats = Set.of("ldp_vp", "ldp_vc", "ldp");
+        final Set<String> acceptedLDPFormats = Set.of("ldp_vp", "ldp_vc", "ldp", "jwt_vc", "jwt_vp");
 
         for (var entry : format.entrySet()) {
             isValid = acceptedLDPFormats.contains(entry.getKey())

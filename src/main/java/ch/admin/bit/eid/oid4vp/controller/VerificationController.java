@@ -66,12 +66,10 @@ public class VerificationController {
         if (managementEntity.getState() != VerificationStatusEnum.PENDING) {
             throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED, null);
         }
-
-        String walletError = request.getError();
-        String walletErrorDescription = request.getError_description();
-
-        if (isNoneBlank(walletError)) {
-            verificationService.processHolderVerificationRejection(managementEntity, walletError, walletErrorDescription);
+        
+        // TODO
+        if (isNoneBlank(request.getError())) {
+            verificationService.processHolderVerificationRejection(managementEntity);
             return;
         }
 

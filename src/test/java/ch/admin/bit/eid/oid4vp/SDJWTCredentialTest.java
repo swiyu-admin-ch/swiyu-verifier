@@ -85,8 +85,9 @@ class SDJWTCredentialTest {
         var presentationDefinition = createPresentationDefinitionMock(id, List.of("$.first_name", "$.last_name", "$.birthdate", "$.definitely_not_there"));
         var managementEntity = getManagementEntityMock(id, presentationDefinition);
         var cred = new SDJWTCredential(sdJWTCredential, managementEntity, presentationSubmission, verificationManagementRepository, sdjwtConfiguration);
+        var payload = claims.getPayload();
 
-        assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(claims.getPayload(), disclosures));
+        assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(payload, disclosures));
     }
 
     private PublicKey loadPublicKey(SDJWTConfiguration sdjwtConfig) {

@@ -7,5 +7,5 @@ import lombok.Getter;
 @Builder
 public class VerificationResultNotSupported extends RuntimeException {
 
-    private final VerificationError error;
+    private final transient VerificationError error;
 }

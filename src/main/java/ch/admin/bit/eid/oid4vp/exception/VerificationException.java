@@ -7,8 +7,8 @@ import lombok.Getter;
 
 @Getter
 public class VerificationException extends RuntimeException {
-    private final VerificationError error;
-    private final ManagementEntity managementEntity;
+    private final transient VerificationError error;
+    private final transient ManagementEntity managementEntity;
 
     public VerificationException(VerificationError error, ManagementEntity managementEntity) {
         this.error = error;

@@ -41,7 +41,7 @@ public class VerificationService {
 
     private final PresentationFormatFactory presentationFormatFactory;
 
-    public void processHolderVerificationRejection(ManagementEntity managementEntity, String error, String errorDescription) {
+    public void processHolderVerificationRejection(ManagementEntity managementEntity) {
         // TODO check if reasons (error and errorDescription) needed
         ResponseData responseData = ResponseData
                 .builder()

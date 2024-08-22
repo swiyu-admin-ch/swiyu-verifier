@@ -14,6 +14,9 @@ public class ResponseDataDto {
     @JsonProperty("error_code")
     private ResponseErrorCodeEnum errorCode;
 
+    @JsonProperty("error_description")
+    private String errorDescription;
+
     @JsonProperty("credential_subject_data")
     private Map<String, Object> credentialSubjectData;
 }

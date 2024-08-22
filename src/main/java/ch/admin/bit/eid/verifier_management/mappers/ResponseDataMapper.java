@@ -20,6 +20,7 @@ public class ResponseDataMapper {
 
         return ResponseDataDto.builder()
                 .errorCode(responseData.getErrorCode())
+                .errorDescription(responseData.getErrorDescription())
                 .credentialSubjectData(nonNull(credentialSubjectDataString) ? jsonStringToMap(credentialSubjectDataString) : null)
                 .build();
 

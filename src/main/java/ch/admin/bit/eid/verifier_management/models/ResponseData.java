@@ -16,5 +16,7 @@ public class ResponseData implements Serializable {
 
     private ResponseErrorCodeEnum errorCode;
 
+    private String errorDescription;
+
     private String credentialSubjectData;
 }

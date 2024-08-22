@@ -103,6 +103,8 @@
             <groupId>ch.admin.eid</groupId>
             <artifactId>bbscryptosuite</artifactId>
             <version>0.0.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/bbscryptosuite-0.0.1.jar</systemPath>
         </dependency>
         <!-- End BBS -->
 

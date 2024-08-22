@@ -15,29 +15,24 @@ public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, 
             return true;
         }
 
-        boolean isValid = false;
-
         if (format.isEmpty()) {
             return false;
         }
 
+        return format.entrySet().stream().allMatch(entry -> isValidLDPFormat(entry) || isValidSDJWTFormat(entry));
+    }
+
+    private boolean isValidLDPFormat(Map.Entry<String, FormatAlgorithmDto> entry) {
         final Set<String> acceptedLDPFormats = Set.of("ldp_vp", "ldp_vc", "ldp");
+
+        return acceptedLDPFormats.contains(entry.getKey()) && entry.getValue().getProofType() != null
+                && !entry.getValue().getProofType().isEmpty();
+    }
+
+    private boolean isValidSDJWTFormat(Map.Entry<String, FormatAlgorithmDto> entry) {
         final Set<String> acceptedSDJWTSFormats = Set.of("jwt_vp", "jwt_vc");
 
-        for (var entry : format.entrySet()) {
-            if (acceptedLDPFormats.contains(entry.getKey())) {
-                isValid = (entry.getValue().getProofType() != null
-                        && !entry.getValue().getProofType().isEmpty());
-            } else if (acceptedSDJWTSFormats.contains(entry.getKey())) {
-                isValid = (entry.getValue().getAlg() != null
-                        && !entry.getValue().getAlg().isEmpty());
-            }
-
-            if (!isValid) {
-                break;
-            }
-        }
-
-        return isValid;
+        return acceptedSDJWTSFormats.contains(entry.getKey()) && entry.getValue().getProofType() != null
+                && !entry.getValue().getProofType().isEmpty();
     }
 }

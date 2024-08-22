@@ -14,5 +14,7 @@ public class ResponseData {
 
     private ResponseErrorCodeEnum errorCode;
 
+    private String errorDescription;
+
     private String credentialSubjectData;
 }

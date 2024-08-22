@@ -67,9 +67,8 @@ public class VerificationController {
             throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED, null);
         }
         
-        // TODO
         if (isNoneBlank(request.getError())) {
-            verificationService.processHolderVerificationRejection(managementEntity);
+            verificationService.processHolderVerificationRejection(managementEntity, request.getError_description());
             return;
         }
 

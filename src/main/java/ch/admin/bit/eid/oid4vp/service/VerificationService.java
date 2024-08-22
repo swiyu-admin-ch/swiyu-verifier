@@ -41,11 +41,11 @@ public class VerificationService {
 
     private final PresentationFormatFactory presentationFormatFactory;
 
-    public void processHolderVerificationRejection(ManagementEntity managementEntity) {
-        // TODO check if reasons (error and errorDescription) needed
+    public void processHolderVerificationRejection(ManagementEntity managementEntity, final String errorDescription) {
         ResponseData responseData = ResponseData
                 .builder()
                 .errorCode(ResponseErrorCodeEnum.CLIENT_REJECTED)
+                .errorDescription(errorDescription)
                 .build();
 
         managementEntity.setWalletResponse(responseData);

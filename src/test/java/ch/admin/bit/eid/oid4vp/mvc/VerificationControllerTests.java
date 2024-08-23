@@ -110,7 +110,64 @@ class VerificationControllerTests {
 
         var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
-        var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
+        var credential = emulator.createVC(
+                List.of("/credentialSubject/id", "/type", "/issuer"),
+                emulator.addHolderBinding(ExampleJson));
+
+        // Fetch the Request Object
+        var response = mock.perform(get(String.format("/request-object/%s", requestId)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // Get the Nonce
+        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
+        String nonce = responseContent.get("nonce").getAsString();
+        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
+
+        String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmissionString)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isOk());
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains("world");
+
+        // Test Resending after Success
+
+        response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .formField("presentation_submission", presentationSubmissionString)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        //Data should be unchanged
+        managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+        assert managementEntity.getWalletResponse().getCredentialSubjectData().contains("world");
+
+        // Error that verification is closed should be returned to wallet
+        var responseBody = response.getResponse().getContentAsString();
+        Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
+        assert responseBody.contains(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED.toString());
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void shouldSucceedVerifyingCredentialNoHolderBinding() throws Exception {
+
+        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
+
+        var credential = emulator.createVC(
+                List.of("/type", "/issuer"),
+                ExampleJson);
 
         // Fetch the Request Object
         var response = mock.perform(get(String.format("/request-object/%s", requestId)))

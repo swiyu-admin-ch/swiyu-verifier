@@ -10,7 +10,15 @@ import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteVerificationResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 public class LdpCredential extends CredentialVerifier {
@@ -26,14 +34,51 @@ public class LdpCredential extends CredentialVerifier {
         this.bbsKeyConfiguration = bbsKeyConfiguration;
     }
 
+    private VerificationException credentialInvalidError(String description) {
+        return VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, description, managementEntity);
+    }
+
+    private boolean isVerifiablePresentation(Object type) {
+        if (type == null){
+            throw credentialInvalidError("VP Token type must be set");
+        }
+        List<Object> tokenType = null;
+        if (type instanceof List) {
+            tokenType = (List<Object>) type;
+        } else {
+            tokenType = List.of(type);
+        }
+        return tokenType.contains("VerifiablePresentation");
+    }
+
     @Override
     public void verifyPresentation() {
-        // TODO - Validate the integrity, authenticity, and Holder Binding of any Verifiable Presentation provided in the VP Token according to the rules of the respective Presentation format
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> parsed = null;
+        try {
+            parsed = mapper.readValue(vpToken, HashMap.class);
+        } catch (JsonProcessingException e) {
+            throw credentialInvalidError("vpToken can not be parsed as JSON");
+        }
+        String bbsToken = vpToken;
+        if (isVerifiablePresentation(parsed.get("type"))) {
+            // Verify the holder binding and update the vp token
+            // TODO - Validate the integrity, authenticity, and Holder Binding of any Verifiable Presentation provided in the VP Token according to the rules of the respective Presentation format
+
+            try {
+                bbsToken = mapper.writeValueAsString(((List)parsed.get("verifiableCredential")).get(0));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+
         String verifiedDocument;
         try {
-            verifiedDocument = verifyProofBBS(vpToken, managementEntity.getRequestNonce());
+            verifiedDocument = verifyProofBBS(bbsToken, managementEntity.getRequestNonce());
         } catch (Exception e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "The credential data integrity signature could not be verified", managementEntity);
+            log.warn("Failed BBS proof verification for token", e);
+            throw credentialInvalidError("The BBS credential data integrity signature could not be verified");
         }
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.

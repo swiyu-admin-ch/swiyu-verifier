@@ -8,4 +8,4 @@
 
 | Variable         | Description                                                | Type | Default       |
 |------------------|------------------------------------------------------------|------|---------------|
-| verification-ttl | Defines how long the verification will be stored | long | 86400 (60min) |
+| verification-ttl | Defines how long the verification will be stoclear<br/>res | long | 86400 (60min) |

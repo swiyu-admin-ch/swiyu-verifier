@@ -7,6 +7,9 @@ import ch.admin.bit.eid.oid4vp.model.SDJWTCredential;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.authlete.sd.Disclosure;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jwt.SignedJWT;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -21,10 +24,7 @@ import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static ch.admin.bit.eid.oid4vp.mock.CredentialSubmissionMock.getPresentationDefinitionMockWithFormat;
 import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEntityMock;
@@ -55,7 +55,8 @@ class SDJWTCredentialTest {
         id = UUID.randomUUID();
         sdJWTCredential = emulator.createSDJWTMock(null, null, null);
         presentationSubmission = getPresentationDefinitionMockWithFormat(1, false, "jwt_vc");
-
+        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, "test-nonce", "test-test");
+        var keyBinding = Arrays.stream(vpToken.split("~")).toList().getLast();
         var parts = sdJWTCredential.split("~");
         disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, parts.length)).map(Disclosure::parse).toList();
 
@@ -64,6 +65,12 @@ class SDJWTCredentialTest {
                     .verifyWith(publicKey)
                     .build()
                     .parseSignedClaims(parts[0]);
+            // Verify Key Binding
+            Map<String, Object> cnf  = (Map<String, Object>) claims.getPayload().get("cnf");
+            var signedKeyBinding = SignedJWT.parse(keyBinding);
+            var holderBindingKey = JWK.parse(cnf);
+            assertTrue(signedKeyBinding.verify(new ECDSAVerifier(holderBindingKey.toECKey())));
+
         } catch (Exception e) {
             throw new Exception(e);
         }

@@ -13,6 +13,11 @@ import com.authlete.sd.SDObjectDecoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.PathNotFoundException;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
@@ -20,11 +25,15 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.PrematureJwtException;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -56,8 +65,6 @@ public class SDJWTCredential extends CredentialVerifier {
     // follows https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt#section-8.1-4.3.2.4
     public void verifyPresentation() {
 
-        // TODO check nonce
-
         Jws<Claims> claims;
         String[] parts = vpToken.split("~");
         var issuerSignedJWTToken = parts[0];
@@ -84,9 +91,14 @@ public class SDJWTCredential extends CredentialVerifier {
         }
 
         Claims payload = claims.getPayload();
-
-        List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, parts.length)).map(Disclosure::parse).toList();
+        int disclosureLength = parts.length;
+        if (hasKeyBinding(payload)) {
+            disclosureLength-=1;
+            validateKeyBinding(payload, parts[parts.length-1]);
+        }
+        List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, disclosureLength)).map(Disclosure::parse).toList();
         List<String> digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
+
 
         // check if distinct disclosures
         if (new HashSet<>(disclosures).size() != disclosures.size()) {
@@ -104,6 +116,89 @@ public class SDJWTCredential extends CredentialVerifier {
         managementEntity.setWalletResponse(ResponseData.builder().credentialSubjectData(sdjwt).build());
         verificationManagementRepository.save(managementEntity);
     }
+
+    private boolean hasKeyBinding(Claims payload) {
+        boolean keyBindingProofPresent = !vpToken.endsWith("~");
+        if (payload.containsKey("cnf") && !keyBindingProofPresent) {
+            // There is a Holder Key Binding, but we did not receive a proof for it!
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof", managementEntity);
+        }
+        return keyBindingProofPresent;
+    }
+
+    private void validateKeyBinding(Claims payload, String keyBindingProof) {
+        JWK keyBinding = getHolderKeyBinding(payload);
+        // Validate Holder Binding Proof JWT
+
+        JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(keyBindingProof, keyBinding);
+        validateNonce(keyBindingClaims);
+        validateSDHash(keyBindingClaims);
+    }
+
+    private void validateSDHash(JWTClaimsSet keyBindingClaims) {
+        // Compute the SD Hash of the VP Token
+        String sdjwt = vpToken.substring(0, vpToken.lastIndexOf("~")+1);
+        String hash = null;
+        try {
+            hash = new String(Base64.getUrlEncoder().withoutPadding().encode(MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes())));
+        } catch (NoSuchAlgorithmException e) {
+            // If this occurs our static string is wrong...
+            log.error("Failed to load hash algorithm", e);
+            throw new RuntimeException(e);
+        }
+        String hashClaim = keyBindingClaims.getClaim("sd_hash").toString();
+        if (!hash.equals(hashClaim)) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, String.format("Presented sd_hash '%s' does not match the computed hash '%s'", hashClaim, hash), managementEntity);
+        }
+    }
+
+    @NotNull
+    private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding) {
+        JWTClaimsSet keyBindingClaims = null;
+        try {
+            SignedJWT keyBindingJWT = SignedJWT.parse(keyBindingProof);
+            if (!"kb+jwt".equals(keyBindingJWT.getHeader().getType().toString())) {
+                throw VerificationException.credentialError(
+                        ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, String.format("Type of holder binding typ is expected to be kb+jwt but was %s", keyBindingJWT.getHeader().getType().toString()), managementEntity);
+            }
+            if (!keyBindingJWT.verify(new ECDSAVerifier(keyBinding.toECKey()))) {
+                throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding provided does not match the one in the credential", managementEntity);
+            }
+            keyBindingClaims = keyBindingJWT.getJWTClaimsSet();
+        } catch (ParseException e) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed", managementEntity);
+        } catch (JOSEException e) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Failed to verify the holder key binding - only supporting EC Keys", managementEntity);
+        }
+        return keyBindingClaims;
+    }
+
+    @NotNull
+    private JWK getHolderKeyBinding(Claims payload) {
+        if (!payload.containsKey("cnf")) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "No cnf claim found. Only supporting JWK holder bindings", managementEntity);
+        }
+        Object keyBindingClaim = payload.get("cnf");
+        if (!(keyBindingClaim instanceof Map)) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding is not a JWK", managementEntity);
+        }
+        JWK keyBinding = null;
+        try {
+            keyBinding = JWK.parse((Map<String, Object>) keyBindingClaim);
+        } catch (ParseException e) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding Key could not be parsed", managementEntity);
+        }
+        return keyBinding;
+    }
+
+    private void validateNonce(JWTClaimsSet keyBindingClaims) {
+        var expectedNonce = managementEntity.getRequestNonce();
+        var actualNonce = keyBindingClaims.getClaim("nonce");
+        if (!expectedNonce.equals(actualNonce)) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.MISSING_NONCE, String.format("Holder Binding lacks correct nonce expected '%s' but was '%s' ", expectedNonce, actualNonce ), managementEntity);
+        }
+    }
+
 
     public String checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
         Map<String, Object> expectedMap = new HashMap<>(claims);

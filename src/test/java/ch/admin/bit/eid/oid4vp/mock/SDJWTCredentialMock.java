@@ -15,82 +15,47 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.openssl.PEMKeyPair;
-import org.bouncycastle.openssl.PEMParser;
+import lombok.Getter;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.security.KeyFactory;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.interfaces.ECPrivateKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Objects.nonNull;
 
 public class SDJWTCredentialMock {
     public static String ISSUER_ID = "TEST_ISSUER_ID";
 
-    private final ECPrivateKey privateKey;
+    @Getter
+    private final ECKey key;
+    @Getter
+    private final ECKey holderKey;
 
     private final String privateKeyString = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIDqMm9PvL4vpyFboAwaeViQsH30CkaDcVtRniZPezFxpoAoGCCqGSM49\nAwEHoUQDQgAEQgjeqGSdu+2jq8+n78+6fXk2Yh22lQKBYCnu5FWPvKtat3wFEsQX\nqNHYgPXBxWmOBw5l2PE/gUDUJqGJSc1LuQ==\n-----END EC PRIVATE KEY-----";
 
     public SDJWTCredentialMock() throws JOSEException {
-        ECKey key = new ECKeyGenerator(Curve.P_256).generate();
-        privateKey = getPrivateKey();
+        holderKey = new ECKeyGenerator(Curve.P_256).generate();
+        key = JWK.parseFromPEMEncodedObjects(privateKeyString).toECKey();
     }
 
-    public String createNestedSDJWTMock(Long validFrom, Long validUntil) {
-        SDObjectBuilder builder = new SDObjectBuilder();
-        List<Disclosure> disclosures = new ArrayList<>();
-
-        builder.putClaim("iss", ISSUER_ID);
-        builder.putClaim("iat", Instant.now().getEpochSecond());
-
-        if (nonNull(validFrom)) {
-            builder.putClaim("nbf", validFrom);
-        }
-
-        if (nonNull(validUntil)) {
-            builder.putClaim("exp", validUntil);
-        }
-
-        getSDClaims().forEach((key, value) -> {
-            Disclosure dis = new Disclosure(key, value);
-            builder.putSDClaim(dis);
-            disclosures.add(dis);
-        });
-
-        try {
-            Map<String, Object> claims = builder.build();
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("vc+sd-jwt")).build();
-            JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);
-            SignedJWT jwt = new SignedJWT(header, claimsSet);
-            JWSSigner signer = new ECDSASigner(privateKey);
-            jwt.sign(signer);
-            var sdjwt = new SDJWT(jwt.serialize(), disclosures).toString();
+    /**
+     * Adds A second (fake) VC to the VP Token generated to test the Presentation Exchange Credential Selection
+     * @param sdjwt
+     * @return
+     */
+    public String createMultipleVPTokenMock(String sdjwt) throws JsonProcessingException {
             ObjectMapper objectMapper = new ObjectMapper();
             return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
-        } catch (ParseException | JOSEException | JsonProcessingException e) {
-            return null;
-        }
     }
 
-    public String createSDJWTMock(Long validFrom, Long validUntil, ECPrivateKey privKey) {
-        privKey = privKey != null ? privKey : privateKey;
+    public String createSDJWTMock(Long validFrom, Long validUntil, ECKey privKey) throws JOSEException {
+        privKey = privKey != null ? privKey : key;
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -105,8 +70,10 @@ public class SDJWTCredentialMock {
             builder.putClaim("exp", validUntil);
         }
 
-        getSDClaims().forEach((key, value) -> {
-            Disclosure dis = new Disclosure(key, value);
+        builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
+
+        getSDClaims().forEach((k, v) -> {
+            Disclosure dis = new Disclosure(k, v);
             builder.putSDClaim(dis);
             disclosures.add(dis);
         });
@@ -123,6 +90,25 @@ public class SDJWTCredentialMock {
         } catch (ParseException | JOSEException e) {
             return null;
         }
+    }
+
+    /**
+     * Adds a key binding proof the SD-JWT.
+     * @param sdjwt a string {jwt}~{disclosure-1}~...{disclosure-n}~
+     * @return complete sdjwt with key binding as a string {jwt}~{disclosure-1}~...{disclosure-n}~{keyBindingProof}
+     */
+    public String addKeyBindingProof(String sdjwt, String nonce, String aud) throws NoSuchAlgorithmException, ParseException, JOSEException {
+        // Create hash, hope not to have any indigestion
+        var hash = new String(Base64.getUrlEncoder().withoutPadding().encode(MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes())));
+        HashMap<String, Object> proofData = new HashMap<>();
+        proofData.put("sd_hash", hash);
+        proofData.put("iat", Instant.now().getEpochSecond());
+        proofData.put("aud", aud);
+        proofData.put("nonce", nonce);
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("kb+jwt")).build();
+        var jwt = new SignedJWT(header, JWTClaimsSet.parse(proofData));
+        jwt.sign(new ECDSASigner(holderKey));
+        return sdjwt+jwt.serialize();
     }
 
     public String getPresentationSubmissionString(UUID uuid) throws JsonProcessingException {
@@ -146,7 +132,7 @@ public class SDJWTCredentialMock {
         return mapper.writeValueAsString(submission);
     }
 
-    public String getNestedPresentationSubmissionString(UUID uuid) throws JsonProcessingException {
+    public String getMultiplePresentationSubmissionString(UUID uuid) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
 
         Descriptor descriptorSDJWT = Descriptor.builder()
@@ -166,42 +152,6 @@ public class SDJWTCredentialMock {
                 .build();
 
         return mapper.writeValueAsString(submission);
-    }
-
-    private ECPrivateKey getPrivateKey() {
-        ECPrivateKey key = null;
-        try {
-            PEMParser pemParser = new PEMParser(new StringReader(privateKeyString));
-            Object object = pemParser.readObject();
-            pemParser.close();
-
-            PrivateKeyInfo privateKeyInfo;
-            if (object instanceof PEMKeyPair pemKeyPair) {
-                privateKeyInfo = pemKeyPair.getPrivateKeyInfo();
-            } else {
-                privateKeyInfo = PrivateKeyInfo.getInstance(object);
-            }
-
-            byte[] pkcs8Encoded = privateKeyInfo.getEncoded();
-
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pkcs8Encoded);
-            KeyFactory keyFactory = KeyFactory.getInstance("EC");
-            PrivateKey generatedPrivateKey = keyFactory.generatePrivate(keySpec);
-
-            if (generatedPrivateKey instanceof ECPrivateKey) {
-                key = (ECPrivateKey) generatedPrivateKey;
-            } else {
-                throw new InvalidKeySpecException("The provided key is not an EC private key.");
-            }
-        } catch (NoSuchAlgorithmException e) {
-            System.out.println("Could not reconstruct the private key, the given algorithm could not be found.");
-        } catch (InvalidKeySpecException e) {
-            System.out.println("Could not reconstruct the private key");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        return key;
     }
 
     private static HashMap<String, String> getSDClaims() {

@@ -66,6 +66,8 @@ class VerificationControllerTests {
 
     private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
 
+    private final static String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
+
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
@@ -295,12 +297,13 @@ class VerificationControllerTests {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
         var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", sdJWT))
+                        .formField("vp_token", vpToken))
                 .andExpect(status().isOk());
 
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
@@ -320,13 +323,13 @@ class VerificationControllerTests {
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
         var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~";
-
+        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "http://localhost");
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", newCred))
+                        .formField("vp_token", vpToken))
                 .andExpect(status().isOk()).andReturn();
 
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
@@ -346,13 +349,14 @@ class VerificationControllerTests {
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
         var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~" + StringUtils.join(sd, "~") + "~";
+        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "http://localhost");
 
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", newCred))
+                        .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
                 .andExpect(jsonPath("errorDescription").value("Request contains non-distinct disclosures"));
@@ -370,12 +374,13 @@ class VerificationControllerTests {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
         var sdJWT = emulator.createSDJWTMock(Instant.now().plus(7, ChronoUnit.DAYS).getEpochSecond(), null, null);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", sdJWT))
+                        .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
                 .andExpect(jsonPath("errorDescription").value("Could not verify JWT credential is not yet valid"));
@@ -393,13 +398,14 @@ class VerificationControllerTests {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
         var sdJWT = emulator.createSDJWTMock(null, Instant.now().minus(10, ChronoUnit.MINUTES).getEpochSecond(), null);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
 
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", sdJWT))
+                        .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
                 .andExpect(jsonPath("errorDescription").value("Could not verify JWT credential is expired"));
@@ -417,13 +423,15 @@ class VerificationControllerTests {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock(null, null, null);
         var additionalDisclosure = new Disclosure("additional", "definetly_wrong");
+        var newCred = sdJWT + additionalDisclosure + "~";
+        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "http://localhost");
 
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", sdJWT + additionalDisclosure + "~"))
+                        .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
                 .andExpect(jsonPath("errorDescription").value("Could not verify JWT problem with disclosures and _sd field"));
@@ -439,14 +447,15 @@ class VerificationControllerTests {
     void shouldSucceedVerifyingNestedSDJWTCredentialSD_thenSuccess() throws Exception {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-
-        var sdJWT = emulator.createNestedSDJWTMock(null, null);
-        String presentationSubmission = emulator.getNestedPresentationSubmissionString(UUID.randomUUID());
+        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
+        vpToken = emulator.createMultipleVPTokenMock(vpToken);
+        String presentationSubmission = emulator.getMultiplePresentationSubmissionString(UUID.randomUUID());
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", sdJWT))
+                        .formField("vp_token", vpToken))
                 .andExpect(status().isOk());
 
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
@@ -461,13 +470,15 @@ class VerificationControllerTests {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
-        var sdJWT = emulator.createSDJWTMock(null, null, new ECKeyGenerator(Curve.P_256).generate().toECPrivateKey());
+        var sdJWT = emulator.createSDJWTMock(null, null, new ECKeyGenerator(Curve.P_256).generate());
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
         String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", sdJWT))
+                        .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
                 .andExpect(jsonPath("errorDescription").value("Signature mismatch"));

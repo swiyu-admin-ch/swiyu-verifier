@@ -32,7 +32,7 @@ public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, 
     private boolean isValidSDJWTFormat(Map.Entry<String, FormatAlgorithmDto> entry) {
         final Set<String> acceptedSDJWTSFormats = Set.of("jwt_vp", "jwt_vc");
 
-        return acceptedSDJWTSFormats.contains(entry.getKey()) && entry.getValue().getProofType() != null
-                && !entry.getValue().getProofType().isEmpty();
+        return acceptedSDJWTSFormats.contains(entry.getKey()) && entry.getValue().getAlg() != null
+                && !entry.getValue().getAlg().isEmpty();
     }
 }

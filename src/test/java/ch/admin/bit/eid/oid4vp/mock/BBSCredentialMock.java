@@ -16,6 +16,7 @@ import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -75,7 +76,7 @@ public class BBSCredentialMock {
                 .build();
     }
 
-    public String createVerifiablePresentation(String vc, List<String> revealedData, String nonce) {
+    public String createBBSPresentation(String vc, List<String> revealedData, String nonce) {
         JsonObject vcWithBaseProof = JsonParser.parseString(vc).getAsJsonObject();
         String baseProof = vcWithBaseProof.get("proof").getAsJsonObject().get("proof_value").getAsString();
 
@@ -94,7 +95,7 @@ public class BBSCredentialMock {
         // Create BBS VP Token
         ObjectMapper mapper = new ObjectMapper();
         var vcData = mapper.readValue(vc, HashMap.class);
-        String vpToken = createVerifiablePresentation(vc, revealedData, nonce);
+        String vpToken = createBBSPresentation(vc, revealedData, nonce);
         // Assemble Holder Proof of possession
         ECDSASigner signer = new ECDSASigner(holderKey);
 
@@ -114,21 +115,34 @@ public class BBSCredentialMock {
         holderBindingProof.put("proofPurpose", "authentication");
         holderBindingProof.put("verificationMethod", holderDid);
 
-        // Wrapper with Proof
-        Map<String, Object> vpWrapper = new HashMap<>();
-        vpWrapper.put("@context", List.of("https://www.w3.org/2018/credentials/v1"));
-        vpWrapper.put("type", List.of("VerifiablePresentation"));
-        vpWrapper.put("verifiableCredential", List.of(mapper.readValue(vpToken, HashMap.class)));
-        vpWrapper.put("id", "presentationId");
+        List<HashMap> vpMap = List.of(mapper.readValue(vpToken, HashMap.class));
+
+        Map<String, Object> vpWrapper = prepareVerifiablePresentationWrapper(vpMap);
         vpWrapper.put("holder", holderDid);
         vpWrapper.put("proof", holderBindingProof);
         var vpTokenJson=mapper.writeValueAsString(vpWrapper);
         // Encode VP Token as Base64
         return Base64.getUrlEncoder().encodeToString(vpTokenJson.getBytes(StandardCharsets.UTF_8));
     }
-    public String createVerifiablePresentationUrlEncoded(String vc, List<String> revealedData, String nonce) {
-        String vpToken = createVerifiablePresentation(vc, revealedData, nonce);
-        return Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8));
+
+    @NotNull
+    private static Map<String, Object> prepareVerifiablePresentationWrapper(List<HashMap> vpMap) {
+        // Wrapper with Proof
+        Map<String, Object> vpWrapper = new HashMap<>();
+        vpWrapper.put("@context", List.of("https://www.w3.org/2018/credentials/v1"));
+        vpWrapper.put("type", List.of("VerifiablePresentation"));
+        vpWrapper.put("verifiableCredential", vpMap);
+        vpWrapper.put("id", "presentationId");
+        return vpWrapper;
+    }
+
+    public String createVerifiablePresentationUrlEncoded(String vc, List<String> revealedData, String nonce) throws JsonProcessingException {
+        String vpToken = createBBSPresentation(vc, revealedData, nonce);
+        ObjectMapper mapper = new ObjectMapper();
+        List<HashMap> vpMap = List.of(mapper.readValue(vpToken, HashMap.class));
+        Map<String, Object> vpWrapper = prepareVerifiablePresentationWrapper(vpMap);
+        var vpTokenJson=mapper.writeValueAsString(vpWrapper);
+        return Base64.getUrlEncoder().encodeToString(vpTokenJson.getBytes(StandardCharsets.UTF_8));
     }
 
 }

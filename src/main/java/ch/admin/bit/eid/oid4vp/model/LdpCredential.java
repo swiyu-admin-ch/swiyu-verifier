@@ -48,52 +48,34 @@ public class LdpCredential extends CredentialVerifier {
         return VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, description, managementEntity);
     }
 
-    private boolean isVerifiablePresentation(Object type) {
-        if (type == null){
-            throw credentialInvalidError("VP Token type must be set");
-        }
-        List<Object> tokenType = null;
-        if (type instanceof List) {
-            tokenType = (List<Object>) type;
-        } else {
-            tokenType = List.of(type);
-        }
-        return tokenType.contains("VerifiablePresentation");
-    }
 
     @Override
     public void verifyPresentation() {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> parsed = null;
-        boolean hasHolderBinding=false;
         try {
             parsed = mapper.readValue(vpToken, HashMap.class);
         } catch (JsonProcessingException e) {
             throw credentialInvalidError("vpToken can not be parsed as JSON");
         }
-        String bbsToken = vpToken;
-        if (isVerifiablePresentation(parsed.get("type"))) {
-            try {
-                bbsToken = mapper.writeValueAsString(((List)parsed.get("verifiableCredential")).get(0));
-            } catch (JsonProcessingException e) {
-                throw credentialInvalidError("Credential could not be extracted from Presentation");
-            }
-            verifyHolderBinding(parsed, bbsToken);
-            hasHolderBinding = true;
+        // Unpack bbsToken from wrapper
+        String bbsToken = null;
+        try {
+            bbsToken = mapper.writeValueAsString(((List)parsed.get("verifiableCredential")).get(0));
+        } catch (JsonProcessingException e) {
+            throw credentialInvalidError("Credential could not be extracted from Presentation");
+        }
+        // We got no holder binding. If the VC has though a credential subject did we expect there to be a holder binding
+        try {
+            String holderBinding = JsonPath.read(bbsToken, "$.credentialSubject.id");
+            // We found a credentialSubject id for a holder binding.
+            verifyHolderBinding(parsed, holderBinding);
+
+        } catch (PathNotFoundException e) {
+            // All good, no holder did found
         }
 
         String verifiedDocument = verifyBBSSignature(bbsToken);
-        if (!hasHolderBinding) {
-            // We got no holder binding. If the VC has though a credential subject did we expect there to be a holder binding
-            try {
-                JsonPath.read(bbsToken, "$.credentialSubject.id");
-                // We found a credentialSubject id for a holder binding.
-                throw credentialInvalidError("Credential requires presentation with holder binding proof");
-
-            } catch (PathNotFoundException e) {
-                // All good, no holder did found
-            }
-        }
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
         checkPresentationDefinitionCriteria(bbsToken);
         // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
@@ -102,7 +84,7 @@ public class LdpCredential extends CredentialVerifier {
         verificationManagementRepository.save(managementEntity);
     }
 
-    private void verifyHolderBinding(Map<String, Object> parsed, String bbsToken) {
+    private void verifyHolderBinding(Map<String, Object> parsed, String holderDid) {
         // Verify the holder binding and update the vp token
         var proof = parsed.get("proof");
         if (! (proof instanceof Map)) {
@@ -116,12 +98,7 @@ public class LdpCredential extends CredentialVerifier {
             throw holderBindingInvalidError("proofPurpose must be authentication");
         }
         // Check if the proof is done by the correct holder
-        String holderDid = null;
-        try {
-            holderDid = JsonPath.read(bbsToken, "$.credentialSubject.id");
-        } catch (PathNotFoundException e ) {
-            throw holderBindingInvalidError("No holder binding did found in the VC");
-        }
+
         if (!holderDid.equals(holderBindingProof.get("verificationMethod"))) {
             throw holderBindingInvalidError("Holder Binding miss match between proof and presented VC");
         }

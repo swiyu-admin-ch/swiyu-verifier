@@ -122,7 +122,7 @@ class VerificationControllerTests {
         // Get the Nonce
         JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
         String nonce = responseContent.get("nonce").getAsString();
-        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        String vpToken = emulator.createVerifiablePresentationUrlEncodedHolderBinding(credential, List.of("/credentialSubject/hello"), nonce);
         PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
 
         String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
@@ -220,13 +220,15 @@ class VerificationControllerTests {
 
         var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
-        var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
+        var credential = emulator.createVC(
+                List.of("/credentialSubject/id", "/type", "/issuer"),
+                emulator.addHolderBinding(ExampleJson));
         var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
 
         // Get the Nonce
         JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
         String nonce = responseContent.get("nonce").getAsString();
-        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        String vpToken = emulator.createVerifiablePresentationUrlEncodedHolderBinding(credential, List.of("/credentialSubject/hello"), nonce);
         PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
 
         String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
@@ -246,13 +248,15 @@ class VerificationControllerTests {
 
         var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
-        var credential = emulator.createVC(List.of("/type", "/issuer"), ExampleJson);
+        var credential = emulator.createVC(
+                List.of("/credentialSubject/id", "/type", "/issuer"),
+                emulator.addHolderBinding(ExampleJson));
         var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
 
         // Get the Nonce
         JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
         String nonce = responseContent.get("nonce").getAsString();
-        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        String vpToken = emulator.createVerifiablePresentationUrlEncodedHolderBinding(credential, List.of("/credentialSubject/hello"), nonce);
         String presentationSubmission = "{\"id\":\"test_ldp_vc_presentation_definition\",\"definition_id\":\"ldp_vc\",\"descriptor_map\":[{\"id\":\"test_descriptor\",\"format\":\"ldp_vp\",\"path\":\"$.credentialSubject\",\"path_nested\":null";
 
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
@@ -270,9 +274,10 @@ class VerificationControllerTests {
 
         var emulator = new BBSCredentialMock(bbsKeyConfiguration);
 
+        var jsonData = "{\"issuer\": \"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\": \"world\"}}";
         var credential = emulator.createVC(
-                List.of("/type", "/issuer"),
-                "{\"issuer\": \"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\": \"world\"}}");
+                List.of("/credentialSubject/id", "/type", "/issuer"),
+                emulator.addHolderBinding(jsonData));
 
         // Fetch the Request Object
         mock.perform(get(String.format("/request-object/%s", requestId)))
@@ -280,7 +285,7 @@ class VerificationControllerTests {
                 .andReturn();
 
         String nonce = "wrong_nonce";
-        String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
+        String vpToken = emulator.createVerifiablePresentationUrlEncodedHolderBinding(credential, List.of("/credentialSubject/hello"), nonce);
         PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
 
         String presentationSubmissionString = objectMapper.writeValueAsString(presentationSubmission);
@@ -307,7 +312,7 @@ class VerificationControllerTests {
         // Error & error code should be returned to wallet
         var responseBody = response.getResponse().getContentAsString();
         Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
-        assert responseBody.contains(ResponseErrorCodeEnum.CREDENTIAL_INVALID.toString());
+        assert responseBody.contains(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH.toString());
         assert responseBody.contains(VerificationErrorEnum.INVALID_REQUEST.toString());
 
         // Resending after failure

@@ -18,12 +18,12 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class BBSCredentialMock {
 
@@ -118,7 +118,7 @@ public class BBSCredentialMock {
         Map<String, Object> vpWrapper = new HashMap<>();
         vpWrapper.put("@context", List.of("https://www.w3.org/2018/credentials/v1"));
         vpWrapper.put("type", List.of("VerifiablePresentation"));
-        vpWrapper.put("verifiableCredential", List.of(vpToken));
+        vpWrapper.put("verifiableCredential", List.of(mapper.readValue(vpToken, HashMap.class)));
         vpWrapper.put("id", "presentationId");
         vpWrapper.put("holder", holderDid);
         vpWrapper.put("proof", holderBindingProof);
@@ -126,7 +126,7 @@ public class BBSCredentialMock {
         // Encode VP Token as Base64
         return Base64.getUrlEncoder().encodeToString(vpTokenJson.getBytes(StandardCharsets.UTF_8));
     }
-    public String createVerifiablePresentationUrlEncoded(String vc, List<String> revealedData, String nonce) throws JOSEException, JsonProcessingException {
+    public String createVerifiablePresentationUrlEncoded(String vc, List<String> revealedData, String nonce) {
         String vpToken = createVerifiablePresentation(vc, revealedData, nonce);
         return Base64.getUrlEncoder().encodeToString(vpToken.getBytes(StandardCharsets.UTF_8));
     }

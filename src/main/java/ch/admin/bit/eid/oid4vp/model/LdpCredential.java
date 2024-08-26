@@ -2,6 +2,7 @@ package ch.admin.bit.eid.oid4vp.model;
 
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.did.DidJwk;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
@@ -12,10 +13,15 @@ import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteVerificationResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +44,10 @@ public class LdpCredential extends CredentialVerifier {
         return VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, description, managementEntity);
     }
 
+    private VerificationException holderBindingInvalidError(String description) {
+        return VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, description, managementEntity);
+    }
+
     private boolean isVerifiablePresentation(Object type) {
         if (type == null){
             throw credentialInvalidError("VP Token type must be set");
@@ -55,6 +65,7 @@ public class LdpCredential extends CredentialVerifier {
     public void verifyPresentation() {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> parsed = null;
+        boolean hasHolderBinding=false;
         try {
             parsed = mapper.readValue(vpToken, HashMap.class);
         } catch (JsonProcessingException e) {
@@ -62,17 +73,86 @@ public class LdpCredential extends CredentialVerifier {
         }
         String bbsToken = vpToken;
         if (isVerifiablePresentation(parsed.get("type"))) {
-            // Verify the holder binding and update the vp token
-            // TODO - Validate the integrity, authenticity, and Holder Binding of any Verifiable Presentation provided in the VP Token according to the rules of the respective Presentation format
-
             try {
                 bbsToken = mapper.writeValueAsString(((List)parsed.get("verifiableCredential")).get(0));
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                throw credentialInvalidError("Credential could not be extracted from Presentation");
             }
+            verifyHolderBinding(parsed, bbsToken);
+            hasHolderBinding = true;
         }
 
+        String verifiedDocument = verifyBBSSignature(bbsToken);
+        if (!hasHolderBinding) {
+            // We got no holder binding. If the VC has though a credential subject did we expect there to be a holder binding
+            try {
+                JsonPath.read(bbsToken, "$.credentialSubject.id");
+                // We found a credentialSubject id for a holder binding.
+                throw credentialInvalidError("Credential requires presentation with holder binding proof");
 
+            } catch (PathNotFoundException e) {
+                // All good, no holder did found
+            }
+        }
+        // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
+        checkPresentationDefinitionCriteria(bbsToken);
+        // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
+        managementEntity.setState(VerificationStatusEnum.SUCCESS);
+        managementEntity.setWalletResponse(ResponseData.builder().credentialSubjectData(verifiedDocument).build());
+        verificationManagementRepository.save(managementEntity);
+    }
+
+    private void verifyHolderBinding(Map<String, Object> parsed, String bbsToken) {
+        // Verify the holder binding and update the vp token
+        var proof = parsed.get("proof");
+        if (! (proof instanceof Map)) {
+            throw holderBindingInvalidError("Holder Binding Proof not readable");
+        }
+        Map<String, Object> holderBindingProof = (Map<String, Object>) proof;
+        if (!"EcdsaSignature2024".equals(holderBindingProof.get("type"))) {
+            throw holderBindingInvalidError("Holder Binding must be of type EcdsaSignature2024");
+        }
+        if (!"authentication".equals(holderBindingProof.get("proofPurpose"))) {
+            throw holderBindingInvalidError("proofPurpose must be authentication");
+        }
+        // Check if the proof is done by the correct holder
+        String holderDid = null;
+        try {
+            holderDid = JsonPath.read(bbsToken, "$.credentialSubject.id");
+        } catch (PathNotFoundException e ) {
+            throw holderBindingInvalidError("No holder binding did found in the VC");
+        }
+        if (!holderDid.equals(holderBindingProof.get("verificationMethod"))) {
+            throw holderBindingInvalidError("Holder Binding miss match between proof and presented VC");
+        }
+        var did = new DidJwk(holderDid);
+        if (! did.isValid()) {
+            throw holderBindingInvalidError(String.format("%s is not a valid DID", did.getDid()));
+        }
+
+        JWSObject jws = null;
+        try {
+            jws = JWSObject.parse(holderBindingProof.get("proofValue").toString());
+        } catch (ParseException e) {
+            throw holderBindingInvalidError("proofValue is not a valid JWS");
+        }
+        try {
+            ECDSAVerifier verifier = new ECDSAVerifier(did.toJWK().toECKey());
+            if (!jws.verify(verifier)) {
+                throw holderBindingInvalidError("Holder Binding proof invalid");
+            }
+            if (!managementEntity.getRequestNonce().equals(jws.getPayload().toString())) {
+                throw holderBindingInvalidError("Incorrect nonce in the holder binding");
+            }
+        } catch (ParseException e) {
+            throw holderBindingInvalidError("DID could not be parsed to a valid JWK");
+        } catch (JOSEException e) {
+            throw holderBindingInvalidError("Only EC Keys are supported");
+        }
+    }
+
+    @NotNull
+    private String verifyBBSSignature(String bbsToken) {
         String verifiedDocument;
         try {
             verifiedDocument = verifyProofBBS(bbsToken, managementEntity.getRequestNonce());
@@ -80,14 +160,7 @@ public class LdpCredential extends CredentialVerifier {
             log.warn("Failed BBS proof verification for token", e);
             throw credentialInvalidError("The BBS credential data integrity signature could not be verified");
         }
-
-        // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
-        checkPresentationDefinitionCriteria(vpToken);
-
-        // TODO - Perform the checks required by the Verifier's policy based on the set of trust requirements such as trust frameworks it belongs to (i.e., revocation checks), if applicable.
-        managementEntity.setState(VerificationStatusEnum.SUCCESS);
-        managementEntity.setWalletResponse(ResponseData.builder().credentialSubjectData(verifiedDocument).build());
-        verificationManagementRepository.save(managementEntity);
+        return verifiedDocument;
     }
 
     private String verifyProofBBS(String bbsCredential, String nonce) throws VerificationException {

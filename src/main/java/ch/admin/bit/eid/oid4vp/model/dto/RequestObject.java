@@ -5,15 +5,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.List;
-
 /**
  * OID4VP Request Object send to the Wallet as response after receiving an Authorization Request.
  * Should be sent as JWT signed by the verifier.
  * The public key should be accessible using client_id
  * <a href="https://www.rfc-editor.org/rfc/rfc9101.html#name-request-object-2">Spec for Request Object</a>
  * <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-aud-of-a-request-object">OID4VP Changes to RequestObject</a>
- *
  */
 @Data
 @Builder
@@ -46,7 +43,7 @@ public class RequestObject {
     private String nonce;
 
     @JsonProperty("presentation_definition")
-    private List<InputDescriptor> inputDescriptors;
+    private PresentationDefinitionDto presentationDefinition;
 
     @JsonProperty("client_metadata")
     private VerifierMetadata clientMetadata;

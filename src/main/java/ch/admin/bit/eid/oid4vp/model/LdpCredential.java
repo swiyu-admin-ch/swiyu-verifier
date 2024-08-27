@@ -40,28 +40,19 @@ public class LdpCredential extends CredentialVerifier {
         this.bbsKeyConfiguration = bbsKeyConfiguration;
     }
 
-    private VerificationException credentialInvalidError(String description) {
-        return VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, description, managementEntity);
-    }
-
-    private VerificationException holderBindingInvalidError(String description) {
-        return VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, description, managementEntity);
-    }
-
-
     @Override
     public void verifyPresentation() {
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> parsed = null;
+        Map<String, Object> parsed;
         try {
             parsed = mapper.readValue(vpToken, HashMap.class);
         } catch (JsonProcessingException e) {
             throw credentialInvalidError("vpToken can not be parsed as JSON");
         }
         // Unpack bbsToken from wrapper
-        String bbsToken = null;
+        String bbsToken;
         try {
-            bbsToken = mapper.writeValueAsString(((List)parsed.get("verifiableCredential")).get(0));
+            bbsToken = mapper.writeValueAsString(((List) parsed.get("verifiableCredential")).get(0));
         } catch (JsonProcessingException e) {
             throw credentialInvalidError("Credential could not be extracted from Presentation");
         }
@@ -84,10 +75,18 @@ public class LdpCredential extends CredentialVerifier {
         verificationManagementRepository.save(managementEntity);
     }
 
+    private VerificationException credentialInvalidError(String description) {
+        return VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, description, managementEntity);
+    }
+
+    private VerificationException holderBindingInvalidError(String description) {
+        return VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, description, managementEntity);
+    }
+
     private void verifyHolderBinding(Map<String, Object> parsed, String holderDid) {
         // Verify the holder binding and update the vp token
         var proof = parsed.get("proof");
-        if (! (proof instanceof Map)) {
+        if (!(proof instanceof Map)) {
             throw holderBindingInvalidError("Holder Binding Proof not readable");
         }
         Map<String, Object> holderBindingProof = (Map<String, Object>) proof;
@@ -103,11 +102,11 @@ public class LdpCredential extends CredentialVerifier {
             throw holderBindingInvalidError("Holder Binding miss match between proof and presented VC");
         }
         var did = new DidJwk(holderDid);
-        if (! did.isValid()) {
+        if (!did.isValid()) {
             throw holderBindingInvalidError(String.format("%s is not a valid DID", did.getDid()));
         }
 
-        JWSObject jws = null;
+        JWSObject jws;
         try {
             jws = JWSObject.parse(holderBindingProof.get("proofValue").toString());
         } catch (ParseException e) {

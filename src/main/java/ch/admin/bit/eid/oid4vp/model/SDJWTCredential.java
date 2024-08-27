@@ -8,6 +8,7 @@ import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import ch.admin.bit.eid.oid4vp.utils.Base64Utils;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectDecoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -93,8 +94,8 @@ public class SDJWTCredential extends CredentialVerifier {
         Claims payload = claims.getPayload();
         int disclosureLength = parts.length;
         if (hasKeyBinding(payload)) {
-            disclosureLength-=1;
-            validateKeyBinding(payload, parts[parts.length-1]);
+            disclosureLength -= 1;
+            validateKeyBinding(payload, parts[parts.length - 1]);
         }
         List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, disclosureLength)).map(Disclosure::parse).toList();
         List<String> digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
@@ -117,6 +118,26 @@ public class SDJWTCredential extends CredentialVerifier {
         verificationManagementRepository.save(managementEntity);
     }
 
+    public String checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
+        Map<String, Object> expectedMap = new HashMap<>(claims);
+        SDObjectDecoder decoder = new SDObjectDecoder();
+        ObjectMapper objectMapper = new ObjectMapper();
+        String sdJWTString;
+
+        try {
+            Map<String, Object> decodedSDJWT = decoder.decode(expectedMap, disclosures);
+            sdJWTString = objectMapper.writeValueAsString(decodedSDJWT);
+        } catch (PathNotFoundException e) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
+        } catch (JsonProcessingException e) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occurred while parsing SDJWT", managementEntity);
+        }
+
+        super.checkPresentationDefinitionCriteria(sdJWTString);
+
+        return sdJWTString;
+    }
+
     private boolean hasKeyBinding(Claims payload) {
         boolean keyBindingProofPresent = !vpToken.endsWith("~");
         if (payload.containsKey("cnf") && !keyBindingProofPresent) {
@@ -137,10 +158,11 @@ public class SDJWTCredential extends CredentialVerifier {
 
     private void validateSDHash(JWTClaimsSet keyBindingClaims) {
         // Compute the SD Hash of the VP Token
-        String sdjwt = vpToken.substring(0, vpToken.lastIndexOf("~")+1);
-        String hash = null;
+        String sdjwt = vpToken.substring(0, vpToken.lastIndexOf("~") + 1);
+        String hash;
         try {
-            hash = new String(Base64.getUrlEncoder().withoutPadding().encode(MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes())));
+            var hashDigest = MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes());
+            hash = Base64Utils.encodeBase64(hashDigest);
         } catch (NoSuchAlgorithmException e) {
             // If this occurs our static string is wrong...
             log.error("Failed to load hash algorithm", e);
@@ -154,7 +176,7 @@ public class SDJWTCredential extends CredentialVerifier {
 
     @NotNull
     private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding) {
-        JWTClaimsSet keyBindingClaims = null;
+        JWTClaimsSet keyBindingClaims;
         try {
             SignedJWT keyBindingJWT = SignedJWT.parse(keyBindingProof);
             if (!"kb+jwt".equals(keyBindingJWT.getHeader().getType().toString())) {
@@ -182,7 +204,7 @@ public class SDJWTCredential extends CredentialVerifier {
         if (!(keyBindingClaim instanceof Map)) {
             throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding is not a JWK", managementEntity);
         }
-        JWK keyBinding = null;
+        JWK keyBinding;
         try {
             keyBinding = JWK.parse((Map<String, Object>) keyBindingClaim);
         } catch (ParseException e) {
@@ -195,29 +217,8 @@ public class SDJWTCredential extends CredentialVerifier {
         var expectedNonce = managementEntity.getRequestNonce();
         var actualNonce = keyBindingClaims.getClaim("nonce");
         if (!expectedNonce.equals(actualNonce)) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.MISSING_NONCE, String.format("Holder Binding lacks correct nonce expected '%s' but was '%s' ", expectedNonce, actualNonce ), managementEntity);
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.MISSING_NONCE, String.format("Holder Binding lacks correct nonce expected '%s' but was '%s' ", expectedNonce, actualNonce), managementEntity);
         }
-    }
-
-
-    public String checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
-        Map<String, Object> expectedMap = new HashMap<>(claims);
-        SDObjectDecoder decoder = new SDObjectDecoder();
-        ObjectMapper objectMapper = new ObjectMapper();
-        String sdJWTString;
-
-        try {
-            Map<String, Object> decodedSDJWT = decoder.decode(expectedMap, disclosures);
-            sdJWTString = objectMapper.writeValueAsString(decodedSDJWT);
-        } catch (PathNotFoundException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
-        } catch (JsonProcessingException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occurred while parsing SDJWT", managementEntity);
-        }
-
-        super.checkPresentationDefinitionCriteria(sdJWTString);
-
-        return sdJWTString;
     }
 
     // TODO replace with actual functionality

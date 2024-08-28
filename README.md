@@ -49,3 +49,11 @@ flowchart TD
 | (key.bbs.)seed                | Seed to generate the bbs key from [bbs-library](https://todo-path-to-lib)                       | string              | None    |
 | (key.bbs.)verification-method | TODO: Check why                                                                                 | string              | None    |
 | (key.sdjwt.)public_key        | Temporary variable to insert the public key for sdjwt -> should be replaced by registries calls | string (pem-foramt) | none    |
+
+## Contribution
+
+We appreciate feedback and contribution. More information can be found in the [CONTRIBUTING-File](/CONTRIBUTING.md).
+
+## License
+
+This project is licensed under the terms of the MIT license. See the [LICENSE](/LICENSE) file for details.

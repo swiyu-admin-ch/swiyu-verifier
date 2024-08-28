@@ -36,7 +36,7 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
         return new ResponseEntity<>(apiError, apiError.getStatus());
     }
-
+/* 
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<Object> handleGeneralException(final Exception exception, final WebRequest request) {
         final ApiError apiError = new ApiError(INTERNAL_SERVER_ERROR);
@@ -49,4 +49,5 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
         return new ResponseEntity<>(apiError, apiError.getStatus());
     }
+        */
 }

@@ -44,3 +44,11 @@ flowchart TD
 |------------------|--------------------------------------------------------------------------------------------------------------------------------|---------------|---------------|
 | verification-ttl | Defines how long the verification will be stored                                                                               | long          | 86400 (60min) |
 | oid4vp-url       | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://todo-add-public-link-here) | string  (url) | none          |
+
+## Contribution
+
+We appreciate feedback and contribution. More information can be found in the [CONTRIBUTING-File](/CONTRIBUTING.md).
+
+## License
+
+This project is licensed under the terms of the MIT license. See the [LICENSE](/LICENSE) file for details.

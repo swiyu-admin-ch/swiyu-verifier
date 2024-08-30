@@ -40,10 +40,13 @@ flowchart TD
 
 ### Environment variables
 
-| Variable         | Description                                                                                                                    | Type          | Default       |
-|------------------|--------------------------------------------------------------------------------------------------------------------------------|---------------|---------------|
-| verification-ttl | Defines how long the verification will be stored                                                                               | long          | 86400 (60min) |
-| oid4vp-url       | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://todo-add-public-link-here) | string  (url) | none          |
+| Variable          | Description                                                                                                                    | Type         | Default       |
+|-------------------|--------------------------------------------------------------------------------------------------------------------------------|--------------|---------------|
+| verification-ttl  | Defines how long the verification will be stored                                                                               | long         | 86400 (60min) |
+| oid4vp-url        | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://todo-add-public-link-here) | string (url) | none          |
+| POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                | string       | none          |
+| POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                                               | string       | none          |
+| POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                        | string       | none          |
 
 ## Contribution
 

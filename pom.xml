@@ -88,6 +88,13 @@
         </dependency>
         <!-- Database end -->
 
+        <!-- JWT Library -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>9.40</version>
+        </dependency>
+
         <!-- BBS Library -->
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -161,12 +168,6 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.nimbusds</groupId>
-            <artifactId>nimbus-jose-jwt</artifactId>
-            <version>9.40</version>
             <scope>test</scope>
         </dependency>
         <dependency>

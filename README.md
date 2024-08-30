@@ -11,7 +11,11 @@ As with all the generic issuance & verification services it is expected that eve
 instance of the service.
 
 The verification validator service is linked to the verification management services through a database, allowing to
-scale every service independently from the management service.
+scale every service independently of the management service.
+
+## Table of contents
+
+## Overview
 
 ```mermaid
 flowchart TD
@@ -26,29 +30,30 @@ flowchart TD
     wallet ---> isoi
 ```
 
-## How to start
+For a general overview over all components, please check [Overview](https://TODO-add-correct-link)
 
-## Setup
+## Installation/Building
 
 - Start application VerifierManagementApplication with local profile
     - Starts docker compose for database
     - Runs Flyway migrations if needed
-- Api definitions can be found [here](http://localhost:8080/swagger-ui/index.html#/)
+- After the start api definitions can be found [here](http://localhost:8080/swagger-ui/index.html#/)
 
 ## Implementation details
 
 ### Environment variables
 
-| Variable                      | Description                                                                                     | Type                | Default |
-|-------------------------------|-------------------------------------------------------------------------------------------------|---------------------|---------|
-| external-url                  | URL of this deployed instance in order to add it to the request                                 | URL                 | None    |
-| client_id                     | DID of this service-instance to identify the requester                                          | string (did:tdw)    | none    |
-| client_id_scheme              | DID of this service-instance to identify the requester                                          | string              | "did"   |
-| client_name                   | Client name which is included in the verification request as part of the metadata               | string              | None    |
-| logo_uri                      | Client logo uri which is included in the verification request as part of the metadata           | string              | None    |
-| (key.bbs.)seed                | Seed to generate the bbs key from [bbs-library](https://todo-path-to-lib)                       | string              | None    |
-| (key.bbs.)verification-method | TODO: Check why                                                                                 | string              | None    |
-| (key.sdjwt.)public_key        | Temporary variable to insert the public key for sdjwt -> should be replaced by registries calls | string (pem-foramt) | none    |
+| Variable          | Description                                                                                     | Type                | Default |
+|-------------------|-------------------------------------------------------------------------------------------------|---------------------|---------|
+| EXTERNAL_URL      | URL of this deployed instance in order to add it to the request                                 | URL                 | None    |
+| VERIFIER_DID      | DID of this service-instance to identify the requester                                          | string (did:tdw)    | none    |
+| VERIFIER_NAME     | Client name which is included in the verification request as part of the metadata               | string              | None    |
+| VERIFIER_LOGO     | Client logo uri which is included in the verification request as part of the metadata           | string              | None    |
+| BBS_KEY_SEED      | Seed to generate the bbs key from [bbs-library](https://github.com/e-id-admin/bbsplus)          | string              | None    |
+| SD_JWT_PUBLIC_KEY | Temporary variable to insert the public key for sdjwt -> should be replaced by registries calls | string (pem-format) | none    |
+| POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service | string              | none    |
+| POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                | string              | none    |
+| POSTGRES_URL      | JDBC Connection string to the shared DB                                                         | string              | none    |
 
 ## Contribution
 

@@ -13,7 +13,13 @@ instance of the service.
 The verification validator service is linked to the verification management services through a database, allowing to
 scale every service independently of the management service.
 
-## Table of contents
+## Table of Contents
+
+- [Overview](#Overview)
+- [Installation/Building](#installationbuilding)
+- [Implementation details](#implementation-details)
+- [Contribution](#contribution)
+- [License](#license)
 
 ## Overview
 

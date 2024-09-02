@@ -11,7 +11,7 @@ env:
 
 # Github documentation
 jobs:
-    build-and-publish-iamge:
+    build-and-publish-image:
         runs-on: ubuntu-latest
 
         permissions:
@@ -30,6 +30,10 @@ jobs:
                 distribution: 'temurin'
                 java-version: '21'
                 cache: 'maven'
+            - name: Remove BIT Maven Proxy
+              run: rm .mvn/jvm.config
+            - name: Install BBS Cryptosuite Dependency
+              run: mvn install:install-file -Dfile=./lib/bbscryptosuite-0.0.1.jar -DgroupId=ch.admin.eid -DartifactId=bbscryptosuite -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
             - name: Build with Maven
               run: mvn --batch-mode package
             # https://docs.github.com/de/actions/use-cases-and-examples/publishing-packages/publishing-docker-images#publishing-images-to-github-packages

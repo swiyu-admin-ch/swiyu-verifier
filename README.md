@@ -36,6 +36,17 @@ flowchart TD
     - Runs Flyway migrations if needed
 - Api definitions can be found [here](http://localhost:8080/swagger-ui/index.html#/)
 
+or:
+Start database with:
+```shell
+docker compose up --build
+```
+
+Run application with:
+```shell
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
 ## Implementation details
 
 ### Environment variables
@@ -43,7 +54,7 @@ flowchart TD
 | Variable          | Description                                                                                                                    | Type         | Default       |
 |-------------------|--------------------------------------------------------------------------------------------------------------------------------|--------------|---------------|
 | verification-ttl  | Defines how long the verification will be stored                                                                               | long         | 86400 (60min) |
-| oid4vp-url        | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://todo-add-public-link-here) | string (url) | none          |
+| oid4vp-url        | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/e-id-admin/eidch-verifier-agent-oid4vp) | string (url) | none          |
 | POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                | string       | none          |
 | POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                                               | string       | none          |
 | POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                        | string       | none          |

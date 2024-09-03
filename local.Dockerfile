@@ -1,3 +1,4 @@
+# Dockerfile used for github
 FROM eclipse-temurin:21
 
 RUN mkdir -p /app

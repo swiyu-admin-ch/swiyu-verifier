@@ -18,13 +18,10 @@ public class BBSKeyConfiguration {
     @NotNull
     private String seed;
 
-    @NotNull
-    private String verificationMethod;
-
     public SecretKey getBBSKey() {
         return SecretKey.Companion.from(seed);
     }
-    
+
     public PublicKey getPublicBBSKey() {
         return KeyPair.Companion.from(getBBSKey()).getPublicKey();
     }

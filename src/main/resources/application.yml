@@ -23,6 +23,5 @@ application:
   key:
     bbs:
       seed: "${BBS_KEY_SEED}"
-      verification-method: "${DID_BBS_AUTHENTICATION_METHOD}"
     sdjwt:
       public_key: "${SD_JWT_PUBLIC_KEY}"

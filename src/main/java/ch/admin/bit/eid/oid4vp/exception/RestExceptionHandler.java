@@ -43,8 +43,7 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
             managementEntity.setWalletResponse(ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
             verificationService.updateManagement(exception.getManagementEntity());
         }
-
-        log.error(exception.getMessage());
+        log.warn("Verification failed", exception);
 
         return new ResponseEntity<>(exception.getError(), responseStatus);
     }

@@ -1,6 +1,5 @@
 package ch.admin.bit.eid.oid4vp.service;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.PresentationFormatFactory;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
@@ -19,12 +18,9 @@ import com.jayway.jsonpath.JsonPath;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static ch.admin.bit.eid.oid4vp.utils.Base64Utils.decodeBase64;
 import static java.util.Objects.isNull;
@@ -36,11 +32,9 @@ import static java.util.Objects.nonNull;
 public class VerificationService {
 
     private final VerificationManagementRepository verificationManagementRepository;
-
-    private final BBSKeyConfiguration bbsKeyConfiguration;
-
     private final PresentationFormatFactory presentationFormatFactory;
 
+    @Transactional
     public void processHolderVerificationRejection(ManagementEntity managementEntity, final String errorDescription) {
         ResponseData responseData = ResponseData
                 .builder()
@@ -54,6 +48,7 @@ public class VerificationService {
         verificationManagementRepository.save(managementEntity);
     }
 
+    @Transactional
     public void updateManagement(ManagementEntity managementEntity) {
         if (managementEntity == null) {
             throw new IllegalArgumentException("ManagementEntity cannot be null");
@@ -62,6 +57,7 @@ public class VerificationService {
         verificationManagementRepository.save(managementEntity);
     }
 
+    @Transactional
     public void processPresentation(ManagementEntity managementEntity, String vpToken, PresentationSubmission presentationSubmission) {
 
         var credentialToBeProcessed = vpToken;
@@ -85,8 +81,7 @@ public class VerificationService {
                     ObjectMapper mapper = new ObjectMapper();
                     credentialToBeProcessed = mapper.writeValueAsString(credential);
                 } catch (JsonProcessingException e) {
-                    log.error(e.getMessage());
-                    throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occured while processing the credential", managementEntity);
+                    throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occured while processing the credential", managementEntity);
                 }
             } else {
                 credentialToBeProcessed = (String) credential;
@@ -98,9 +93,11 @@ public class VerificationService {
                 .verifyPresentation();
     }
 
-    public String getPathToSupportedCredential(final ManagementEntity managementEntity,
-                                               final Object document,
-                                               final PresentationSubmission presentationSubmission) {
+    // TODO encapsulation: we should try not to expose methods just for unit tests, often this hints to a desgin smell
+    @Transactional(readOnly = true)
+    String getPathToSupportedCredential(final ManagementEntity managementEntity,
+                                        final Object document,
+                                        final PresentationSubmission presentationSubmission) {
 
         if (isNull(document) || isNull(managementEntity) || isNull(presentationSubmission)) {
             throw new IllegalArgumentException("Document, management and presentation submission cannot be null");
@@ -181,7 +178,7 @@ public class VerificationService {
         return parentPath + path.replace("$", "");
     }
 
-    protected Set<String> getRequestedFormats(ManagementEntity management) {
+    private Set<String> getRequestedFormats(ManagementEntity management) {
 
         PresentationDefinition presentationDefinition = management.getRequestedPresentation();
         Map<String, FormatAlgorithm> formats = new HashMap<>();

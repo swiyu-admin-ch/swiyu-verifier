@@ -12,6 +12,7 @@ import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ public class RequestObjectService {
     private final ApplicationConfiguration applicationConfiguration;
     private final VerificationManagementRepository managementRepository;
 
+    @Transactional(readOnly = true)
     public RequestObject assembleRequestObject(UUID presentationDefinitionId) {
 
         log.info("Prepare request object for mgmt-id {}", presentationDefinitionId);

@@ -2,13 +2,17 @@ package ch.admin.bit.eid.oid4vp.mvc;
 
 import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
+import ch.admin.bit.eid.oid4vp.fixtures.DidDocFixtures;
+import ch.admin.bit.eid.oid4vp.fixtures.KeyFixtures;
 import ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
+import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import ch.admin.eid.didresolver.DidResolveException;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
@@ -21,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,8 +40,11 @@ import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock.ExampleJson;
+import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getMultiplePresentationSubmissionString;
+import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getPresentationSubmissionString;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -47,7 +55,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-// @ExtendWith(SpringExtension.class)
 class VerificationControllerTests {
 
     @Autowired
@@ -62,7 +69,11 @@ class VerificationControllerTests {
     @Autowired
     private BBSKeyConfiguration bbsKeyConfiguration;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @MockBean
+    private DidResolverAdapter didResolverAdapter;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
 
@@ -364,13 +375,16 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess() throws Exception {
-
+        // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-
-        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
-        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
@@ -386,17 +400,21 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess() throws Exception {
-
+        // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
-        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var sdJWT = emulator.createSDJWTMock();
         var parts = sdJWT.split("~");
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
         var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~";
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "http://localhost");
-        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
@@ -412,18 +430,21 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void twoTimesSameDisclosures_thenError() throws Exception {
-
+        // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
-        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var sdJWT = emulator.createSDJWTMock();
         var parts = sdJWT.split("~");
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
         var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~" + StringUtils.join(sd, "~") + "~";
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "http://localhost");
 
-        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
 
+        // WHEN / THEN
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
@@ -441,13 +462,17 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void notYetValid_thenError() throws Exception {
-
+        // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
-        var sdJWT = emulator.createSDJWTMock(Instant.now().plus(7, ChronoUnit.DAYS).getEpochSecond(), null, null);
+        var sdJWT = emulator.createSDJWTMock(Instant.now().plus(7, ChronoUnit.DAYS).getEpochSecond());
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
-        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
@@ -465,14 +490,18 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void sdJWTExpired_thenError() throws Exception {
-
+        // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
-        var sdJWT = emulator.createSDJWTMock(null, Instant.now().minus(10, ChronoUnit.MINUTES).getEpochSecond(), null);
+        var sdJWT = emulator.createSDJWTMock(null, Instant.now().minus(10, ChronoUnit.MINUTES).getEpochSecond());
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
 
-        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
@@ -490,15 +519,19 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void sdJWTAdditionalDisclosure_thenError() throws Exception {
-
+        // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var sdJWT = emulator.createSDJWTMock();
         var additionalDisclosure = new Disclosure("additional", "definetly_wrong");
         var newCred = sdJWT + additionalDisclosure + "~";
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "http://localhost");
 
-        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
@@ -516,13 +549,17 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingNestedSDJWTCredentialSD_thenSuccess() throws Exception {
-
+        // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSDJWTMock(null, null, null);
+        var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
         vpToken = emulator.createMultipleVPTokenMock(vpToken);
-        String presentationSubmission = emulator.getMultiplePresentationSubmissionString(UUID.randomUUID());
+        String presentationSubmission = getMultiplePresentationSubmissionString(UUID.randomUUID());
 
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
@@ -538,14 +575,16 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldVerifyingSDJWTCredentialSDWithDifferentPrivKey_thenException() throws Exception {
-
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-
-        var sdJWT = emulator.createSDJWTMock(null, null, new ECKeyGenerator(Curve.P_256).generate());
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(new ECKeyGenerator(Curve.P_256).generate());
+        var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
-        String presentationSubmission = emulator.getPresentationSubmissionString(UUID.randomUUID());
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
 
+        // WHEN / THEN
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
@@ -553,5 +592,18 @@ class VerificationControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
                 .andExpect(jsonPath("errorDescription").value("Signature mismatch"));
+    }
+
+    private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
+        try {
+            var didDoc = DidDocFixtures.issuerDidDocWithMultikey(
+                    sdjwt.getIssuerId(),
+                    sdjwt.getKidHeaderValue(),
+                    KeyFixtures.issuerPublicKeyAsMultibaseKey());
+            when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenReturn(didDoc);
+        } catch (DidResolveException e) {
+            throw new AssertionError(e);
+        }
+
     }
 }

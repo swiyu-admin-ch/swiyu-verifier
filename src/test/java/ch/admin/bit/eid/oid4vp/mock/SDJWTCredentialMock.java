@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
+import ch.admin.bit.eid.oid4vp.fixtures.KeyFixtures;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import com.authlete.sd.Disclosure;
@@ -7,16 +8,9 @@ import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
-import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
@@ -29,37 +23,64 @@ import java.util.*;
 
 import static java.util.Objects.nonNull;
 
+@Getter
 public class SDJWTCredentialMock {
-    public static String ISSUER_ID = "TEST_ISSUER_ID";
+    private static final String DEFAULT_ISSUER_ID = "TEST_ISSUER_ID";
+    private static final String DEFAULT_KID_HEADER_VALUE = DEFAULT_ISSUER_ID + "#key-1";
 
-    @Getter
     private final ECKey key;
-    @Getter
     private final ECKey holderKey;
+    private final String issuerId;
+    /**
+     * The kidHeaderValue is a string that represents the Key ID (KID) header in the JWT header. This value is used to
+     * identify the key used to sign the JWT and reference it in the DID document.
+     * <p>
+     * See <a href="https://tools.ietf.org/html/rfc7515#section-4.1.4">RFC7515</a> for more information.
+     */
+    private final String kidHeaderValue;
 
-    private final String privateKeyString = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIDqMm9PvL4vpyFboAwaeViQsH30CkaDcVtRniZPezFxpoAoGCCqGSM49\nAwEHoUQDQgAEQgjeqGSdu+2jq8+n78+6fXk2Yh22lQKBYCnu5FWPvKtat3wFEsQX\nqNHYgPXBxWmOBw5l2PE/gUDUJqGJSc1LuQ==\n-----END EC PRIVATE KEY-----";
+    public SDJWTCredentialMock() {
+        this(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE, KeyFixtures.issuerKey(), KeyFixtures.holderKey());
+    }
 
-    public SDJWTCredentialMock() throws JOSEException {
-        holderKey = new ECKeyGenerator(Curve.P_256).generate();
-        key = JWK.parseFromPEMEncodedObjects(privateKeyString).toECKey();
+    public SDJWTCredentialMock(ECKey key) {
+        this(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE, key, KeyFixtures.holderKey());
+    }
+
+    public SDJWTCredentialMock(String issuerId, String kidHeaderValue) {
+        this(issuerId, kidHeaderValue, KeyFixtures.issuerKey(), KeyFixtures.holderKey());
+    }
+
+    public SDJWTCredentialMock(String issuerId, String kidHeaderValue, ECKey key, ECKey holderKey) {
+        this.key = key;
+        this.holderKey = holderKey;
+        this.issuerId = issuerId;
+        this.kidHeaderValue = kidHeaderValue;
     }
 
     /**
      * Adds A second (fake) VC to the VP Token generated to test the Presentation Exchange Credential Selection
+     *
      * @param sdjwt
-     * @return
      */
     public String createMultipleVPTokenMock(String sdjwt) throws JsonProcessingException {
-            ObjectMapper objectMapper = new ObjectMapper();
-            return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
+        ObjectMapper objectMapper = new ObjectMapper();
+        return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
     }
 
-    public String createSDJWTMock(Long validFrom, Long validUntil, ECKey privKey) throws JOSEException {
-        privKey = privKey != null ? privKey : key;
+    public String createSDJWTMock() {
+        return createSDJWTMock(null, null);
+    }
+
+    public String createSDJWTMock(Long validFrom) {
+        return createSDJWTMock(validFrom, null);
+    }
+
+    public String createSDJWTMock(Long validFrom, Long validUntil) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
-        builder.putClaim("iss", ISSUER_ID);
+        builder.putClaim("iss", issuerId);
         builder.putClaim("iat", Instant.now().getEpochSecond());
 
         if (nonNull(validFrom)) {
@@ -80,20 +101,24 @@ public class SDJWTCredentialMock {
 
         try {
             Map<String, Object> claims = builder.build();
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("vc+sd-jwt")).build();
+            var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                    .type(new JOSEObjectType("vc+sd-jwt"))
+                    .keyID(kidHeaderValue)
+                    .build();
             JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);
             SignedJWT jwt = new SignedJWT(header, claimsSet);
-            JWSSigner signer = new ECDSASigner(privKey);
+            JWSSigner signer = new ECDSASigner(key);
             jwt.sign(signer);
 
             return new SDJWT(jwt.serialize(), disclosures).toString();
         } catch (ParseException | JOSEException e) {
-            return null;
+            throw new AssertionError(e);
         }
     }
 
     /**
      * Adds a key binding proof the SD-JWT.
+     *
      * @param sdjwt a string {jwt}~{disclosure-1}~...{disclosure-n}~
      * @return complete sdjwt with key binding as a string {jwt}~{disclosure-1}~...{disclosure-n}~{keyBindingProof}
      */
@@ -108,15 +133,14 @@ public class SDJWTCredentialMock {
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("kb+jwt")).build();
         var jwt = new SignedJWT(header, JWTClaimsSet.parse(proofData));
         jwt.sign(new ECDSASigner(holderKey));
-        return sdjwt+jwt.serialize();
+        return sdjwt + jwt.serialize();
     }
 
-    public String getPresentationSubmissionString(UUID uuid) throws JsonProcessingException {
-
+    public static String getPresentationSubmissionString(UUID uuid) throws JsonProcessingException {
         return getPresentationSubmissionStringWithPath(uuid != null ? uuid : UUID.randomUUID(), "$");
     }
 
-    public String getPresentationSubmissionStringWithPath(UUID uuid, String path) throws JsonProcessingException {
+    public static String getPresentationSubmissionStringWithPath(UUID uuid, String path) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
 
         Descriptor descriptor = Descriptor.builder()
@@ -132,7 +156,7 @@ public class SDJWTCredentialMock {
         return mapper.writeValueAsString(submission);
     }
 
-    public String getMultiplePresentationSubmissionString(UUID uuid) throws JsonProcessingException {
+    public static String getMultiplePresentationSubmissionString(UUID uuid) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
 
         Descriptor descriptorSDJWT = Descriptor.builder()

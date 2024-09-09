@@ -13,6 +13,8 @@ spring:
   docker:
     compose:
       enabled: false
+  jpa:
+    open-in-view: false
 
 application:
   external-url: "${EXTERNAL_URL}"

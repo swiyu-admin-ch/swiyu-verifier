@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model;
 
-import ch.admin.bit.eid.oid4vp.config.SDJWTConfiguration;
+import ch.admin.bit.eid.oid4vp.exception.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
@@ -19,87 +19,103 @@ import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.PrematureJwtException;
+import io.jsonwebtoken.*;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 public class SDJWTCredential extends CredentialVerifier {
 
-    private final SDJWTConfiguration sdjwtConfig;
 
-    // TODO check what should be supported
-    private final List<String> suggestedAlgorithms = List.of("ES256");
+    private final List<String> supportedAlgorithms = List.of("ES256");
+    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
 
     public SDJWTCredential(final String vpToken,
                            final ManagementEntity managementEntity,
                            final PresentationSubmission presentationSubmission,
                            final VerificationManagementRepository verificationManagementRepository,
-                           SDJWTConfiguration sdjwtConfig) {
-
+                           final IssuerPublicKeyLoader issuerPublicKeyLoader) {
         super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
-        this.sdjwtConfig = sdjwtConfig;
+        this.issuerPublicKeyLoader = issuerPublicKeyLoader;
     }
 
+    /**
+     * Verifies the presentation of a SD-JWT Credential as described in
+     * <a href="https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-10.html">Selective Disclosure for JWTs (SD-JWT)</a>
+     * <ul>
+     *     <li>
+     *         <a href="https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-10.html#name-verification-of-the-sd-jwt">
+     *          8.1 Verification of the SD-JWT
+     *         </a>
+     *     </li>
+     *     <li>
+     *         <a href="https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-10.html#section-8.3">
+     *          8.3 Verification by the Verifier
+     *         </a>
+     *     </li>
+     * </ul>
+     * .
+     */
     @Override
-    // follows https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt#section-8.1-4.3.2.4
     public void verifyPresentation() {
 
-        Jws<Claims> claims;
+        // Step 1 (SD-JWT spec 8.1 / 1): Separate the SD-JWT into the Issuer-signed JWT and the Disclosures (if any).
         String[] parts = vpToken.split("~");
         var issuerSignedJWTToken = parts[0];
-        var publicKey = loadPublicKey();
 
+        // Step 2 (SD-JWT spec 8.1 / 2.3): validate that the signing key belongs to the Issuer ...
+        PublicKey publicKey;
+        try {
+            publicKey = issuerPublicKeyLoader.loadPublicKey(issuerSignedJWTToken);
+        } catch (LoadingPublicKeyOfIssuerFailedException e) {
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage(), managementEntity);
+        }
+
+        // Step 3 (SD-JWT spec 8.1 / 2.3): validate the Issuer (that it is in trust registry)
+        // -> validating against trust registry is not in scope of public beta (only holder validates against trust)
+        // -> so for now validation against base registry
+
+        // Step 4 (SD-JWT spec 8.1 / 2.2): Validate the signature over the Issuer-signed JWT
+        Jws<Claims> claims;
         try {
             claims = Jwts.parser()
                     .verifyWith(publicKey)
                     .build()
                     .parseSignedClaims(issuerSignedJWTToken);
         } catch (PrematureJwtException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is not yet valid", managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is not yet valid", managementEntity);
         } catch (ExpiredJwtException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is expired", managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Could not verify JWT credential is expired", managementEntity);
         } catch (JwtException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Signature mismatch", managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Signature mismatch", managementEntity);
         }
 
-        // Checks if the presentation is expired and if it can already be used
+        // Step 5 (SD-JWT spec 8.1 / 2.4): Check that alg header is supported (currently only alg="ES256" with type="vc+sd-jwt")
         var header = claims.getHeader();
-
-        if (!suggestedAlgorithms.contains(header.getAlgorithm()) || !Objects.equals(header.getType(), "vc+sd-jwt")) {
+        if (!supportedAlgorithms.contains(header.getAlgorithm()) || !Objects.equals(header.getType(), "vc+sd-jwt")) {
             throw VerificationException.credentialError(ResponseErrorCodeEnum.UNSUPPORTED_FORMAT, "Unsupported algorithm: " + header.getAlgorithm(), managementEntity);
         }
 
+        // Step 6 (SD-JWT spec 8.3): Key Binding Verification
         Claims payload = claims.getPayload();
         int disclosureLength = parts.length;
         if (hasKeyBinding(payload)) {
             disclosureLength -= 1;
             validateKeyBinding(payload, parts[parts.length - 1]);
         }
+
+        // Step 7 (SD-JWT spec 8.1 / 3 ): Process the Disclosures and embedded digests in the Issuer-signed JWT (section 3 in 8.1)
         List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, disclosureLength)).map(Disclosure::parse).toList();
         List<String> digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
 
+        // Note for SD-JWT spec 8.1 / 3.3.2: Check if "disclosures" contains an "_sd" arguments and throw exception when thats the case
+        //  -> since we don't expect issuers to add "_sd" to the claim, we don't need to check for this
 
         // check if distinct disclosures
         if (new HashSet<>(disclosures).size() != disclosures.size()) {
@@ -118,7 +134,8 @@ public class SDJWTCredential extends CredentialVerifier {
         verificationManagementRepository.save(managementEntity);
     }
 
-    public String checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
+    // Note: this method is package-private because this method is used in unit tests, otherwise it could be private
+    String checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures) throws VerificationException {
         Map<String, Object> expectedMap = new HashMap<>(claims);
         SDObjectDecoder decoder = new SDObjectDecoder();
         ObjectMapper objectMapper = new ObjectMapper();
@@ -128,9 +145,9 @@ public class SDJWTCredential extends CredentialVerifier {
             Map<String, Object> decodedSDJWT = decoder.decode(expectedMap, disclosures);
             sdJWTString = objectMapper.writeValueAsString(decodedSDJWT);
         } catch (PathNotFoundException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
         } catch (JsonProcessingException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occurred while parsing SDJWT", managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, "An error occurred while parsing SDJWT", managementEntity);
         }
 
         super.checkPresentationDefinitionCriteria(sdJWTString);
@@ -188,9 +205,9 @@ public class SDJWTCredential extends CredentialVerifier {
             }
             keyBindingClaims = keyBindingJWT.getJWTClaimsSet();
         } catch (ParseException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed", managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed", managementEntity);
         } catch (JOSEException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Failed to verify the holder key binding - only supporting EC Keys", managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Failed to verify the holder key binding - only supporting EC Keys", managementEntity);
         }
         return keyBindingClaims;
     }
@@ -208,7 +225,7 @@ public class SDJWTCredential extends CredentialVerifier {
         try {
             keyBinding = JWK.parse((Map<String, Object>) keyBindingClaim);
         } catch (ParseException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding Key could not be parsed", managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, "Holder Binding Key could not be parsed", managementEntity);
         }
         return keyBinding;
     }
@@ -218,20 +235,6 @@ public class SDJWTCredential extends CredentialVerifier {
         var actualNonce = keyBindingClaims.getClaim("nonce");
         if (!expectedNonce.equals(actualNonce)) {
             throw VerificationException.credentialError(ResponseErrorCodeEnum.MISSING_NONCE, String.format("Holder Binding lacks correct nonce expected '%s' but was '%s' ", expectedNonce, actualNonce), managementEntity);
-        }
-    }
-
-    // TODO replace with actual functionality
-    private PublicKey loadPublicKey() {
-        try {
-            var sanitized = sdjwtConfig.getPublicKey().replace("\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");
-            byte[] encoded = Base64.getDecoder().decode(sanitized);
-            KeyFactory kf = KeyFactory.getInstance("EC");
-            EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
-            return kf.generatePublic(keySpec);
-        } catch (Exception e) {
-            log.error("Failed to load public key", e);
-            throw new IllegalArgumentException("Public key could not be loaded - Please check the env variables and try again");
         }
     }
 }

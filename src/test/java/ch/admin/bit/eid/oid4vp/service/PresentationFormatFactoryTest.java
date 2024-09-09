@@ -1,8 +1,9 @@
 package ch.admin.bit.eid.oid4vp.service;
 
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
-import ch.admin.bit.eid.oid4vp.config.SDJWTConfiguration;
+import ch.admin.bit.eid.oid4vp.model.IssuerPublicKeyLoader;
 import ch.admin.bit.eid.oid4vp.model.PresentationFormatFactory;
+import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
@@ -34,7 +35,8 @@ class PresentationFormatFactoryTest {
     private BBSKeyConfiguration bbsKeyConfiguration;
 
     @MockBean
-    private SDJWTConfiguration sdjwtConfiguration;
+    private DidResolverAdapter didResolverAdapter;
+    private IssuerPublicKeyLoader issuerPublicKeyLoader;
 
     private final String vpToken = """
             [{
@@ -48,7 +50,7 @@ class PresentationFormatFactoryTest {
 
     @BeforeEach
     void setUp() {
-        presentationFormatFactory = new PresentationFormatFactory(bbsKeyConfiguration, sdjwtConfiguration);
+        presentationFormatFactory = new PresentationFormatFactory(bbsKeyConfiguration, issuerPublicKeyLoader);
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
         managementEntity = getManagementEntityMock(requestId, presentationDefinition);
     }

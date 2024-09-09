@@ -141,6 +141,13 @@
         </dependency>
         <!-- End SD-JWT -->
 
+        <!-- Cloud Kubernetes config -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-kubernetes-fabric8-config</artifactId>
+			<version>3.1.2</version>
+		</dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>ch.qos.logback</groupId>

@@ -1,0 +1,8 @@
+spring:
+  cloud:
+    kubernetes:
+      config:
+        enabled: false
+      secrets:
+        enabled: true
+        path: /data/secrets

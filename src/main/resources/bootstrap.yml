@@ -5,4 +5,4 @@ spring:
         enabled: false
       secrets:
         enabled: true
-        path: /data/secrets
+        paths: /data/secrets

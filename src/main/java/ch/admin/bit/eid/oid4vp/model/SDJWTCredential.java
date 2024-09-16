@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model;
 
-import ch.admin.bit.eid.oid4vp.config.SDJWTConfiguration;
+import ch.admin.bit.eid.oid4vp.config.SDJWTConfig;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
@@ -47,7 +47,7 @@ import java.util.Objects;
 @Slf4j
 public class SDJWTCredential extends CredentialVerifier {
 
-    private final SDJWTConfiguration sdjwtConfig;
+    private final SDJWTConfig sdjwtConfig;
 
     // TODO check what should be supported
     private final List<String> suggestedAlgorithms = List.of("ES256");
@@ -56,7 +56,7 @@ public class SDJWTCredential extends CredentialVerifier {
                            final ManagementEntity managementEntity,
                            final PresentationSubmission presentationSubmission,
                            final VerificationManagementRepository verificationManagementRepository,
-                           SDJWTConfiguration sdjwtConfig) {
+                           SDJWTConfig sdjwtConfig) {
 
         super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
         this.sdjwtConfig = sdjwtConfig;

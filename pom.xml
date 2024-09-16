@@ -34,13 +34,6 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- CVE-Override CVE-2024-38816: remove once Spring boot releases a fixed version -->
-         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-            <version>6.1.13</version>
-        </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -90,9 +83,9 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
         <dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-postgresql</artifactId>
-		</dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -159,10 +152,10 @@
             <version>3.1.2</version>
         </dependency>
         <dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-bootstrap</artifactId>
-			<version>4.1.4</version>
-		</dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+            <version>4.1.4</version>
+        </dependency>
         <!-- End Cloud Kubernetes config -->
 
         <!-- Logging -->
@@ -181,6 +174,18 @@
             <artifactId>logback-classic</artifactId>
             <version>1.5.6</version>
         </dependency>
+        <!-- Access logs -->
+        <dependency>
+            <groupId>ch.qos.logback.access</groupId>
+            <artifactId>common</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback.access</groupId>
+            <artifactId>tomcat</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+        <!-- End Access logs -->
         <!-- End Logging -->
 
         <!-- Testing Tools -->
@@ -206,16 +211,39 @@
             <version>1.78.1</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- check again if this is needed when spring-boot > 3.3.3 -->
-        <dependency>
-            <groupId>org.xmlunit</groupId>
-            <artifactId>xmlunit-core</artifactId>
-            <version>2.10.0</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
     <!-- End Testing Tools -->
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- CVE-Override CVE-2024-38816: remove once Spring boot releases a fixed version -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-webmvc</artifactId>
+                <version>6.1.13</version>
+            </dependency>
+
+            <!-- TODO remove once ch.qos.logback.access is updated -->
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-coyote</artifactId>
+                <version>10.1.29</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-catalina</artifactId>
+                <version>10.1.29</version>
+            </dependency>
+
+            <!-- check again if this is needed when spring-boot > 3.3.3 -->
+            <dependency>
+                <groupId>org.xmlunit</groupId>
+                <artifactId>xmlunit-core</artifactId>
+                <version>2.10.0</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>

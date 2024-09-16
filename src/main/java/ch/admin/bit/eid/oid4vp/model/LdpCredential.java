@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.did.DidJwk;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
@@ -29,13 +29,13 @@ import java.util.Map;
 @Slf4j
 public class LdpCredential extends CredentialVerifier {
 
-    private final BBSKeyConfiguration bbsKeyConfiguration;
+    private final BBSKeyConfig bbsKeyConfiguration;
 
     LdpCredential(final String vpToken,
                   final ManagementEntity managementEntity,
                   final PresentationSubmission presentationSubmission,
                   final VerificationManagementRepository verificationManagementRepository,
-                  BBSKeyConfiguration bbsKeyConfiguration) {
+                  BBSKeyConfig bbsKeyConfiguration) {
         super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
         this.bbsKeyConfiguration = bbsKeyConfiguration;
     }

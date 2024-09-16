@@ -1,7 +1,7 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
@@ -12,7 +12,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.nimbusds.jose.*;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
@@ -28,27 +32,36 @@ import java.util.Map;
 
 public class BBSCredentialMock {
 
+    public static final String ExampleJson = "{\"issuer\":\"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\":\"world\"}}";
     private final BbsCryptoSuite cryptoSuite;
-
     private final String privateKeyString = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIDqMm9PvL4vpyFboAwaeViQsH30CkaDcVtRniZPezFxpoAoGCCqGSM49\nAwEHoUQDQgAEQgjeqGSdu+2jq8+n78+6fXk2Yh22lQKBYCnu5FWPvKtat3wFEsQX\nqNHYgPXBxWmOBw5l2PE/gUDUJqGJSc1LuQ==\n-----END EC PRIVATE KEY-----";
     private final ECKey holderKey;
 
-    public BBSCredentialMock(final BBSKeyConfiguration bbsKeyConfiguration) throws JOSEException {
+    public BBSCredentialMock(final BBSKeyConfig bbsKeyConfiguration) throws JOSEException {
         cryptoSuite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey());
         holderKey = JWK.parseFromPEMEncodedObjects(privateKeyString).toECKey();
     }
 
-    public static final String ExampleJson = "{\"issuer\":\"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\":\"world\"}}";
+    @NotNull
+    private static Map<String, Object> prepareVerifiablePresentationWrapper(List<HashMap> vpMap) {
+        // Wrapper with Proof
+        Map<String, Object> vpWrapper = new HashMap<>();
+        vpWrapper.put("@context", List.of("https://www.w3.org/2018/credentials/v1"));
+        vpWrapper.put("type", List.of("VerifiablePresentation"));
+        vpWrapper.put("verifiableCredential", vpMap);
+        vpWrapper.put("id", "presentationId");
+        return vpWrapper;
+    }
 
     public String addHolderBinding(String vcCredentialSubjectDataJson) throws JsonProcessingException {
         // Create did:jwk
-        var didJwk = "did:jwk:"+Base64
+        var didJwk = "did:jwk:" + Base64
                 .getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(holderKey.toPublicJWK().toJSONString().getBytes(StandardCharsets.UTF_8));
         // Add as $.credentialSubject.id = did:jwk:...
         ObjectMapper objectMapper = new ObjectMapper();
-        Map<String, Object> vcData  = objectMapper.readValue(vcCredentialSubjectDataJson, HashMap.class);
+        Map<String, Object> vcData = objectMapper.readValue(vcCredentialSubjectDataJson, HashMap.class);
         ((Map<String, Object>) vcData.get("credentialSubject")).put("id", didJwk);
         return objectMapper.writeValueAsString(vcData);
 
@@ -90,7 +103,6 @@ public class BBSCredentialMock {
         return this.cryptoSuite.addDerivedProof(bbsDerivedProofInit, null);
     }
 
-
     public String createVerifiablePresentationUrlEncodedHolderBinding(String vc, List<String> revealedData, String nonce) throws JsonProcessingException, JOSEException {
         // Create BBS VP Token
         ObjectMapper mapper = new ObjectMapper();
@@ -106,7 +118,7 @@ public class BBSCredentialMock {
         signingObject.sign(signer);
         String proofValue = signingObject.serialize();
         // Assemble Proof
-        String holderDid = ((Map<String, Object>)vcData.get("credentialSubject")).get("id").toString();
+        String holderDid = ((Map<String, Object>) vcData.get("credentialSubject")).get("id").toString();
         Map<String, Object> holderBindingProof = new HashMap<>();
         holderBindingProof.put("type", "EcdsaSignature2024");
         holderBindingProof.put("created", DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
@@ -120,20 +132,9 @@ public class BBSCredentialMock {
         Map<String, Object> vpWrapper = prepareVerifiablePresentationWrapper(vpMap);
         vpWrapper.put("holder", holderDid);
         vpWrapper.put("proof", holderBindingProof);
-        var vpTokenJson=mapper.writeValueAsString(vpWrapper);
+        var vpTokenJson = mapper.writeValueAsString(vpWrapper);
         // Encode VP Token as Base64
         return Base64.getUrlEncoder().encodeToString(vpTokenJson.getBytes(StandardCharsets.UTF_8));
-    }
-
-    @NotNull
-    private static Map<String, Object> prepareVerifiablePresentationWrapper(List<HashMap> vpMap) {
-        // Wrapper with Proof
-        Map<String, Object> vpWrapper = new HashMap<>();
-        vpWrapper.put("@context", List.of("https://www.w3.org/2018/credentials/v1"));
-        vpWrapper.put("type", List.of("VerifiablePresentation"));
-        vpWrapper.put("verifiableCredential", vpMap);
-        vpWrapper.put("id", "presentationId");
-        return vpWrapper;
     }
 
     public String createVerifiablePresentationUrlEncoded(String vc, List<String> revealedData, String nonce) throws JsonProcessingException {
@@ -141,7 +142,7 @@ public class BBSCredentialMock {
         ObjectMapper mapper = new ObjectMapper();
         List<HashMap> vpMap = List.of(mapper.readValue(vpToken, HashMap.class));
         Map<String, Object> vpWrapper = prepareVerifiablePresentationWrapper(vpMap);
-        var vpTokenJson=mapper.writeValueAsString(vpWrapper);
+        var vpTokenJson = mapper.writeValueAsString(vpWrapper);
         return Base64.getUrlEncoder().encodeToString(vpTokenJson.getBytes(StandardCharsets.UTF_8));
     }
 

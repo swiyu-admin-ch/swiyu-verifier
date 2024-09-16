@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.service;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.PresentationFormatFactory;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
@@ -37,7 +37,7 @@ public class VerificationService {
 
     private final VerificationManagementRepository verificationManagementRepository;
 
-    private final BBSKeyConfiguration bbsKeyConfiguration;
+    private final BBSKeyConfig bbsKeyConfiguration;
 
     private final PresentationFormatFactory presentationFormatFactory;
 

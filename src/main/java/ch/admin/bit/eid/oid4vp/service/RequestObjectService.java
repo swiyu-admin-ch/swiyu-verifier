@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.service;
 
-import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
+import ch.admin.bit.eid.oid4vp.config.ApplicationConfig;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationDefinitionDto;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
@@ -19,7 +19,7 @@ import java.util.UUID;
 @Service
 @AllArgsConstructor
 public class RequestObjectService {
-    private final ApplicationConfiguration applicationConfiguration;
+    private final ApplicationConfig applicationConfiguration;
     private final VerificationManagementRepository managementRepository;
 
     public RequestObject assembleRequestObject(UUID presentationDefinitionId) {

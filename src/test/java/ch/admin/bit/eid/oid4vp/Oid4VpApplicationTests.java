@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
 import ch.admin.bit.eid.oid4vp.controller.VerificationController;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteOptions;
@@ -28,7 +28,7 @@ class Oid4VpApplicationTests {
     private VerificationController verificationController;
 
     @Autowired
-    private BBSKeyConfiguration bbsKeyConfiguration;
+    private BBSKeyConfig bbsKeyConfiguration;
 
 
     /*Sanity Test to check if the application even loads*/

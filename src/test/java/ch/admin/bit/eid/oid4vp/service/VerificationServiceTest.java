@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.service;
 
-import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
+import ch.admin.bit.eid.oid4vp.config.ApplicationConfig;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
@@ -37,7 +37,7 @@ class VerificationServiceTest {
     private VerificationService verificationService;
 
     @MockBean
-    private ApplicationConfiguration applicationConfiguration;
+    private ApplicationConfig applicationConfiguration;
 
     @MockBean
     private VerificationManagementRepository verificationManagementRepository;

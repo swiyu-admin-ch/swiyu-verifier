@@ -1,7 +1,7 @@
 package ch.admin.bit.eid.oid4vp.service;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
-import ch.admin.bit.eid.oid4vp.config.SDJWTConfiguration;
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
+import ch.admin.bit.eid.oid4vp.config.SDJWTConfig;
 import ch.admin.bit.eid.oid4vp.model.PresentationFormatFactory;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
@@ -26,23 +26,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class PresentationFormatFactoryTest {
 
     private final UUID requestId = UUID.randomUUID();
-
-    @MockBean
-    private VerificationManagementRepository verificationManagementRepository;
-
-    @MockBean
-    private BBSKeyConfiguration bbsKeyConfiguration;
-
-    @MockBean
-    private SDJWTConfiguration sdjwtConfiguration;
-
     private final String vpToken = """
             [{
             "type": ["VerifiablePresentation"],
             "verifiableCredential": [{"credentialSubject": {"first_name": "TestFirstname","last_name": "TestLastName","birthdate": "1949-01-22"}}]}
             ]
             """;
-
+    @MockBean
+    private VerificationManagementRepository verificationManagementRepository;
+    @MockBean
+    private BBSKeyConfig bbsKeyConfiguration;
+    @MockBean
+    private SDJWTConfig sdjwtConfiguration;
     private PresentationFormatFactory presentationFormatFactory;
     private ManagementEntity managementEntity;
 

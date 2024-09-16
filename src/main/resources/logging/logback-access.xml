@@ -1,0 +1,8 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <Pattern>%t{yyyy-MM-dd HH:mm:ss.SSS} -ACCES  --- [%i{transferID}] [%I] [%h] [%l] [%u] [%r] [%s] [%b] [%D] [%i{Referer}]</Pattern>
+        </encoder>
+    </appender>
+    <appender-ref ref="STDOUT"/>
+</configuration>

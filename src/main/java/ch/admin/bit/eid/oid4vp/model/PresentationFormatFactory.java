@@ -1,7 +1,7 @@
 package ch.admin.bit.eid.oid4vp.model;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
-import ch.admin.bit.eid.oid4vp.config.SDJWTConfiguration;
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
+import ch.admin.bit.eid.oid4vp.config.SDJWTConfig;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PresentationFormatFactory {
 
-    private final BBSKeyConfiguration bbsKeyConfiguration;
-    private final SDJWTConfiguration sdjwtConfiguration;
+    private final BBSKeyConfig bbsKeyConfiguration;
+    private final SDJWTConfig sdjwtConfiguration;
 
     public CredentialVerifier getFormatBuilder(String credentialToBeProcessed,
                                                ManagementEntity managementEntity,

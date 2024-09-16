@@ -10,7 +10,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "application.key.sdjwt")
 @Data
-public class SDJWTConfiguration {
+public class SDJWTConfig {
 
     @NotNull
     private String publicKey;

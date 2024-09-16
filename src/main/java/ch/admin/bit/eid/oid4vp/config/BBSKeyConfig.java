@@ -13,7 +13,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "application.key.bbs")
 @Data
-public class BBSKeyConfiguration {
+public class BBSKeyConfig {
 
     @NotNull
     private String seed;

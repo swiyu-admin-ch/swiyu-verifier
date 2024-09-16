@@ -10,7 +10,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "application")
 @Data
-public class ApplicationConfiguration {
+public class ApplicationConfig {
 
     @NotNull
     private String externalUrl;

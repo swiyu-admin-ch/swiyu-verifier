@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp;
 
-import ch.admin.bit.eid.oid4vp.config.SDJWTConfiguration;
+import ch.admin.bit.eid.oid4vp.config.SDJWTConfig;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.model.SDJWTCredential;
@@ -24,7 +24,11 @@ import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static ch.admin.bit.eid.oid4vp.mock.CredentialSubmissionMock.getPresentationDefinitionMockWithFormat;
 import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEntityMock;
@@ -36,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SDJWTCredentialTest {
 
     @Autowired
-    private SDJWTConfiguration sdjwtConfiguration;
+    private SDJWTConfig sdjwtConfiguration;
 
     @MockBean
     private VerificationManagementRepository verificationManagementRepository;
@@ -66,7 +70,7 @@ class SDJWTCredentialTest {
                     .build()
                     .parseSignedClaims(parts[0]);
             // Verify Key Binding
-            Map<String, Object> cnf  = (Map<String, Object>) claims.getPayload().get("cnf");
+            Map<String, Object> cnf = (Map<String, Object>) claims.getPayload().get("cnf");
             var signedKeyBinding = SignedJWT.parse(keyBinding);
             var holderBindingKey = JWK.parse(cnf);
             assertTrue(signedKeyBinding.verify(new ECDSAVerifier(holderBindingKey.toECKey())));
@@ -97,7 +101,7 @@ class SDJWTCredentialTest {
         assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(payload, disclosures));
     }
 
-    private PublicKey loadPublicKey(SDJWTConfiguration sdjwtConfig) {
+    private PublicKey loadPublicKey(SDJWTConfig sdjwtConfig) {
         try {
             var sanitized = sdjwtConfig.getPublicKey().replace("\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");
             byte[] encoded = Base64.getDecoder().decode(sanitized);

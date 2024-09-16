@@ -1,7 +1,7 @@
 package ch.admin.bit.eid.oid4vp.mvc;
 
-import ch.admin.bit.eid.oid4vp.config.ApplicationConfiguration;
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfiguration;
+import ch.admin.bit.eid.oid4vp.config.ApplicationConfig;
+import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
 import ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
@@ -50,23 +50,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // @ExtendWith(SpringExtension.class)
 class VerificationControllerTests {
 
+    private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
+    private final static String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     private MockMvc mock;
-
     @Autowired
     private VerificationManagementRepository verificationManagementRepository;
-
     @Autowired
-    private ApplicationConfiguration applicationConfiguration;
-
+    private ApplicationConfig applicationConfiguration;
     @Autowired
-    private BBSKeyConfiguration bbsKeyConfiguration;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
-
-    private final static String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
+    private BBSKeyConfig bbsKeyConfiguration;
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")

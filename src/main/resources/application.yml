@@ -1,6 +1,4 @@
 spring:
-  application:
-    name: verifier-management
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
@@ -22,3 +20,7 @@ springdoc:
 application:
   verification-ttl: 86400
   oid4vp-url: "${OID4VP_URL}"
+
+logging:
+  level:
+    ch.admin.bit.eid.verifier_management.infrastructure.logging.RequestLoggingFilter: DEBUG

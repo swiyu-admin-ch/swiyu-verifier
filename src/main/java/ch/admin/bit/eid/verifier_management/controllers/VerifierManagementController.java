@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.verifier_management.controllers;
 
-import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
+import ch.admin.bit.eid.verifier_management.config.ApplicationProperties;
 import ch.admin.bit.eid.verifier_management.mappers.ManagementMapper;
 import ch.admin.bit.eid.verifier_management.models.dto.ManagementResponseDto;
 import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
@@ -18,17 +18,17 @@ public class VerifierManagementController {
 
     private final ManagementService presentationService;
 
-    private final ApplicationConfig applicationConfig;
+    private final ApplicationProperties applicationProperties;
 
     @PostMapping("/verifications")
     @Operation(summary = "Creates a new verification process with the given attributes")
     public ManagementResponseDto createVerification(@Valid @RequestBody PresentationDefinitionDto requestDto) {
 
-        return ManagementMapper.toDto(presentationService.createVerificationManagement(requestDto), applicationConfig.getOid4vpUrl());
+        return ManagementMapper.toDto(presentationService.createVerificationManagement(requestDto), applicationProperties.getOid4vpUrl());
     }
 
     @GetMapping("/verifications/{verificationId}")
     public ManagementResponseDto getVerification(@PathVariable UUID verificationId) {
-        return ManagementMapper.toDto(presentationService.getManagement(verificationId), applicationConfig.getOid4vpUrl());
+        return ManagementMapper.toDto(presentationService.getManagement(verificationId), applicationProperties.getOid4vpUrl());
     }
 }

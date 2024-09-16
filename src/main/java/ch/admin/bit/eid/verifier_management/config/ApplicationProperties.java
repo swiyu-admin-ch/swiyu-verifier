@@ -10,7 +10,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @Data
 @ConfigurationProperties(prefix = "application")
-public class ApplicationConfig {
+public class ApplicationProperties {
 
     @NotNull
     private Integer verificationTTL;

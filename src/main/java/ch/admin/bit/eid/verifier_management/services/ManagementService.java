@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.verifier_management.services;
 
-import ch.admin.bit.eid.verifier_management.config.ApplicationConfig;
+import ch.admin.bit.eid.verifier_management.config.ApplicationProperties;
 import ch.admin.bit.eid.verifier_management.enums.LogEntryOperation;
 import ch.admin.bit.eid.verifier_management.enums.LogEntryStatus;
 import ch.admin.bit.eid.verifier_management.enums.LogEntryStep;
@@ -28,7 +28,7 @@ public class ManagementService {
 
     private final ManagementRepository repository;
 
-    private final ApplicationConfig applicationConfig;
+    private final ApplicationProperties applicationProperties;
 
     public Management getManagement(UUID id) {
 
@@ -61,7 +61,7 @@ public class ManagementService {
                 .id(UUID.randomUUID())
                 .state(VerificationStatusEnum.PENDING)
                 .requestNonce(createNonce())
-                .expirationInSeconds(applicationConfig.getVerificationTTL())
+                .expirationInSeconds(applicationProperties.getVerificationTTL())
                 .requestedPresentation(presentationDefinition)
                 .build());
 

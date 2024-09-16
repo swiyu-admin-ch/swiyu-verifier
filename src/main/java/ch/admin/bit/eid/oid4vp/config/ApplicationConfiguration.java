@@ -24,6 +24,9 @@ public class ApplicationConfiguration {
     @NotNull
     private String clientName;
 
+    @NotNull
+    private String signingKey;
+
     private String logoUri;
 
 }

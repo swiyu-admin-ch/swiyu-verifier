@@ -57,7 +57,7 @@ public abstract class CredentialVerifier {
             ReadContext ctx = JsonPath.parse(credential);
             pathList.forEach(ctx::read);
         } catch (PathNotFoundException e) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
         }
     }
 

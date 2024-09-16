@@ -1,8 +1,9 @@
 package ch.admin.bit.eid.oid4vp.service;
 
 import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
-import ch.admin.bit.eid.oid4vp.config.SDJWTConfig;
+import ch.admin.bit.eid.oid4vp.model.IssuerPublicKeyLoader;
 import ch.admin.bit.eid.oid4vp.model.PresentationFormatFactory;
+import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
@@ -26,24 +27,29 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class PresentationFormatFactoryTest {
 
     private final UUID requestId = UUID.randomUUID();
+
+    @MockBean
+    private VerificationManagementRepository verificationManagementRepository;
+
+    @MockBean
+    private BBSKeyConfig bbsKeyConfiguration;
+
+    @MockBean
+    private DidResolverAdapter didResolverAdapter;
+    private IssuerPublicKeyLoader issuerPublicKeyLoader;
+
     private final String vpToken = """
             [{
             "type": ["VerifiablePresentation"],
             "verifiableCredential": [{"credentialSubject": {"first_name": "TestFirstname","last_name": "TestLastName","birthdate": "1949-01-22"}}]}
             ]
             """;
-    @MockBean
-    private VerificationManagementRepository verificationManagementRepository;
-    @MockBean
-    private BBSKeyConfig bbsKeyConfiguration;
-    @MockBean
-    private SDJWTConfig sdjwtConfiguration;
     private PresentationFormatFactory presentationFormatFactory;
     private ManagementEntity managementEntity;
 
     @BeforeEach
     void setUp() {
-        presentationFormatFactory = new PresentationFormatFactory(bbsKeyConfiguration, sdjwtConfiguration);
+        presentationFormatFactory = new PresentationFormatFactory(bbsKeyConfiguration, issuerPublicKeyLoader);
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
         managementEntity = getManagementEntityMock(requestId, presentationDefinition);
     }

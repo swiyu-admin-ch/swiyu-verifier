@@ -47,14 +47,14 @@ public class LdpCredential extends CredentialVerifier {
         try {
             parsed = mapper.readValue(vpToken, HashMap.class);
         } catch (JsonProcessingException e) {
-            throw credentialInvalidError("vpToken can not be parsed as JSON");
+            throw credentialInvalidError(e, "vpToken can not be parsed as JSON");
         }
         // Unpack bbsToken from wrapper
         String bbsToken;
         try {
             bbsToken = mapper.writeValueAsString(((List) parsed.get("verifiableCredential")).get(0));
         } catch (JsonProcessingException e) {
-            throw credentialInvalidError("Credential could not be extracted from Presentation");
+            throw credentialInvalidError(e, "Credential could not be extracted from Presentation");
         }
         // We got no holder binding. If the VC has though a credential subject did we expect there to be a holder binding
         try {
@@ -75,12 +75,16 @@ public class LdpCredential extends CredentialVerifier {
         verificationManagementRepository.save(managementEntity);
     }
 
-    private VerificationException credentialInvalidError(String description) {
-        return VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, description, managementEntity);
+    private VerificationException credentialInvalidError(Throwable cause, String description) {
+        return VerificationException.credentialError(cause, ResponseErrorCodeEnum.CREDENTIAL_INVALID, description, managementEntity);
     }
 
     private VerificationException holderBindingInvalidError(String description) {
         return VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, description, managementEntity);
+    }
+
+    private VerificationException holderBindingInvalidError(Throwable cause, String description) {
+        return VerificationException.credentialError(cause, ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH, description, managementEntity);
     }
 
     private void verifyHolderBinding(Map<String, Object> parsed, String holderDid) {
@@ -121,9 +125,9 @@ public class LdpCredential extends CredentialVerifier {
                 throw holderBindingInvalidError("Incorrect nonce in the holder binding");
             }
         } catch (ParseException e) {
-            throw holderBindingInvalidError("DID could not be parsed to a valid JWK");
+            throw holderBindingInvalidError(e, "DID could not be parsed to a valid JWK");
         } catch (JOSEException e) {
-            throw holderBindingInvalidError("Only EC Keys are supported");
+            throw holderBindingInvalidError(e, "Only EC Keys are supported");
         }
     }
 
@@ -134,7 +138,7 @@ public class LdpCredential extends CredentialVerifier {
             verifiedDocument = verifyProofBBS(bbsToken, managementEntity.getRequestNonce());
         } catch (Exception e) {
             log.warn("Failed BBS proof verification for token", e);
-            throw credentialInvalidError("The BBS credential data integrity signature could not be verified");
+            throw credentialInvalidError(e, "The BBS credential data integrity signature could not be verified");
         }
         return verifiedDocument;
     }

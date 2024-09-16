@@ -15,9 +15,22 @@
     <description>Generic verifier for public beta</description>
     <properties>
         <java.version>21</java.version>
-        <sonar.jacoco.itReportPath>${project.basedir}/../target/jacoco-it.exec</sonar.jacoco.itReportPath>
-        <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
+        <sonar.jacoco.itReportPath>${project.basedir}/target/jacoco-it.exec</sonar.jacoco.itReportPath>
+        <sonar.jacoco.reportPath>${project.basedir}/target/jacoco.exec</sonar.jacoco.reportPath>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+        <sonar.exclusions>
+            **/org/**/*.java, **/com/**/*.java
+        </sonar.exclusions>
+        <sonar.cpd.exclusions>
+            **/*Dto.java,**/domain/*
+        </sonar.cpd.exclusions>
+        <sonar.coverage.exclusions>
+            **/*Dto.java,**/config/*,**/generated/*,**/*Exception.java,**/*Constants.java,**/*Registry.java,**/*Config.java,**/*Mock*,**/*Application.java
+        </sonar.coverage.exclusions>
+        <!-- TODO should be removed with EID-1771: external jars bbscryptosuite and didresolver must be removed from classpaths -->
+        <sonar.issue.ignore.multicriteria>e1</sonar.issue.ignore.multicriteria>
+        <sonar.issue.ignore.multicriteria.e1.ruleKey>xml:S3422</sonar.issue.ignore.multicriteria.e1.ruleKey>
+        <sonar.issue.ignore.multicriteria.e1.resourceKey>**/pom.xml</sonar.issue.ignore.multicriteria.e1.resourceKey>
     </properties>
     <dependencies>
         <dependency>
@@ -114,8 +127,54 @@
             <groupId>ch.admin.eid</groupId>
             <artifactId>bbscryptosuite</artifactId>
             <version>0.0.1</version>
+            <!--
+                Attention (scope system):
+
+                We provide this external lib via resource folder. This is an anti pattern, but any other
+                possibility to install multiple (!) jars to local repo do not work. E.g.
+
+                - Approach 1: mvn install:install-file
+                  -> https://stackoverflow.com/questions/31508421/maven-install-lifecycle-does-not-execute-validate
+                  -> reason: during validate phase one can not install dependencies since maven3. Solution would be to
+                             run "mvn validate" before running "mvn install" but this won't work in BIT internal
+                             Pipeline
+                - Approach 2: local repo within pom.xml
+                    -> https://stackoverflow.com/a/28762617
+                    -> reason: doesn't work in BIT context with corporate maven settings. install always
+                       fails since corporate remote repository is first in order
+
+                ! TODO EID-1771: This is needs to be fixed by providing those libs via repository. !
+            -->
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/bbscryptosuite-0.0.1.jar</systemPath>
         </dependency>
         <!-- End BBS -->
+
+        <dependency>
+            <groupId>ch.admin.eid</groupId>
+            <artifactId>didresolver</artifactId>
+            <version>0.0.2</version>
+            <!--
+                Attention (scope system):
+
+                We provide this external lib via resource folder. This is an anti pattern, but any other
+                possibility to install multiple (!) jars to local repo do not work. E.g.
+
+                - Approach 1: mvn install:install-file
+                  -> https://stackoverflow.com/questions/31508421/maven-install-lifecycle-does-not-execute-validate
+                  -> reason: during validate phase one can not install dependencies since maven3. Solution would be to
+                             run "mvn validate" before running "mvn install" but this won't work in BIT internal
+                             Pipeline
+                - Approach 2: local repo within pom.xml
+                    -> https://stackoverflow.com/a/28762617
+                    -> reason: doesn't work in BIT context with corporate maven settings. install always
+                       fails since corporate remote repository is first in order
+
+                ! TODO EID-1771: This is needs to be fixed by providing those libs via repository. !
+            -->
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/didresolver-0.0.2.jar</systemPath>
+        </dependency>
 
         <!-- SD-JWT -->
         <!-- https://mvnrepository.com/artifact/com.authlete/sd-jwt -->
@@ -216,7 +275,8 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- CVE-Override CVE-2024-38816: remove once Spring boot releases a fixed version -->
+            <!-- CVE-Overrides here -->
+            <!-- CVE-2024-38816: remove once Spring boot releases a fixed version -->
             <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-webmvc</artifactId>
@@ -251,6 +311,8 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!-- TODO EID-1771 remove once we have included system scoped jars properly -->
+                    <includeSystemScope>true</includeSystemScope>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -273,36 +335,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <version>3.1.2</version>
-                <configuration>
-                    <groupId>ch.admin.eid</groupId>
-                    <artifactId>bbscryptosuite</artifactId>
-                    <version>0.0.1</version>
-                    <packaging>jar</packaging>
-                    <file>${project.basedir}/lib/bbscryptosuite-0.0.1.jar</file>
-                    <generatePom>true</generatePom>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>install-jar-lib</id>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <phase>validate</phase>
-                        <configuration>
-                            <groupId>ch.admin.eid</groupId>
-                            <artifactId>bbscryptosuite</artifactId>
-                            <version>0.0.1</version>
-                            <packaging>jar</packaging>
-                            <file>${project.basedir}/lib/bbscryptosuite-0.0.1.jar</file>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
+
     </build>
 </project>

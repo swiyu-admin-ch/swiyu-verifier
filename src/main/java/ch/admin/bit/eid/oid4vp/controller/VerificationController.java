@@ -15,11 +15,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -46,7 +42,7 @@ public class VerificationController {
 
     @GetMapping("/request-object/{request_id}")
     public RequestObject getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
-        // TODO Use the signed request object jwt instead of an object
+        // TODO EID-1777 Use the signed request object jwt instead of an object
         return requestObjectService.assembleRequestObject(requestId);
     }
 
@@ -54,7 +50,8 @@ public class VerificationController {
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @ResponseStatus(HttpStatus.OK)
-    @RequestBody(description = "dummy description", content = @Content(
+    @RequestBody(description = ""
+            , content = @Content(
             mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
     public void receiveVerificationPresentation(
             @PathVariable(name = "request_id") UUID requestId,
@@ -66,7 +63,7 @@ public class VerificationController {
         if (managementEntity.getState() != VerificationStatusEnum.PENDING) {
             throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED, null);
         }
-        
+
         if (isNoneBlank(request.getError())) {
             verificationService.processHolderVerificationRejection(managementEntity, request.getError_description());
             return;

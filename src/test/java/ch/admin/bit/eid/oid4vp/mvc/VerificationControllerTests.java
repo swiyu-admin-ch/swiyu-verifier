@@ -1,7 +1,7 @@
 package ch.admin.bit.eid.oid4vp.mvc;
 
-import ch.admin.bit.eid.oid4vp.config.ApplicationConfig;
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
+import ch.admin.bit.eid.oid4vp.config.ApplicationProperties;
+import ch.admin.bit.eid.oid4vp.config.BbsKeyProperties;
 import ch.admin.bit.eid.oid4vp.fixtures.DidDocFixtures;
 import ch.admin.bit.eid.oid4vp.fixtures.KeyFixtures;
 import ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock;
@@ -62,10 +62,9 @@ class VerificationControllerTests {
     @Autowired
     private VerificationManagementRepository verificationManagementRepository;
     @Autowired
-    private ApplicationConfig applicationConfiguration;
+    private ApplicationProperties applicationProperties;
     @Autowired
-
-    private BBSKeyConfig bbsKeyConfiguration;
+    private BbsKeyProperties bbsKeyProperties;
 
     @MockBean
     private DidResolverAdapter didResolverAdapter;
@@ -83,12 +82,12 @@ class VerificationControllerTests {
     void shouldGetRequestObject() throws Exception {
         mock.perform(get(String.format("/request-object/%s", requestId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationConfiguration.getClientId()))
-                .andExpect(jsonPath("$.client_id_scheme").value(applicationConfiguration.getClientIdScheme()))
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id_scheme").value(applicationProperties.getClientIdScheme()))
                 .andExpect(jsonPath("$.response_type").value("vp_token"))
                 .andExpect(jsonPath("$.response_mode").value("direct_post"))
                 .andExpect(jsonPath("$.nonce").isNotEmpty())
-                .andExpect(jsonPath("$.response_uri").value(String.format("%s/request-object/%s/response-data", applicationConfiguration.getExternalUrl(), requestId)))
+                .andExpect(jsonPath("$.response_uri").value(String.format("%s/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId)))
                 .andExpect(jsonPath("$.presentation_definition.id").isNotEmpty())
                 .andExpect(jsonPath("$.presentation_definition.name").value("Presentation Definition Name"))
                 .andExpect(jsonPath("$.presentation_definition.purpose").value("Presentation Definition Purpose"))
@@ -100,8 +99,8 @@ class VerificationControllerTests {
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields").isArray())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path").isArray())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[0]").value("$.credentialSubject.hello"))
-                .andExpect(jsonPath("client_metadata.client_name").value(applicationConfiguration.getClientName()))
-                .andExpect(jsonPath("client_metadata.logo_uri").value(applicationConfiguration.getLogoUri()))
+                .andExpect(jsonPath("client_metadata.client_name").value(applicationProperties.getClientName()))
+                .andExpect(jsonPath("client_metadata.logo_uri").value(applicationProperties.getLogoUri()))
 
                 .andExpect(content().string(not(containsString("null")))).andReturn();
     }
@@ -126,7 +125,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingCredential() throws Exception {
 
-        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyProperties);
 
         var credential = emulator.createVC(
                 List.of("/credentialSubject/id", "/type", "/issuer"),
@@ -181,7 +180,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingCredentialNoHolderBinding() throws Exception {
 
-        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyProperties);
 
         var credential = emulator.createVC(
                 List.of("/type", "/issuer"),
@@ -236,7 +235,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnInvalidPresentationSubmissionWithAdditionallyEncodedString() throws Exception {
 
-        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyProperties);
 
         var credential = emulator.createVC(
                 List.of("/credentialSubject/id", "/type", "/issuer"),
@@ -264,7 +263,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnInvalidPresentationSubmissionWithInvalidJson() throws Exception {
 
-        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyProperties);
 
         var credential = emulator.createVC(
                 List.of("/credentialSubject/id", "/type", "/issuer"),
@@ -290,7 +289,7 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailVerifyingCredentialWrongNonce() throws Exception {
 
-        var emulator = new BBSCredentialMock(bbsKeyConfiguration);
+        var emulator = new BBSCredentialMock(bbsKeyProperties);
 
         var jsonData = "{\"issuer\": \"did:example:12345\", \"type\": [\"VerifiableCredential\", \"ExampleCredential\"], \"credentialSubject\": {\"hello\": \"world\"}}";
         var credential = emulator.createVC(

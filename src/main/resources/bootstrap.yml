@@ -1,4 +1,11 @@
+server:
+  port: 8080
 spring:
+  application:
+    # note: since we use spring boot cloud and docker compose support, the application name
+    # is configured here. This way the application name is available in early log outputs on
+    # startup.
+    name: verifier-oid4vp
   cloud:
     kubernetes:
       config:

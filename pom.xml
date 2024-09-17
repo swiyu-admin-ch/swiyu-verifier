@@ -35,18 +35,21 @@
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- TODO EID-1762 remove gson dependency and use jackson as default -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -72,12 +75,8 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.5.0</version>
+            <version>2.6.0</version>
             <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
         </dependency>
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
@@ -208,12 +207,10 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-kubernetes-fabric8-config</artifactId>
-            <version>3.1.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
-            <version>4.1.4</version>
         </dependency>
         <!-- End Cloud Kubernetes config -->
 
@@ -221,30 +218,16 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
-            <version>1.5.6</version>
-        </dependency>
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>7.4</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.6</version>
-        </dependency>
-        <!-- Access logs -->
-        <dependency>
-            <groupId>ch.qos.logback.access</groupId>
-            <artifactId>common</artifactId>
-            <version>2.0.2</version>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback.access</groupId>
-            <artifactId>tomcat</artifactId>
-            <version>2.0.2</version>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.2</version>
         </dependency>
-        <!-- End Access logs -->
         <!-- End Logging -->
 
         <!-- Testing Tools -->
@@ -252,6 +235,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.xmlunit</groupId>
+                    <artifactId>xmlunit-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -275,6 +264,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>2023.0.3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- CVE-Overrides here -->
             <!-- CVE-2024-38816: remove once Spring boot releases a fixed version -->
             <dependency>
@@ -283,25 +279,7 @@
                 <version>6.1.13</version>
             </dependency>
 
-            <!-- TODO remove once ch.qos.logback.access is updated -->
-            <dependency>
-                <groupId>org.apache.tomcat</groupId>
-                <artifactId>tomcat-coyote</artifactId>
-                <version>10.1.29</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.tomcat</groupId>
-                <artifactId>tomcat-catalina</artifactId>
-                <version>10.1.29</version>
-            </dependency>
 
-            <!-- check again if this is needed when spring-boot > 3.3.3 -->
-            <dependency>
-                <groupId>org.xmlunit</groupId>
-                <artifactId>xmlunit-core</artifactId>
-                <version>2.10.0</version>
-                <scope>test</scope>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -311,7 +289,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- TODO EID-1771 remove once we have included system scoped jars properly -->
+                    <!-- TODO EID-1771 remove includeSystemScope once we have included system scoped jars properly -->
                     <includeSystemScope>true</includeSystemScope>
                     <excludes>
                         <exclude>

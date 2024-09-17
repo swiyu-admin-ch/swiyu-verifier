@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.service;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
+import ch.admin.bit.eid.oid4vp.config.BbsKeyProperties;
 import ch.admin.bit.eid.oid4vp.model.IssuerPublicKeyLoader;
 import ch.admin.bit.eid.oid4vp.model.PresentationFormatFactory;
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
@@ -32,7 +32,7 @@ class PresentationFormatFactoryTest {
     private VerificationManagementRepository verificationManagementRepository;
 
     @MockBean
-    private BBSKeyConfig bbsKeyConfiguration;
+    private BbsKeyProperties bbsKeyProperties;
 
     @MockBean
     private DidResolverAdapter didResolverAdapter;
@@ -49,7 +49,7 @@ class PresentationFormatFactoryTest {
 
     @BeforeEach
     void setUp() {
-        presentationFormatFactory = new PresentationFormatFactory(bbsKeyConfiguration, issuerPublicKeyLoader);
+        presentationFormatFactory = new PresentationFormatFactory(bbsKeyProperties, issuerPublicKeyLoader);
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
         managementEntity = getManagementEntityMock(requestId, presentationDefinition);
     }

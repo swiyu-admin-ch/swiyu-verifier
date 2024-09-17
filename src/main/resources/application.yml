@@ -1,6 +1,4 @@
 spring:
-  application:
-    name: verifier-oid4vp
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
@@ -28,3 +26,6 @@ application:
       seed: "${secret.key.bbs.seed:${BBS_KEY_SEED}}"
     sdjwt:
       public_key: "${SD_JWT_PUBLIC_KEY}"
+logging:
+  level:
+    ch.admin.bit.eid.oid4vp.infrastructure.logging.RequestLoggingFilter: DEBUG

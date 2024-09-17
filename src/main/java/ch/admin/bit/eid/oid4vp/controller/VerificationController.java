@@ -4,17 +4,21 @@ import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
 import ch.admin.bit.eid.oid4vp.model.dto.VerificationPresentationRequest;
+import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
+import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.bit.eid.oid4vp.service.RequestObjectService;
 import ch.admin.bit.eid.oid4vp.service.VerificationService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -32,6 +36,7 @@ import static org.apache.commons.lang3.StringUtils.isNoneBlank;
  */
 @RestController
 @AllArgsConstructor
+@Slf4j
 public class VerificationController {
 
     private final VerificationManagementRepository verificationManagementRepository;
@@ -76,5 +81,23 @@ public class VerificationController {
         }
 
         verificationService.processPresentation(managementEntity, request.getVp_token(), presentationSubmission);
+    }
+
+    @ExceptionHandler(VerificationException.class)
+    protected ResponseEntity<Object> handleVerificationException(VerificationException e) {
+        HttpStatus responseStatus = HttpStatus.BAD_REQUEST;
+        if (e.getError().getError().equals(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND)) {
+            responseStatus = HttpStatus.NOT_FOUND;
+        }
+
+        ManagementEntity managementEntity = e.getManagementEntity();
+
+        if (managementEntity != null) {
+            managementEntity.setState(VerificationStatusEnum.FAILED);
+            managementEntity.setWalletResponse(ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+            verificationService.updateManagement(e.getManagementEntity());
+        }
+        log.warn("The received verification presentation could not be verfified", e);
+        return new ResponseEntity<>(e.getError(), responseStatus);
     }
 }

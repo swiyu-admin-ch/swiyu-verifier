@@ -1,6 +1,4 @@
 spring:
-  application:
-    name: verifier-oid4vp
   docker:
     compose:
       enabled: false

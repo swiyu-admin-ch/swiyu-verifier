@@ -6,11 +6,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
-@Configuration
 @Validated
-@ConfigurationProperties(prefix = "application")
 @Data
-public class ApplicationConfig {
+@Configuration
+@ConfigurationProperties(prefix = "application")
+public class ApplicationProperties {
 
     @NotNull
     private String externalUrl;
@@ -30,3 +30,4 @@ public class ApplicationConfig {
     private String logoUri;
 
 }
+

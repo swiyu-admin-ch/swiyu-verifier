@@ -9,11 +9,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
-@Configuration
+
 @Validated
-@ConfigurationProperties(prefix = "application.key.bbs")
 @Data
-public class BBSKeyConfig {
+@Configuration
+@ConfigurationProperties(prefix = "application.key.bbs")
+public class BbsKeyProperties {
 
     @NotNull
     private String seed;

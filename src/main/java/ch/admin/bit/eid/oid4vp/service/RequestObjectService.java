@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.service;
 
-import ch.admin.bit.eid.oid4vp.config.ApplicationConfig;
+import ch.admin.bit.eid.oid4vp.config.ApplicationProperties;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationDefinitionDto;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
@@ -20,7 +20,7 @@ import java.util.UUID;
 @Service
 @AllArgsConstructor
 public class RequestObjectService {
-    private final ApplicationConfig applicationConfiguration;
+    private final ApplicationProperties applicationProperties;
     private final VerificationManagementRepository managementRepository;
 
     @Transactional(readOnly = true)
@@ -34,20 +34,20 @@ public class RequestObjectService {
         PresentationDefinitionDto presentation = PresentationDefinitionMapper.toDto(managementEntity.getRequestedPresentation());
 
         VerifierMetadata metadata = VerifierMetadata.builder()
-                .clientName(applicationConfiguration.getClientName())
-                .logoUri(applicationConfiguration.getLogoUri())
+                .clientName(applicationProperties.getClientName())
+                .logoUri(applicationProperties.getLogoUri())
                 .build();
 
         return RequestObject.builder()
                 .nonce(managementEntity.getRequestNonce())
                 .presentationDefinition(presentation)
                 .clientMetadata(metadata)
-                .clientId(applicationConfiguration.getClientId())
-                .clientIdScheme(applicationConfiguration.getClientIdScheme())
+                .clientId(applicationProperties.getClientId())
+                .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType("vp_token")
                 .responseMode("direct_post")
                 .responseUri(String.format("%s/request-object/%s/response-data",
-                        applicationConfiguration.getExternalUrl(),
+                        applicationProperties.getExternalUrl(),
                         presentationDefinitionId))
                 .build();
     }

@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
+import ch.admin.bit.eid.oid4vp.config.BbsKeyProperties;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PresentationFormatFactory {
 
-    private final BBSKeyConfig bbsKeyConfiguration;
+    private final BbsKeyProperties bbsKeyProperties;
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
 
     public CredentialVerifier getFormatBuilder(String credentialToBeProcessed,
@@ -28,7 +28,7 @@ public class PresentationFormatFactory {
 
         return switch (format) {
             case "ldp_vp", "ldp_vc" ->
-                    new LdpCredential(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository, bbsKeyConfiguration);
+                    new LdpCredential(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository, bbsKeyProperties);
             case "jwt_vp_json", "jwt_vc" ->
                     new SDJWTCredential(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader);
             default -> throw new IllegalArgumentException("Unknown format: " + format);

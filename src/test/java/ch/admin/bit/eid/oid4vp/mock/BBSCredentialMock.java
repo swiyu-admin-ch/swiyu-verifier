@@ -1,7 +1,7 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
+import ch.admin.bit.eid.oid4vp.config.BbsKeyProperties;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
@@ -12,11 +12,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSObject;
-import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
@@ -37,8 +33,8 @@ public class BBSCredentialMock {
     private final String privateKeyString = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIDqMm9PvL4vpyFboAwaeViQsH30CkaDcVtRniZPezFxpoAoGCCqGSM49\nAwEHoUQDQgAEQgjeqGSdu+2jq8+n78+6fXk2Yh22lQKBYCnu5FWPvKtat3wFEsQX\nqNHYgPXBxWmOBw5l2PE/gUDUJqGJSc1LuQ==\n-----END EC PRIVATE KEY-----";
     private final ECKey holderKey;
 
-    public BBSCredentialMock(final BBSKeyConfig bbsKeyConfiguration) throws JOSEException {
-        cryptoSuite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey());
+    public BBSCredentialMock(final BbsKeyProperties bbsKeyProperties) throws JOSEException {
+        cryptoSuite = new BbsCryptoSuite(bbsKeyProperties.getBBSKey());
         holderKey = JWK.parseFromPEMEncodedObjects(privateKeyString).toECKey();
     }
 

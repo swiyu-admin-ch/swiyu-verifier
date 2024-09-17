@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
+import ch.admin.bit.eid.oid4vp.config.BbsKeyProperties;
 import ch.admin.bit.eid.oid4vp.controller.VerificationController;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteOptions;
@@ -28,19 +28,19 @@ class Oid4VpApplicationTests {
     private VerificationController verificationController;
 
     @Autowired
-    private BBSKeyConfig bbsKeyConfiguration;
+    private BbsKeyProperties bbsKeyProperties;
 
 
     /*Sanity Test to check if the application even loads*/
     @Test
     void contextLoads() {
         assertThat(verificationController).isNotNull();
-        assertThat(bbsKeyConfiguration).isNotNull();
+        assertThat(bbsKeyProperties).isNotNull();
     }
 
     @Test
     void bbsLibraryTest() {
-        BbsCryptoSuite bbsCryptoSuite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey());
+        BbsCryptoSuite bbsCryptoSuite = new BbsCryptoSuite(bbsKeyProperties.getBBSKey());
 
         CryptoSuiteOptions options = new CryptoSuiteOptions(
                 Stream.of("/id", "/type", "/issuer", "/validFrom").toList(),
@@ -58,7 +58,7 @@ class Oid4VpApplicationTests {
 
     @Test
     void bbsLibraryTestInvalidContext_thenException() {
-        var bbsCryptoSuite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey());
+        var bbsCryptoSuite = new BbsCryptoSuite(bbsKeyProperties.getBBSKey());
 
         CryptoSuiteOptions options = new CryptoSuiteOptions(
                 Stream.of("/id", "/type", "/issuer", "/validFrom").toList(),
@@ -75,7 +75,7 @@ class Oid4VpApplicationTests {
 
     @Test
     void bbsLibraryNoIDTest() {
-        var bbsCryptoSuite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey());
+        var bbsCryptoSuite = new BbsCryptoSuite(bbsKeyProperties.getBBSKey());
         CryptoSuiteOptions options = new CryptoSuiteOptions(
                 Stream.of("/type", "/issuer", "/validFrom").toList(),
                 CryptoSuiteType.BBS2023,

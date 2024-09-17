@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model;
 
-import ch.admin.bit.eid.oid4vp.config.BBSKeyConfig;
+import ch.admin.bit.eid.oid4vp.config.BbsKeyProperties;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.did.DidJwk;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
@@ -29,15 +29,15 @@ import java.util.Map;
 @Slf4j
 public class LdpCredential extends CredentialVerifier {
 
-    private final BBSKeyConfig bbsKeyConfiguration;
+    private final BbsKeyProperties bbsKeyProperties;
 
     LdpCredential(final String vpToken,
                   final ManagementEntity managementEntity,
                   final PresentationSubmission presentationSubmission,
                   final VerificationManagementRepository verificationManagementRepository,
-                  BBSKeyConfig bbsKeyConfiguration) {
+                  BbsKeyProperties bbsKeyProperties) {
         super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
-        this.bbsKeyConfiguration = bbsKeyConfiguration;
+        this.bbsKeyProperties = bbsKeyProperties;
     }
 
     @Override
@@ -147,8 +147,8 @@ public class LdpCredential extends CredentialVerifier {
 
         CryptoSuiteVerificationResult verificationResult;
 
-        try (BbsCryptoSuite suite = new BbsCryptoSuite(bbsKeyConfiguration.getBBSKey())) {
-            verificationResult = suite.verifyProof(bbsCredential, nonce, bbsKeyConfiguration.getPublicBBSKey());
+        try (BbsCryptoSuite suite = new BbsCryptoSuite(bbsKeyProperties.getBBSKey())) {
+            verificationResult = suite.verifyProof(bbsCredential, nonce, bbsKeyProperties.getPublicBBSKey());
         }
 
         if (!verificationResult.component1()) {

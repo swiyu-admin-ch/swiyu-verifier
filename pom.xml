@@ -152,7 +152,7 @@
         <dependency>
             <groupId>ch.admin.eid</groupId>
             <artifactId>didresolver</artifactId>
-            <version>0.0.2</version>
+            <version>0.0.3</version>
             <!--
                 Attention (scope system):
 
@@ -172,7 +172,7 @@
                 ! TODO EID-1771: This is needs to be fixed by providing those libs via repository. !
             -->
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/didresolver-0.0.2.jar</systemPath>
+            <systemPath>${project.basedir}/lib/didresolver-0.0.3.jar</systemPath>
         </dependency>
 
         <!-- SD-JWT -->

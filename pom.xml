@@ -10,7 +10,7 @@
     </parent>
     <groupId>ch.admin.bit.eid</groupId>
     <artifactId>verifier-management</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>verifier-management</name>
     <description>Generic verifier for public beta</description>
     <properties>
@@ -143,6 +143,16 @@
         </dependency>
         <!-- End Test Utils -->
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <!-- CVE-Override CVE-2024-38816: remove once Spring boot releases a fixed version -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-webmvc</artifactId>
+                <version>6.1.13</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>

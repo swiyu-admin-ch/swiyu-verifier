@@ -10,7 +10,7 @@
     </parent>
     <groupId>ch.admin.bit.eid</groupId>
     <artifactId>verifier-oid4vp</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.3-SNAPSHOT</version>
     <name>verifier-oid4vp</name>
     <description>Generic verifier for public beta</description>
     <properties>
@@ -271,18 +271,14 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- CVE-Overrides here -->
-            <!-- CVE-2024-38816: remove once Spring boot releases a fixed version -->
+            <!-- CVE-Override CVE-2024-38816: remove once Spring boot releases a fixed version -->
             <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-webmvc</artifactId>
                 <version>6.1.13</version>
             </dependency>
-
-
         </dependencies>
     </dependencyManagement>
-
     <build>
         <plugins>
             <plugin>

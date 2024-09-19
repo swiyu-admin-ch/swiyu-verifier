@@ -47,7 +47,6 @@ class IssuerPublicKeyLoaderTest {
         assertThat(publicKey.getEncoded()).isEqualTo(KeyFixtures.issuerPublicKeyEncoded());
     }
 
-//    @Disabled("Disabled due to EID-1788. DID resolver library sends an invalid JWK (missing y coordinate)")
     @Test
     void loadPublicKey_JsonWebKey() throws LoadingPublicKeyOfIssuerFailedException, DidResolveException, JOSEException {
         // GIVEN (an issuer registered in the DID registry and an issuer signed SD-JWT)

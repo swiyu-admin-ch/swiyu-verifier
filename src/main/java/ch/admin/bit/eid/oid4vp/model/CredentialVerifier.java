@@ -5,6 +5,8 @@ import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReference;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
@@ -14,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Slf4j
@@ -23,19 +26,25 @@ public abstract class CredentialVerifier {
     protected String vpToken;
     protected PresentationSubmission presentationSubmission;
     protected VerificationManagementRepository verificationManagementRepository;
+    protected StatusListReferenceFactory statusListReferenceFactory;
 
     protected CredentialVerifier(final String vpToken,
                                  final ManagementEntity managementEntity,
                                  final PresentationSubmission presentationSubmission,
-                                 final VerificationManagementRepository verificationManagementRepository) {
+                                 final VerificationManagementRepository verificationManagementRepository,
+                                 final StatusListReferenceFactory statusListReferenceFactory) {
         this.managementEntity = managementEntity;
         this.vpToken = vpToken;
         this.presentationSubmission = presentationSubmission;
         this.verificationManagementRepository = verificationManagementRepository;
-
+        this.statusListReferenceFactory = statusListReferenceFactory;
     }
 
     public abstract void verifyPresentation();
+
+    public void verifyStatus(Map<String, Object> vcClaims) {
+        statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
+    }
 
     protected List<String> getPathToRequestedFields(final List<InputDescriptor> inputDescriptorList, final String credentialPath) {
         List<String> pathList = new ArrayList<>();
@@ -59,6 +68,10 @@ public abstract class CredentialVerifier {
         } catch (PathNotFoundException e) {
             throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
         }
+    }
+
+    protected void checkCredentialStatus(Map<String, Object> credentialClaims) {
+
     }
 
     private String concatPaths(String parentPath, String path) {

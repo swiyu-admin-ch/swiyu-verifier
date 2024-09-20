@@ -8,6 +8,7 @@ import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.bbscryptosuite.BbsCryptoSuite;
 import ch.admin.eid.bbscryptosuite.CryptoSuiteVerificationResult;
@@ -35,8 +36,9 @@ public class LdpCredential extends CredentialVerifier {
                   final ManagementEntity managementEntity,
                   final PresentationSubmission presentationSubmission,
                   final VerificationManagementRepository verificationManagementRepository,
+                  StatusListReferenceFactory statusListReferenceFactory,
                   BbsKeyProperties bbsKeyProperties) {
-        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
+        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository, statusListReferenceFactory);
         this.bbsKeyProperties = bbsKeyProperties;
     }
 

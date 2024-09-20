@@ -7,6 +7,7 @@ import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.bit.eid.oid4vp.utils.Base64Utils;
 import com.authlete.sd.Disclosure;
@@ -19,7 +20,12 @@ import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.PrematureJwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,7 +33,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.text.ParseException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 public class SDJWTCredential extends CredentialVerifier {
@@ -40,8 +52,9 @@ public class SDJWTCredential extends CredentialVerifier {
                            final ManagementEntity managementEntity,
                            final PresentationSubmission presentationSubmission,
                            final VerificationManagementRepository verificationManagementRepository,
-                           final IssuerPublicKeyLoader issuerPublicKeyLoader) {
-        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
+                           final IssuerPublicKeyLoader issuerPublicKeyLoader,
+                           final StatusListReferenceFactory statusListReferenceFactory) {
+        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository, statusListReferenceFactory);
         this.issuerPublicKeyLoader = issuerPublicKeyLoader;
     }
 
@@ -128,6 +141,9 @@ public class SDJWTCredential extends CredentialVerifier {
 
         // Confirm that the returned Credential(s) meet all criteria sent in the Presentation Definition in the Authorization Request.
         var sdjwt = checkPresentationDefinitionCriteria(payload, disclosures);
+
+        // Check VC Status
+        verifyStatus(payload);
 
         managementEntity.setState(VerificationStatusEnum.SUCCESS);
         managementEntity.setWalletResponse(ResponseData.builder().credentialSubjectData(sdjwt).build());

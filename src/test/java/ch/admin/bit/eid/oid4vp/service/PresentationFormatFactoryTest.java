@@ -7,6 +7,7 @@ import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,29 +28,27 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class PresentationFormatFactoryTest {
 
     private final UUID requestId = UUID.randomUUID();
-
-    @MockBean
-    private VerificationManagementRepository verificationManagementRepository;
-
-    @MockBean
-    private BbsKeyProperties bbsKeyProperties;
-
-    @MockBean
-    private DidResolverAdapter didResolverAdapter;
-    private IssuerPublicKeyLoader issuerPublicKeyLoader;
-
     private final String vpToken = """
             [{
             "type": ["VerifiablePresentation"],
             "verifiableCredential": [{"credentialSubject": {"first_name": "TestFirstname","last_name": "TestLastName","birthdate": "1949-01-22"}}]}
             ]
             """;
+    @MockBean
+    private VerificationManagementRepository verificationManagementRepository;
+    @MockBean
+    private BbsKeyProperties bbsKeyProperties;
+    @MockBean
+    private DidResolverAdapter didResolverAdapter;
+    @MockBean
+    private StatusListReferenceFactory statusListReferenceFactory;
+    private IssuerPublicKeyLoader issuerPublicKeyLoader;
     private PresentationFormatFactory presentationFormatFactory;
     private ManagementEntity managementEntity;
 
     @BeforeEach
     void setUp() {
-        presentationFormatFactory = new PresentationFormatFactory(bbsKeyProperties, issuerPublicKeyLoader);
+        presentationFormatFactory = new PresentationFormatFactory(bbsKeyProperties, issuerPublicKeyLoader, statusListReferenceFactory);
         PresentationDefinition presentationDefinition = createPresentationDefinitionMock(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
         managementEntity = getManagementEntityMock(requestId, presentationDefinition);
     }

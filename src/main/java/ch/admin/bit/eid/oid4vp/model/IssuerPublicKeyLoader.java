@@ -75,10 +75,14 @@ public class IssuerPublicKeyLoader {
      * @throws LoadingPublicKeyOfIssuerFailedException if the public key could not be loaded
      */
     public PublicKey loadPublicKey(String jwtToken) throws LoadingPublicKeyOfIssuerFailedException {
+        var issuerDidTdw = extractIssuer(jwtToken);
+        var issuerKeyId = extractKeyId(jwtToken);
+        return loadPublicKey(issuerDidTdw, issuerKeyId);
+    }
+
+    public PublicKey loadPublicKey(String issuer, String kid) throws LoadingPublicKeyOfIssuerFailedException {
         try {
-            var issuerDidTdw = extractIssuer(jwtToken);
-            var issuerKeyId = extractKeyId(jwtToken);
-            var method = loadVerificationMethod(issuerDidTdw, issuerKeyId);
+            VerificationMethod method = loadVerificationMethod(issuer, kid);
             return parsePublicKey(method);
         } catch (DidResolveException | RuntimeException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token", e);
@@ -135,30 +139,6 @@ public class IssuerPublicKeyLoader {
     }
 
     /**
-     * Generates a public key from the given multibase key. The public key is encoded
-     * according to the X.509 standard.
-     *
-     * @param multibaseKey a <a href="https://github.com/multiformats/multibase?tab=readme-ov-file#multibase-table">multibase key</a>
-     * @return the public key encoded according to the X.509 standard
-     * @throws IllegalArgumentException if the key generation fails due to an invalid key specification or missing algorithm
-     */
-    private static PublicKey parsePublicKeyOfTypeMultibaseKey(String multibaseKey) {
-        if (!hasText(multibaseKey)) {
-            throw new IllegalArgumentException("Failed to parse multibase key from verification method since no multibase key was provided");
-        }
-        try {
-            var decodedKey = decodeMultibaseKey(multibaseKey);
-            var keyFactory = KeyFactory.getInstance("EC");
-            var keySpec = new X509EncodedKeySpec(decodedKey);
-            return keyFactory.generatePublic(keySpec);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Failed to generate public key from specification due to missing algorithm", e);
-        } catch (InvalidKeySpecException e) {
-            throw new IllegalArgumentException("Failed to generate public key from specification due to invalid key spec", e);
-        }
-    }
-
-    /**
      * Generates a public key from the given JSON Web Key (JWK).
      *
      * @param jwk a json web token
@@ -201,6 +181,30 @@ public class IssuerPublicKeyLoader {
             return objectMapper.readTree(json);
         } catch (IOException e) {
             throw new IllegalArgumentException("failed to parse json", e);
+        }
+    }
+
+    /**
+     * Generates a public key from the given multibase key. The public key is encoded
+     * according to the X.509 standard.
+     *
+     * @param multibaseKey a <a href="https://github.com/multiformats/multibase?tab=readme-ov-file#multibase-table">multibase key</a>
+     * @return the public key encoded according to the X.509 standard
+     * @throws IllegalArgumentException if the key generation fails due to an invalid key specification or missing algorithm
+     */
+    private static PublicKey parsePublicKeyOfTypeMultibaseKey(String multibaseKey) {
+        if (!hasText(multibaseKey)) {
+            throw new IllegalArgumentException("Failed to parse multibase key from verification method since no multibase key was provided");
+        }
+        try {
+            var decodedKey = decodeMultibaseKey(multibaseKey);
+            var keyFactory = KeyFactory.getInstance("EC");
+            var keySpec = new X509EncodedKeySpec(decodedKey);
+            return keyFactory.generatePublic(keySpec);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException("Failed to generate public key from specification due to missing algorithm", e);
+        } catch (InvalidKeySpecException e) {
+            throw new IllegalArgumentException("Failed to generate public key from specification due to invalid key spec", e);
         }
     }
 }

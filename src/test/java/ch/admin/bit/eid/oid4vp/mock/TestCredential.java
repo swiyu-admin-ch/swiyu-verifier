@@ -3,6 +3,7 @@ package ch.admin.bit.eid.oid4vp.mock;
 import ch.admin.bit.eid.oid4vp.model.CredentialVerifier;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 
 public class TestCredential extends CredentialVerifier {
@@ -10,9 +11,10 @@ public class TestCredential extends CredentialVerifier {
             final String vpToken,
             final ManagementEntity managementEntity,
             final PresentationSubmission presentationSubmission,
-            final VerificationManagementRepository verificationManagementRepository
+            final VerificationManagementRepository verificationManagementRepository,
+            final StatusListReferenceFactory statusListReferenceFactory
     ) {
-        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository);
+        super(vpToken, managementEntity, presentationSubmission, verificationManagementRepository, statusListReferenceFactory);
     }
 
     @Override

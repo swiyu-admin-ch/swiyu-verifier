@@ -4,6 +4,7 @@ import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.authlete.sd.Disclosure;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -40,6 +41,8 @@ class SDJWTCredentialTest {
     private DidResolverAdapter didResolverAdapter;
     @Autowired
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
+    @MockBean
+    private StatusListReferenceFactory statusListReferenceFactory;
 
     private UUID id;
     private String sdJWTCredential;
@@ -87,7 +90,7 @@ class SDJWTCredentialTest {
 
         var presentationDefinition = createPresentationDefinitionMock(id, List.of("$.first_name", "$.last_name", "$.birthdate"));
         var managementEntity = getManagementEntityMock(id, presentationDefinition);
-        var cred = new SDJWTCredential(sdJWTCredential, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader);
+        var cred = new SDJWTCredential(sdJWTCredential, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader, statusListReferenceFactory);
 
         assertFalse(cred.checkPresentationDefinitionCriteria(claims.getPayload(), disclosures).isEmpty());
     }
@@ -97,7 +100,7 @@ class SDJWTCredentialTest {
 
         var presentationDefinition = createPresentationDefinitionMock(id, List.of("$.first_name", "$.last_name", "$.birthdate", "$.definitely_not_there"));
         var managementEntity = getManagementEntityMock(id, presentationDefinition);
-        var cred = new SDJWTCredential(sdJWTCredential, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader);
+        var cred = new SDJWTCredential(sdJWTCredential, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader, statusListReferenceFactory);
         var payload = claims.getPayload();
 
         assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(payload, disclosures));

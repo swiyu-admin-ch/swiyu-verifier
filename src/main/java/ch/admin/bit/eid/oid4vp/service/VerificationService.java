@@ -10,6 +10,7 @@ import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,7 +21,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static ch.admin.bit.eid.oid4vp.utils.Base64Utils.decodeBase64;
 import static java.util.Objects.isNull;
@@ -33,6 +38,7 @@ public class VerificationService {
 
     private final VerificationManagementRepository verificationManagementRepository;
     private final PresentationFormatFactory presentationFormatFactory;
+    private final StatusListReferenceFactory statusListReferenceFactory;
 
     @Transactional
     public void processHolderVerificationRejection(ManagementEntity managementEntity, final String errorDescription) {

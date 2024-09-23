@@ -8,11 +8,7 @@ import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -23,12 +19,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Objects.nonNull;
 
@@ -119,10 +110,8 @@ public class SDJWTCredentialMock {
         return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
     }
 
-    ;
-
-    public String createSDJWTMock(Integer index) {
-        return createSDJWTMock(null, null, index);
+    public String createSDJWTMock(Integer statusListIndex) {
+        return createSDJWTMock(null, null, statusListIndex);
     }
 
     public String createSDJWTMock() {
@@ -137,7 +126,7 @@ public class SDJWTCredentialMock {
         return createSDJWTMock(validFrom, validUntil, null);
     }
 
-    public String createSDJWTMock(Long validFrom, Long validUntil, Integer index) {
+    public String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -152,10 +141,10 @@ public class SDJWTCredentialMock {
             builder.putClaim("exp", validUntil);
         }
 
-        if (nonNull(index)) {
+        if (nonNull(statusListIndex)) {
             var statusListReference = new HashMap<String, Object>();
             var innerStatusListReference = new HashMap<>();
-            innerStatusListReference.put("idx", index);
+            innerStatusListReference.put("idx", statusListIndex);
             innerStatusListReference.put("uri", "https://example.com/statuslists/1");
             statusListReference.put("status_list", innerStatusListReference);
             builder.putClaim("status", statusListReference);

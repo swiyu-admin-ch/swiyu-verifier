@@ -5,14 +5,19 @@
 
 package ch.admin.bit.eid.oid4vp.model.statuslist;
 
+import ch.admin.bit.eid.oid4vp.exception.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.IssuerPublicKeyLoader;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jwt.SignedJWT;
-import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
+import java.security.PublicKey;
+import java.security.interfaces.ECPublicKey;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Optional;
@@ -75,19 +80,29 @@ public class TokenStatusListReference extends StatusListReference {
 
     @Override
     protected void verifyJWT(SignedJWT vc) {
+        // Step 1: validate VC type is of type "statuslist+jwt"
         var vcType = Optional.ofNullable(vc.getHeader().getType()).orElseThrow(() ->
-                statusListError("Status List has no type defined, but expected is statuslist+jwt")
+                statusListError("Failed to verify JWT: Status List has no type defined, but expected is statuslist+jwt")
         ).toString();
         if (!"statuslist+jwt".equals(vcType)) {
-            throw statusListError(String.format("Status List is not of type statuslist+jwt, was instead %s", vcType));
+            throw statusListError(String.format("Failed to verify JWT: Status List is not of type statuslist+jwt, was instead %s", vcType));
         }
-//        try {
-        // This does not work?
-//            var publicKey = getIssuerPublicKeyLoader().loadPublicKey(vc.getJWTClaimsSet().getIssuer(), vc.getHeader().getKeyID());
-        // TODO EID-1673: ask Georg to Refactor issuer key loader & make the VC verification callable
-//        } catch (LoadingPublicKeyOfIssuerFailedException | ParseException e) {
-//            throw statusListError("Failed to get Status List VC Key");
-//        }
+        // Step 2: validate the signature of the VC
+        try {
+            var issuer = vc.getJWTClaimsSet().getIssuer();
+            var publicKey = getIssuerPublicKeyLoader().loadPublicKey(issuer, vc.getHeader().getKeyID());
+            vc.verify(toJwsVerifier(publicKey));
+        } catch (LoadingPublicKeyOfIssuerFailedException | ParseException | JOSEException |
+                 IllegalArgumentException e) {
+            throw statusListError("Failed to verify JWT: Could not verify against issuer public key", e);
+        }
+    }
+
+    private static JWSVerifier toJwsVerifier(PublicKey publicKey) throws JOSEException {
+        if (publicKey instanceof ECPublicKey) {
+            return new ECDSAVerifier((ECPublicKey) publicKey);
+        }
+        throw new IllegalArgumentException("Unsupported public key type: " + publicKey.getClass().getName());
     }
 
 }

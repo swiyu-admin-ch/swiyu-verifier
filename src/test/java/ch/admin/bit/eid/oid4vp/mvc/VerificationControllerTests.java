@@ -7,13 +7,11 @@ import ch.admin.bit.eid.oid4vp.fixtures.KeyFixtures;
 import ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.mock.StatusListGenerator;
-import ch.admin.bit.eid.oid4vp.model.IssuerPublicKeyLoader;
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
-import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReference;
 import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListResolverAdapter;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.didresolver.DidResolveException;
@@ -25,7 +23,6 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -52,7 +49,6 @@ import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getMultiplePresen
 import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getPresentationSubmissionString;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -406,13 +402,15 @@ class VerificationControllerTests {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess(String input) throws Exception {
-        Integer index = "".equals(input) ? null : Integer.parseInt(input);
+        Integer statusListIndex = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKey().getKeyID());
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenReturn(statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST));
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenAnswer(invocation -> {
+            var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
+            return statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST);
+        });
 
-        var sdJWT = emulator.createSDJWTMock(index);
+        var sdJWT = emulator.createSDJWTMock(statusListIndex);
         var parts = sdJWT.split("~");
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
@@ -443,8 +441,10 @@ class VerificationControllerTests {
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKey().getKeyID());
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenReturn(statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST));
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenAnswer(invocation -> {
+            var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
+            return statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST);
+        });
 
         var sdJWT = emulator.createSDJWTMock(index);
         var parts = sdJWT.split("~");
@@ -641,11 +641,10 @@ class VerificationControllerTests {
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
-            var didDoc = DidDocFixtures.issuerDidDocWithMultikey(
+            when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithMultikey(
                     sdjwt.getIssuerId(),
                     sdjwt.getKidHeaderValue(),
-                    KeyFixtures.issuerPublicKeyAsMultibaseKey());
-            when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenReturn(didDoc);
+                    KeyFixtures.issuerPublicKeyAsMultibaseKey()));
         } catch (DidResolveException e) {
             throw new AssertionError(e);
         }

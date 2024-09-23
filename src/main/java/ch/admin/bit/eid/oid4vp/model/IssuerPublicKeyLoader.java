@@ -80,12 +80,18 @@ public class IssuerPublicKeyLoader {
         return loadPublicKey(issuerDidTdw, issuerKeyId);
     }
 
+    /**
+     * Loads the public key of the issuer with the given <code>issuer</code> and <code>kid</code>.
+     *
+     * @return The public key of the issuer.
+     * @throws LoadingPublicKeyOfIssuerFailedException if the public key could not be loaded
+     */
     public PublicKey loadPublicKey(String issuer, String kid) throws LoadingPublicKeyOfIssuerFailedException {
         try {
             VerificationMethod method = loadVerificationMethod(issuer, kid);
             return parsePublicKey(method);
         } catch (DidResolveException | RuntimeException e) {
-            throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token", e);
+            throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
         }
     }
 

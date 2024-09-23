@@ -8,7 +8,6 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.client.RestClient;
 
 import java.text.ParseException;
 import java.util.Map;
@@ -100,6 +99,14 @@ public abstract class StatusListReference {
 
     protected VerificationException statusListError(String errorText) {
         return VerificationException.credentialError(
+                ResponseErrorCodeEnum.UNRESOLVABLE_STATUS_LIST,
+                errorText,
+                getPresentationManagementEntity());
+    }
+
+    protected VerificationException statusListError(String errorText, Throwable cause) {
+        return VerificationException.credentialError(
+                cause,
                 ResponseErrorCodeEnum.UNRESOLVABLE_STATUS_LIST,
                 errorText,
                 getPresentationManagementEntity());

@@ -21,12 +21,14 @@ public class StatusListGenerator {
     /**
      * Example status list from the <a href="https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-02.html#section-9.1">spec</a>
      * <pre><code>
-     * status[0] = 1
-     * status[1] = 2
-     * status[2] = 0
-     * status[3] = 3</code></pre>
+     * status[0] = 1 - revoked
+     * status[1] = 2 - suspended
+     * status[2] = 0 - valid
+     * status[3] = 3 - revoked & suspended
+     * </code></pre>
      */
     public static final String SPEC_STATUS_LIST = "eNo76fITAAPfAgc";
+    public static final String SPEC_SUBJECT = "https://example.com/statuslists/1";
 
     private final ECKey key;
     private final String issuerId;
@@ -54,7 +56,7 @@ public class StatusListGenerator {
     public String createTokenStatusListTokenVerifiableCredential(String statusList) throws JOSEException {
         var claims = new JWTClaimsSet.Builder()
                 .issuer(issuerId)
-                .subject("https://example.com/statuslists/1")
+                .subject(SPEC_SUBJECT)
                 .claim("status_list", new JWTClaimsSet.Builder()
                         .claim("bits", 2)
                         .claim("lst", statusList)

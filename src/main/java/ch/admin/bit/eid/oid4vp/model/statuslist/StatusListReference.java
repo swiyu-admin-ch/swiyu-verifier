@@ -1,10 +1,13 @@
 package ch.admin.bit.eid.oid4vp.model.statuslist;
 
+import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.IssuerPublicKeyLoader;
+import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.client.RestClient;
 
 import java.text.ParseException;
@@ -15,9 +18,11 @@ import java.util.Map;
  * Pointer towards a status list on a registry which can be resolved and verified
  */
 @Data
+@Slf4j
 @AllArgsConstructor
 public abstract class StatusListReference {
-    private final RestClient client;
+
+    private final StatusListResolverAdapter statusListResolverAdapter;
     /**
      * Example for Token Status List
      * <pre>
@@ -76,11 +81,27 @@ public abstract class StatusListReference {
      * @throws ParseException
      */
     protected Map<String, Object> getStatusListVC() throws ParseException {
-        var vc = getClient().get().uri(getStatusListRegistryUri()).retrieve().body(String.class);
-        var signedVC = SignedJWT.parse(vc);
-        verifyJWT(signedVC);
-        return signedVC.getJWTClaimsSet().getClaims();
+        var uri = getStatusListRegistryUri();
+        try {
+            var vc = getStatusListResolverAdapter().resolveStatusList(uri);
+            var signedVC = SignedJWT.parse(vc);
+            verifyJWT(signedVC);
+            return signedVC.getJWTClaimsSet().getClaims();
+        } catch (RuntimeException e) {
+            log.warn("Could not retrieve status list vc.", e);
+            throw statusListError(String.format("Could not retrieve status list vc from %s", uri));
+        } catch (ParseException e) {
+            log.warn("Statuslist could not be parsed as JWT.", e);
+            throw statusListError(String.format("Statuslist could not be parsed as JWT. %s", uri));
+        }
     }
 
     protected abstract void verifyJWT(SignedJWT vc);
+
+    protected VerificationException statusListError(String errorText) {
+        return VerificationException.credentialError(
+                ResponseErrorCodeEnum.UNRESOLVABLE_STATUS_LIST,
+                errorText,
+                getPresentationManagementEntity());
+    }
 }

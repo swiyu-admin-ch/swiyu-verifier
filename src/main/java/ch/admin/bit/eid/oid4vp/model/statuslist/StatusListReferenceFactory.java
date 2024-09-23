@@ -3,6 +3,7 @@ package ch.admin.bit.eid.oid4vp.model.statuslist;
 import ch.admin.bit.eid.oid4vp.model.IssuerPublicKeyLoader;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import kotlin.NotImplementedError;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -14,16 +15,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
+@AllArgsConstructor
 public class StatusListReferenceFactory {
-
-    private final RestClient client;
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
-
-    public StatusListReferenceFactory(IssuerPublicKeyLoader issuerPublicKeyLoader) {
-        this.issuerPublicKeyLoader = issuerPublicKeyLoader;
-        this.client = RestClient.create();
-    }
-
+    private final StatusListResolverAdapter statusListResolverAdapter;
 
     /**
      * Creates a number of StatusListReferences according to the StatusLists found in the vcClaims
@@ -81,7 +76,7 @@ public class StatusListReferenceFactory {
 
 
     private Function<Map<String, Object>, List<TokenStatusListReference>> createTokenStatusListReferences(ManagementEntity presentationManagementEntity) {
-        return tokenStatusListReferenceTokenEntry -> List.of(new TokenStatusListReference(client, (Map<String, Object>) tokenStatusListReferenceTokenEntry.get("status_list"), presentationManagementEntity, issuerPublicKeyLoader));
+        return tokenStatusListReferenceTokenEntry -> List.of(new TokenStatusListReference(statusListResolverAdapter, (Map<String, Object>) tokenStatusListReferenceTokenEntry.get("status_list"), presentationManagementEntity, issuerPublicKeyLoader));
     }
 
     private Function<Object, List<StatusListReference>> createBitStringStatusListsHigherOrder(ManagementEntity presentationManagementEntity) {

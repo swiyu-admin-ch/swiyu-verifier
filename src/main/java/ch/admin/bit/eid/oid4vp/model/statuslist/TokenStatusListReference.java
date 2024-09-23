@@ -33,8 +33,8 @@ import java.util.Optional;
 public class TokenStatusListReference extends StatusListReference {
 
 
-    public TokenStatusListReference(RestClient client, Map<String, Object> statusListReferenceClaims, ManagementEntity presentationManagementEntity, IssuerPublicKeyLoader issuerPublicKeyLoader) {
-        super(client, statusListReferenceClaims, presentationManagementEntity, issuerPublicKeyLoader);
+    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, ManagementEntity presentationManagementEntity, IssuerPublicKeyLoader issuerPublicKeyLoader) {
+        super(adapter, statusListReferenceClaims, presentationManagementEntity, issuerPublicKeyLoader);
     }
 
 
@@ -90,10 +90,4 @@ public class TokenStatusListReference extends StatusListReference {
 //        }
     }
 
-    private VerificationException statusListError(String errorText) {
-        return VerificationException.credentialError(
-                ResponseErrorCodeEnum.UNRESOLVABLE_STATUS_LIST,
-                errorText,
-                getPresentationManagementEntity());
-    }
 }

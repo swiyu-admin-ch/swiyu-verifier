@@ -6,11 +6,15 @@ import ch.admin.bit.eid.oid4vp.fixtures.DidDocFixtures;
 import ch.admin.bit.eid.oid4vp.fixtures.KeyFixtures;
 import ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
+import ch.admin.bit.eid.oid4vp.mock.StatusListGenerator;
+import ch.admin.bit.eid.oid4vp.model.IssuerPublicKeyLoader;
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReference;
+import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListResolverAdapter;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.didresolver.DidResolveException;
 import com.authlete.sd.Disclosure;
@@ -21,8 +25,10 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -46,6 +52,7 @@ import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getMultiplePresen
 import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getPresentationSubmissionString;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -73,6 +80,9 @@ class VerificationControllerTests {
     private DidResolverAdapter didResolverAdapter;
     @Autowired
     private ObjectMapper objectMapper;
+    @MockBean
+    private StatusListResolverAdapter mockedStatusListResolverAdapter;
+
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
@@ -392,13 +402,15 @@ class VerificationControllerTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "0"})
+    @ValueSource(strings = {"", "2"})
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess(String input) throws Exception {
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKey().getKeyID());
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenReturn(statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST));
 
         var sdJWT = emulator.createSDJWTMock(index);
         var parts = sdJWT.split("~");
@@ -421,6 +433,42 @@ class VerificationControllerTests {
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {"0:credential_revoked", "1:credential_suspended", "3:credential_revoked"}, delimiter = ':')
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void shouldSucceedVerifyingSDJWTCredentialWithSD_thenFail(String input, String errorCodeName) throws Exception {
+        Integer index = "".equals(input) ? null : Integer.parseInt(input);
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKey().getKeyID());
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenReturn(statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST));
+
+        var sdJWT = emulator.createSDJWTMock(index);
+        var parts = sdJWT.split("~");
+
+        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
+        var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~";
+        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "http://localhost");
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+
+        // mock did resolver response, so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest()).andReturn();
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+        var errorCode = managementEntity.getWalletResponse().getErrorCode().getDisplayName().equals(errorCodeName);
+        Assert.state(errorCode, String.format("Expected state to be %s, but got %s", errorCodeName, errorCode));
     }
 
     @Test

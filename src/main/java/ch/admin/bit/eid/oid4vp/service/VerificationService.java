@@ -38,7 +38,6 @@ public class VerificationService {
 
     private final VerificationManagementRepository verificationManagementRepository;
     private final PresentationFormatFactory presentationFormatFactory;
-    private final StatusListReferenceFactory statusListReferenceFactory;
 
     @Transactional
     public void processHolderVerificationRejection(ManagementEntity managementEntity, final String errorDescription) {

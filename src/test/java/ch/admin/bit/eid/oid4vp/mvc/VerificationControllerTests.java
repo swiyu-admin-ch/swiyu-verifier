@@ -57,6 +57,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class VerificationControllerTests {
 
+    private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
+    private final static String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
     @Autowired
     private MockMvc mock;
     @Autowired
@@ -65,16 +67,10 @@ class VerificationControllerTests {
     private ApplicationProperties applicationProperties;
     @Autowired
     private BbsKeyProperties bbsKeyProperties;
-
     @MockBean
     private DidResolverAdapter didResolverAdapter;
-
     @Autowired
     private ObjectMapper objectMapper;
-
-    private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
-
-    private final static String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
@@ -322,9 +318,9 @@ class VerificationControllerTests {
                 String.format("Expecting no data to be saved on failure, found %s",
                         managementEntity.getWalletResponse().getCredentialSubjectData()));
         // Error code should be set in management entity
-        Assert.state(managementEntity.getWalletResponse().getErrorCode() == ResponseErrorCodeEnum.CREDENTIAL_INVALID,
+        Assert.state(managementEntity.getWalletResponse().getErrorCode() == ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH,
                 String.format("Expecting error code to be %s but was %s",
-                        ResponseErrorCodeEnum.CREDENTIAL_INVALID,
+                        ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH,
                         managementEntity.getWalletResponse().getErrorCode()));
         // Error & error code should be returned to wallet
         var responseBody = response.getResponse().getContentAsString();

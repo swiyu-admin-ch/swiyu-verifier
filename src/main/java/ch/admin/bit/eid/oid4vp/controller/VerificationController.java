@@ -4,7 +4,6 @@ import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
 import ch.admin.bit.eid.oid4vp.model.dto.VerificationPresentationRequest;
-import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
@@ -19,7 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
@@ -83,6 +87,7 @@ public class VerificationController {
         verificationService.processPresentation(managementEntity, request.getVp_token(), presentationSubmission);
     }
 
+
     @ExceptionHandler(VerificationException.class)
     protected ResponseEntity<Object> handleVerificationException(VerificationException e) {
         HttpStatus responseStatus = HttpStatus.BAD_REQUEST;
@@ -94,10 +99,11 @@ public class VerificationController {
 
         if (managementEntity != null) {
             managementEntity.setState(VerificationStatusEnum.FAILED);
-            managementEntity.setWalletResponse(ResponseData.builder().errorCode(ResponseErrorCodeEnum.CREDENTIAL_INVALID).build());
+            managementEntity.setWalletResponse(ResponseData.builder().errorCode(e.getError().getErrorCode()).build());
             verificationService.updateManagement(e.getManagementEntity());
         }
-        log.warn("The received verification presentation could not be verfified", e);
-        return new ResponseEntity<>(e.getError(), responseStatus);
+        var error = e.getError();
+        log.warn(String.format("The received verification presentation could not be verified - caused by %s - %s", error.getError(), error.getErrorDescription()), e);
+        return new ResponseEntity<>(error, responseStatus);
     }
 }

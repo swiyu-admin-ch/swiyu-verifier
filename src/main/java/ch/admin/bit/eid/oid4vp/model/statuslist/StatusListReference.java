@@ -22,10 +22,10 @@ public abstract class StatusListReference {
      * Example for Token Status List
      * <pre>
      * <code>
-     *     {
-     *       "idx": 0,
-     *       "uri": "https://example.com/statuslists/1"
-     *     }
+     *  {
+     *      "idx": 0,
+     *      "uri": "https://example.com/statuslists/1"
+     *  }
      * </code>
      * </pre>
      * <p>

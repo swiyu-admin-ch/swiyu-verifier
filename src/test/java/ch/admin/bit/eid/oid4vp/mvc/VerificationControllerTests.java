@@ -22,6 +22,8 @@ import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -119,8 +121,7 @@ class VerificationControllerTests {
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
-    void shouldSucceedVerifyingCredential() throws Exception {
-
+    void shouldSucceedVerifyingBBSCredential() throws Exception {
         var emulator = new BBSCredentialMock(bbsKeyProperties);
 
         var credential = emulator.createVC(
@@ -170,6 +171,7 @@ class VerificationControllerTests {
         Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
         assert responseBody.contains(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED.toString());
     }
+
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
@@ -389,14 +391,16 @@ class VerificationControllerTests {
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(strings = {"", "0"})
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
-    void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess() throws Exception {
+    void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess(String input) throws Exception {
+        Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
-        var sdJWT = emulator.createSDJWTMock();
+        var sdJWT = emulator.createSDJWTMock(index);
         var parts = sdJWT.split("~");
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);

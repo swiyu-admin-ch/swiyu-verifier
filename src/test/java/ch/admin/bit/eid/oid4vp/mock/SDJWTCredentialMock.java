@@ -8,7 +8,11 @@ import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.*;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -19,7 +23,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static java.util.Objects.nonNull;
 
@@ -58,6 +67,48 @@ public class SDJWTCredentialMock {
         this.kidHeaderValue = kidHeaderValue;
     }
 
+    public static String getPresentationSubmissionString(UUID uuid) throws JsonProcessingException {
+        return getPresentationSubmissionStringWithPath(uuid != null ? uuid : UUID.randomUUID(), "$");
+    }
+
+    public static String getPresentationSubmissionStringWithPath(UUID uuid, String path) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+
+        Descriptor descriptor = Descriptor.builder()
+                .path(path)
+                .format("jwt_vc")
+                .build();
+
+        PresentationSubmission submission = PresentationSubmission.builder()
+                .id(uuid != null ? uuid.toString() : UUID.randomUUID().toString())
+                .descriptorMap(List.of(descriptor))
+                .build();
+
+        return mapper.writeValueAsString(submission);
+    }
+
+    public static String getMultiplePresentationSubmissionString(UUID uuid) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+
+        Descriptor descriptorSDJWT = Descriptor.builder()
+                .id("multipass")
+                .path("$[1]")
+                .format("jwt_vc")
+                .build();
+
+        Descriptor descriptor = Descriptor.builder()
+                .id("test")
+                .path("$[0]")
+                .format("whatever")
+                .build();
+        PresentationSubmission submission = PresentationSubmission.builder()
+                .id(uuid != null ? uuid.toString() : UUID.randomUUID().toString())
+                .descriptorMap(List.of(descriptorSDJWT, descriptor))
+                .build();
+
+        return mapper.writeValueAsString(submission);
+    }
+
     /**
      * Adds A second (fake) VC to the VP Token generated to test the Presentation Exchange Credential Selection
      *
@@ -68,15 +119,25 @@ public class SDJWTCredentialMock {
         return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
     }
 
+    ;
+
+    public String createSDJWTMock(Integer index) {
+        return createSDJWTMock(null, null, index);
+    }
+
     public String createSDJWTMock() {
-        return createSDJWTMock(null, null);
+        return createSDJWTMock(null, null, null);
     }
 
     public String createSDJWTMock(Long validFrom) {
-        return createSDJWTMock(validFrom, null);
+        return createSDJWTMock(validFrom, null, null);
     }
 
     public String createSDJWTMock(Long validFrom, Long validUntil) {
+        return createSDJWTMock(validFrom, validUntil, null);
+    }
+
+    public String createSDJWTMock(Long validFrom, Long validUntil, Integer index) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -89,6 +150,15 @@ public class SDJWTCredentialMock {
 
         if (nonNull(validUntil)) {
             builder.putClaim("exp", validUntil);
+        }
+
+        if (nonNull(index)) {
+            var statusListReference = new HashMap<String, Object>();
+            var innerStatusListReference = new HashMap<>();
+            innerStatusListReference.put("idx", index);
+            innerStatusListReference.put("uri", "https://example.com/statuslists/1");
+            statusListReference.put("status_list", innerStatusListReference);
+            builder.putClaim("status", statusListReference);
         }
 
         builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
@@ -134,48 +204,6 @@ public class SDJWTCredentialMock {
         var jwt = new SignedJWT(header, JWTClaimsSet.parse(proofData));
         jwt.sign(new ECDSASigner(holderKey));
         return sdjwt + jwt.serialize();
-    }
-
-    public static String getPresentationSubmissionString(UUID uuid) throws JsonProcessingException {
-        return getPresentationSubmissionStringWithPath(uuid != null ? uuid : UUID.randomUUID(), "$");
-    }
-
-    public static String getPresentationSubmissionStringWithPath(UUID uuid, String path) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-
-        Descriptor descriptor = Descriptor.builder()
-                .path(path)
-                .format("jwt_vc")
-                .build();
-
-        PresentationSubmission submission = PresentationSubmission.builder()
-                .id(uuid != null ? uuid.toString() : UUID.randomUUID().toString())
-                .descriptorMap(List.of(descriptor))
-                .build();
-
-        return mapper.writeValueAsString(submission);
-    }
-
-    public static String getMultiplePresentationSubmissionString(UUID uuid) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-
-        Descriptor descriptorSDJWT = Descriptor.builder()
-                .id("multipass")
-                .path("$[1]")
-                .format("jwt_vc")
-                .build();
-
-        Descriptor descriptor = Descriptor.builder()
-                .id("test")
-                .path("$[0]")
-                .format("whatever")
-                .build();
-        PresentationSubmission submission = PresentationSubmission.builder()
-                .id(uuid != null ? uuid.toString() : UUID.randomUUID().toString())
-                .descriptorMap(List.of(descriptorSDJWT, descriptor))
-                .build();
-
-        return mapper.writeValueAsString(submission);
     }
 
     private static HashMap<String, String> getSDClaims() {

@@ -5,7 +5,6 @@ import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import kotlin.NotImplementedError;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -87,7 +86,7 @@ public class StatusListReferenceFactory {
         if (w3cCredentialStatus instanceof List) {
             return ((List<?>) w3cCredentialStatus).stream().map(createBitStringStatusListsHigherOrder(presentationManagementEntity)).flatMap(List::stream).collect(Collectors.toList());
         }
-        // TODO Implement Bitstring status list if needed
+        // The implementation in similar fashion to the token status list would go here for bit string status list, should the need arise (again) to use these
         throw new NotImplementedError();
     }
 }

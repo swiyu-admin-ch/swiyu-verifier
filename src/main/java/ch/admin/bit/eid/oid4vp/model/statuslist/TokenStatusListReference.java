@@ -48,10 +48,10 @@ public class TokenStatusListReference extends StatusListReference {
         try {
             Map<String, Object> statusListVC = getStatusListVC();
             Map<String, Object> statusListData = (Map<String, Object>) statusListVC.get("status_list");
-            int statusListBits = Integer.parseInt(statusListData.get("bits").toString()); // TODO Ask a java dev how we get the value, this is sometimes long and sometimes int...
+            int statusListBits = Integer.parseInt(statusListData.get("bits").toString());
             String zippedStatusList = (String) statusListData.get("lst");
             TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(statusListBits, zippedStatusList);
-            int statusListIndex = Integer.parseInt(getStatusListReferenceClaims().get("idx").toString()); // TODO Ask a java dev how we get the value, this is sometimes long and sometimes int...
+            int statusListIndex = Integer.parseInt(getStatusListReferenceClaims().get("idx").toString());
             TokenStatusListBit credentialStatus = TokenStatusListBit.createStatus(statusList.getStatus(statusListIndex));
 
             switch (credentialStatus) {
@@ -66,9 +66,9 @@ public class TokenStatusListReference extends StatusListReference {
                     throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_REVOKED, "Unexpected VC Status!", getPresentationManagementEntity());
             }
         } catch (ParseException e) {
-            throw statusListError("Failed to parse the Status List VC from the status registry!");
+            throw statusListError("Failed to parse the Status List VC from the status registry!", e);
         } catch (IOException e) {
-            throw statusListError("Failed to parse the Status List bits!");
+            throw statusListError("Failed to parse the Status List bits!", e);
         }
 
     }

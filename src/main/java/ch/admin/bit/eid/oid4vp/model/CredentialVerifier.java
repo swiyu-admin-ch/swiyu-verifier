@@ -70,10 +70,6 @@ public abstract class CredentialVerifier {
         }
     }
 
-    protected void checkCredentialStatus(Map<String, Object> credentialClaims) {
-
-    }
-
     private String concatPaths(String parentPath, String path) {
         return parentPath + path.replace("$", "");
     }

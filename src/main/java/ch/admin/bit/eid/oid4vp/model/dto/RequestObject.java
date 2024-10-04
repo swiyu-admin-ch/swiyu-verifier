@@ -18,7 +18,8 @@ import lombok.Data;
 public class RequestObject {
 
     /**
-     * Source of the key material to verify the request object jwt
+     * Oauth2 client_id for the oauth client (holder)
+     * <a href="https://www.rfc-editor.org/rfc/rfc9101.html">RFC 9101</a>
      */
     @JsonProperty("client_id")
     private String clientId;

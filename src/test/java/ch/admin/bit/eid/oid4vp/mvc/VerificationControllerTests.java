@@ -17,10 +17,13 @@ import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.didresolver.DidResolveException;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
@@ -31,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,16 +43,11 @@ import org.springframework.util.Assert;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock.ExampleJson;
 import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getMultiplePresentationSubmissionString;
 import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getPresentationSubmissionString;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -62,8 +61,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class VerificationControllerTests {
 
-    private final static UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
-    private final static String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
+    private static final UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
+    private static final String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
+    private static final String publicKey = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
+
     @Autowired
     private MockMvc mock;
     @Autowired
@@ -79,34 +80,47 @@ class VerificationControllerTests {
     @MockBean
     private StatusListResolverAdapter mockedStatusListResolverAdapter;
 
-
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetRequestObject() throws Exception {
         mock.perform(get(String.format("/request-object/%s", requestId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
-                .andExpect(jsonPath("$.client_id_scheme").value(applicationProperties.getClientIdScheme()))
-                .andExpect(jsonPath("$.response_type").value("vp_token"))
-                .andExpect(jsonPath("$.response_mode").value("direct_post"))
-                .andExpect(jsonPath("$.nonce").isNotEmpty())
-                .andExpect(jsonPath("$.response_uri").value(String.format("%s/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId)))
-                .andExpect(jsonPath("$.presentation_definition.id").isNotEmpty())
-                .andExpect(jsonPath("$.presentation_definition.name").value("Presentation Definition Name"))
-                .andExpect(jsonPath("$.presentation_definition.purpose").value("Presentation Definition Purpose"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].id").isNotEmpty())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name").value("Test Descriptor Name"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].purpose").value("Input Descriptor Purpose"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.ldp_vp").isNotEmpty())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.ldp_vp.proof_type").value("BBS2023"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields").isArray())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path").isArray())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[0]").value("$.credentialSubject.hello"))
-                .andExpect(jsonPath("client_metadata.client_name").value(applicationProperties.getClientName()))
-                .andExpect(jsonPath("client_metadata.logo_uri").value(applicationProperties.getLogoUri()))
+                .andDo(result -> {
+                    var claims = validateSignatureAndGetJWTClaimsSet(result.getResponse());
 
-                .andExpect(content().string(not(containsString("null")))).andReturn();
+                    assert claims.getStringClaim("client_id").equals(applicationProperties.getClientId());
+                    assert claims.getStringClaim("client_id_scheme").equals(applicationProperties.getClientIdScheme());
+                    assert claims.getStringClaim("response_type").equals("vp_token");
+                    assert claims.getStringClaim("response_mode").equals("direct_post");
+                    assert claims.getStringClaim("nonce") != null;
+                    assert claims.getStringClaim("response_uri").equals(String.format("%s/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId));
+
+                    var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
+                    assert presentationDefinition.get("id") != null;
+                    assert presentationDefinition.get("name").equals("Presentation Definition Name");
+                    assert presentationDefinition.get("purpose").equals("Presentation Definition Purpose");
+
+                    var inputDescriptors = (List<LinkedTreeMap>) presentationDefinition.get("input_descriptors");
+                    var inputDescriptor = inputDescriptors.getFirst();
+
+                    assert inputDescriptor.get("id") != null;
+                    assert inputDescriptor.get("name").equals("Test Descriptor Name");
+                    assert inputDescriptor.get("purpose").equals("Input Descriptor Purpose");
+
+                    var format = (LinkedTreeMap) inputDescriptor.get("format");
+                    var ldpVp = (Map<String, List>) format.get("ldp_vp");
+                    assert ldpVp.get("proof_type").getFirst().equals("BBS2023");
+
+                    var constraints = (LinkedTreeMap<List, List<LinkedTreeMap<List, List>>>) inputDescriptor.get("constraints");
+                    constraints.get("fields").getFirst().get("path").getFirst().equals("$.credentialSubject.hello");
+
+                    var clientMetadata = (LinkedTreeMap) claims.getClaim("client_metadata");
+                    assert clientMetadata.get("client_name").equals(applicationProperties.getClientName());
+                    assert clientMetadata.get("logo_uri").equals(applicationProperties.getLogoUri());
+
+                    assert !result.getResponse().getContentAsString().contains("null");
+                });
     }
 
     @Test
@@ -139,9 +153,9 @@ class VerificationControllerTests {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        // Get the Nonce
-        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
-        String nonce = responseContent.get("nonce").getAsString();
+        JWTClaimsSet responseContent = validateSignatureAndGetJWTClaimsSet(response.getResponse());
+        String nonce = responseContent.getStringClaim("nonce");
+
         String vpToken = emulator.createVerifiablePresentationUrlEncodedHolderBinding(credential, List.of("/credentialSubject/hello"), nonce);
         PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
 
@@ -195,9 +209,8 @@ class VerificationControllerTests {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        // Get the Nonce
-        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
-        String nonce = responseContent.get("nonce").getAsString();
+        JWTClaimsSet responseContent = validateSignatureAndGetJWTClaimsSet(response.getResponse());
+        String nonce = responseContent.getStringClaim("nonce");
         String vpToken = emulator.createVerifiablePresentationUrlEncoded(credential, List.of("/credentialSubject/hello"), nonce);
         PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
 
@@ -246,9 +259,8 @@ class VerificationControllerTests {
                 emulator.addHolderBinding(ExampleJson));
         var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
 
-        // Get the Nonce
-        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
-        String nonce = responseContent.get("nonce").getAsString();
+        JWTClaimsSet responseContent = validateSignatureAndGetJWTClaimsSet(response.getResponse());
+        String nonce = responseContent.getStringClaim("nonce");
         String vpToken = emulator.createVerifiablePresentationUrlEncodedHolderBinding(credential, List.of("/credentialSubject/hello"), nonce);
         PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
 
@@ -274,9 +286,8 @@ class VerificationControllerTests {
                 emulator.addHolderBinding(ExampleJson));
         var response = mock.perform(get(String.format("/request-object/%s", requestId))).andReturn();
 
-        // Get the Nonce
-        JsonObject responseContent = JsonParser.parseString(response.getResponse().getContentAsString()).getAsJsonObject();
-        String nonce = responseContent.get("nonce").getAsString();
+        JWTClaimsSet responseContent = validateSignatureAndGetJWTClaimsSet(response.getResponse());
+        String nonce = responseContent.getStringClaim("nonce");
         String vpToken = emulator.createVerifiablePresentationUrlEncodedHolderBinding(credential, List.of("/credentialSubject/hello"), nonce);
         String presentationSubmission = "{\"id\":\"test_ldp_vc_presentation_definition\",\"definition_id\":\"ldp_vc\",\"descriptor_map\":[{\"id\":\"test_descriptor\",\"format\":\"ldp_vp\",\"path\":\"$.credentialSubject\",\"path_nested\":null";
 
@@ -649,5 +660,12 @@ class VerificationControllerTests {
             throw new AssertionError(e);
         }
 
+    }
+
+    private JWTClaimsSet validateSignatureAndGetJWTClaimsSet(MockHttpServletResponse response) throws Exception {
+        String rawResponse = response.getContentAsString();
+        SignedJWT responseJwt = SignedJWT.parse(rawResponse);
+        assert responseJwt.verify(new ECDSAVerifier(ECKey.parse(publicKey)));
+        return responseJwt.getJWTClaimsSet();
     }
 }

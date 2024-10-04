@@ -2,7 +2,6 @@ package ch.admin.bit.eid.oid4vp.controller;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
-import ch.admin.bit.eid.oid4vp.model.dto.RequestObject;
 import ch.admin.bit.eid.oid4vp.model.dto.VerificationPresentationRequest;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
@@ -18,12 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -50,9 +44,8 @@ public class VerificationController {
 
 
     @GetMapping("/request-object/{request_id}")
-    public RequestObject getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
-        // TODO EID-1777 Use the signed request object jwt instead of an object
-        return requestObjectService.assembleRequestObject(requestId);
+    public String getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
+        return requestObjectService.assembleRequestObjectJwt(requestId);
     }
 
     @PostMapping(value = "/request-object/{request_id}/response-data",

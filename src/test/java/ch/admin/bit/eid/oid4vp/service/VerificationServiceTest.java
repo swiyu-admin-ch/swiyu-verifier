@@ -9,6 +9,7 @@ import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
 import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import com.nimbusds.jose.crypto.ECDSASigner;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,6 +42,9 @@ class VerificationServiceTest {
 
     @MockBean
     private VerificationManagementRepository verificationManagementRepository;
+
+    @MockBean
+    private ECDSASigner ecdsaSigner;
 
     @Test
     void contextLoads() {

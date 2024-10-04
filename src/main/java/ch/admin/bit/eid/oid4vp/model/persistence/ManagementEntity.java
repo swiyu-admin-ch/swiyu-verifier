@@ -3,11 +3,8 @@ package ch.admin.bit.eid.oid4vp.model.persistence;
 import ch.admin.bit.eid.oid4vp.model.converter.PresentationDefinitionConverter;
 import ch.admin.bit.eid.oid4vp.model.converter.ResponseDataConverter;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,6 +27,9 @@ public class ManagementEntity {
     private String requestNonce;
 
     private VerificationStatusEnum state;
+
+    @NotNull
+    private Boolean jwtSecuredAuthorizationRequest;
 
     @Column(name = "requested_presentation", columnDefinition = "jsonb")
     @Convert(converter = PresentationDefinitionConverter.class)

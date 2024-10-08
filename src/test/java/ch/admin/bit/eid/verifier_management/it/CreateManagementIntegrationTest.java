@@ -29,22 +29,28 @@ class CreateManagementIntegrationTest {
     void testCreateOffer_thenSuccess() throws Exception {
         String test = """
                 {
-                    "id":"string",
-                    "name":"string",
-                    "purpose":"string",
-                    "input_descriptors":[{
-                        "id":"string",
-                        "name":"string",
-                        "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                        "constraints":{
-                            "fields":[{
-                                "path":["$.teest"],
-                                "id":"string",
-                                "name":"string",
-                                "purpose":"string"
-                            }]
-                        }
-                    }]
+                    "presentation_definition": {
+                        "id": "string",
+                        "name": "string",
+                        "purpose": "string",
+                        "input_descriptors": [{
+                            "id": "string",
+                            "name": "string",
+                            "format": {
+                                "ldp_vp": {
+                                    "proof_type": ["BBS-2023"]
+                                }
+                            },
+                            "constraints": {
+                                "fields": [{
+                                    "path": ["$.teest"],
+                                    "id": "string",
+                                    "name": "string",
+                                    "purpose": "string"
+                                }]
+                            }
+                        }]
+                    }
                 }
                 """;
 
@@ -53,7 +59,7 @@ class CreateManagementIntegrationTest {
         String fieldsPath = inputDescriptor0JsonPath + ".constraints.fields[0]";
         String proofPath = inputDescriptor0JsonPath + ".format.ldp_vp.proof_type[0]";
 
-        String reqDescriptor0JsonPath = "$.input_descriptors[0]";
+        String reqDescriptor0JsonPath = "$.presentation_definition.input_descriptors[0]";
         String reqField0JsonPath = reqDescriptor0JsonPath + ".constraints.fields[0]";
         String reqProofJsonPath = reqDescriptor0JsonPath + ".format.ldp_vp.proof_type[0]";
 
@@ -103,21 +109,28 @@ class CreateManagementIntegrationTest {
     void testCreateOfferValidation_noInputDescriptor_thenException() throws Exception {
         String noInputDescriptorId = """
                 {
-                    "id":"string",
-                    "name":"string",
-                    "purpose":"string",
-                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                    "input_descriptors":[{
-                        "name":"string",
-                        "constraints":{
-                            "fields":[{
-                                "path":["$.teest"],
-                                "id":"string",
-                                "name":"string",
-                                "purpose":"string"
-                            }]
-                        }
-                    }]
+                    "jwt_secured_authorization_request": true,
+                    "presentation_definition": {
+                        "id": "string",
+                        "name": "string",
+                        "purpose": "string",
+                        "format": {
+                            "ldp_vp": {
+                                "proof_type": ["BBS-2023"]
+                            }
+                        },
+                        "input_descriptors": [{
+                            "name": "string",
+                            "constraints": {
+                                "fields": [{
+                                    "path": ["$.teest"],
+                                    "id": "string",
+                                    "name": "string",
+                                    "purpose": "string"
+                                }]
+                            }
+                        }]
+                    }
                 }
                 """;
         mvc.perform(post("/verifications")
@@ -133,14 +146,21 @@ class CreateManagementIntegrationTest {
     void testCreateOfferValidation_noConstraints_thenException() throws Exception {
         String noConstraints = """
                 {
-                    "id":"string",
-                    "name":"string",
-                    "purpose":"string",
-                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                    "input_descriptors":[{
-                        "id":"string",
-                        "name":"string"
-                    }]
+                    "jwt_secured_authorization_request": true,
+                    "presentation_definition": {
+                        "id": "string",
+                        "name": "string",
+                        "purpose": "string",
+                        "format": {
+                            "ldp_vp": {
+                                "proof_type": ["BBS-2023"]
+                            }
+                        },
+                        "input_descriptors": [{
+                            "id": "string",
+                            "name": "string"
+                        }]
+                    }
                 }
                 """;
         mvc.perform(post("/verifications")
@@ -157,16 +177,22 @@ class CreateManagementIntegrationTest {
 
         String emptyConstraints = """
                 {
-                    "id":"string",
-                    "name":"string",
-                    "purpose":"string",
-                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                    "input_descriptors":[{
-                        "id":"string",
-                        "name":"string",
-                        "constraints":{}
+                    "jwt_secured_authorization_request": true,
+                    "presentation_definition": {
+                        "id": "string",
+                        "name": "string",
+                        "purpose": "string",
+                        "format": {
+                            "ldp_vp": {
+                                "proof_type": ["BBS-2023"]
+                            }
+                        },
+                        "input_descriptors": [{
+                            "id": "string",
+                            "name": "string",
+                            "constraints": {}
                         }]
-                    }]
+                    }
                 }
                 """;
         mvc.perform(post("/verifications")
@@ -180,21 +206,32 @@ class CreateManagementIntegrationTest {
     void testCreateOfferValidation_noFieldPath_thenException() throws Exception {
         String noFieldPath = """
                 {
-                    "id":"string",
-                    "name":"string",
-                    "purpose":"string",
-                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                    "input_descriptors":[{
-                        "name":"string",
-                        "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                        "constraints":{
-                            "fields":[{
-                                "id":"string",
-                                "name":"string",
-                                "purpose":"string"
-                            }]
-                        }
-                    }]
+                     "jwt_secured_authorization_request": true,
+                     "presentation_definition": {
+                         "id": "string",
+                         "name": "string",
+                         "purpose": "string",
+                         "format": {
+                             "ldp_vp": {
+                                 "proof_type": ["BBS-2023"]
+                             }
+                         },
+                         "input_descriptors": [{
+                             "name": "string",
+                             "format": {
+                                 "ldp_vp": {
+                                     "proof_type": ["BBS-2023"]
+                                 }
+                             },
+                             "constraints": {
+                                 "fields": [{
+                                     "id": "string",
+                                     "name": "string",
+                                     "purpose": "string"
+                                 }]
+                             }
+                         }]
+                     }
                 }
                 """;
         mvc.perform(post("/verifications")
@@ -210,17 +247,28 @@ class CreateManagementIntegrationTest {
     void testCreateOfferValidation_emptyFieldPath_thenException() throws Exception {
         String emptyFieldPath = """
                 {
-                    "id":"string",
-                    "name":"string",
-                    "purpose":"string",
-                    "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                    "input_descriptors":[{
-                        "name":"string",
-                        "format": {"ldp_vp": {"proof_type":["BBS-2023"]}},
-                        "constraints":{
-                            "fields":[]
-                        }
-                    }]
+                    "jwt_secured_authorization_request": true,
+                    "presentation_definition": {
+                        "id": "string",
+                        "name": "string",
+                        "purpose": "string",
+                        "format": {
+                            "ldp_vp": {
+                                "proof_type": ["BBS-2023"]
+                            }
+                        },
+                        "input_descriptors": [{
+                            "name": "string",
+                            "format": {
+                                "ldp_vp": {
+                                    "proof_type": ["BBS-2023"]
+                                }
+                            },
+                            "constraints": {
+                                "fields": []
+                            }
+                        }]
+                    }
                 }
                 """;
         mvc.perform(post("/verifications")
@@ -236,14 +284,17 @@ class CreateManagementIntegrationTest {
     void testCreateMinimalExample_thenSuccess() throws Exception {
         String emptyFieldPath = """
                 {
-                    "input_descriptors":[{
-                        "id":"string",
-                        "constraints":{
-                            "fields":[{
-                                "path":["string"]
-                            }]
-                        }
-                    }]
+                    "jwt_secured_authorization_request": true,
+                    "presentation_definition": {
+                        "input_descriptors": [{
+                            "id": "string",
+                            "constraints": {
+                                "fields": [{
+                                    "path": ["string"]
+                                }]
+                            }
+                        }]
+                    }
                 }
                 """;
 
@@ -267,26 +318,29 @@ class CreateManagementIntegrationTest {
     void testCreateCompleteExample_thenSuccess() throws Exception {
         String test = """
                 {
-                    "id":"string",
-                    "name":"string",
-                    "purpose":"string",
-                    "format": {
-                        "ldp_vp": {
-                            "proof_type":["BBS-2023"]
-                        }
-                    },
-                    "input_descriptors":[{
-                        "id":"inputDescriptors_id",
-                        "name":"inputDescriptors_name",
-                        "constraints":{
-                            "fields":[{
-                                "path":["$.constraints_path_1","$.constraints_path_2"],
-                                "id":"field_id",
-                                "name":"field_name",
-                                "purpose":"field_purpose"
-                            }]
-                        }
-                    }]
+                    "jwt_secured_authorization_request":true,
+                    "presentation_definition":{
+                        "id":"string",
+                        "name":"string",
+                        "purpose":"string",
+                        "format": {
+                            "ldp_vp": {
+                                "proof_type":["BBS-2023"]
+                            }
+                        },
+                        "input_descriptors":[{
+                            "id":"inputDescriptors_id",
+                            "name":"inputDescriptors_name",
+                            "constraints":{
+                                "fields":[{
+                                    "path":["$.constraints_path_1","$.constraints_path_2"],
+                                    "id":"field_id",
+                                    "name":"field_name",
+                                    "purpose":"field_purpose"
+                                }]
+                            }
+                        }]
+                    }
                 }
                 """;
         mvc.perform(post("/verifications")

@@ -3,18 +3,14 @@ package ch.admin.bit.eid.verifier_management.models;
 import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.verifier_management.models.converters.PresentationDefinitionConverter;
 import ch.admin.bit.eid.verifier_management.models.converters.ResponseDataConverter;
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnTransformer;
 
-import java.io.Serializable;
 import java.util.UUID;
 
 @Entity
@@ -31,6 +27,9 @@ public class Management {
     private String requestNonce;
 
     private VerificationStatusEnum state;
+
+    @NotNull
+    private Boolean jwtSecuredAuthorizationRequest;
 
     @Column(name = "requested_presentation", columnDefinition = "jsonb")
     @Convert(converter = PresentationDefinitionConverter.class)

@@ -9,7 +9,7 @@ import ch.admin.bit.eid.verifier_management.exceptions.VerificationNotFoundExcep
 import ch.admin.bit.eid.verifier_management.mappers.PresentationDefinitionMapper;
 import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
-import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
+import ch.admin.bit.eid.verifier_management.models.dto.CreateVerificationManagementDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,13 +49,17 @@ public class ManagementService {
         return management;
     }
 
-    public Management createVerificationManagement(PresentationDefinitionDto requestDto) {
+    public Management createVerificationManagement(CreateVerificationManagementDto requestDto) {
 
         if (requestDto == null) {
+            throw new IllegalArgumentException("CreateVerificationManagement is null");
+        }
+
+        if (requestDto.getPresentationDefinition() == null) {
             throw new IllegalArgumentException("PresentationDefinition is null");
         }
 
-        PresentationDefinition presentationDefinition = PresentationDefinitionMapper.map(requestDto);
+        PresentationDefinition presentationDefinition = PresentationDefinitionMapper.map(requestDto.getPresentationDefinition());
 
         Management management = repository.save(Management.builder()
                 .id(UUID.randomUUID())
@@ -63,6 +67,8 @@ public class ManagementService {
                 .requestNonce(createNonce())
                 .expirationInSeconds(applicationProperties.getVerificationTTL())
                 .requestedPresentation(presentationDefinition)
+                // if not set, default for jar is true (signed jwt)
+                .jwtSecuredAuthorizationRequest(requestDto.getJwtSecuredAuthorizationRequest() != null ? requestDto.getJwtSecuredAuthorizationRequest() : true)
                 .build());
 
         log.info(createLoggingMessage("Requesting verification",

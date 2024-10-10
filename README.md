@@ -70,6 +70,16 @@ After the start api definitions can be found [here](http://localhost:8080/swagge
 | POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                    | string           | none    |
 | POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                                                   | string           | none    |
 | POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                            | string           | none    |
+| SIGNING_KEY       | Private Key in PEM format used to sign request objects sent to the holder                                                          | string           | none    |
+
+
+### Kubernetes Vault Keys
+| Variable     | Description                                                                                      |
+|--------------|--------------------------------------------------------------------------------------------------|
+| secret.db.username | Username to connect to the Issuer Agent Database shared with the issuer agent managment service  |
+| secret.db.password | Username to connect to the Issuer Agent Database                                                 |
+| secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable | 
+
 
 ## Contribution
 

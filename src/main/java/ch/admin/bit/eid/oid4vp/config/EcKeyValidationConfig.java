@@ -16,8 +16,13 @@ public class EcKeyValidationConfig {
 
     @PostConstruct
     public void validateEcKey() {
+        var signingKey = applicationProperties.getSigningKey();
+        if (signingKey == null) {
+            log.warn("No signing key configured");
+            return;
+        }
         try {
-            ECKey.parseFromPEMEncodedObjects(applicationProperties.getSigningKey()).toECKey();
+            ECKey.parseFromPEMEncodedObjects(signingKey).toECKey();
         } catch (JOSEException e) {
             // we want to inform the user that parsing of signing key failed (at startup).
             // but the app must not crash, because it is possible that it is on purpose, and he returns an unsigned request object

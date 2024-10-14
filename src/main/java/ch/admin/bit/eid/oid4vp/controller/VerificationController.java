@@ -10,6 +10,7 @@ import ch.admin.bit.eid.oid4vp.model.persistence.ResponseData;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.bit.eid.oid4vp.service.RequestObjectService;
 import ch.admin.bit.eid.oid4vp.service.VerificationService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.AllArgsConstructor;
@@ -44,8 +45,9 @@ public class VerificationController {
 
 
     @GetMapping("/request-object/{request_id}")
-    public String getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
-        return requestObjectService.assembleRequestObjectJwt(requestId);
+    @Operation(summary = "Get Request Object", description = "Can return a RequestObject as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management")
+    public Object getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
+        return requestObjectService.assembleRequestObject(requestId);
     }
 
     @PostMapping(value = "/request-object/{request_id}/response-data",

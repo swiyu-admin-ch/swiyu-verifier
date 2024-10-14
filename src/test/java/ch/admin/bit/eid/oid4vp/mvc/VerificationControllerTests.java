@@ -48,6 +48,8 @@ import java.util.*;
 import static ch.admin.bit.eid.oid4vp.mock.BBSCredentialMock.ExampleJson;
 import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getMultiplePresentationSubmissionString;
 import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getPresentationSubmissionString;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -87,8 +89,13 @@ class VerificationControllerTests {
         mock.perform(get(String.format("/request-object/%s", requestId)))
                 .andExpect(status().isOk())
                 .andDo(result -> {
-                    var claims = validateSignatureAndGetJWTClaimsSet(result.getResponse());
+                    // checking signature
+                    var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
+                    assert responseJwt.getHeader().getAlgorithm().getName().equals("ES256");
+                    assert responseJwt.verify(new ECDSAVerifier(ECKey.parse(publicKey)));
 
+                    // checking claims
+                    var claims = responseJwt.getJWTClaimsSet();
                     assert claims.getStringClaim("client_id").equals(applicationProperties.getClientId());
                     assert claims.getStringClaim("client_id_scheme").equals(applicationProperties.getClientIdScheme());
                     assert claims.getStringClaim("response_type").equals("vp_token");
@@ -124,6 +131,35 @@ class VerificationControllerTests {
     }
 
     @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt_no_signing.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void shouldGetUnsignedRequestObject() throws Exception {
+        mock.perform(get(String.format("/request-object/%s", requestId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id_scheme").value(applicationProperties.getClientIdScheme()))
+                .andExpect(jsonPath("$.response_type").value("vp_token"))
+                .andExpect(jsonPath("$.response_mode").value("direct_post"))
+                .andExpect(jsonPath("$.nonce").isNotEmpty())
+                .andExpect(jsonPath("$.response_uri").value(String.format("%s/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId)))
+                .andExpect(jsonPath("$.presentation_definition.id").isNotEmpty())
+                .andExpect(jsonPath("$.presentation_definition.name").value("Presentation Definition Name"))
+                .andExpect(jsonPath("$.presentation_definition.purpose").value("Presentation Definition Purpose"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].id").isNotEmpty())
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name").value("Test Descriptor Name"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].purpose").value("Input Descriptor Purpose"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.ldp_vp").isNotEmpty())
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.ldp_vp.proof_type").value("BBS2023"))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields").isArray())
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path").isArray())
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[0]").value("$.credentialSubject.hello"))
+                .andExpect(jsonPath("client_metadata.client_name").value(applicationProperties.getClientName()))
+                .andExpect(jsonPath("client_metadata.logo_uri").value(applicationProperties.getLogoUri()))
+
+                .andExpect(content().string(not(containsString("null")))).andReturn();
+    }
+
+    @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldAcceptRefusal() throws Exception {
@@ -155,7 +191,6 @@ class VerificationControllerTests {
 
         JWTClaimsSet responseContent = validateSignatureAndGetJWTClaimsSet(response.getResponse());
         String nonce = responseContent.getStringClaim("nonce");
-
         String vpToken = emulator.createVerifiablePresentationUrlEncodedHolderBinding(credential, List.of("/credentialSubject/hello"), nonce);
         PresentationSubmission presentationSubmission = emulator.getCredentialSubmission();
 

@@ -14,6 +14,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
@@ -30,11 +31,10 @@ import java.util.UUID;
 public class RequestObjectService {
     private final ApplicationProperties applicationProperties;
     private final VerificationManagementRepository managementRepository;
-    private final ECDSASigner signer;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
-    public String assembleRequestObjectJwt(UUID presentationDefinitionId) {
+    public Object assembleRequestObject(UUID presentationDefinitionId) {
 
         log.info("Prepare request object for mgmt-id {}", presentationDefinitionId);
 
@@ -61,13 +61,16 @@ public class RequestObjectService {
                         presentationDefinitionId))
                 .build();
 
-        SignedJWT signedJwt = new SignedJWT(
-                new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(applicationProperties.getSigningKey()).build(),
-                createJWTClaimsSet(requestObject)
-        );
+        // if signing is not desired return request object
+        if (!managementEntity.getJwtSecuredAuthorizationRequest()) {
+            return requestObject;
+        }
+
+        var jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(applicationProperties.getSigningKey()).build();
+        var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(requestObject));
 
         try {
-            signedJwt.sign(signer);
+            signedJwt.sign(new ECDSASigner(ECKey.parseFromPEMEncodedObjects(applicationProperties.getSigningKey()).toECKey()));
         } catch (JOSEException e) {
             throw new IllegalStateException("Error signing JWT", e);
         }

@@ -92,6 +92,7 @@ class VerificationControllerTests {
                     // checking signature
                     var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
                     assert responseJwt.getHeader().getAlgorithm().getName().equals("ES256");
+                    assert responseJwt.getHeader().getKeyID().equals(applicationProperties.getSigningKeyVerificationMethod());
                     assert responseJwt.verify(new ECDSAVerifier(ECKey.parse(publicKey)));
 
                     // checking claims

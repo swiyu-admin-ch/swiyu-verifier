@@ -24,8 +24,10 @@ public class ApplicationProperties {
     @NotNull
     private String clientName;
 
+    @NotNull
     private String signingKey;
 
+    @NotNull
     private String signingKeyVerificationMethod;
 
     private String logoUri;

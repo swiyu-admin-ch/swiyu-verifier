@@ -23,17 +23,19 @@ scale every service independently of the management service.
 
 ## Overview
 
-```mermaid
-flowchart TD
-    issint[\Verifier Business System\]
-    isam(Verifier Management Service)
-    isdb[(Postgres)]
-    isoi(Verifier Validator Service)
-    wallet[Wallet]
-    issint ---> isam
-    isam ---> isdb
-    isoi ---> isdb
-    wallet ---> isoi
+```plantuml
+@startuml
+    [Verifier Business System] as issint
+    (Verifier Management Service) as isam
+    [(Postgres)] as isdb
+    (Verifier Validator Service) as isoi
+    [Wallet] as wallet
+
+    issint --> isam
+    isam --> isdb
+    isoi --> isdb
+    wallet --> isoi
+@enduml
 ```
 
 For a general overview over all components, please check [Overview](https://TODO-add-correct-link)
@@ -72,14 +74,13 @@ After the start api definitions can be found [here](http://localhost:8080/swagge
 | POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                            | string           | none    |
 | SIGNING_KEY       | Private Key in PEM format used to sign request objects sent to the holder                                                          | string           | none    |
 
-
 ### Kubernetes Vault Keys
-| Variable     | Description                                                                                      |
-|--------------|--------------------------------------------------------------------------------------------------|
+
+| Variable           | Description                                                                                      |
+|--------------------|--------------------------------------------------------------------------------------------------|
 | secret.db.username | Username to connect to the Issuer Agent Database shared with the issuer agent managment service  |
 | secret.db.password | Username to connect to the Issuer Agent Database                                                 |
 | secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable | 
-
 
 ## Contribution
 

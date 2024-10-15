@@ -82,7 +82,7 @@ public abstract class StatusListReference {
     protected Map<String, Object> getStatusListVC() throws ParseException {
         var uri = getStatusListRegistryUri();
         try {
-            var vc = getStatusListResolverAdapter().resolveStatusList(uri);
+            var vc = getStatusListResolverAdapter().resolveStatusList(uri, presentationManagementEntity);
             var signedVC = SignedJWT.parse(vc);
             verifyJWT(signedVC);
             return signedVC.getJWTClaimsSet().getClaims();

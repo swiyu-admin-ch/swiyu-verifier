@@ -50,6 +50,8 @@ import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getMultiplePresen
 import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getPresentationSubmissionString;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -452,7 +454,7 @@ class VerificationControllerTests {
         Integer statusListIndex = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenAnswer(invocation -> {
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any())).thenAnswer(invocation -> {
             var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
             return statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST);
         });
@@ -488,7 +490,7 @@ class VerificationControllerTests {
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenAnswer(invocation -> {
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any())).thenAnswer(invocation -> {
             var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
             return statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST);
         });

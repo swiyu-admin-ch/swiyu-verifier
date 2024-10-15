@@ -21,6 +21,7 @@ application:
   client_name: "${VERIFIER_NAME}"
   logo_uri: "${VERIFIER_LOGO}"
   signing_key: "${secret.signing_key:${SIGNING_KEY}}"
+  signing-key-verification-method: "${DID_VERIFICATION_METHOD}"
   key:
     bbs:
       seed: "${secret.key.bbs.seed:${BBS_KEY_SEED}}"

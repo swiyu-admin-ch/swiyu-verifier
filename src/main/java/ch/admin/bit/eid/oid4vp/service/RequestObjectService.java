@@ -66,7 +66,7 @@ public class RequestObjectService {
             return requestObject;
         }
 
-        var jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(applicationProperties.getSigningKey()).build();
+        var jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(applicationProperties.getSigningKeyVerificationMethod()).build();
         var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(requestObject));
 
         try {

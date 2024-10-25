@@ -53,7 +53,6 @@ public class TokenStatusListReference extends StatusListReference {
             TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(statusListBits, zippedStatusList);
             int statusListIndex = Integer.parseInt(getStatusListReferenceClaims().get("idx").toString());
             TokenStatusListBit credentialStatus = TokenStatusListBit.createStatus(statusList.getStatus(statusListIndex));
-
             switch (credentialStatus) {
                 case TokenStatusListBit.VALID:
                     break; // All Good!
@@ -62,13 +61,14 @@ public class TokenStatusListReference extends StatusListReference {
                 case TokenStatusListBit.REVOKED:
                     throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_REVOKED, "Credential has been Revoked!", getPresentationManagementEntity());
                 default:
-                    // This occurs if the issuer defined more status bits than we are equipped to handle
                     throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_REVOKED, "Unexpected VC Status!", getPresentationManagementEntity());
             }
         } catch (ParseException e) {
             throw statusListError("Failed to parse the Status List VC from the status registry!", e);
         } catch (IOException e) {
             throw statusListError("Failed to parse the Status List bits!", e);
+        } catch (IllegalArgumentException e) {
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_REVOKED, "Unexpected VC Status!", getPresentationManagementEntity());
         }
 
     }

@@ -12,7 +12,7 @@ import java.io.Serializable;
 import java.util.List;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @AllArgsConstructor
 @NoArgsConstructor

@@ -5,10 +5,15 @@ import ch.admin.bit.eid.verifier_management.models.validations.NullOrFormat;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, Map<String, FormatAlgorithmDto>> {
+
+    private static boolean isAlgListNotEmptyOrNull(List<String> list) {
+        return list != null && !list.isEmpty();
+    }
+
     @Override
     public boolean isValid(Map<String, FormatAlgorithmDto> format, ConstraintValidatorContext constraintValidatorContext) {
         if (format == null) {
@@ -19,20 +24,15 @@ public class NullOrFormatValidator implements ConstraintValidator<NullOrFormat, 
             return false;
         }
 
-        return format.entrySet().stream().allMatch(entry -> isValidLDPFormat(entry) || isValidSDJWTFormat(entry));
-    }
-
-    private boolean isValidLDPFormat(Map.Entry<String, FormatAlgorithmDto> entry) {
-        final Set<String> acceptedLDPFormats = Set.of("ldp_vp", "ldp_vc", "ldp");
-
-        return acceptedLDPFormats.contains(entry.getKey()) && entry.getValue().getProofType() != null
-                && !entry.getValue().getProofType().isEmpty();
+        return format.entrySet().stream().allMatch(this::isValidSDJWTFormat);
     }
 
     private boolean isValidSDJWTFormat(Map.Entry<String, FormatAlgorithmDto> entry) {
-        final Set<String> acceptedSDJWTSFormats = Set.of("jwt_vp", "jwt_vc");
+        final String acceptedSDJWTSFormat = "vc+sd-jwt";
 
-        return acceptedSDJWTSFormats.contains(entry.getKey()) && entry.getValue().getAlg() != null
-                && !entry.getValue().getAlg().isEmpty();
+        // TODO check if supported & secure algs
+        return acceptedSDJWTSFormat.equals(entry.getKey())
+                && isAlgListNotEmptyOrNull(entry.getValue().getAlg())
+                && isAlgListNotEmptyOrNull(entry.getValue().getKeyBindingAlg());
     }
 }

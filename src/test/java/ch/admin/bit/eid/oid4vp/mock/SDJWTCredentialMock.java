@@ -67,7 +67,7 @@ public class SDJWTCredentialMock {
 
         Descriptor descriptor = Descriptor.builder()
                 .path(path)
-                .format("jwt_vc")
+                .format("vc+sd-jwt")
                 .build();
 
         PresentationSubmission submission = PresentationSubmission.builder()
@@ -84,7 +84,7 @@ public class SDJWTCredentialMock {
         Descriptor descriptorSDJWT = Descriptor.builder()
                 .id("multipass")
                 .path("$[1]")
-                .format("jwt_vc")
+                .format("vc+sd-jwt")
                 .build();
 
         Descriptor descriptor = Descriptor.builder()

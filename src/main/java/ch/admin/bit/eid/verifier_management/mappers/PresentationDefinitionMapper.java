@@ -4,8 +4,6 @@ import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
 import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
 import lombok.experimental.UtilityClass;
 
-import java.util.UUID;
-
 @UtilityClass
 public class PresentationDefinitionMapper {
 
@@ -16,7 +14,8 @@ public class PresentationDefinitionMapper {
         }
 
         return PresentationDefinition.builder()
-                .id(UUID.randomUUID().toString())
+                .id(dto.getId())
+                .name(dto.getName())
                 .inputDescriptors(dto.getInputDescriptors())
                 .format(dto.getFormat())
                 .purpose(dto.getPurpose())

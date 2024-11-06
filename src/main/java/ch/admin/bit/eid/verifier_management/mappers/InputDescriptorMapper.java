@@ -38,6 +38,7 @@ public class InputDescriptorMapper {
                 .name(inputDescriptor.getName())
                 .purpose(inputDescriptor.getPurpose())
                 .constraints(inputDescriptor.getConstraints())
+                .format(inputDescriptor.getFormat())
                 .build();
     }
 }

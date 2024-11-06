@@ -17,8 +17,6 @@ fi
 java -Duser.timezone=Europe/Zurich \
 -Dfile.encoding=UTF-8 \
 -Dspring.profiles.active=${STAGE} \
--Djavax.net.ssl.trustStore=/usr/local/openjdk/lib/security/cacerts \
--Djavax.net.ssl.trustStorePassword=changeit \
 -Dhttp.proxyHost=${HTTP_PROXY} \
 -Dhttp.proxyPort=8080 \
 -Dhttps.proxyHost=${HTTPS_PROXY} \

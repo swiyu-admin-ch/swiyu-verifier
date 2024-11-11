@@ -1,6 +1,7 @@
 package ch.admin.bit.eid.oid4vp.mock;
 
 import ch.admin.bit.eid.oid4vp.fixtures.KeyFixtures;
+import ch.admin.bit.eid.oid4vp.model.SDJWTCredential;
 import ch.admin.bit.eid.oid4vp.model.dto.Descriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import com.authlete.sd.Disclosure;
@@ -67,7 +68,7 @@ public class SDJWTCredentialMock {
 
         Descriptor descriptor = Descriptor.builder()
                 .path(path)
-                .format("vc+sd-jwt")
+                .format(SDJWTCredential.CREDENTIAL_FORMAT)
                 .build();
 
         PresentationSubmission submission = PresentationSubmission.builder()
@@ -84,7 +85,7 @@ public class SDJWTCredentialMock {
         Descriptor descriptorSDJWT = Descriptor.builder()
                 .id("multipass")
                 .path("$[1]")
-                .format("vc+sd-jwt")
+                .format(SDJWTCredential.CREDENTIAL_FORMAT)
                 .build();
 
         Descriptor descriptor = Descriptor.builder()

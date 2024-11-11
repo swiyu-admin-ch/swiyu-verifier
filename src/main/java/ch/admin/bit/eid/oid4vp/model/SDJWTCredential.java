@@ -44,8 +44,9 @@ import java.util.Objects;
 @Slf4j
 public class SDJWTCredential extends CredentialVerifier {
 
+    public static final String CREDENTIAL_FORMAT = "vc+sd-jwt";
+
     private final List<String> supportedAlgorithms = List.of("ES256");
-    private final String credentialFormat = "vc+sd-jwt";
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
 
     public SDJWTCredential(final String vpToken,
@@ -127,9 +128,9 @@ public class SDJWTCredential extends CredentialVerifier {
         // only alg="ES256" with type="vc+sd-jwt")
         var header = claims.getHeader();
 
-        var requestedAlg = getRequestedFormat(credentialFormat).getAlg();
+        var requestedAlg = getRequestedFormat(CREDENTIAL_FORMAT).getAlg();
         if (!supportedAlgorithms.contains(header.getAlgorithm())
-                || !Objects.equals(header.getType(), credentialFormat)) {
+                || !Objects.equals(header.getType(), CREDENTIAL_FORMAT)) {
             throw VerificationException.credentialError(ResponseErrorCodeEnum.UNSUPPORTED_FORMAT,
                     "Unsupported algorithm: " + header.getAlgorithm(), managementEntity);
         }
@@ -262,7 +263,7 @@ public class SDJWTCredential extends CredentialVerifier {
             }
 
             // Check if kb algorithm matches the required format
-            var requestedKeyBindingAlg = getRequestedFormat(credentialFormat).getKeyBindingAlg();
+            var requestedKeyBindingAlg = getRequestedFormat(CREDENTIAL_FORMAT).getKeyBindingAlg();
             if (!requestedKeyBindingAlg.contains(keyBindingJWT.getHeader().getAlgorithm().getName())) {
                 throw VerificationException.credentialError(ResponseErrorCodeEnum.HOLDER_BINDING_MISMATCH,
                         "Holder binding algorithm must be in %s".formatted(requestedKeyBindingAlg), managementEntity);

@@ -11,7 +11,6 @@ ADD ${JAR_FILE} /app/app.jar
 RUN set -uxe && \
     chmod g=u /app/entrypoint.sh &&\
     chmod +x /app/entrypoint.sh
-# ENV spring_profiles_active=docker
 
 WORKDIR /app
 

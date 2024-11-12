@@ -229,8 +229,7 @@ class VerificationControllerTests {
         Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
         assert responseBody.contains(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED.toString());
     }
-
-
+    
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
@@ -550,6 +549,65 @@ class VerificationControllerTests {
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_different_algs.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void wrongAlgorithm_thenError() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+
+        var responseBody = response.getResponse().getContentAsString();
+        Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
+        assert responseBody.contains(VerificationErrorEnum.INVALID_REQUEST.toString());
+        assert responseBody.contains("Invalid algorithm");
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_different_kb_algs.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void wrongKeyBindingAlgorithm_thenError() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+        mockDidResolverResponse(emulator);
+
+        var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+
+        var responseBody = response.getResponse().getContentAsString();
+        Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
+        assert responseBody.contains(VerificationErrorEnum.INVALID_REQUEST.toString());
+        assert responseBody.contains("holder_binding_mismatch");
     }
 
     @Test

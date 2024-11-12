@@ -31,7 +31,7 @@ public class PresentationFormatFactory {
         return switch (format) {
             case "ldp_vp", "ldp_vc" ->
                     new LdpCredential(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository, statusListReferenceFactory, bbsKeyProperties);
-            case "jwt_vp_json", "jwt_vc" ->
+            case SDJWTCredential.CREDENTIAL_FORMAT ->
                     new SDJWTCredential(credentialToBeProcessed, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader, statusListReferenceFactory);
             default -> throw new IllegalArgumentException("Unknown format: " + format);
         };

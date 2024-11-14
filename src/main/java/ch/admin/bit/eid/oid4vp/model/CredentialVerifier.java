@@ -1,10 +1,12 @@
 package ch.admin.bit.eid.oid4vp.model;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
+import ch.admin.bit.eid.oid4vp.model.persistence.PresentationDefinition;
 import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReference;
 import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
@@ -15,8 +17,11 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.nonNull;
 
 @Getter
 @Slf4j
@@ -67,6 +72,23 @@ public abstract class CredentialVerifier {
             pathList.forEach(ctx::read);
         } catch (PathNotFoundException e) {
             throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
+        }
+    }
+
+    protected FormatAlgorithm getRequestedFormat(String credentialFormat) {
+
+        PresentationDefinition presentationDefinition = this.managementEntity.getRequestedPresentation();
+        Map<String, FormatAlgorithm> formats = new HashMap<>();
+
+        addFormatsToMap(presentationDefinition.getFormat(), formats);
+        presentationDefinition.getInputDescriptors().forEach(descriptor -> addFormatsToMap(descriptor.getFormat(), formats));
+
+        return formats.get(credentialFormat);
+    }
+
+    private void addFormatsToMap(Map<String, FormatAlgorithm> inputFormats, Map<String, FormatAlgorithm> outputFormats) {
+        if (nonNull(inputFormats) && !inputFormats.isEmpty()) {
+            outputFormats.putAll(inputFormats);
         }
     }
 

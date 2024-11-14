@@ -13,12 +13,11 @@ public enum TokenStatusListBit {
     private final int bitNumber;
 
     public static TokenStatusListBit createStatus(int statusBitNumber) {
-        if (statusBitNumber == VALID.bitNumber) {
-            return VALID;
+        for (TokenStatusListBit status : TokenStatusListBit.class.getEnumConstants()) {
+            if (status.getBitNumber() == statusBitNumber) {
+                return status;
+            }
         }
-        if (statusBitNumber % 2 == REVOKED.bitNumber) {
-            return REVOKED;
-        }
-        return SUSPENDED;
+        throw new IllegalArgumentException("Invalid status number " + statusBitNumber);
     }
 }

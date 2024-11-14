@@ -50,6 +50,8 @@ import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getMultiplePresen
 import static ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock.getPresentationSubmissionString;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -227,8 +229,7 @@ class VerificationControllerTests {
         Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
         assert responseBody.contains(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED.toString());
     }
-
-
+    
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
@@ -452,7 +453,7 @@ class VerificationControllerTests {
         Integer statusListIndex = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenAnswer(invocation -> {
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any())).thenAnswer(invocation -> {
             var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
             return statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST);
         });
@@ -488,7 +489,7 @@ class VerificationControllerTests {
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenAnswer(invocation -> {
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any())).thenAnswer(invocation -> {
             var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
             return statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST);
         });
@@ -548,6 +549,65 @@ class VerificationControllerTests {
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_different_algs.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void wrongAlgorithm_thenError() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+
+        var responseBody = response.getResponse().getContentAsString();
+        Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
+        assert responseBody.contains(VerificationErrorEnum.INVALID_REQUEST.toString());
+        assert responseBody.contains("Invalid algorithm");
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_different_kb_algs.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void wrongKeyBindingAlgorithm_thenError() throws Exception {
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+        mockDidResolverResponse(emulator);
+
+        var response = mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.FAILED,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+
+        var responseBody = response.getResponse().getContentAsString();
+        Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
+        assert responseBody.contains(VerificationErrorEnum.INVALID_REQUEST.toString());
+        assert responseBody.contains("holder_binding_mismatch");
     }
 
     @Test

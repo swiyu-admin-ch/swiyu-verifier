@@ -3,7 +3,7 @@ FROM eclipse-temurin:21
 RUN mkdir -p /app
 WORKDIR /app
 
-COPY scripts/entrypoint-local.sh /app/entrypoint.sh
+COPY scripts/entrypoint.sh /app/entrypoint.sh
 
 RUN chmod 766 $JAVA_HOME/lib/security/cacerts
 

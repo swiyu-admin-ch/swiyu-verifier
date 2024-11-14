@@ -4,6 +4,7 @@ import ch.admin.bit.eid.oid4vp.exception.LoadingPublicKeyOfIssuerFailedException
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.eid.didresolver.DidResolveException;
 import ch.admin.eid.didtoolbox.Jwk;
+import ch.admin.eid.didtoolbox.TrustDidWebException;
 import ch.admin.eid.didtoolbox.VerificationMethod;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -90,7 +91,7 @@ public class IssuerPublicKeyLoader {
         try {
             VerificationMethod method = loadVerificationMethod(issuer, kid);
             return parsePublicKey(method);
-        } catch (DidResolveException | RuntimeException e) {
+        } catch (DidResolveException | TrustDidWebException | RuntimeException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
         }
     }
@@ -106,7 +107,7 @@ public class IssuerPublicKeyLoader {
      * @throws DidResolveException   if the DID document could not be resolved
      * @throws IllegalStateException if the DID document does not contain any matching verification method for the given issuerKeyId
      */
-    private VerificationMethod loadVerificationMethod(String issuerDidTdw, String issuerKeyId) throws DidResolveException {
+    private VerificationMethod loadVerificationMethod(String issuerDidTdw, String issuerKeyId) throws DidResolveException, TrustDidWebException {
         try (var didDoc = didResolverAdapter.resolveDid(issuerDidTdw)) {
             // Step 1: get all verification methods within the document
             var verificationMethods = didDoc.getVerificationMethod();

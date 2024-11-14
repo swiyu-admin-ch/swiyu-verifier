@@ -6,6 +6,8 @@ import ch.admin.bit.eid.oid4vp.fixtures.KeyFixtures;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
 import ch.admin.eid.didresolver.DidResolveException;
+import ch.admin.eid.didtoolbox.TrustDidWebException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +28,7 @@ class IssuerPublicKeyLoaderTest {
     }
 
     @Test
-    void loadPublicKey_MultibaseKey() throws LoadingPublicKeyOfIssuerFailedException, DidResolveException, JOSEException {
+    void loadPublicKey_MultibaseKey() throws LoadingPublicKeyOfIssuerFailedException, DidResolveException, TrustDidWebException, JOSEException {
         // GIVEN (an issuer registered in the DID registry and an issuer signed SD-JWT)
         var issuerDidDocument = DidDocFixtures.issuerDidDocWithMultikey(
                 "did:example:123",
@@ -48,7 +50,7 @@ class IssuerPublicKeyLoaderTest {
     }
 
     @Test
-    void loadPublicKey_JsonWebKey() throws LoadingPublicKeyOfIssuerFailedException, DidResolveException, JOSEException {
+    void loadPublicKey_JsonWebKey() throws LoadingPublicKeyOfIssuerFailedException, DidResolveException, TrustDidWebException, JOSEException {
         // GIVEN (an issuer registered in the DID registry and an issuer signed SD-JWT)
         var issuerDidDocument = DidDocFixtures.issuerDidDocWithJsonWebKey(
                 "did:example:123",

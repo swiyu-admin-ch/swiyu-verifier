@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClient;
 public class StatusListResolverAdapter {
 
     public String resolveStatusList(String uri) {
+        // TODO EID-2540 Check for needed rewrites here
         return RestClient.create().get().uri(uri).retrieve().body(String.class);
     }
 }

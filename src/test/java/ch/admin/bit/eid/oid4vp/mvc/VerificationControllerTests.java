@@ -686,7 +686,7 @@ class VerificationControllerTests {
                 .andExpect(jsonPath("errorDescription").value("Signature mismatch"));
     }
 
-    private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
+    private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) throws Exception {
         try {
             when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithMultikey(
                     sdjwt.getIssuerId(),

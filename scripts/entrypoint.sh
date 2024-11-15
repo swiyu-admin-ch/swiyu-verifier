@@ -14,7 +14,7 @@ else
 fi
 
 java -Duser.timezone=Europe/Zurich \
--Dspring.config.location=classpath:bootstrap.yml,classpath:application.yml,file:/vault/secrets/database-credentials.yml \
+Dspring.config.location=classpath:bootstrap.yml,classpath:application.yml,optional:file:/vault/secrets/database-credentials.yml \
 -Dfile.encoding=UTF-8 \
 -Dspring.profiles.active=${STAGE} \
 -Djavax.net.ssl.trustStore=/usr/local/openjdk/lib/security/cacerts \

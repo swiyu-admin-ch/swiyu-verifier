@@ -44,7 +44,7 @@ public class PresentationSubmissionMapper {
         if (!violations.isEmpty()) {
             StringBuilder builder = new StringBuilder();
             for (ConstraintViolation<PresentationSubmission> violation : violations) {
-                builder.append("%s - %s, ".formatted(violation.getPropertyPath(), violation.getMessage()));
+                builder.append("%s%s - %s".formatted(builder.isEmpty() ? "" : ", ", violation.getPropertyPath(), violation.getMessage()));
             }
             throw new IllegalArgumentException("Invalid presentation submission: " + builder);
         }

@@ -771,7 +771,7 @@ class VerificationControllerTests {
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription", containsString("Descriptor map is mandatory")));
+                .andExpect(jsonPath("errorDescription", containsString("Descriptor map cannot be empty")));
     }
 
     @Test

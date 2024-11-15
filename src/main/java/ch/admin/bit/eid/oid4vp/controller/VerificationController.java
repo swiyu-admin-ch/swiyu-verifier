@@ -79,12 +79,11 @@ public class VerificationController {
         verificationService.processPresentation(managementEntity, request.getVp_token(), presentationSubmission);
     }
 
-    private PresentationSubmission parsePresentationSubmission(String presentationSubmissionStr,
-            ManagementEntity managementEntity) {
+    private PresentationSubmission parsePresentationSubmission(String presentationSubmissionStr, ManagementEntity management) {
         try {
             return stringToPresentationSubmission(presentationSubmissionStr);
         } catch (IllegalArgumentException e) {
-            throw VerificationException.submissionError(VerificationErrorEnum.INVALID_REQUEST, managementEntity,
+            throw VerificationException.submissionError(VerificationErrorEnum.INVALID_REQUEST, management,
                     e.getMessage());
         }
     }

@@ -83,8 +83,7 @@ public class VerificationController {
         try {
             return stringToPresentationSubmission(presentationSubmissionStr);
         } catch (IllegalArgumentException e) {
-            throw VerificationException.submissionError(VerificationErrorEnum.INVALID_REQUEST, management,
-                    e.getMessage());
+            throw VerificationException.submissionError(VerificationErrorEnum.INVALID_REQUEST, management, e.getMessage());
         }
     }
 

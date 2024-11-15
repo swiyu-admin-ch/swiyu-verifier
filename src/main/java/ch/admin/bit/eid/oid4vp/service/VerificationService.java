@@ -68,7 +68,15 @@ public class VerificationService {
         var credentialToBeProcessed = vpToken;
         var isList = presentationSubmission.getDescriptorMap().size() > 1;
         // Todo consider more than 1 format
-        var format = presentationSubmission.getDescriptorMap().getFirst().getFormat();
+        var descriptor = presentationSubmission.getDescriptorMap();
+
+        if (isNull(presentationSubmission.getDescriptorMap()) || presentationSubmission.getDescriptorMap().isEmpty()) {
+            throw VerificationException.credentialError(ResponseErrorCodeEnum.INVALID_FORMAT,
+                    "No valid descriptor map found in presentation submission",
+                    managementEntity);
+        }
+
+        var format = descriptor.getFirst().getFormat();
 
         // lists and ldp are base64urlencoded
         if (format == null || format.isEmpty()) {

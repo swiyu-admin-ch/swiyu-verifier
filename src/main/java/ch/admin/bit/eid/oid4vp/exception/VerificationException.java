@@ -21,7 +21,21 @@ public class VerificationException extends RuntimeException {
                 null /* submissionError is only caused by business cases and not exceptions */,
                 new VerificationError(
                         error,
-                        null, null
+                        null,
+                        null
+                ),
+                managementEntity
+        );
+    }
+
+
+    public static VerificationException submissionError(VerificationErrorEnum error, ManagementEntity managementEntity, String errorDescription) {
+        return new VerificationException(
+                null /* submissionError is only caused by business cases and not exceptions */,
+                new VerificationError(
+                        error,
+                        null,
+                        errorDescription
                 ),
                 managementEntity
         );

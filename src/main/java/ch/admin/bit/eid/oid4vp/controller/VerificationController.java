@@ -2,7 +2,7 @@ package ch.admin.bit.eid.oid4vp.controller;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
-import ch.admin.bit.eid.oid4vp.model.dto.VerificationPresentationRequest;
+import ch.admin.bit.eid.oid4vp.model.dto.VerificationPresentationRequestDto;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationErrorEnum;
 import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
@@ -43,7 +43,6 @@ public class VerificationController {
     private final RequestObjectService requestObjectService;
     private final VerificationService verificationService;
 
-
     @GetMapping("/request-object/{request_id}")
     @Operation(summary = "Get Request Object", description = "Can return a RequestObject as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management")
     public Object getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
@@ -54,12 +53,10 @@ public class VerificationController {
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @ResponseStatus(HttpStatus.OK)
-    @RequestBody(description = ""
-            , content = @Content(
-            mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
+    @RequestBody(description = "", content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
     public void receiveVerificationPresentation(
             @PathVariable(name = "request_id") UUID requestId,
-            VerificationPresentationRequest request) {
+            VerificationPresentationRequestDto request) {
 
         ManagementEntity managementEntity = verificationManagementRepository.findById(requestId).orElseThrow(
                 () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, null));
@@ -73,7 +70,7 @@ public class VerificationController {
             return;
         }
 
-        PresentationSubmission presentationSubmission = stringToPresentationSubmission(request.getPresentation_submission());
+        PresentationSubmission presentationSubmission = parsePresentationSubmission(request.getPresentation_submission(), managementEntity);
 
         if (isBlank(request.getVp_token()) || isNull(presentationSubmission)) {
             throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, managementEntity);
@@ -82,6 +79,15 @@ public class VerificationController {
         verificationService.processPresentation(managementEntity, request.getVp_token(), presentationSubmission);
     }
 
+    private PresentationSubmission parsePresentationSubmission(String presentationSubmissionStr,
+            ManagementEntity managementEntity) {
+        try {
+            return stringToPresentationSubmission(presentationSubmissionStr);
+        } catch (IllegalArgumentException e) {
+            throw VerificationException.submissionError(VerificationErrorEnum.INVALID_REQUEST, managementEntity,
+                    e.getMessage());
+        }
+    }
 
     @ExceptionHandler(VerificationException.class)
     protected ResponseEntity<Object> handleVerificationException(VerificationException e) {

@@ -37,11 +37,14 @@ public class PresentationSubmissionMapper {
     }
 
     private void validatePresentationSubmission(PresentationSubmission presentationSubmission) {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        Validator validator = factory.getValidator();
-        Set<ConstraintViolation<PresentationSubmission>> violations = validator.validate(presentationSubmission);
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            Validator validator = factory.getValidator();
+            Set<ConstraintViolation<PresentationSubmission>> violations = validator.validate(presentationSubmission);
 
-        if (!violations.isEmpty()) {
+            if(violations.isEmpty()) {
+                return;
+            }
+
             StringBuilder builder = new StringBuilder();
             for (ConstraintViolation<PresentationSubmission> violation : violations) {
                 builder.append("%s%s - %s".formatted(builder.isEmpty() ? "" : ", ", violation.getPropertyPath(), violation.getMessage()));

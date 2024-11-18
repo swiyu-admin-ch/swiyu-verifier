@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-// TODO add validation
 public class VerificationPresentationRequestDto {
 
     private String vp_token;

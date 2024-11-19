@@ -40,7 +40,6 @@ public class TokenStatusListToken {
      */
     private final byte[] statusList;
 
-
     /**
      * Load existing TokenStatusList Token
      *
@@ -55,7 +54,6 @@ public class TokenStatusListToken {
     public static TokenStatusListToken loadTokenStatusListToken(int bits, String lst) throws IOException {
         return new TokenStatusListToken(bits, decodeStatusList(lst));
     }
-
 
     /**
      * Retrieves the status on the given index. Can contain multiple status being set. Eg 3 = revoked & suspended
@@ -75,9 +73,14 @@ public class TokenStatusListToken {
         return maskedByte >> bitIndex;
     }
 
-
     private byte getStatusEntryByte(int idx) {
-        return statusList[idx * bits / 8];
+        var position = idx * bits / 8;
+
+        if (position >= statusList.length) {
+            throw new IndexOutOfBoundsException("Index out of bounds");
+        }
+
+        return statusList[position];
     }
 
     /**
@@ -88,7 +91,6 @@ public class TokenStatusListToken {
     private static byte[] decodeStatusList(String lst) throws IOException {
         // base64 decoding the data
         byte[] zippedData = Base64.getUrlDecoder().decode(lst);
-
 
         var zlibOutput = new ByteArrayOutputStream();
         var inflaterStream = new InflaterOutputStream(zlibOutput);

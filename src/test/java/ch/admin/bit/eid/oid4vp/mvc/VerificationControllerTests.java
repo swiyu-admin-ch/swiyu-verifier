@@ -822,7 +822,7 @@ class VerificationControllerTests {
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription", containsString("Status list index out of bounds")))
+                .andExpect(jsonPath("errorDescription", containsString("The VC cannot be validated as the remote list does not contain this VC!")))
                 .andReturn();
 
         var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();

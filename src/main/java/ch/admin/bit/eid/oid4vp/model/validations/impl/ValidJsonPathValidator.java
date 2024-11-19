@@ -15,9 +15,10 @@ public class ValidJsonPathValidator implements ConstraintValidator<ValidJsonPath
             return true;
         }
 
-        if (value.isBlank()) {
+        if (!value.isBlank()) {
             try {
                 JsonPath.compile(value);
+                return true;
             } catch (InvalidPathException e) {
                 return false;
             }

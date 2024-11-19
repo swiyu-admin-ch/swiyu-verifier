@@ -17,6 +17,7 @@ import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.didresolver.DidResolveException;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
@@ -41,6 +42,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.Assert;
 
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -57,7 +60,6 @@ import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VAL
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Transactional
@@ -218,7 +220,7 @@ class VerificationControllerTests {
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
-        //Data should be unchanged
+        // Data should be unchanged
         managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
@@ -229,7 +231,7 @@ class VerificationControllerTests {
         Assert.hasText(response.getResponse().getContentAsString(), "Should have response body");
         assert responseBody.contains(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED.toString());
     }
-    
+
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
@@ -272,7 +274,7 @@ class VerificationControllerTests {
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
-        //Data should be unchanged
+        // Data should be unchanged
         managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
         Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
                 String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
@@ -308,7 +310,8 @@ class VerificationControllerTests {
                         .formField("presentation_submission", Base64.getUrlEncoder().encodeToString(presentationSubmissionString.getBytes(StandardCharsets.UTF_8)))
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("Invalid presentation submission"));
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription", containsString("Invalid presentation submission")));
     }
 
     @Test
@@ -333,7 +336,8 @@ class VerificationControllerTests {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("Invalid presentation submission"));
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription", containsString("Invalid presentation submission")));
     }
 
     @Test
@@ -744,6 +748,62 @@ class VerificationControllerTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
                 .andExpect(jsonPath("errorDescription").value("Signature mismatch"));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void wrongPresentationSubmission_emptyList_thenException() throws Exception {
+
+        ObjectMapper mapper = new ObjectMapper();
+        PresentationSubmission submission = PresentationSubmission.builder()
+                .id(UUID.randomUUID().toString())
+                .descriptorMap(List.of())
+                .build();
+
+        var vpToken = createVpToken();
+
+        String presentationSubmission = mapper.writeValueAsString(submission);
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription", containsString("Descriptor map cannot be empty")));
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void wrongPresentationSubmission_emptyObject_thenException() throws Exception {
+
+        ObjectMapper mapper = new ObjectMapper();
+        PresentationSubmission submission = PresentationSubmission.builder()
+                .id(UUID.randomUUID().toString())
+                .descriptorMap(List.of())
+                .build();
+
+        var vpToken = createVpToken();
+
+        String presentationSubmission = mapper.writeValueAsString(submission).replace("[]", "[{}]");
+
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription", containsString("format - must not be blank")));
+    }
+
+    private String createVpToken() throws NoSuchAlgorithmException, ParseException, JOSEException, Exception {
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(new ECKeyGenerator(Curve.P_256).generate());
+        var sdJWT = emulator.createSDJWTMock();
+        mockDidResolverResponse(emulator);
+
+        return emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
     }
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) throws Exception {

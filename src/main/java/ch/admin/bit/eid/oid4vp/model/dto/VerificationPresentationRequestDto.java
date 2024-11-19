@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class VerificationPresentationRequest {
+public class VerificationPresentationRequestDto {
 
     private String vp_token;
 

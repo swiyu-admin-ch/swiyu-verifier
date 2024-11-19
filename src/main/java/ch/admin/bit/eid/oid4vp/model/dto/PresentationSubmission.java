@@ -1,7 +1,9 @@
 package ch.admin.bit.eid.oid4vp.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,7 +24,6 @@ public class PresentationSubmission {
     private String definitionId;
 
     @JsonProperty("descriptor_map")
-    private List<Descriptor> descriptorMap;
+    @NotEmpty(message = "Descriptor map cannot be empty")
+    private List<@Valid Descriptor> descriptorMap;
 }
-
-

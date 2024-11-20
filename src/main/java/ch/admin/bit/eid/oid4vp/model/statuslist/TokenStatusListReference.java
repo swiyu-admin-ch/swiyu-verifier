@@ -69,8 +69,9 @@ public class TokenStatusListReference extends StatusListReference {
             throw statusListError("Failed to parse the Status List bits!", e);
         } catch (IllegalArgumentException e) {
             throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_REVOKED, "Unexpected VC Status!", getPresentationManagementEntity());
+        } catch (IndexOutOfBoundsException e) {
+            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, "The VC cannot be validated as the remote list does not contain this VC!", getPresentationManagementEntity());
         }
-
     }
 
     @Override

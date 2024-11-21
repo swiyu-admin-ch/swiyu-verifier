@@ -92,7 +92,9 @@ public class TokenStatusListReference extends StatusListReference {
         try {
             var issuer = vc.getJWTClaimsSet().getIssuer();
             var publicKey = getIssuerPublicKeyLoader().loadPublicKey(issuer, vc.getHeader().getKeyID());
-            vc.verify(toJwsVerifier(publicKey));
+            if (!vc.verify(toJwsVerifier(publicKey))) {
+                throw statusListError("Failed to verify JWT: Issuer public key does not match signature!");
+            }
         } catch (LoadingPublicKeyOfIssuerFailedException | ParseException | JOSEException |
                  IllegalArgumentException e) {
             throw statusListError("Failed to verify JWT: Could not verify against issuer public key", e);

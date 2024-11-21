@@ -10,8 +10,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.Map;
-
 @Validated
 @Data
 @Configuration
@@ -35,6 +33,8 @@ public class ApplicationProperties {
 
     @NotNull
     private String signingKeyVerificationMethod;
+
     private String logoUri;
+
 }
 

@@ -25,6 +25,11 @@ application:
   key:
     bbs:
       seed: "${secret.key.bbs.seed:${BBS_KEY_SEED}}"
+  raw_url_mappings: |
+    {
+     "https://status-data-service-r.bit.admin.ch":"https://svcgw-esb:15015",
+     "https://identifier-data-service-r.bit.admin.ch":"https://svcgw-esb:15016"
+    }
 logging:
   level:
     ch.admin.bit.eid.oid4vp.infrastructure.logging.RequestLoggingFilter: DEBUG

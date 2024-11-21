@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model.statuslist;
 
+import ch.admin.bit.eid.oid4vp.config.UrlRewriteConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +19,7 @@ public class StatusListResolverAdapterTest {
 
     @BeforeEach
     void setUp() {
-        statusListResolverAdapter = new StatusListResolverAdapter();
+        statusListResolverAdapter = new StatusListResolverAdapter(new UrlRewriteConfig());
     }
 
     @Test

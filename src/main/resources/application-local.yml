@@ -7,5 +7,10 @@ spring:
       enabled: false
   mvc:
     log-resolved-exception: false # see https://stackoverflow.com/a/77147791
-
-
+application:
+  url-rewrite:
+    mapping: |
+      {
+       "https://mysample1.ch":"https://somethingdiffeerent1.ch",
+       "https://mysample2.ch":"https://somethingdiffeerent2.ch",
+      }

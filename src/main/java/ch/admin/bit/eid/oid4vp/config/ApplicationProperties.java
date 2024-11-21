@@ -18,8 +18,6 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "application")
 public class ApplicationProperties {
 
-    ObjectMapper objectMapper = new ObjectMapper();
-
     @NotNull
     private String externalUrl;
 
@@ -38,13 +36,5 @@ public class ApplicationProperties {
     @NotNull
     private String signingKeyVerificationMethod;
     private String logoUri;
-
-    @PostConstruct
-    public void init() throws JsonProcessingException {
-        urlMappings = objectMapper.readValue(rawUrlMappings, new TypeReference<Map<String, String>>() {});
-    }
-
-    private String rawUrlMappings;
-    private Map<String, String> urlMappings;
 }
 

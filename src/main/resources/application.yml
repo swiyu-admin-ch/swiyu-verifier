@@ -26,7 +26,7 @@ application:
     bbs:
       seed: "${secret.key.bbs.seed:${BBS_KEY_SEED}}"
   url-rewrite:
-    mapping: "${URL_REWRITE_MAPPING}"
+    mapping: "${URL_REWRITE_MAPPING:{}}"
 logging:
   level:
     ch.admin.bit.eid.oid4vp.infrastructure.logging.RequestLoggingFilter: DEBUG

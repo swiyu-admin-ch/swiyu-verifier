@@ -7,3 +7,4 @@ spring:
       enabled: false
   mvc:
     log-resolved-exception: false # see https://stackoverflow.com/a/77147791
+

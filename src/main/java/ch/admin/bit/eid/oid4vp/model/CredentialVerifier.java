@@ -1,6 +1,7 @@
 package ch.admin.bit.eid.oid4vp.model;
 
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
+import ch.admin.bit.eid.oid4vp.model.dto.Field;
 import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.InputDescriptor;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
@@ -16,10 +17,7 @@ import com.jayway.jsonpath.ReadContext;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Objects.nonNull;
 
@@ -60,19 +58,44 @@ public abstract class CredentialVerifier {
         return pathList;
     }
 
+    private void checkField(Field field, String credentialPath, ReadContext ctx) throws VerificationException {
+        var filter = field.getFilter();
+        // If filter is set
+        if (filter != null) {
+            if(field.getPath().size() > 1 || !"const".equals(filter.getConstDescriptor())) throw VerificationException.credentialError(
+                    ResponseErrorCodeEnum.CREDENTIAL_INVALID,
+                    "Fields with filter constraint must only occur on path '$.vct' and in combination with the 'const' operation",
+                    managementEntity
+            );
+            String value = ctx.read(concatPaths(credentialPath, field.getPath().getFirst()));
+            if (!filter.getConstDescriptor().equals(value)) {
+                throw VerificationException.credentialError(
+                        ResponseErrorCodeEnum.CREDENTIAL_INVALID,
+                        "Validation criteria not matched, expected filter with const value '%s'".formatted(filter.getConstDescriptor()), managementEntity
+                );
+            }
+        } else {
+            // If filter is not set
+            field.getPath().forEach(path -> {
+                try {
+                    ctx.read(concatPaths(credentialPath, path));
+                } catch (PathNotFoundException e) {
+                    throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
+                }
+            });
+        }
+    }
+
     protected void checkPresentationDefinitionCriteria(String credential) throws VerificationException {
-        List<String> pathList = getPathToRequestedFields(managementEntity.getRequestedPresentation().getInputDescriptors(), "$");
-
-        if (pathList.isEmpty()) {
-            throw VerificationException.credentialError(ResponseErrorCodeEnum.CREDENTIAL_INVALID, "Validation criteria not matched, check the structure and values of the token", managementEntity);
-        }
-
-        try {
-            ReadContext ctx = JsonPath.parse(credential);
-            pathList.forEach(ctx::read);
-        } catch (PathNotFoundException e) {
-            throw VerificationException.credentialError(e, ResponseErrorCodeEnum.CREDENTIAL_INVALID, e.getMessage(), managementEntity);
-        }
+        ReadContext ctx = JsonPath.parse(credential);
+        managementEntity
+                .getRequestedPresentation()
+                .getInputDescriptors()
+                .forEach(descriptor -> descriptor
+                        .getConstraints()
+                        .getFields()
+                        .forEach(field -> checkField(field, "$", ctx))
+                );
     }
 
     protected FormatAlgorithm getRequestedFormat(String credentialFormat) {

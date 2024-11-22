@@ -31,5 +31,8 @@ public class Field {
     @Schema(description = "(Optional) If present describes purpose for which the field is requested")
     private String purpose;
 
+    @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
+    private Filter filter;
+
     // TODO other fields are currently ignored -> check https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor
 }

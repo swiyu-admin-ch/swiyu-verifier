@@ -3,6 +3,9 @@ package ch.admin.bit.eid.oid4vp.model;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
+import ch.admin.bit.eid.oid4vp.model.dto.Field;
+import ch.admin.bit.eid.oid4vp.model.dto.Filter;
+import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
@@ -20,15 +23,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static ch.admin.bit.eid.oid4vp.fixtures.DidDocFixtures.issuerDidDoc;
 import static ch.admin.bit.eid.oid4vp.mock.CredentialSubmissionMock.getPresentationDefinitionMockWithFormat;
 import static ch.admin.bit.eid.oid4vp.mock.ManagementEntityMock.getManagementEntityMock;
 import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionMock;
+import static ch.admin.bit.eid.oid4vp.mock.PresentationDefinitionMocks.createPresentationDefinitionWithFields;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
@@ -104,5 +105,47 @@ class SDJWTCredentialTest {
         var payload = claims.getPayload();
 
         assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(payload, disclosures));
+    }
+
+    void testCompletenessOfSDJWTWithPresentationDefinitionWithFilter_thenSuccess() {
+        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
+        formats.put("vc+sd-jwt", FormatAlgorithm.builder()
+                .proofType(List.of("ES256"))
+                .keyBindingAlg(List.of("ES256"))
+                .build());
+        var presentationDefinition = createPresentationDefinitionWithFields(
+                id,
+                List.of(
+                    Field.builder().path(List.of("$.vct")).filter(Filter.builder().constDescriptor("my-credential-type").build()).build(),
+                    Field.builder().path(List.of("$.last_name")).build(),
+                    Field.builder().path(List.of("$.birthdate")).build()
+                ),
+                null,
+                formats
+        );
+
+        var managementEntity = getManagementEntityMock(id, presentationDefinition);
+
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        id = UUID.randomUUID();
+        sdJWTCredential = emulator.createSDJWTMock();
+
+        try {
+            presentationSubmission = getPresentationDefinitionMockWithFormat(1, false, "jwt_vc");
+            var vpToken = emulator.addKeyBindingProof(sdJWTCredential, "test-nonce", "test-test");
+            var keyBinding = Arrays.stream(vpToken.split("~")).toList().getLast();
+            var parts = sdJWTCredential.split("~");
+            disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, parts.length)).map(Disclosure::parse).toList();
+
+            // lookup issuers public key
+            var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
+            when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+            var publicKey = issuerPublicKeyLoader.loadPublicKey(sdJWTCredential);
+
+            var cred = new SDJWTCredential(sdJWTCredential, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader, statusListReferenceFactory);
+        } catch (Exception e) {
+            fail();
+        }
     }
 }

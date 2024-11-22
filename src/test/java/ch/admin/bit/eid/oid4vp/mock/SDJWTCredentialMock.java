@@ -124,10 +124,9 @@ public class SDJWTCredentialMock {
     }
 
     public String createSDJWTMock(Long validFrom, Long validUntil) {
-        return createSDJWTMock(validFrom, validUntil, null);
+        return createSDJWTMock(validFrom, validUntil, null, null);
     }
-
-    public String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex) {
+    public String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -140,6 +139,10 @@ public class SDJWTCredentialMock {
 
         if (nonNull(validUntil)) {
             builder.putClaim("exp", validUntil);
+        }
+
+        if(nonNull(vct)) {
+            builder.putClaim("vct", vct);
         }
 
         if (nonNull(statusListIndex)) {

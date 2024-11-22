@@ -62,17 +62,18 @@ After the start api definitions can be found [here](http://localhost:8080/swagge
 
 ### Environment variables
 
-| Variable          | Description                                                                                                                        | Type             | Default |
-|-------------------|------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|
-| EXTERNAL_URL      | URL of this deployed instance in order to add it to the request                                                                    | URL              | None    |
-| VERIFIER_DID      | DID of this service-instance to identify the requester                                                                             | string (did:tdw) | none    |
-| VERIFIER_NAME     | Client name which is included in the verification request as part of the metadata                                                  | string           | None    |
-| VERIFIER_LOGO     | Client logo uri which is included in the verification request as part of the metadata                                              | string           | None    |
-| BBS_KEY_SEED      | Seed to generate the bbs key from [bbs-library](https://github.com/e-id-admin/bbsplus) (must be the same seed as used for issuing) | string           | None    |
-| POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                    | string           | none    |
-| POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                                                   | string           | none    |
-| POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                            | string           | none    |
-| SIGNING_KEY       | Private Key in PEM format used to sign request objects sent to the holder                                                          | string           | none    |
+| Variable            | Description                                                                                                                                                                                                | Type             | Default |
+|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|
+| EXTERNAL_URL        | URL of this deployed instance in order to add it to the request                                                                                                                                            | URL              | None    |
+| VERIFIER_DID        | DID of this service-instance to identify the requester                                                                                                                                                     | string (did:tdw) | none    |
+| VERIFIER_NAME       | Client name which is included in the verification request as part of the metadata                                                                                                                          | string           | None    |
+| VERIFIER_LOGO       | Client logo uri which is included in the verification request as part of the metadata                                                                                                                      | string           | None    |
+| BBS_KEY_SEED        | Seed to generate the bbs key from [bbs-library](https://github.com/e-id-admin/bbsplus) (must be the same seed as used for issuing)                                                                         | string           | None    |
+| POSTGRES_USER       | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                                                                            | string           | none    |
+| POSTGRES_PASSWORD   | Username to connect to the Issuer Agent Database                                                                                                                                                           | string           | none    |
+| POSTGRES_URL        | JDBC Connection string to the shared DB                                                                                                                                                                    | string           | none    |
+| SIGNING_KEY         | Private Key in PEM format used to sign request objects sent to the holder                                                                                                                                  | string           | none    |
+| URL_REWRITE_MAPPING | Json object for url replacements during rest client call. Key represents the original url and value the one which should be used instead (e.g. {"https://mysample1.ch":"https://somethingdiffeerent1.ch"}) | string           | "{}"    |
 
 ### Kubernetes Vault Keys
 

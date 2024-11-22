@@ -16,7 +16,7 @@ import java.util.Map;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "application.url-rewrite")
-public class UrlRewriteConfig {
+public class UrlRewriteProperties {
 
     ObjectMapper objectMapper = new ObjectMapper();
 

@@ -7,7 +7,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class UrlRewriteConfigTests {
+public class UrlRewritePropertiesTests {
 
     @ParameterizedTest
     @CsvSource({
@@ -19,7 +19,7 @@ public class UrlRewriteConfigTests {
             "https://somethingcrazy, https://somethingcrazy"
     })
     void testGetRewrittenUrl_WithMapping_Returns(String original, String mapped) throws JsonProcessingException {
-        var config = new UrlRewriteConfig();
+        var config = new UrlRewriteProperties();
         config.setMapping("""
             {
             "https://status.bit.admin.ch":"https://svcgw-esb:23",
@@ -32,7 +32,7 @@ public class UrlRewriteConfigTests {
 
     @Test
     void testGetRewrittenUrl_WithNoMapping() throws JsonProcessingException {
-        var config = new UrlRewriteConfig();
+        var config = new UrlRewriteProperties();
         config.init();
         assertEquals("https://status.bit.admin.ch/", config.getRewrittenUrl("https://status.bit.admin.ch/"));
     }

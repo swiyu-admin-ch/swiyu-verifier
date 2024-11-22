@@ -1,7 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model.did;
 
-import ch.admin.bit.eid.oid4vp.config.ApplicationProperties;
-import ch.admin.bit.eid.oid4vp.config.UrlRewriteConfig;
+import ch.admin.bit.eid.oid4vp.config.UrlRewriteProperties;
 import ch.admin.eid.didresolver.Did;
 import ch.admin.eid.didresolver.DidResolveException;
 import ch.admin.eid.didtoolbox.DidDoc;
@@ -24,7 +23,7 @@ public class DidResolverAdapter {
      * @param did - the id of the DID Document
      * @return the DID Document for the given DID
      */
-    private final UrlRewriteConfig urlRewriteConfig;
+    private final UrlRewriteProperties urlRewriteProperties;
 
     public DidDoc resolveDid(String didTdw) throws DidResolveException, TrustDidWebException {
         try (var did = new Did(didTdw)) {
@@ -37,6 +36,6 @@ public class DidResolverAdapter {
     }
 
     private String retrieveDidLog(String uri) {
-        return RestClient.create().get().uri(urlRewriteConfig.getRewrittenUrl(uri)).retrieve().body(String.class);
+        return RestClient.create().get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
     }
 }

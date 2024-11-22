@@ -1,6 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model.statuslist;
 
-import ch.admin.bit.eid.oid4vp.config.UrlRewriteConfig;
+import ch.admin.bit.eid.oid4vp.config.UrlRewriteProperties;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.model.enums.ResponseErrorCodeEnum;
 import ch.admin.bit.eid.oid4vp.model.persistence.ManagementEntity;
@@ -20,12 +20,12 @@ import java.net.URL;
 public class StatusListResolverAdapter {
 
     private static final int MAX_STATUS_LIST_SIZE = 10485760; // 10 MB
-    private final UrlRewriteConfig urlRewriteConfig;
+    private final UrlRewriteProperties urlRewriteProperties;
 
     public String resolveStatusList(String uri, ManagementEntity managementEntity) {
         try {
             validateStatusListSize(URI.create(uri).toURL());
-            var rewrittenUrl = urlRewriteConfig.getRewrittenUrl(uri);
+            var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
             return RestClient
                     .create()
                     .get()

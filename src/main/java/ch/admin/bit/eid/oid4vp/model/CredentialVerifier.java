@@ -17,8 +17,12 @@ import com.jayway.jsonpath.ReadContext;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 @Getter
@@ -61,8 +65,9 @@ public abstract class CredentialVerifier {
     private void checkField(Field field, String credentialPath, ReadContext ctx) throws VerificationException {
         var filter = field.getFilter();
         // If filter is set
-        if (filter != null) {
-            if(field.getPath().size() > 1 || !"const".equals(filter.getConstDescriptor())) throw VerificationException.credentialError(
+        if (filter != null && !field.getPath().isEmpty()) {
+            if (field.getPath().size() > 1 || !"$.vct".equals(field.getPath().getFirst()) || isNull(filter.getConstDescriptor()) || filter.getConstDescriptor().isEmpty())
+                throw VerificationException.credentialError(
                     ResponseErrorCodeEnum.CREDENTIAL_INVALID,
                     "Fields with filter constraint must only occur on path '$.vct' and in combination with the 'const' operation",
                     managementEntity

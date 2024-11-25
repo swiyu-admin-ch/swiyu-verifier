@@ -1,5 +1,6 @@
 package ch.admin.bit.eid.oid4vp.model;
 
+import ch.admin.bit.eid.oid4vp.exception.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
@@ -9,7 +10,10 @@ import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
 import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
+import ch.admin.eid.didresolver.DidResolveException;
+import ch.admin.eid.didtoolbox.TrustDidWebException;
 import com.authlete.sd.Disclosure;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
@@ -23,6 +27,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.util.*;
 
 import static ch.admin.bit.eid.oid4vp.fixtures.DidDocFixtures.issuerDidDoc;
@@ -107,16 +113,18 @@ class SDJWTCredentialTest {
         assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(payload, disclosures));
     }
 
-    void testCompletenessOfSDJWTWithPresentationDefinitionWithFilter_thenSuccess() {
+    @Test
+    void testCompletenessOfSDJWTWithPresentationDefinitionWithFilter_thenSuccess() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException, DidResolveException, LoadingPublicKeyOfIssuerFailedException {
         HashMap<String, FormatAlgorithm> formats = new HashMap<>();
         formats.put("vc+sd-jwt", FormatAlgorithm.builder()
                 .proofType(List.of("ES256"))
                 .keyBindingAlg(List.of("ES256"))
+                .alg(List.of("ES256"))
                 .build());
         var presentationDefinition = createPresentationDefinitionWithFields(
                 id,
                 List.of(
-                    Field.builder().path(List.of("$.vct")).filter(Filter.builder().constDescriptor("my-credential-type").build()).build(),
+                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().constDescriptor(SDJWTCredentialMock.DEFAULT_VCT).build()).build(),
                     Field.builder().path(List.of("$.last_name")).build(),
                     Field.builder().path(List.of("$.birthdate")).build()
                 ),
@@ -126,26 +134,21 @@ class SDJWTCredentialTest {
 
         var managementEntity = getManagementEntityMock(id, presentationDefinition);
 
-
+        // Create Default SDJWT Credential for presenting
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         id = UUID.randomUUID();
         sdJWTCredential = emulator.createSDJWTMock();
 
-        try {
-            presentationSubmission = getPresentationDefinitionMockWithFormat(1, false, "jwt_vc");
-            var vpToken = emulator.addKeyBindingProof(sdJWTCredential, "test-nonce", "test-test");
-            var keyBinding = Arrays.stream(vpToken.split("~")).toList().getLast();
-            var parts = sdJWTCredential.split("~");
-            disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, parts.length)).map(Disclosure::parse).toList();
+        presentationSubmission = getPresentationDefinitionMockWithFormat(1, false, "jwt_vc");
+        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
 
-            // lookup issuers public key
-            var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-            when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
-            var publicKey = issuerPublicKeyLoader.loadPublicKey(sdJWTCredential);
+        // lookup issuers public key
+        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
+        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
+        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
-            var cred = new SDJWTCredential(sdJWTCredential, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader, statusListReferenceFactory);
-        } catch (Exception e) {
-            fail();
-        }
+        var cred = new SDJWTCredential(vpToken, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader, statusListReferenceFactory);
+        cred.verifyPresentation();
     }
+
 }

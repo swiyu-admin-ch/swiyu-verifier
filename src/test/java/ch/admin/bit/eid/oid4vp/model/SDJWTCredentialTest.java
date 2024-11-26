@@ -1,6 +1,5 @@
 package ch.admin.bit.eid.oid4vp.model;
 
-import ch.admin.bit.eid.oid4vp.exception.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bit.eid.oid4vp.exception.VerificationException;
 import ch.admin.bit.eid.oid4vp.mock.SDJWTCredentialMock;
 import ch.admin.bit.eid.oid4vp.model.did.DidResolverAdapter;
@@ -8,6 +7,7 @@ import ch.admin.bit.eid.oid4vp.model.dto.Field;
 import ch.admin.bit.eid.oid4vp.model.dto.Filter;
 import ch.admin.bit.eid.oid4vp.model.dto.FormatAlgorithm;
 import ch.admin.bit.eid.oid4vp.model.dto.PresentationSubmission;
+import ch.admin.bit.eid.oid4vp.model.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.oid4vp.model.statuslist.StatusListReferenceFactory;
 import ch.admin.bit.eid.oid4vp.repository.VerificationManagementRepository;
 import ch.admin.eid.didresolver.DidResolveException;
@@ -114,7 +114,8 @@ class SDJWTCredentialTest {
     }
 
     @Test
-    void testCompletenessOfSDJWTWithPresentationDefinitionWithFilter_thenSuccess() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException, DidResolveException, LoadingPublicKeyOfIssuerFailedException {
+    void testCompletenessOfSDJWTWithPresentationDefinitionWithFilter_thenSuccess() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException, DidResolveException {
+        // Form Credential Request
         HashMap<String, FormatAlgorithm> formats = new HashMap<>();
         formats.put("vc+sd-jwt", FormatAlgorithm.builder()
                 .proofType(List.of("ES256"))
@@ -147,8 +148,51 @@ class SDJWTCredentialTest {
         // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
+        assertEquals(VerificationStatusEnum.PENDING, managementEntity.getState());
         var cred = new SDJWTCredential(vpToken, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader, statusListReferenceFactory);
         cred.verifyPresentation();
+        assertEquals(VerificationStatusEnum.SUCCESS, managementEntity.getState());
+    }
+
+    @Test
+    void testCompletenessOfSDJWTWithPresentationDefinitionWithFilterWrongVC_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException, DidResolveException {
+        // Form Credential Request
+        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
+        formats.put("vc+sd-jwt", FormatAlgorithm.builder()
+                .proofType(List.of("ES256"))
+                .keyBindingAlg(List.of("ES256"))
+                .alg(List.of("ES256"))
+                .build());
+        var presentationDefinition = createPresentationDefinitionWithFields(
+                id,
+                List.of(
+                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().constDescriptor("SomeOtherVCTWeDontHave").build()).build(),
+                        Field.builder().path(List.of("$.last_name")).build(),
+                        Field.builder().path(List.of("$.birthdate")).build()
+                ),
+                null,
+                formats
+        );
+
+        var managementEntity = getManagementEntityMock(id, presentationDefinition);
+
+        // Create Default SDJWT Credential for presenting
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        id = UUID.randomUUID();
+        sdJWTCredential = emulator.createSDJWTMock();
+
+        presentationSubmission = getPresentationDefinitionMockWithFormat(1, false, "jwt_vc");
+        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
+
+        // lookup issuers public key
+        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
+        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
+        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+
+        assertEquals(VerificationStatusEnum.PENDING, managementEntity.getState());
+        var cred = new SDJWTCredential(vpToken, managementEntity, presentationSubmission, verificationManagementRepository, issuerPublicKeyLoader, statusListReferenceFactory);
+        assertThrows(VerificationException.class, cred::verifyPresentation);
+        // We will not have the failed state here, as this is set in th exception handling
     }
 
 }

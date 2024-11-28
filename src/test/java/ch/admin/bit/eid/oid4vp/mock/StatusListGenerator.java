@@ -54,6 +54,10 @@ public class StatusListGenerator {
      * </code></pre>
      */
     public String createTokenStatusListTokenVerifiableCredential(String statusList) throws JOSEException {
+        return createTokenStatusListTokenVerifiableCredential(statusList, key);
+    }
+
+    public String createTokenStatusListTokenVerifiableCredential(String statusList, ECKey signingKey) throws JOSEException {
         var claims = new JWTClaimsSet.Builder()
                 .issuer(issuerId)
                 .subject(SPEC_SUBJECT)
@@ -68,7 +72,7 @@ public class StatusListGenerator {
                 .keyID(keyId)
                 .build();
         var jwt = new SignedJWT(header, claims);
-        jwt.sign(new ECDSASigner(key));
+        jwt.sign(new ECDSASigner(signingKey));
         return jwt.serialize();
     }
 }

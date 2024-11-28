@@ -728,6 +728,43 @@ class VerificationControllerTests {
     }
 
     @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void shouldFailVerifyingCredentialOnInvalidStatuslistSignature_thenError() throws Exception {
+        Integer statusListIndex = Integer.parseInt("2");
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any())).thenAnswer(invocation -> {
+                // holder key is not the one that should have signed the statuslist
+            var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
+            return statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST);
+        });
+
+        var sdJWT = emulator.createSDJWTMock(statusListIndex);
+        var parts = sdJWT.split("~");
+
+        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
+        var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~";
+        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "http://localhost");
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isOk()).andReturn();
+
+        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
+        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
+                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+    }
+    
+
+    @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldVerifyingSDJWTCredentialSDWithDifferentPrivKey_thenException() throws Exception {

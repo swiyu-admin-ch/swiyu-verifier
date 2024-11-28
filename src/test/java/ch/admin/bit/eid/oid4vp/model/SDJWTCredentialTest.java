@@ -125,7 +125,7 @@ class SDJWTCredentialTest {
         var presentationDefinition = createPresentationDefinitionWithFields(
                 id,
                 List.of(
-                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().constDescriptor(SDJWTCredentialMock.DEFAULT_VCT).build()).build(),
+                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().type("string").constDescriptor(SDJWTCredentialMock.DEFAULT_VCT).build()).build(),
                     Field.builder().path(List.of("$.last_name")).build(),
                     Field.builder().path(List.of("$.birthdate")).build()
                 ),
@@ -166,7 +166,7 @@ class SDJWTCredentialTest {
         var presentationDefinition = createPresentationDefinitionWithFields(
                 id,
                 List.of(
-                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().constDescriptor("SomeOtherVCTWeDontHave").build()).build(),
+                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().type("string").constDescriptor("SomeOtherVCTWeDontHave").build()).build(),
                         Field.builder().path(List.of("$.last_name")).build(),
                         Field.builder().path(List.of("$.birthdate")).build()
                 ),

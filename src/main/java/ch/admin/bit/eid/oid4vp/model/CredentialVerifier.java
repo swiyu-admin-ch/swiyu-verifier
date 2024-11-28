@@ -66,12 +66,18 @@ public abstract class CredentialVerifier {
         var filter = field.getFilter();
         // If filter is set
         if (filter != null && !field.getPath().isEmpty()) {
-            if (field.getPath().size() > 1 || !"$.vct".equals(field.getPath().getFirst()) || isNull(filter.getConstDescriptor()) || filter.getConstDescriptor().isEmpty())
+            // If we have a filter we only want to have vct filter (business limitation for the time being)
+            boolean hasAdditionalFilters = field.getPath().size() > 1 || !"$.vct".equals(field.getPath().getFirst());
+            // VCT filtering is done by doing a string comparison with the const descriptor. For this it must be a String and have a value.
+            boolean incorrectConstDescriptor = isNull(filter.getConstDescriptor()) || filter.getConstDescriptor().isEmpty() || !"string".equals(filter.getType());
+            if (hasAdditionalFilters || incorrectConstDescriptor) {
+                // The Credential is not invalid, but we do not support the presentation sent by the wallet.
                 throw VerificationException.credentialError(
-                    ResponseErrorCodeEnum.CREDENTIAL_INVALID,
-                    "Fields with filter constraint must only occur on path '$.vct' and in combination with the 'const' operation",
-                    managementEntity
-            );
+                        ResponseErrorCodeEnum.CREDENTIAL_INVALID,
+                        "Fields with filter constraint must only occur on path '$.vct' and in combination with the 'const' operation",
+                        managementEntity
+                );
+            }
             String value = ctx.read(concatPaths(credentialPath, field.getPath().getFirst()));
             if (!filter.getConstDescriptor().equals(value)) {
                 throw VerificationException.credentialError(

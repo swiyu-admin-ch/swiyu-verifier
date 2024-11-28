@@ -86,6 +86,9 @@ public abstract class StatusListReference {
             var signedVC = SignedJWT.parse(vc);
             verifyJWT(signedVC);
             return signedVC.getJWTClaimsSet().getClaims();
+        } catch (VerificationException e) {
+            log.warn("Could not retrieve status list vc.", e);
+            throw e;
         } catch (RuntimeException e) {
             log.warn("Could not retrieve status list vc.", e);
             throw statusListError(String.format("Could not retrieve status list vc from %s", uri));

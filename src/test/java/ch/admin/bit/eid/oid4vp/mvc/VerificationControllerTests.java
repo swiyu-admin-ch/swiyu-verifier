@@ -728,7 +728,7 @@ class VerificationControllerTests {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailVerifyingCredentialOnInvalidStatuslistSignature_thenError() throws Exception {
         Integer statusListIndex = Integer.parseInt("2");
@@ -736,7 +736,7 @@ class VerificationControllerTests {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any())).thenAnswer(invocation -> {
                 // holder key is not the one that should have signed the statuslist
-            var statusListGenerator = new StatusListGenerator(emulator.getKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
+            var statusListGenerator = new StatusListGenerator(emulator.getHolderKey(), emulator.getIssuerId(), emulator.getKidHeaderValue());
             return statusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST);
         });
 
@@ -756,11 +756,9 @@ class VerificationControllerTests {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
-                .andExpect(status().isOk()).andReturn();
-
-        var managementEntity = verificationManagementRepository.findById(requestId).orElseThrow();
-        Assert.state(managementEntity.getState() == VerificationStatusEnum.SUCCESS,
-                String.format("Expecting state to be failed, but got %s", managementEntity.getState()));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_request"))
+                .andExpect(jsonPath("errorDescription").value("Failed to verify JWT: Issuer public key does not match signature!"));
     }
     
 

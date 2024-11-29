@@ -12,7 +12,7 @@ As with all the generic issuance & verification services it is expected that eve
 instance of the service.
 
 The verification management service is linked to the verification validator services through a database, allowing to
-scale the validator service independently from the management service.
+scale the validator service independently of the management service.
 
 ```mermaid
 flowchart TD
@@ -58,6 +58,40 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 | POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                | string       | none          |
 | POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                                               | string       | none          |
 | POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                        | string       | none          |
+
+## Usage
+### Perform a verification
+To perform a verification, it is required to first create the request. This is done with the `POST /verifications` endpoint.
+What data is requested can be selected by adding in additional fields only containing "path".
+Filters are currently only supported for `$.vct` - the Verifiable Credential Type.
+In the following example we request to have the dateOfBirth revealed to us from a Credential with the type "elfa-sdjwt". 
+```json
+{
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name":"Example Verification",
+    "purpose":"We want to test a new Verifier",
+    "input_descriptors":[{
+        "id": "11111111-1111-1111-1111-111111111111",
+        "name": "Example Data Request",
+        "format": {"vc+sd-jwt": {"sd-jwt_alg_values":["ES256"], "kb-jwt_alg_values":["ES256"]}},
+        "constraints":{
+            "fields":[
+                {
+                    "path": ["$.vct"],
+                    "filter":{
+                        "type": "string",
+                        "const":"elfa-sdjwt"
+                        }
+                },
+                {
+                "path":["$.dateOfBirth"]
+            }]
+        }
+    }]
+}
+```
+
+The response of this post call contains the URI which has to be provided to the holder.
 
 ## Contribution
 

@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Schema(name = "Filter")
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,10 +20,10 @@ public class FilterDto {
     // According to current interop profile only exact string match is supported
     // hence the combination of type: string and const: <filter value>
     @Pattern(regexp = "string", message = "Only filter of type 'string' is supported")
-    @Schema(description = "(Optional) If present value MUST be 'string'", defaultValue = "string")
+    @Schema(description = "(Optional) If present value MUST be 'string'", example = "string", defaultValue = "string")
     private String type;
 
     @JsonProperty("const")
-    @Schema(description = "(Optional) If present value MUST be a string / no pattern")
+    @Schema(description = "(Optional) If present value MUST be a string / no pattern", example = "vct-as-in-issuer-metadata")
     private String constDescriptor;
 }

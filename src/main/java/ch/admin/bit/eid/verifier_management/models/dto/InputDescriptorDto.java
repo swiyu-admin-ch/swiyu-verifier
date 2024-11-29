@@ -12,7 +12,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 
-import java.io.Serializable;
 import java.util.Map;
 
 @Schema(name = "InputDescriptor")
@@ -21,7 +20,7 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class InputDescriptorDto implements Serializable {
+public class InputDescriptorDto {
 
     @Id
     @NotBlank(message = "Input descriptor is mandatory")

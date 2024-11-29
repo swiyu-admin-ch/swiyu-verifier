@@ -8,7 +8,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.util.List;
 
 @Schema(name = "Field")
@@ -17,7 +16,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @AllArgsConstructor
 @NoArgsConstructor
-public class FieldDto implements Serializable {
+public class FieldDto {
 
     @NotEmpty
     @Schema(description = "(Mandatory) Array of one or more JSONPath string expressions")

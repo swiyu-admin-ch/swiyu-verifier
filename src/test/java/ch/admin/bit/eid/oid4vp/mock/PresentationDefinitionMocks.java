@@ -32,15 +32,23 @@ public class PresentationDefinitionMocks {
     }
 
     public static PresentationDefinition createPresentationDefinitionMock(UUID requestId,
-                                                                          List<String> requiredFields,
+                                                                          List<String> fields,
                                                                           Map<String, FormatAlgorithm> descriptorFormats,
                                                                           Map<String, FormatAlgorithm> presentationFormats) {
-        Field field = Field.builder()
-                .path(requiredFields)
-                .build();
+        return createPresentationDefinitionWithFields(
+                requestId,
+                fields.stream().map(field -> Field.builder().path(List.of(field)).build()).toList(),
+                descriptorFormats,
+                presentationFormats
+        );
+    }
 
+    public static PresentationDefinition createPresentationDefinitionWithFields(UUID requestId,
+                                                                                List<Field> fields,
+                                                                                Map<String, FormatAlgorithm> descriptorFormats,
+                                                                                Map<String, FormatAlgorithm> presentationFormats) {
         Constraint constraint = Constraint.builder()
-                .fields(List.of(field))
+                .fields(fields)
                 .build();
 
         InputDescriptor inputDescriptor = InputDescriptor.builder()
@@ -55,5 +63,6 @@ public class PresentationDefinitionMocks {
                 .inputDescriptors(List.of(inputDescriptor))
                 .format(descriptorFormats)
                 .build();
+
     }
 }

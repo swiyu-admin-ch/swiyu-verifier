@@ -28,6 +28,7 @@ import static java.util.Objects.nonNull;
 public class SDJWTCredentialMock {
     private static final String DEFAULT_ISSUER_ID = "TEST_ISSUER_ID";
     private static final String DEFAULT_KID_HEADER_VALUE = DEFAULT_ISSUER_ID + "#key-1";
+    public static final String DEFAULT_VCT = "defaultTestVCT";
 
     private final ECKey key;
     private final ECKey holderKey;
@@ -112,22 +113,21 @@ public class SDJWTCredentialMock {
     }
 
     public String createSDJWTMock(Integer statusListIndex) {
-        return createSDJWTMock(null, null, statusListIndex);
+        return createSDJWTMock(null, null, statusListIndex, "testCredentialType");
     }
 
     public String createSDJWTMock() {
-        return createSDJWTMock(null, null, null);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT);
     }
 
     public String createSDJWTMock(Long validFrom) {
-        return createSDJWTMock(validFrom, null, null);
+        return createSDJWTMock(validFrom, null, null, DEFAULT_VCT);
     }
 
     public String createSDJWTMock(Long validFrom, Long validUntil) {
-        return createSDJWTMock(validFrom, validUntil, null);
+        return createSDJWTMock(validFrom, validUntil, null, DEFAULT_VCT);
     }
-
-    public String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex) {
+    public String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -140,6 +140,10 @@ public class SDJWTCredentialMock {
 
         if (nonNull(validUntil)) {
             builder.putClaim("exp", validUntil);
+        }
+
+        if(nonNull(vct)) {
+            builder.putClaim("vct", vct);
         }
 
         if (nonNull(statusListIndex)) {

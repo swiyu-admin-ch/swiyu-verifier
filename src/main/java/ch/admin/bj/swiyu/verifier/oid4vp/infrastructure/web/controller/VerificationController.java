@@ -1,0 +1,70 @@
+package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
+
+import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectService;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVerficationErrorResponseDto;
+import static java.util.Objects.nonNull;
+
+/**
+ * OpenID4VC Issuance Controller
+ * <p>
+ * Implements the OpenID4VCI defined endpoints
+ * <a href="https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html">OID4VCI Spec</a>
+ */
+@RestController
+@AllArgsConstructor
+@Slf4j
+@Tag(name = "OID4VP Verfifier API")
+public class VerificationController {
+
+    private final RequestObjectService requestObjectService;
+    private final VerificationService verificationService;
+
+    @GetMapping("/request-object/{request_id}")
+    @Operation(summary = "Get Request Object", description = "Can return a RequestObjectDto as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management")
+    public Object getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
+        return requestObjectService.assembleRequestObject(requestId);
+    }
+
+    @PostMapping(value = "/request-object/{request_id}/response-data",
+            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @ResponseStatus(HttpStatus.OK)
+    @RequestBody(content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
+    public void receiveVerificationPresentation(
+            @PathVariable(name = "request_id") UUID requestId,
+            VerificationPresentationRequestDto request) {
+        verificationService.receiveVerificationPresentation(requestId, request);
+    }
+
+    @ExceptionHandler(VerificationException.class)
+    ResponseEntity<VerificationErrorResponseDto> handleVerificationException(VerificationException e) {
+        var error = toVerficationErrorResponseDto(e);
+        log.warn(String.format("The received verification presentation could not be verified - caused by %s - %s", error.error(), error.errorCode()), e);
+        return new ResponseEntity<>(error, e.isAuthorizationRequestObjectNotFound() ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException e) {
+        String responseMessage = nonNull(e.getMessage()) ? e.getMessage() : "Bad request";
+        log.debug("invalid request", e);
+        return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
+    }
+
+}

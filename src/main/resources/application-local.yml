@@ -1,11 +1,10 @@
 spring:
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
   docker:
     compose:
-      enabled: false
+      enabled: true
   mvc:
     log-resolved-exception: false # see https://stackoverflow.com/a/77147791
-
+  jpa:
+    hibernate:
+      ddl-auto: create # when starting locally we connect to the db from compose.yml and generate the schema from hibernate
 

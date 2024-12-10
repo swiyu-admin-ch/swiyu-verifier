@@ -48,11 +48,10 @@ TODO shouldn't we provide information here for consumers who want to build a doc
 
 ### Local Development
 
-Run the following commands to start the service:
+Run the following commands to start the service. This will also spin up a local postgres database from
+docker-compose.yml:
 
 ```shell
-docker compose up --build # start db in docker
-mvn validate # install 3rd party libs (configured in validate phase in pom.xml, temporary workaround)
 mvn spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java application
 ```
 
@@ -68,7 +67,6 @@ After the start api definitions can be found [here](http://localhost:8080/swagge
 | VERIFIER_DID        | DID of this service-instance to identify the requester                                                                                                                                                     | string (did:tdw) | none    |
 | VERIFIER_NAME       | Client name which is included in the verification request as part of the metadata                                                                                                                          | string           | None    |
 | VERIFIER_LOGO       | Client logo uri which is included in the verification request as part of the metadata                                                                                                                      | string           | None    |
-| BBS_KEY_SEED        | Seed to generate the bbs key from [bbs-library](https://github.com/e-id-admin/bbsplus) (must be the same seed as used for issuing)                                                                         | string           | None    |
 | POSTGRES_USER       | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                                                                            | string           | none    |
 | POSTGRES_PASSWORD   | Username to connect to the Issuer Agent Database                                                                                                                                                           | string           | none    |
 | POSTGRES_URL        | JDBC Connection string to the shared DB                                                                                                                                                                    | string           | none    |

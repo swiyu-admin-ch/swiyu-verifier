@@ -19,6 +19,7 @@ springdoc:
 
 application:
   verification-ttl: 86400
+  data-clear-interval: 60
   oid4vp-url: "${OID4VP_URL}"
 
 logging:

@@ -1,14 +1,18 @@
 package ch.admin.bit.eid.verifier_management;
 
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableConfigurationProperties
 @Slf4j
+@EnableScheduling
+@EnableSchedulerLock(defaultLockAtMostFor = "5m")
 public class VerifierManagementApplication {
 
 	public static void main(String[] args) {

@@ -14,7 +14,10 @@ import org.hibernate.annotations.ColumnTransformer;
 import java.util.UUID;
 
 @Entity
-@Table(name = "management")
+@Table(
+        name = "management",
+        indexes = @Index(name = "idx_management_expires_at", columnList = "expires_at")
+)
 @Data
 @Builder
 @NoArgsConstructor
@@ -43,4 +46,12 @@ public class Management {
 
     @Column(name = "expiration_in_seconds")
     private long expirationInSeconds;
+
+    // Expiration time as unix epoch
+    @Column(name = "expires_at")
+    private long expiresAt;
+
+    public boolean isExpired() {
+        return System.currentTimeMillis() > expiresAt;
+    }
 }

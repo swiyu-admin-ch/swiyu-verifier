@@ -36,10 +36,10 @@ public class ManagementService {
 
         // TODO check expiry -> not possible at the moment only not found
 
-        if (management.getState() != VerificationStatusEnum.PENDING) {
+        if (management.isExpired()) {
             repository.deleteById(id);
 
-            log.info(createLoggingMessage("Verification result delivered and entry removed",
+            log.info(createLoggingMessage("Verifica8tion result delivered and entry removed",
                     LogEntryStatus.SUCCESS,
                     LogEntryOperation.VERIFICATION,
                     LogEntryStep.VERIFICATION_RESPONSE,
@@ -66,6 +66,7 @@ public class ManagementService {
                 .state(VerificationStatusEnum.PENDING)
                 .requestNonce(createNonce())
                 .expirationInSeconds(applicationProperties.getVerificationTTL())
+                .expiresAt(System.currentTimeMillis() + applicationProperties.getVerificationTTL() * 1000)
                 .requestedPresentation(presentationDefinition)
                 // if not set, default for jar is true (signed jwt)
                 .jwtSecuredAuthorizationRequest(requestDto.getJwtSecuredAuthorizationRequest() != null ? requestDto.getJwtSecuredAuthorizationRequest() : true)

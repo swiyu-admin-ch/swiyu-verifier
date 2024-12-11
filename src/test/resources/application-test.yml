@@ -7,3 +7,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration,classpath:/db/h2
+
+application:
+  verification-ttl: 10
+  data-clear-interval: 3

@@ -38,6 +38,7 @@ public class ManagementServiceTest {
         var management = Management.builder()
                 .id(UUID.randomUUID())
                 .state(VerificationStatusEnum.PENDING)
+                .expiresAt(System.currentTimeMillis() + 10000)
                 .build();
 
         when(repository.findById(management.getId())).thenReturn(Optional.of(management));

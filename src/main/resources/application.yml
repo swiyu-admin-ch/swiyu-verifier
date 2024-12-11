@@ -18,7 +18,8 @@ springdoc:
   show-actuator: true
 
 application:
-  verification-ttl: 86400
+  # TTL is set to 15 minutes
+  verification-ttl: 900
   data-clear-interval: 60
   oid4vp-url: "${OID4VP_URL}"
 

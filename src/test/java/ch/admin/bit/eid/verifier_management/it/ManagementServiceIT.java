@@ -1,25 +1,24 @@
 package ch.admin.bit.eid.verifier_management.it;
 
+import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
+import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.dto.CreateVerificationManagementDto;
 import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
 import ch.admin.bit.eid.verifier_management.services.ManagementService;
 import jakarta.transaction.Transactional;
-import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ActiveProfiles("test")
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = {
@@ -27,16 +26,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "application.data-clear-interval=1"
         }
 )
-@EnableScheduling
-@EnableSchedulerLock(defaultLockAtMostFor = "5m")
-public class SchedulerServiceIT {
+@ActiveProfiles("test")
+public class ManagementServiceIT {
     @Autowired
     private ManagementRepository managementRepository;
     @Autowired
     private ManagementService managementService;
 
     @Test
+    @Transactional
     public void deletionOfManagement_whenTtlExceeded_thenDeleted() throws InterruptedException {
+        // GIVEN mgmt with expires at in the future
         var mgmt = managementService.createVerificationManagement(
                 CreateVerificationManagementDto.builder()
                         .jwtSecuredAuthorizationRequest(true)
@@ -48,10 +48,21 @@ public class SchedulerServiceIT {
                                 .build())
                         .build()
         );
+        // GIVEN expired mgmt
+        var mgmt2 = Management.builder()
+                .id(UUID.randomUUID())
+                .state(VerificationStatusEnum.PENDING)
+                .expiresAt(System.currentTimeMillis() - 10000)
+                .requestNonce("nonce")
+                .jwtSecuredAuthorizationRequest(true).build();
+        managementRepository.save(mgmt2);
         assertTrue(managementRepository.findById(mgmt.getId()).isPresent());
-        // Timeout above the ttl
-        TimeUnit.MILLISECONDS.sleep(5000);
-        assertFalse(managementRepository.findById(mgmt.getId()).isPresent());
+        assertTrue(managementRepository.findById(mgmt2.getId()).isPresent());
+        // WHEN removing expired
+        managementService.removeExpiredManagements();
+        // THEN only non expired is present
+        assertTrue(managementRepository.findById(mgmt.getId()).isPresent());
+        assertFalse(managementRepository.findById(mgmt2.getId()).isPresent());
     }
 
     @Test
@@ -68,8 +79,7 @@ public class SchedulerServiceIT {
                         .build()
         );
         assertTrue(managementRepository.findById(mgmt.getId()).isPresent());
-        // Timeout below the ttl
-        TimeUnit.MILLISECONDS.sleep(1000);
+        managementService.removeExpiredManagements();
         assertTrue(managementRepository.findById(mgmt.getId()).isPresent());
     }
 }

@@ -41,7 +41,7 @@ public class ManagementService {
         if (management.isExpired()) {
             repository.deleteById(id);
 
-            log.info(createLoggingMessage("Verifica8tion result delivered and entry removed",
+            log.info(createLoggingMessage("Verification result delivered and entry removed",
                     LogEntryStatus.SUCCESS,
                     LogEntryOperation.VERIFICATION,
                     LogEntryStep.VERIFICATION_RESPONSE,

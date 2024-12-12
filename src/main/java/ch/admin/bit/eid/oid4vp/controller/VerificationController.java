@@ -61,7 +61,7 @@ public class VerificationController {
         ManagementEntity managementEntity = verificationManagementRepository.findById(requestId).orElseThrow(
                 () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, null));
 
-        if (managementEntity.getState() != VerificationStatusEnum.PENDING) {
+        if (managementEntity.isExpired() || managementEntity.getState() != VerificationStatusEnum.PENDING) {
             throw VerificationException.submissionError(VerificationErrorEnum.VERIFICATION_PROCESS_CLOSED, null);
         }
 

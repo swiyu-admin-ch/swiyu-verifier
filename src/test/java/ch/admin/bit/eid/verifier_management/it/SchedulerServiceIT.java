@@ -4,6 +4,7 @@ import ch.admin.bit.eid.verifier_management.models.dto.CreateVerificationManagem
 import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
 import ch.admin.bit.eid.verifier_management.services.ManagementService;
+import jakarta.transaction.Transactional;
 import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

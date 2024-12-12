@@ -11,6 +11,7 @@ import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
 import ch.admin.bit.eid.verifier_management.models.dto.CreateVerificationManagementDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class ManagementService {
 
     private final ApplicationProperties applicationProperties;
 
+    @Transactional
     public Management getManagement(UUID id) {
 
         Management management = repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
@@ -49,6 +51,7 @@ public class ManagementService {
         return management;
     }
 
+    @Transactional
     public Management createVerificationManagement(CreateVerificationManagementDto requestDto) {
 
         if (requestDto == null) {
@@ -79,6 +82,11 @@ public class ManagementService {
                 management.getId()));
 
         return management;
+    }
+
+    @Transactional
+    public void removeExpiredManagements() {
+        repository.deleteByExpiresAtIsBefore(System.currentTimeMillis());
     }
 
     private String createNonce() {

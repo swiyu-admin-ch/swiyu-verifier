@@ -58,6 +58,7 @@ public class VerificationController {
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRequestDto request) {
 
+        // TODO relocated this method into a service because there's some code duplication
         ManagementEntity managementEntity = verificationManagementRepository.findById(requestId).orElseThrow(
                 () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, null));
 

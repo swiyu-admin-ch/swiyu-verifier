@@ -41,6 +41,10 @@ public class RequestObjectService {
         ManagementEntity managementEntity = managementRepository.findById(presentationDefinitionId).orElseThrow(
                 () -> VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, null));
 
+        if (managementEntity.isExpired()) {
+            throw VerificationException.submissionError(VerificationErrorEnum.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, null);
+        }
+
         PresentationDefinitionDto presentation = PresentationDefinitionMapper.toDto(managementEntity.getRequestedPresentation());
 
         VerifierMetadata metadata = VerifierMetadata.builder()

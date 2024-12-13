@@ -42,4 +42,12 @@ public class ManagementEntity {
     private ResponseData walletResponse;
 
     private long expirationInSeconds;
+
+    // Expiration time as unix epoch
+    @Column(name = "expires_at")
+    private long expiresAt;
+
+    public boolean isExpired() {
+        return System.currentTimeMillis() > expiresAt;
+    }
 }

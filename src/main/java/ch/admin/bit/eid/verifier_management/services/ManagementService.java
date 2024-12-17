@@ -11,10 +11,10 @@ import ch.admin.bit.eid.verifier_management.models.Management;
 import ch.admin.bit.eid.verifier_management.models.PresentationDefinition;
 import ch.admin.bit.eid.verifier_management.models.dto.CreateVerificationManagementDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;

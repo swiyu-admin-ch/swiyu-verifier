@@ -1,11 +1,6 @@
 package ch.admin.bit.eid.verifier_management.mocks;
 
-import ch.admin.bit.eid.verifier_management.models.dto.ConstraintDto;
-import ch.admin.bit.eid.verifier_management.models.dto.CreateVerificationManagementDto;
-import ch.admin.bit.eid.verifier_management.models.dto.FieldDto;
-import ch.admin.bit.eid.verifier_management.models.dto.FormatAlgorithmDto;
-import ch.admin.bit.eid.verifier_management.models.dto.InputDescriptorDto;
-import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
+import ch.admin.bit.eid.verifier_management.models.dto.*;
 
 import java.util.List;
 import java.util.Map;

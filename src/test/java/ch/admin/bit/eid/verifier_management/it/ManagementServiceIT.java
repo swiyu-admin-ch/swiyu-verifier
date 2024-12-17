@@ -6,11 +6,11 @@ import ch.admin.bit.eid.verifier_management.models.dto.CreateVerificationManagem
 import ch.admin.bit.eid.verifier_management.models.dto.PresentationDefinitionDto;
 import ch.admin.bit.eid.verifier_management.repositories.ManagementRepository;
 import ch.admin.bit.eid.verifier_management.services.ManagementService;
-import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +35,7 @@ public class ManagementServiceIT {
 
     @Test
     @Transactional
-    public void deletionOfManagement_whenTtlExceeded_thenDeleted() throws InterruptedException {
+    public void deletionOfManagement_whenTtlExceeded_thenDeleted() {
         // GIVEN mgmt with expires at in the future
         var mgmt = managementService.createVerificationManagement(
                 CreateVerificationManagementDto.builder()
@@ -66,7 +66,7 @@ public class ManagementServiceIT {
     }
 
     @Test
-    public void deletionOfManagement_whenTtlNotExceeded_thenPresent() throws InterruptedException {
+    public void deletionOfManagement_whenTtlNotExceeded_thenPresent() {
         var mgmt = managementService.createVerificationManagement(
                 CreateVerificationManagementDto.builder()
                         .jwtSecuredAuthorizationRequest(true)

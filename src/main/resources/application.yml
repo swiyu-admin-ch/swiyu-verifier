@@ -20,10 +20,10 @@ springdoc:
 application:
   # TTL is set to 900 seconds -> 15 minutes
   verification-ttl: 900
-  # Clearing interval is set to 70'000 milliseconds -> 7minutes
+  # Clearing interval is set to 60k * 7 = 420k -> 7minutes
   # to make sure the data is cleared before the TTL expires
   # which is more than twice as long
-  data-clear-interval: 70000
+  data-clear-interval: 420000
   oid4vp-url: "${OID4VP_URL}"
 
 logging:

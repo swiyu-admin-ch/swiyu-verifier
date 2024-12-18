@@ -18,9 +18,12 @@ springdoc:
   show-actuator: true
 
 application:
-  # TTL is set to 15 minutes
+  # TTL is set to 900 seconds -> 15 minutes
   verification-ttl: 900
-  data-clear-interval: 60
+  # Clearing interval is set to 70'000 milliseconds -> 7minutes
+  # to make sure the data is cleared before the TTL expires
+  # which is more than twice as long
+  data-clear-interval: 70000
   oid4vp-url: "${OID4VP_URL}"
 
 logging:

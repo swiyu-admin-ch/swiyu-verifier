@@ -86,6 +86,7 @@ public class ManagementService {
 
     @Transactional
     public void removeExpiredManagements() {
+        log.info("Start scheduled removing of expired managements");
         repository.deleteByExpiresAtIsBefore(System.currentTimeMillis());
     }
 

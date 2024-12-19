@@ -2,10 +2,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.management;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,6 +26,10 @@ public class ManagementEntity {
 
     private String requestNonce;
 
+    // Note: we store the enum as ordinal but as string in the database, this is a techdebt
+    // and should be EnumType.STRING
+    @Column(columnDefinition = "text")
+    @Enumerated(EnumType.ORDINAL)
     private VerificationStatus state;
 
     @NotNull
@@ -42,7 +43,7 @@ public class ManagementEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private ResponseData walletResponse;
 
-    private long expirationInSeconds;
+    private int expirationInSeconds;
 
     /**
      * Expiration time as unix epoch

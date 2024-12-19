@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVerficationErrorResponseDto;
-import static java.util.Objects.nonNull;
 
 /**
  * OpenID4VC Issuance Controller
@@ -58,13 +57,6 @@ public class VerificationController {
         var error = toVerficationErrorResponseDto(e);
         log.warn(String.format("The received verification presentation could not be verified - caused by %s - %s", error.error(), error.errorCode()), e);
         return new ResponseEntity<>(error, e.isAuthorizationRequestObjectNotFound() ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException e) {
-        String responseMessage = nonNull(e.getMessage()) ? e.getMessage() : "Bad request";
-        log.debug("invalid request", e);
-        return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
     }
 
 }

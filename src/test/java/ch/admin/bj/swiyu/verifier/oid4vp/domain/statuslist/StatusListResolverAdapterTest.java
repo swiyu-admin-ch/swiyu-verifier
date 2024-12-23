@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -19,7 +20,7 @@ public class StatusListResolverAdapterTest {
 
     @BeforeEach
     void setUp() {
-        statusListResolverAdapter = new StatusListResolverAdapter(new UrlRewriteProperties());
+        statusListResolverAdapter = new StatusListResolverAdapter(new UrlRewriteProperties(), mock(RestClient.Builder.class));
     }
 
     @Test

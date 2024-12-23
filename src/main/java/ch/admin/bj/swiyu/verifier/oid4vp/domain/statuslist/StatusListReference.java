@@ -2,7 +2,6 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
@@ -48,8 +47,6 @@ public abstract class StatusListReference {
      */
     private final Map<String, Object> statusListReferenceClaims;
 
-    private final ManagementEntity presentationManagementEntity;
-
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
 
     /**
@@ -82,7 +79,7 @@ public abstract class StatusListReference {
     protected Map<String, Object> getStatusListVC() throws ParseException {
         var uri = getStatusListRegistryUri();
         try {
-            var vc = getStatusListResolverAdapter().resolveStatusList(uri, presentationManagementEntity);
+            var vc = getStatusListResolverAdapter().resolveStatusList(uri);
             var signedVC = SignedJWT.parse(vc);
             verifyJWT(signedVC);
             return signedVC.getJWTClaimsSet().getClaims();

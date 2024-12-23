@@ -75,7 +75,9 @@ public class StatusListReferenceFactory {
 
 
     private Function<Map<String, Object>, List<TokenStatusListReference>> createTokenStatusListReferences(ManagementEntity presentationManagementEntity) {
-        return tokenStatusListReferenceTokenEntry -> List.of(new TokenStatusListReference(statusListResolverAdapter, (Map<String, Object>) tokenStatusListReferenceTokenEntry.get("status_list"), presentationManagementEntity, issuerPublicKeyLoader));
+        return tokenStatusListReferenceTokenEntry -> List.of(
+                new TokenStatusListReference(statusListResolverAdapter, (Map<String, Object>) tokenStatusListReferenceTokenEntry.get("status_list"),
+                        issuerPublicKeyLoader));
     }
 
     private Function<Object, List<StatusListReference>> createBitStringStatusListsHigherOrder(ManagementEntity presentationManagementEntity) {

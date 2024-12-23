@@ -2,10 +2,7 @@
     <appender name="MAIN_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <charset>UTF-8</charset>
-            <!-- TODO EID-1796: log also span and trace id once observability is enabled -->
-            <!--            <Pattern>%d %highlight(%-5level) [${app},%X{traceId:-},%X{spanId:-}] %cyan(%logger{35}) - %msg%n-->
-            <!--            </Pattern>-->
-            <Pattern>%d %highlight(%-5level) [${app}] %cyan(%logger{35}) - %msg%n
+            <Pattern>%d %highlight(%-5level) [${app},%X{traceId:-},%X{spanId:-}] %cyan(%logger{35}) - %msg%n
             </Pattern>
         </encoder>
     </appender>

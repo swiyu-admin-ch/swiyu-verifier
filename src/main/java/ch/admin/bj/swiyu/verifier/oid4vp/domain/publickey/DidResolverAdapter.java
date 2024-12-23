@@ -23,6 +23,7 @@ public class DidResolverAdapter {
      * @return the DID Document for the given DID
      */
     private final UrlRewriteProperties urlRewriteProperties;
+    private final RestClient.Builder restClientBuilder;
 
     public DidDoc resolveDid(String didTdw) throws DidResolveException, TrustDidWebException {
         try (var did = new Did(didTdw)) {
@@ -35,6 +36,6 @@ public class DidResolverAdapter {
     }
 
     private String retrieveDidLog(String uri) {
-        return RestClient.create().get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
+        return restClientBuilder.build().get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
     }
 }

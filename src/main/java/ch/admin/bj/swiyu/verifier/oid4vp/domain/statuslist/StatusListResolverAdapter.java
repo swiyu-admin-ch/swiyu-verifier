@@ -3,7 +3,6 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.stereotype.Service;
@@ -21,13 +20,13 @@ public class StatusListResolverAdapter {
 
     private static final int MAX_STATUS_LIST_SIZE = 10485760; // 10 MB
     private final UrlRewriteProperties urlRewriteProperties;
+    private final RestClient.Builder restClientBuilder;
 
-    public String resolveStatusList(String uri, ManagementEntity managementEntity) {
+    public String resolveStatusList(String uri) {
         try {
             validateStatusListSize(URI.create(uri).toURL());
             var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
-            return RestClient
-                    .create()
+            return restClientBuilder.build()
                     .get()
                     .uri(rewrittenUrl)
                     .retrieve()

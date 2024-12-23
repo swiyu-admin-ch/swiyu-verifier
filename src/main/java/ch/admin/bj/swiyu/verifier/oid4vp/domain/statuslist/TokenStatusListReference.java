@@ -7,7 +7,6 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.nimbusds.jose.JOSEException;
@@ -38,8 +37,8 @@ import java.util.Optional;
 class TokenStatusListReference extends StatusListReference {
 
 
-    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, ManagementEntity presentationManagementEntity, IssuerPublicKeyLoader issuerPublicKeyLoader) {
-        super(adapter, statusListReferenceClaims, presentationManagementEntity, issuerPublicKeyLoader);
+    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, IssuerPublicKeyLoader issuerPublicKeyLoader) {
+        super(adapter, statusListReferenceClaims, issuerPublicKeyLoader);
     }
 
 

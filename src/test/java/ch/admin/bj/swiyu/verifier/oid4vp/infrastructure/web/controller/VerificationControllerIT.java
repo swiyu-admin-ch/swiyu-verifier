@@ -48,7 +48,6 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.ge
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
@@ -241,7 +240,7 @@ class VerificationControllerIT {
         Integer statusListIndex = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any()))
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT)))
                 .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
                         StatusListGenerator.SPEC_STATUS_LIST,
                         emulator.getKey(),
@@ -279,7 +278,7 @@ class VerificationControllerIT {
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any()))
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT)))
                 .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
                         StatusListGenerator.SPEC_STATUS_LIST,
                         emulator.getKey(),
@@ -519,7 +518,7 @@ class VerificationControllerIT {
         Integer statusListIndex = Integer.parseInt("2");
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any())).thenAnswer(invocation -> {
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenAnswer(invocation -> {
             // holder key is not the one that should have signed the statuslist
             return createTokenStatusListTokenVerifiableCredential(
                     StatusListGenerator.SPEC_STATUS_LIST,
@@ -629,7 +628,7 @@ class VerificationControllerIT {
 
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT), any()))
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT)))
                 .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
                         StatusListGenerator.SPEC_STATUS_LIST,
                         emulator.getKey(),

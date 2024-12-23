@@ -8,3 +8,6 @@ spring:
     hibernate:
       ddl-auto: create # when starting locally we connect to the db from compose.yml and generate the schema from hibernate
 
+logging:
+  level:
+    ch.admin.bj.swiyu: DEBUG

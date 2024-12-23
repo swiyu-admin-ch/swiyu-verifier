@@ -42,4 +42,5 @@ management:
 
 logging:
   level:
+    ch.admin.bj.swiyu: INFO
     ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RequestLoggingFilter: DEBUG

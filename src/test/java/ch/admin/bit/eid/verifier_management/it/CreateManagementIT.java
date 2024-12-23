@@ -2,6 +2,7 @@ package ch.admin.bit.eid.verifier_management.it;
 
 import ch.admin.bit.eid.verifier_management.enums.VerificationStatusEnum;
 import ch.admin.bit.eid.verifier_management.mocks.VerificationRequestMock;
+import ch.admin.bit.eid.verifier_management.models.dto.FormatAlgorithmDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -57,8 +59,8 @@ class CreateManagementIT {
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name").value(reqDescriptor0.getName()))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints").isNotEmpty())
 
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.%s.sd-jwt_alg_values[0]".formatted(sdJWTFormatType)).value(sdJwtFormat.getAlg().get(0)))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.%s.kb-jwt_alg_values[0]".formatted(sdJWTFormatType)).value(sdJwtFormat.getKeyBindingAlg().get(0)))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.%s.sd-jwt_alg_values[0]".formatted(sdJWTFormatType)).value(sdJwtFormat.getAlg().getFirst()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.%s.kb-jwt_alg_values[0]".formatted(sdJWTFormatType)).value(sdJwtFormat.getKeyBindingAlg().getFirst()))
 
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].id").value(reqField0.getId()))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].name").value(reqField0.getName()))
@@ -93,7 +95,7 @@ class CreateManagementIT {
     }
 
     @Test
-    void testCreateOfferValidation_noInputDescriptor_thenException() throws Exception {
+    void testCreateOfferValidation_noInputDescriptorId_thenException() throws Exception {
         var request = VerificationRequestMock.create();
         var inputDescriptor = request.getPresentationDefinition().getInputDescriptors().getFirst();
         inputDescriptor.setId(null);
@@ -103,8 +105,8 @@ class CreateManagementIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Bad Request"))
-                .andExpect(jsonPath("$.detail").value("Invalid request content."))
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].id: Input descriptor is mandatory"))
                 .andReturn();
     }
 
@@ -119,8 +121,8 @@ class CreateManagementIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Bad Request"))
-                .andExpect(jsonPath("$.detail").value("Invalid request content."))
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].constraints: must not be null"))
                 .andReturn();
     }
 
@@ -136,8 +138,8 @@ class CreateManagementIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Bad Request"))
-                .andExpect(jsonPath("$.detail").value("Invalid request content."))
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].constraints.fields[0].path: must not be empty"))
                 .andReturn();
     }
 
@@ -152,8 +154,28 @@ class CreateManagementIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Bad Request"))
-                .andExpect(jsonPath("$.detail").value("Invalid request content."))
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].constraints.fields: must not be empty"))
+                .andReturn();
+    }
+
+    @Test
+    void testCreateOfferValidation_withInvalidAlgorithmFormats_thenExceptionWithMultipleErrors() throws Exception {
+
+        var request = VerificationRequestMock.create();
+
+        request.getPresentationDefinition().setFormat(Map.of("FailCrypt", new FormatAlgorithmDto()));
+        request.getPresentationDefinition().getInputDescriptors().getFirst().setFormat(Map.of("WeakCrypt", new FormatAlgorithmDto()));
+
+        var expectedPresentationFormatError = "presentationDefinition.format: Invalid format";
+        var expectedInputDescriptorFormatError = "presentationDefinition.inputDescriptors[0].format: Invalid format";
+
+        mvc.perform(post("/verifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.detail").value(expectedPresentationFormatError + ", " + expectedInputDescriptorFormatError))
                 .andReturn();
     }
 

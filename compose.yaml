@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres
+    image: postgres:15.8
     environment:
       POSTGRES_USER: "verifier_validator_user"
       POSTGRES_PASSWORD: "secret"
@@ -12,8 +12,3 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    volumes:
-      - db_data:/var/lib/postgresql/data
-
-volumes:
-  db_data:

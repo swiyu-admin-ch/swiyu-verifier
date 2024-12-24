@@ -16,9 +16,6 @@ spring:
     url: "${POSTGRES_JDBC}"
     username: "${secret.db.username:${POSTGRES_USER}}"
     password: "${secret.db.password:${POSTGRES_PASSWORD}}"
-  docker:
-    compose:
-      enabled: false
   jpa:
     open-in-view: false
     hibernate:

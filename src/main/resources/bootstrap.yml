@@ -6,6 +6,9 @@ spring:
     # is configured here. This way the application name is available in early log outputs on
     # startup.
     name: verifier-oid4vp
+  docker:
+    compose:
+      enabled: false
   cloud:
     kubernetes:
       config:

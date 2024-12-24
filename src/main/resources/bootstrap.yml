@@ -1,6 +1,9 @@
 server:
   port: 8080
 spring:
+  docker:
+    compose:
+      enabled: false
   application:
     name: verifier-agent-management
   cloud:

@@ -5,10 +5,11 @@ spring:
     url: "${POSTGRES_JDBC}"
     username: "${secret.db.username:${POSTGRES_USER}}"
     password: "${secret.db.password:${POSTGRES_PASSWORD}}"
-
   flyway:
     enabled: true
     locations: classpath:db/migration/common
+  jpa:
+    open-in-view: false
 
 springdoc:
   swagger-ui:
@@ -28,4 +29,4 @@ application:
 
 logging:
   level:
-    ch.admin.bit.eid.verifier_management.infrastructure.logging.RequestLoggingFilter: DEBUG
+    ch.admin.bj.swiyu.verifier.management.infrastructure.web.config.RequestLoggingFilter: DEBUG

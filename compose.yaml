@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres
+    image: postgres:15.8
     environment:
       POSTGRES_USER: "verifier_mgmt_user"
       POSTGRES_PASSWORD: "secret"
@@ -8,12 +8,7 @@ services:
     ports:
       - '5434:5432'
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U verifier_mgmt_user -D verifier_db" ]
+      test: [ "CMD-SHELL", "pg_isready -U verifier_mgmt_user -d verifier_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
-    volumes:
-      - db_data:/var/lib/postgresql/data
-
-volumes:
-  db_data:

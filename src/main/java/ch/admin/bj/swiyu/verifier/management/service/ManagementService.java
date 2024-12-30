@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.management.service.ManagementMapper.toManagementResponseDto;
 import static ch.admin.bj.swiyu.verifier.management.service.ManagementMapper.toPresentationDefinition;
+import static java.util.Objects.requireNonNullElse;
 
 @Service
 @AllArgsConstructor
@@ -41,16 +42,16 @@ public class ManagementService {
         if (request == null) {
             throw new IllegalArgumentException("CreateVerificationManagement is null");
         }
-        if (request.getPresentationDefinition() == null) {
+        if (request.presentationDefinition() == null) {
             throw new IllegalArgumentException("PresentationDefinition is null");
         }
 
-        var presentationDefinition = toPresentationDefinition(request.getPresentationDefinition());
+        var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
         var management = repository.save(new Management(
                 UUID.randomUUID(),
                 applicationProperties.getVerificationTTL(),
                 presentationDefinition,
-                request.getJwtSecuredAuthorizationRequest() != null ? request.getJwtSecuredAuthorizationRequest() : true));
+                requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true)));
 
         log.info("Created pending verification for id: {}", management.getId());
 

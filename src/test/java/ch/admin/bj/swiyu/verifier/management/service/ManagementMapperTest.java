@@ -13,6 +13,7 @@ import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.pr
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ManagementFixtures.management;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.util.CollectionUtils.isEmpty;
 
 class ManagementMapperTest {
 
@@ -26,18 +27,18 @@ class ManagementMapperTest {
         var dto = toManagementResponseDto(mgmt, OID4VP_URL);
         // THEN
         assertNotNull(dto);
-        assertEquals(mgmt.getId(), dto.getId());
-        assertThat(dto.getRequestNonce()).isNotBlank();
-        assertEquals(mgmt.getState().toString(), dto.getState().toString());
-        assertNotNull(dto.getPresentationDefinition());
-        assertEquals(mgmt.getRequestedPresentation().id(), dto.getPresentationDefinition().getId());
-        assertEquals(mgmt.getRequestedPresentation().name(), dto.getPresentationDefinition().getName());
-        assertEquals(mgmt.getRequestedPresentation().purpose(), dto.getPresentationDefinition().getPurpose());
-        assertEqualFormat(mgmt.getRequestedPresentation().format(), dto.getPresentationDefinition().getFormat());
-        assertEqualInputDescriptors(mgmt.getRequestedPresentation().inputDescriptors(), dto.getPresentationDefinition().getInputDescriptors());
-        assertNull(dto.getWalletResponse());
+        assertEquals(mgmt.getId(), dto.id());
+        assertThat(dto.requestNonce()).isNotBlank();
+        assertEquals(mgmt.getState().toString(), dto.state().toString());
+        assertNotNull(dto.presentationDefinition());
+        assertEquals(mgmt.getRequestedPresentation().id(), dto.presentationDefinition().id());
+        assertEquals(mgmt.getRequestedPresentation().name(), dto.presentationDefinition().name());
+        assertEquals(mgmt.getRequestedPresentation().purpose(), dto.presentationDefinition().purpose());
+        assertEqualFormat(mgmt.getRequestedPresentation().format(), dto.presentationDefinition().format());
+        assertEqualInputDescriptors(mgmt.getRequestedPresentation().inputDescriptors(), dto.presentationDefinition().inputDescriptors());
+        assertNull(dto.walletResponse());
         String expectedVerificationUrl = "%s/request-object/%s".formatted(OID4VP_URL, mgmt.getId());
-        assertEquals(expectedVerificationUrl, dto.getVerificationUrl());
+        assertEquals(expectedVerificationUrl, dto.verificationUrl());
     }
 
     @Test
@@ -57,11 +58,11 @@ class ManagementMapperTest {
         var result = toPresentationDefinition(dto);
         // THEN
         assertNotNull(result);
-        assertEquals(dto.getId(), result.id());
-        assertEquals(dto.getName(), result.name());
-        assertEquals(dto.getPurpose(), result.purpose());
-        assertEqualFormat(result.format(), dto.getFormat());
-        assertEqualInputDescriptors(result.inputDescriptors(), dto.getInputDescriptors());
+        assertEquals(dto.id(), result.id());
+        assertEquals(dto.name(), result.name());
+        assertEquals(dto.purpose(), result.purpose());
+        assertEqualFormat(result.format(), dto.format());
+        assertEqualInputDescriptors(result.inputDescriptors(), dto.inputDescriptors());
 
     }
 
@@ -75,28 +76,28 @@ class ManagementMapperTest {
     }
 
     private void assertEqualInputDescriptors(List<PresentationDefinition.InputDescriptor> left, List<InputDescriptorDto> right) {
-        if (left == null) {
-            assertNull(right);
+        if (isEmpty(left)) {
+            assertThat(right).isNullOrEmpty();
             return;
         }
         assertThat(left).hasSameSizeAs(right);
         for (int i = 0; i < left.size(); i++) {
             var leftInputDescriptor = left.get(i);
             var rightInputDescriptor = right.get(i);
-            assertEquals(leftInputDescriptor.id(), rightInputDescriptor.getId());
-            assertEquals(leftInputDescriptor.name(), rightInputDescriptor.getName());
-            assertEquals(leftInputDescriptor.purpose(), rightInputDescriptor.getPurpose());
-            assertEqualConstraints(leftInputDescriptor.constraints(), rightInputDescriptor.getConstraints());
+            assertEquals(leftInputDescriptor.id(), rightInputDescriptor.id());
+            assertEquals(leftInputDescriptor.name(), rightInputDescriptor.name());
+            assertEquals(leftInputDescriptor.purpose(), rightInputDescriptor.purpose());
+            assertEqualConstraints(leftInputDescriptor.constraints(), rightInputDescriptor.constraints());
         }
 
     }
 
     private void assertEqualConstraints(PresentationDefinition.Constraint left, ConstraintDto right) {
-        assertEquals(left.id(), right.getId());
-        assertEquals(left.name(), right.getName());
-        assertEquals(left.purpose(), right.getPurpose());
-        assertEqualFormat(left.format(), right.getFormat());
-        assertEqualFields(left.fields(), right.getFields());
+        assertEquals(left.id(), right.id());
+        assertEquals(left.name(), right.name());
+        assertEquals(left.purpose(), right.purpose());
+        assertEqualFormat(left.format(), right.format());
+        assertEqualFields(left.fields(), right.fields());
     }
 
     private void assertEqualFields(List<PresentationDefinition.Field> left, List<FieldDto> right) {
@@ -104,10 +105,10 @@ class ManagementMapperTest {
         for (int i = 0; i < left.size(); i++) {
             var leftField = left.get(i);
             var rightField = right.get(i);
-            assertEquals(leftField.id(), rightField.getId());
-            assertEquals(leftField.name(), rightField.getName());
-            assertEquals(leftField.purpose(), rightField.getPurpose());
-            assertEqualFilter(leftField.filter(), rightField.getFilter());
+            assertEquals(leftField.id(), rightField.id());
+            assertEquals(leftField.name(), rightField.name());
+            assertEquals(leftField.purpose(), rightField.purpose());
+            assertEqualFilter(leftField.filter(), rightField.filter());
         }
     }
 
@@ -116,13 +117,13 @@ class ManagementMapperTest {
             assertNull(right);
             return;
         }
-        assertEquals(left.constDescriptor(), right.getConstDescriptor());
-        assertEquals(left.type(), right.getType());
+        assertEquals(left.constDescriptor(), right.constDescriptor());
+        assertEquals(left.type(), right.type());
     }
 
     private void assertEqualFormat(Map<String, PresentationDefinition.FormatAlgorithm> left, Map<String, FormatAlgorithmDto> right) {
-        if (left == null) {
-            assertNull(right);
+        if (isEmpty(left)) {
+            assertThat(right).isNullOrEmpty();
             return;
         }
         assertThat(left).hasSameSizeAs(right);
@@ -130,10 +131,10 @@ class ManagementMapperTest {
             var leftFormat = entry.getValue();
             var rightFormat = right.get(entry.getKey());
             assertThat(rightFormat).isNotNull();
-            assertThat(rightFormat.getAlg()).hasSameSizeAs(leftFormat.alg());
-            assertThat(rightFormat.getKeyBindingAlg()).hasSameSizeAs(leftFormat.keyBindingAlg());
-            assertThat(rightFormat.getAlg()).containsExactlyElementsOf(leftFormat.alg());
-            assertThat(rightFormat.getKeyBindingAlg()).containsExactlyElementsOf(leftFormat.keyBindingAlg());
+            assertThat(rightFormat.alg()).hasSameSizeAs(leftFormat.alg());
+            assertThat(rightFormat.keyBindingAlg()).hasSameSizeAs(leftFormat.keyBindingAlg());
+            assertThat(rightFormat.alg()).containsExactlyElementsOf(leftFormat.alg());
+            assertThat(rightFormat.keyBindingAlg()).containsExactlyElementsOf(leftFormat.keyBindingAlg());
         }
     }
 }

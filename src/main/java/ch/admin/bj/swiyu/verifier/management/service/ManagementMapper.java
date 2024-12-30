@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.management.domain.management.PresentationDefinition.*;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Objects.nonNull;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
@@ -46,11 +47,11 @@ public class ManagementMapper {
             throw new IllegalArgumentException("PresentationDefinitionDto must not be null");
         }
         return new PresentationDefinition(
-                source.getId(),
-                source.getName(),
-                source.getPurpose(),
-                toFormatAlgorithmMap(source.getFormat()),
-                toInputDescriptor(source.getInputDescriptors())
+                source.id(),
+                source.name(),
+                source.purpose(),
+                toFormatAlgorithmMap(source.format()),
+                toInputDescriptor(source.inputDescriptors())
         );
     }
 
@@ -82,7 +83,7 @@ public class ManagementMapper {
         if (isEmpty(source)) {
             return emptyList();
         }
-        return source.stream().map(ManagementMapper::toInputDescriptorDto).collect(Collectors.toList());
+        return source.stream().map(ManagementMapper::toInputDescriptorDto).toList();
     }
 
     private static InputDescriptorDto toInputDescriptorDto(InputDescriptor source) {
@@ -123,10 +124,10 @@ public class ManagementMapper {
     }
 
     private static List<FieldDto> toFieldDto(List<Field> source) {
-        if (source == null) {
-            return null;
+        if (isEmpty(source)) {
+            return emptyList();
         }
-        return source.stream().map(ManagementMapper::toFieldDto).collect(Collectors.toList());
+        return source.stream().map(ManagementMapper::toFieldDto).toList();
     }
 
     private static FieldDto toFieldDto(Field source) {
@@ -150,13 +151,13 @@ public class ManagementMapper {
     }
 
     private static Map<String, FormatAlgorithmDto> toFormatAlgorithmDtoMap(Map<String, FormatAlgorithm> source) {
-        if (source == null) {
-            return null;
+        if (isEmpty(source)) {
+            return emptyMap();
         }
         return source.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        (entry) -> toFormatAlgorithmDto(entry.getValue())
+                        entry -> toFormatAlgorithmDto(entry.getValue())
                 ));
     }
 
@@ -168,21 +169,21 @@ public class ManagementMapper {
     }
 
     private static Map<String, FormatAlgorithm> toFormatAlgorithmMap(Map<String, FormatAlgorithmDto> source) {
-        if (source == null) {
-            return null;
+        if (isEmpty(source)) {
+            return emptyMap();
         }
         return source.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        (entry) -> toFormatAlgorithm(entry.getValue())
+                        entry -> toFormatAlgorithm(entry.getValue())
                 ));
     }
 
     private static List<InputDescriptor> toInputDescriptor(List<InputDescriptorDto> source) {
-        if (source == null) {
-            return null;
+        if (isEmpty(source)) {
+            return emptyList();
         }
-        return source.stream().map(ManagementMapper::toInputDescriptor).collect(Collectors.toList());
+        return source.stream().map(ManagementMapper::toInputDescriptor).toList();
     }
 
     private static InputDescriptor toInputDescriptor(InputDescriptorDto source) {
@@ -190,11 +191,11 @@ public class ManagementMapper {
             return null;
         }
         return new InputDescriptor(
-                source.getId(),
-                source.getName(),
-                source.getPurpose(),
-                toFormatAlgorithmMap(source.getFormat()),
-                toConstraint(source.getConstraints())
+                source.id(),
+                source.name(),
+                source.purpose(),
+                toFormatAlgorithmMap(source.format()),
+                toConstraint(source.constraints())
         );
     }
 
@@ -203,32 +204,32 @@ public class ManagementMapper {
             return null;
         }
         return new Constraint(
-                source.getId(),
-                source.getName(),
-                source.getPurpose(),
-                toFormatAlgorithmMap(source.getFormat()),
-                toField(source.getFields()));
+                source.id(),
+                source.name(),
+                source.purpose(),
+                toFormatAlgorithmMap(source.format()),
+                toField(source.fields()));
     }
 
     private static List<Field> toField(List<FieldDto> source) {
         if (isEmpty(source)) {
             return emptyList();
         }
-        return source.stream().map(ManagementMapper::toField).collect(Collectors.toList());
+        return source.stream().map(ManagementMapper::toField).toList();
     }
 
     private static Field toField(FieldDto source) {
         if (source == null) {
             return null;
         }
-        return new Field(toStringList(source.getPath()), source.getId(), source.getName(), source.getPurpose(), toFilter(source.getFilter()));
+        return new Field(toStringList(source.path()), source.id(), source.name(), source.purpose(), toFilter(source.filter()));
     }
 
     private static Filter toFilter(FilterDto source) {
         if (source == null) {
             return null;
         }
-        return new Filter(source.getType(), source.getConstDescriptor());
+        return new Filter(source.type(), source.constDescriptor());
     }
 
     private static FormatAlgorithm toFormatAlgorithm(FormatAlgorithmDto source) {
@@ -236,8 +237,8 @@ public class ManagementMapper {
             return null;
         }
         return new FormatAlgorithm(
-                toStringList(source.getAlg()),
-                toStringList(source.getKeyBindingAlg())
+                toStringList(source.alg()),
+                toStringList(source.keyBindingAlg())
         );
     }
 

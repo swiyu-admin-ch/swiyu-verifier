@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -34,37 +35,31 @@ class NullOrValidFormatAlgorithmValidatorTest {
 
     @Test
     void testIsValid_ValidFormat() {
-        FormatAlgorithmDto dto = FormatAlgorithmDto.builder()
-                .alg(List.of("alg1", "alg2"))
-                .keyBindingAlg(List.of("keyBindingAlg1"))
-                .build();
-
-        Map<String, FormatAlgorithmDto> format = Map.of("vc+sd-jwt", dto);
-
-        assertTrue(validator.isValid(format, context));
+        // GIVEN
+        var formatMap = Map.of("vc+sd-jwt", new FormatAlgorithmDto(
+                List.of("alg1", "alg2"),
+                List.of("keyBindingAlg1"))
+        );
+        // WHEN / THEN
+        assertTrue(validator.isValid(formatMap, context));
     }
 
     @Test
     void testIsValid_InvalidFormatKey() {
-        FormatAlgorithmDto dto = FormatAlgorithmDto.builder()
-                .alg(List.of("alg1", "alg2"))
-                .keyBindingAlg(List.of("keyBindingAlg1"))
-                .build();
-
-        Map<String, FormatAlgorithmDto> format = Map.of("invalid-key", dto);
-
-        assertFalse(validator.isValid(format, context));
+        // GIVEN
+        var formatMap = Map.of("invalid-key", new FormatAlgorithmDto(
+                List.of("alg1", "alg2"),
+                List.of("keyBindingAlg1"))
+        );
+        // WHEN / THEN
+        assertFalse(validator.isValid(formatMap, context));
     }
 
     @Test
     void testIsValid_InvalidFormatValue() {
-        FormatAlgorithmDto dto = FormatAlgorithmDto.builder()
-                .alg(List.of())
-                .keyBindingAlg(null)
-                .build();
-
-        Map<String, FormatAlgorithmDto> format = Map.of("vc+sd-jwt", dto);
-
-        assertFalse(validator.isValid(format, context));
+        // GIVEN
+        var formatMap = Map.of("invalid-key", new FormatAlgorithmDto(emptyList(), null));
+        // WHEN / THEN
+        assertFalse(validator.isValid(formatMap, context));
     }
 }

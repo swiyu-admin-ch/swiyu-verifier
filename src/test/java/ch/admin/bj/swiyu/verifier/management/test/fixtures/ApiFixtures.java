@@ -4,10 +4,7 @@ import ch.admin.bj.swiyu.verifier.management.api.definition.*;
 import ch.admin.bj.swiyu.verifier.management.api.management.CreateVerificationManagementDto;
 import lombok.experimental.UtilityClass;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.hibernate.internal.util.collections.CollectionHelper.isEmpty;
 
@@ -19,79 +16,102 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto(PresentationDefinitionDto presentationDefinition) {
-        return CreateVerificationManagementDto.builder()
-                .jwtSecuredAuthorizationRequest(false)
-                .presentationDefinition(presentationDefinition)
-                .build();
+        return new CreateVerificationManagementDto(false, presentationDefinition);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
-        var pres = PresentationDefinitionDto.builder()
-                .inputDescriptors(
-                        List.of(InputDescriptorDto.builder()
-                                .id(UUID.randomUUID().toString())
-                                .constraints(ConstraintDto.builder()
-                                        .fields(List.of(FieldDto.builder()
-                                                .path(List.of("string"))
-                                                .build()))
-                                        .build())
-                                .build()))
-                .build();
-        return CreateVerificationManagementDto.builder()
-                .jwtSecuredAuthorizationRequest(isJWTSecured)
-                .presentationDefinition(pres)
-                .build();
+        var inputDescriptorMinimal = new InputDescriptorDto(
+                UUID.randomUUID().toString(),
+                null,
+                null,
+                null,
+                new ConstraintDto(
+                        null,
+                        null,
+                        null,
+                        null,
+                        new ArrayList<>(List.of(new FieldDto(List.of("string"), null, null, null, null))),
+                        null
+                )
+        );
+        return new CreateVerificationManagementDto(isJWTSecured, new PresentationDefinitionDto(
+                UUID.randomUUID().toString(),
+                null,
+                null,
+                null,
+                List.of(inputDescriptorMinimal))
+        );
     }
 
     public static PresentationDefinitionDto presentationDefinitionDto() {
-        return PresentationDefinitionDto
-                .builder()
-                .id(UUID.randomUUID().toString())
-                .name("presentation_definition_name")
-                .purpose("presentation_definition_purpose")
-                .inputDescriptors(List.of(inputDescriptorDto()))
-                .format(formatAlgorithmDtoMap())
-                .build();
+        return new PresentationDefinitionDto(
+                UUID.randomUUID().toString(),
+                "presentation_definition_name",
+                "presentation_definition_purpose",
+                formatAlgorithmDtoMap(),
+                new ArrayList<>(List.of(inputDescriptorDto())));
     }
 
     public static InputDescriptorDto inputDescriptorDto() {
-        return InputDescriptorDto.builder()
-                .id(UUID.randomUUID().toString())
-                .name("input_descriptor_name")
-                .purpose("input_descriptor_purpose")
-                .format(Map.of("vc+sd-jwt", formatAlgorithmDto()))
-                .constraints(constraintDto())
-                .build();
+        return inputDescriptorDto(UUID.randomUUID().toString());
     }
 
-    private static FormatAlgorithmDto formatAlgorithmDto() {
-        return FormatAlgorithmDto.builder()
-                .alg(List.of("ES256"))
-                .keyBindingAlg(List.of("ES256"))
-                .build();
+    public static InputDescriptorDto inputDescriptorDto_WithoutConstraints() {
+        return new InputDescriptorDto(
+                UUID.randomUUID().toString(),
+                "input_descriptor_name",
+                "input_descriptor_purpose",
+                formatAlgorithmDtoMap(),
+                null);
     }
 
-    private static ConstraintDto constraintDto() {
-        return ConstraintDto.builder()
-                .fields(List.of(fieldDto(List.of())))
-                .build();
+    public static InputDescriptorDto inputDescriptorDto_Invalid() {
+        return new InputDescriptorDto(
+                UUID.randomUUID().toString(),
+                "input_descriptor_name",
+                "input_descriptor_purpose",
+                Map.of("WeakCrypt", new FormatAlgorithmDto(null, null)),
+                constraintDto());
     }
 
-    public static FieldDto fieldDto(List<String> path) {
-        return FieldDto.builder()
-                .path(isEmpty(path) ? List.of("$.test", "$.test2") : path)
-                .id(UUID.randomUUID().toString())
-                .name("field_name")
-                .purpose("field_purpose")
-                .build();
+    public static InputDescriptorDto inputDescriptorDto(String id) {
+        return new InputDescriptorDto(
+                id,
+                "input_descriptor_name",
+                "input_descriptor_purpose",
+                formatAlgorithmDtoMap(),
+                constraintDto());
     }
 
     public static Map<String, FormatAlgorithmDto> formatAlgorithmDtoMap() {
-        var formats = List.of("EC256");
+        return new HashMap<>(Map.of("vc+sd-jwt", formatAlgorithmDto()));
+    }
 
-        return new HashMap<>(Map.of("vc+sd-jwt", FormatAlgorithmDto.builder()
-                .alg(formats)
-                .keyBindingAlg(formats)
-                .build()));
+    private static FormatAlgorithmDto formatAlgorithmDto() {
+        return new FormatAlgorithmDto(List.of("ES256"), List.of("ES256"));
+    }
+
+    private static ConstraintDto constraintDto() {
+        return constraintDto(null);
+    }
+
+    private static ConstraintDto constraintDto(Map<String, FormatAlgorithmDto> format) {
+        return new ConstraintDto(
+                null,
+                null,
+                null,
+                format,
+                new ArrayList<>(List.of(fieldDto(List.of()))),
+                null
+        );
+    }
+
+    public static FieldDto fieldDto(List<String> path) {
+        return new FieldDto(
+                isEmpty(path) ? List.of("$.test", "$.test2") : path,
+                UUID.randomUUID().toString(),
+                "field_name",
+                "field_purpose",
+                null);
     }
 }

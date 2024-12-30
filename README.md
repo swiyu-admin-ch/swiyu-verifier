@@ -29,64 +29,77 @@ flowchart TD
 
 ## How to start
 
-## Setup
+### Local Development
 
-- Start application VerifierManagementApplication with local profile
-    - Starts docker compose for database
-    - Runs Flyway migrations if needed
-- Api definitions can be found [here](http://localhost:8080/swagger-ui/index.html#/)
+Run the following commands to start the service. This will also spin up a local postgres database from
+the docker compose.yml:
 
-or:
-Start database with:
 ```shell
-docker compose up --build
+mvn spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java application
 ```
 
-Run application with:
-```shell
-mvn spring-boot:run -Dspring-boot.run.profiles=local
-```
+After the start api definitions can be found [here](http://localhost:8080/swagger-ui/index.html)
 
 ## Implementation details
 
 ### Environment variables
 
-| Variable          | Description                                                                                                                    | Type         | Default       |
-|-------------------|--------------------------------------------------------------------------------------------------------------------------------|--------------|---------------|
-| OID4VP_URL        | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/e-id-admin/eidch-verifier-agent-oid4vp) | string (url) | none          |
-| POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                | string       | none          |
-| POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                                               | string       | none          |
-| POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                        | string       | none          |
+| Variable          | Description                                                                                                                                            | Type         | Default |
+|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
+| OID4VP_URL        | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/e-id-admin/eidch-verifier-agent-oid4vp) | string (url) | none    |
+| POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                        | string       | none    |
+| POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                                                                       | string       | none    |
+| POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                                                | string       | none    |
 
 ## Usage
+
 ### Perform a verification
-To perform a verification, it is required to first create the request. This is done with the `POST /verifications` endpoint.
+
+To perform a verification, it is required to first create the request. This is done with the `POST /verifications`
+endpoint.
 What data is requested can be selected by adding in additional fields only containing "path".
 Filters are currently only supported for `$.vct` - the Verifiable Credential Type.
-In the following example we request to have the dateOfBirth revealed to us from a Credential with the type "elfa-sdjwt". 
+In the following example we request to have the dateOfBirth revealed to us from a Credential with the type "elfa-sdjwt".
+
 ```json
 {
-    "id": "00000000-0000-0000-0000-000000000000",
-    "name":"Example Verification",
-    "purpose":"We want to test a new Verifier",
-    "input_descriptors":[{
-        "id": "11111111-1111-1111-1111-111111111111",
-        "name": "Example Data Request",
-        "format": {"vc+sd-jwt": {"sd-jwt_alg_values":["ES256"], "kb-jwt_alg_values":["ES256"]}},
-        "constraints":{
-            "fields":[
-                {
-                    "path": ["$.vct"],
-                    "filter":{
-                        "type": "string",
-                        "const":"elfa-sdjwt"
-                        }
-                },
-                {
-                "path":["$.dateOfBirth"]
-            }]
+  "id": "00000000-0000-0000-0000-000000000000",
+  "name": "Example Verification",
+  "purpose": "We want to test a new Verifier",
+  "input_descriptors": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Example Data Request",
+      "format": {
+        "vc+sd-jwt": {
+          "sd-jwt_alg_values": [
+            "ES256"
+          ],
+          "kb-jwt_alg_values": [
+            "ES256"
+          ]
         }
-    }]
+      },
+      "constraints": {
+        "fields": [
+          {
+            "path": [
+              "$.vct"
+            ],
+            "filter": {
+              "type": "string",
+              "const": "elfa-sdjwt"
+            }
+          },
+          {
+            "path": [
+              "$.dateOfBirth"
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }
 ```
 

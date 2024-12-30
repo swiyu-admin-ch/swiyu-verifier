@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import lombok.Builder;
 import org.springframework.data.annotation.Id;
 
 import java.util.List;
@@ -18,7 +17,6 @@ import java.util.Map;
  * <p>
  * See <a href="https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition">presentation-definition</a>
  */
-@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record PresentationDefinition(
         String id,
@@ -30,7 +28,6 @@ public record PresentationDefinition(
         @JsonProperty("input_descriptors")
         List<InputDescriptor> inputDescriptors
 ) {
-    @Builder
     public record FormatAlgorithm(
             @NotNull
             @NotEmpty
@@ -43,7 +40,6 @@ public record PresentationDefinition(
     ) {
     }
 
-    @Builder
     public record InputDescriptor(
             @Id
             @NotBlank(message = "Input descriptor is mandatory")
@@ -57,7 +53,6 @@ public record PresentationDefinition(
     ) {
     }
 
-    @Builder
     public record Constraint(
             // todo clarify why it is non-null here, but not in oid4vp
             // @Id
@@ -71,7 +66,6 @@ public record PresentationDefinition(
     ) {
     }
 
-    @Builder
     public record Field(
             @NotEmpty
             List<String> path,
@@ -82,7 +76,6 @@ public record PresentationDefinition(
     ) {
     }
 
-    @Builder
     public record Filter(
             @Pattern(regexp = "string", message = "Only filter of type 'string' is supported")
             String type,

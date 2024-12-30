@@ -24,7 +24,7 @@ class NullOrValidFormatAlgorithmValidator implements ConstraintValidator<NullOrV
         final String acceptedSDJWTSFormat = "vc+sd-jwt";
 
         return acceptedSDJWTSFormat.equals(entry.getKey())
-                && entry.getValue().getAlg() != null && !entry.getValue().getAlg().isEmpty()
-                && entry.getValue().getKeyBindingAlg() != null;
+                && entry.getValue().alg() != null && !entry.getValue().alg().isEmpty()
+                && entry.getValue().keyBindingAlg() != null;
     }
 }

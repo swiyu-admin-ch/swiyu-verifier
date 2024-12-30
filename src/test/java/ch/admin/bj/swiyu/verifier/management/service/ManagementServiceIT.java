@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest
 @ActiveProfiles("test")
 @Transactional(propagation = Propagation.NOT_SUPPORTED) // we don't want the tests to start in a transaction by default
-public class ManagementServiceIT {
+class ManagementServiceIT {
 
     @Autowired
     private ManagementRepository managementRepository;
@@ -40,23 +40,23 @@ public class ManagementServiceIT {
     private TransactionTemplate transaction;
 
     @Test
-    public void createVerificationManagementTest() {
+    void createVerificationManagementTest() {
         // GIVEN
         var request = createVerificationManagementDto();
         // WHEN
         var result = managementService.createVerificationManagement(request);
         // THEN
-        var management = managementRepository.findById(result.getId()).orElseThrow();
+        var management = managementRepository.findById(result.id()).orElseThrow();
         assertThat(management.getId()).isNotNull();
         assertThat(management.getRequestNonce()).isNotBlank();
         assertThat(management.getState()).isEqualTo(VerificationStatus.PENDING);
-        assertThat(management.getJwtSecuredAuthorizationRequest()).isEqualTo(request.getJwtSecuredAuthorizationRequest());
+        assertThat(management.getJwtSecuredAuthorizationRequest()).isEqualTo(request.jwtSecuredAuthorizationRequest());
         assertThat(management.getExpirationInSeconds()).isEqualTo(900);
         assertThat(management.getWalletResponse()).isNull();
     }
 
     @Test
-    public void removeExpiredManagements_whenTtlExceeded_thenDeleted() {
+    void removeExpiredManagements_whenTtlExceeded_thenDeleted() {
         // GIVEN valid and expired management
         var mgmtValid = managementRepository.save(management(900));
         var mgmtExpired = managementRepository.saveAndFlush(management(-100));
@@ -71,7 +71,7 @@ public class ManagementServiceIT {
     }
 
     @Test
-    public void removeExpiredManagements_whenTtlNotExceeded_thenPresent() {
+    void removeExpiredManagements_whenTtlNotExceeded_thenPresent() {
         // GIVEN
         var mgmtValid = managementRepository.save(management(900));
         assertTrue(managementRepository.findById(mgmtValid.getId()).isPresent());
@@ -89,22 +89,23 @@ public class ManagementServiceIT {
         // WHEN
         var result = managementService.getManagement(management.getId());
         // THEN
-        assertEquals(management.getId(), result.getId());
+        assertEquals(management.getId(), result.id());
     }
 
     @Test
     void getManagement_ShouldThrowException() {
-        assertThrows(VerificationNotFoundException.class, () -> managementService.getManagement(UUID.randomUUID()));
+        var id = UUID.randomUUID();
+        assertThrows(VerificationNotFoundException.class, () -> managementService.getManagement(id));
     }
 
     @Test
     void getManagement_ShouldDeleteEntryAfterPending() {
         // GIVEN
-        var expiredManagement = managementRepository.save(management(-100));
+        var id = managementRepository.save(management(-100)).getId();
         // WHEN
-        managementService.getManagement(expiredManagement.getId());
+        managementService.getManagement(id);
         // THEN
-        assertThrows(VerificationNotFoundException.class, () -> managementService.getManagement(expiredManagement.getId()));
+        assertThrows(VerificationNotFoundException.class, () -> managementService.getManagement(id));
     }
 
     @Test
@@ -112,16 +113,16 @@ public class ManagementServiceIT {
         // GIVEN
         var management = management();
         managementRepository.saveAndFlush(management);
-        // now jpql query to update state
+        // imitate the behaviour of the OID4VP application and mark verification as failed
         imitateVerificationFailed(management.getId());
 
         // WHEN
         var result = managementService.getManagement(management.getId());
         // THEN
-        assertEquals(management.getId(), result.getId());
-        assertEquals(VerificationErrorResponseCodeDto.CREDENTIAL_INVALID, result.getWalletResponse().getErrorCode());
-        assertEquals("value", result.getWalletResponse().getCredentialSubjectData().get("key"));
-        assertEquals("Not Found", result.getWalletResponse().getErrorDescription());
+        assertEquals(management.getId(), result.id());
+        assertEquals(VerificationErrorResponseCodeDto.CREDENTIAL_INVALID, result.walletResponse().errorCode());
+        assertEquals("value", result.walletResponse().credentialSubjectData().get("key"));
+        assertEquals("Not Found", result.walletResponse().errorDescription());
     }
 
     @Test
@@ -137,6 +138,9 @@ public class ManagementServiceIT {
         assertThrows(IllegalArgumentException.class, () -> managementService.createVerificationManagement(nullPresentationInRequest));
     }
 
+    /**
+     * Sets the state to FAILED and updates the walletResponse as the OID4VP application would do.
+     */
     private void imitateVerificationFailed(UUID id) {
         transaction.executeWithoutResult(status -> {
             entityManager.createQuery("UPDATE Management m SET m.state = :state, m.walletResponse = :walletResponse WHERE m.id = :id")

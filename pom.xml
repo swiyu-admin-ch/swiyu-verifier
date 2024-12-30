@@ -15,8 +15,6 @@
     <description>Generic verifier for public beta</description>
     <properties>
         <java.version>21</java.version>
-        <sonar.jacoco.itReportPath>${project.basedir}/../target/jacoco-it.exec</sonar.jacoco.itReportPath>
-        <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
         <!-- dependency versions -->
         <archunit-junit5.verion>1.3.0</archunit-junit5.verion>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
@@ -25,6 +23,15 @@
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <json-path.version>2.9.0</json-path.version>
         <spring-cloud-dependencies.version>2023.0.4</spring-cloud-dependencies.version>
+        <!-- Sonar -->
+        <sonar.jacoco.itReportPath>${project.basedir}/../target/jacoco-it.exec</sonar.jacoco.itReportPath>
+        <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
+        <sonar.cpd.exclusions>
+            **/*Dto.java
+        </sonar.cpd.exclusions>
+        <sonar.coverage.exclusions>
+            **/*Dto.java,**/config/*,**/*Exception.java,**/*Constants.java,**/*Registry.java,**/*Config.java,**/*Mock*,**/*Application.java
+        </sonar.coverage.exclusions>
     </properties>
     <dependencies>
         <dependency>
@@ -210,6 +217,10 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

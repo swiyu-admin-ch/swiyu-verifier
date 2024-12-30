@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 
+import ch.admin.bj.swiyu.verifier.management.api.definition.FieldDto;
 import ch.admin.bj.swiyu.verifier.management.api.definition.FormatAlgorithmDto;
 import ch.admin.bj.swiyu.verifier.management.domain.management.VerificationStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,11 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.List;
-import java.util.Map;
-
-import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.createVerificationManagementDto;
-import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.createVerificationManagementDto_Minimal;
+import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -41,9 +38,9 @@ class VerifierManagementControllerIT {
 
         var sdJWTFormatType = "vc+sd-jwt";
 
-        var reqDescriptor0 = request.getPresentationDefinition().getInputDescriptors().getFirst();
-        var reqField0 = reqDescriptor0.getConstraints().getFields().getFirst();
-        var sdJwtFormat = reqDescriptor0.getFormat().get(sdJWTFormatType);
+        var reqDescriptor0 = request.presentationDefinition().inputDescriptors().getFirst();
+        var reqField0 = reqDescriptor0.constraints().fields().getFirst();
+        var sdJwtFormat = reqDescriptor0.format().get(sdJWTFormatType);
 
         MvcResult result = mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -59,21 +56,21 @@ class VerifierManagementControllerIT {
                 .andExpect(jsonPath("$.presentation_definition.id").isNotEmpty())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors").isArray())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors.length()").value(1))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].id").value(reqDescriptor0.getId()))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name").value(reqDescriptor0.getName()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].id").value(reqDescriptor0.id()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name").value(reqDescriptor0.name()))
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints").isNotEmpty())
 
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.%s.sd-jwt_alg_values[0]".formatted(sdJWTFormatType)).value(sdJwtFormat.getAlg().getFirst()))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.%s.kb-jwt_alg_values[0]".formatted(sdJWTFormatType)).value(sdJwtFormat.getKeyBindingAlg().getFirst()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.%s.sd-jwt_alg_values[0]".formatted(sdJWTFormatType)).value(sdJwtFormat.alg().getFirst()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.%s.kb-jwt_alg_values[0]".formatted(sdJWTFormatType)).value(sdJwtFormat.keyBindingAlg().getFirst()))
 
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].id").value(reqField0.getId()))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].name").value(reqField0.getName()))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].purpose").value(reqField0.getPurpose()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].id").value(reqField0.id()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].name").value(reqField0.name()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].purpose").value(reqField0.purpose()))
 
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path").isArray())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path.length()").value(2))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[0]").value(reqField0.getPath().getFirst()))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[1]").value(reqField0.getPath().get(1)))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[0]").value(reqField0.path().getFirst()))
+                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[1]").value(reqField0.path().get(1)))
                 .andReturn();
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
@@ -101,9 +98,8 @@ class VerifierManagementControllerIT {
     @Test
     void testCreateOfferValidation_noInputDescriptorId_thenException() throws Exception {
         var request = createVerificationManagementDto();
-        var inputDescriptor = request.getPresentationDefinition().getInputDescriptors().getFirst();
-        inputDescriptor.setId(null);
-        request.getPresentationDefinition().setInputDescriptors(List.of(inputDescriptor));
+        request.presentationDefinition().inputDescriptors().clear();
+        request.presentationDefinition().inputDescriptors().add(inputDescriptorDto(null));
 
         mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -117,9 +113,8 @@ class VerifierManagementControllerIT {
     @Test
     void testCreateOfferValidation_noConstraints_thenException() throws Exception {
         var request = createVerificationManagementDto();
-        var inputDescriptor = request.getPresentationDefinition().getInputDescriptors().getFirst();
-        inputDescriptor.setConstraints(null);
-        request.getPresentationDefinition().setInputDescriptors(List.of(inputDescriptor));
+        request.presentationDefinition().inputDescriptors().clear();
+        request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_WithoutConstraints());
 
         mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -132,12 +127,12 @@ class VerifierManagementControllerIT {
 
     @Test
     void testCreateOfferValidation_noFieldPath_thenException() throws Exception {
-
+        // GIVEN
         var request = createVerificationManagementDto();
-        var constraints = request.getPresentationDefinition().getInputDescriptors().getFirst().getConstraints();
-        var newField = constraints.getFields().getFirst().toBuilder().path(null).build();
-        constraints.setFields(List.of(newField));
-
+        var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
+        constraints.fields().clear();
+        constraints.fields().add(new FieldDto(null, null, null, null, null));
+        // WHEN / THEN
         mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
@@ -149,11 +144,12 @@ class VerifierManagementControllerIT {
 
     @Test
     void testCreateOfferValidation_emptyFieldPath_thenException() throws Exception {
-
+        // GIVEN
         var request = createVerificationManagementDto();
-        var constraints = request.getPresentationDefinition().getInputDescriptors().getFirst().getConstraints();
-        constraints.setFields(List.of());
+        var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
+        constraints.fields().clear();
 
+        // WHEN / THEN
         mvc.perform(post("/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
@@ -165,12 +161,14 @@ class VerifierManagementControllerIT {
 
     @Test
     void testCreateOfferValidation_withInvalidAlgorithmFormats_thenExceptionWithMultipleErrors() throws Exception {
-
+        // GIVEN
         var request = createVerificationManagementDto();
+        request.presentationDefinition().inputDescriptors().clear();
+        request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_Invalid());
+        request.presentationDefinition().format().clear();
+        request.presentationDefinition().format().put("FailCrypt", new FormatAlgorithmDto(null, null));
 
-        request.getPresentationDefinition().setFormat(Map.of("FailCrypt", new FormatAlgorithmDto()));
-        request.getPresentationDefinition().getInputDescriptors().getFirst().setFormat(Map.of("WeakCrypt", new FormatAlgorithmDto()));
-
+        // WHEN / THEN
         var expectedPresentationFormatError = "presentationDefinition.format: Invalid format";
         var expectedInputDescriptorFormatError = "presentationDefinition.inputDescriptors[0].format: Invalid format";
 

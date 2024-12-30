@@ -1,3 +1,7 @@
+application:
+  signing_key: "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIGYpEuy/ijtVu+QOIsmXiK9HNPQ0bkBX+wvhaFAh/zoKoAoGCCqGSM49\nAwEHoUQDQgAEoqBwmYd3RAHs+sFe/U7UFTXbkWmPAaqKTHCvsV8tvxWeng+OkMo1\n8QOT2rDNk+qMBrCJnyyiRU6jMdH4q3z1Pg==\n-----END EC PRIVATE KEY-----\n"
+  signing-key-verification-method: "did:example:12345#key-1"
+
 spring:
   docker:
     compose:

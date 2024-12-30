@@ -18,6 +18,22 @@ springdoc:
       enabled: true
   show-actuator: true
 
+management:
+  endpoint:
+    health:
+      enabled: true
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+
 application:
   # TTL is set to 900 seconds -> 15 minutes
   verification-ttl: 900
@@ -29,4 +45,5 @@ application:
 
 logging:
   level:
+    ch.admin.bj.swiyu: INFO
     ch.admin.bj.swiyu.verifier.management.infrastructure.web.config.RequestLoggingFilter: DEBUG

@@ -75,12 +75,12 @@ class RequestLoggingFilter extends OncePerRequestFilter {
                 value("uri", servletServerHttpRequest.getURI().toASCIIString()),
                 keyValue("result", response.getStatus()),
                 keyValue("dt", durationTime),
-                keyValue("remoteAddr", remoteAddress == null ? null : remoteAddress.toString()),
+                keyValue("remoteAddr", remoteAddress.toString()),
                 keyValue("requestHeaders", servletServerHttpRequest.getHeaders()),
                 keyValue("responseHeaders", responseHeaders));
     }
 
     private static String method(ServletServerHttpRequest request) {
-        return request.getMethod() == null ? UNKNOWN_METHOD : request.getMethod().toString();
+        return request.getMethod().toString();
     }
 }

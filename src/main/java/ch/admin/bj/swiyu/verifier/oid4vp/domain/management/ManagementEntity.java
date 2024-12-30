@@ -26,10 +26,7 @@ public class ManagementEntity {
 
     private String requestNonce;
 
-    // Note: we store the enum as ordinal but as string in the database, this is a techdebt
-    // and should be EnumType.STRING
-    @Column(columnDefinition = "text")
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     private VerificationStatus state;
 
     @NotNull

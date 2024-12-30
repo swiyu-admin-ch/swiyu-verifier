@@ -27,11 +27,11 @@ public class ManagementService {
 
     @Transactional
     public ManagementResponseDto getManagement(UUID id) {
+        log.debug("requested verification for id: {}", id);
         var management = repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
-        // TODO check expiry -> not possible at the moment only not found
         if (management.isExpired()) {
             repository.deleteById(id);
-            log.info("Verification result delivered and entry removed for id: {}", management.getId());
+            log.info("Deleted management for id since it is expired: {}", management.getId());
         }
         return toManagementResponseDto(management, applicationProperties.getOid4vpUrl());
     }

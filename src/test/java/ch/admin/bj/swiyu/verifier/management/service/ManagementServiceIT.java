@@ -1,15 +1,21 @@
 package ch.admin.bj.swiyu.verifier.management.service;
 
+import ch.admin.bj.swiyu.verifier.management.api.management.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.management.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.management.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.management.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.management.domain.management.ResponseData;
+import ch.admin.bj.swiyu.verifier.management.domain.management.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.management.domain.management.VerificationStatus;
-import org.junit.jupiter.api.BeforeEach;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.UUID;
 
@@ -21,17 +27,17 @@ import static org.junit.jupiter.api.Assertions.*;
 @Import({ManagementService.class, ApplicationProperties.class})
 @DataJpaTest
 @ActiveProfiles("test")
+@Transactional(propagation = Propagation.NOT_SUPPORTED) // we don't want the tests to start in a transaction by default
 public class ManagementServiceIT {
 
     @Autowired
     private ManagementRepository managementRepository;
     @Autowired
     private ManagementService managementService;
-
-
-    @BeforeEach
-    void setUp() {
-    }
+    @Autowired
+    private EntityManager entityManager;
+    @Autowired
+    private TransactionTemplate transaction;
 
     @Test
     public void createVerificationManagementTest() {
@@ -99,8 +105,23 @@ public class ManagementServiceIT {
         managementService.getManagement(expiredManagement.getId());
         // THEN
         assertThrows(VerificationNotFoundException.class, () -> managementService.getManagement(expiredManagement.getId()));
+    }
 
+    @Test
+    void getManagement_ShouldReturnManagement_WithResponseData() {
+        // GIVEN
+        var management = management();
+        managementRepository.saveAndFlush(management);
+        // now jpql query to update state
+        imitateVerificationFailed(management.getId());
 
+        // WHEN
+        var result = managementService.getManagement(management.getId());
+        // THEN
+        assertEquals(management.getId(), result.getId());
+        assertEquals(VerificationErrorResponseCodeDto.CREDENTIAL_INVALID, result.getWalletResponse().getErrorCode());
+        assertEquals("value", result.getWalletResponse().getCredentialSubjectData().get("key"));
+        assertEquals("Not Found", result.getWalletResponse().getErrorDescription());
     }
 
     @Test
@@ -114,5 +135,19 @@ public class ManagementServiceIT {
         var nullPresentationInRequest = createVerificationManagementDto(null);
         // WHEN / THEN
         assertThrows(IllegalArgumentException.class, () -> managementService.createVerificationManagement(nullPresentationInRequest));
+    }
+
+    private void imitateVerificationFailed(UUID id) {
+        transaction.executeWithoutResult(status -> {
+            entityManager.createQuery("UPDATE Management m SET m.state = :state, m.walletResponse = :walletResponse WHERE m.id = :id")
+                    .setParameter("id", id)
+                    .setParameter("state", VerificationStatus.FAILED)
+                    .setParameter("walletResponse", new ResponseData(
+                            VerificationErrorResponseCode.CREDENTIAL_INVALID,
+                            "Not Found",
+                            "{\"key\":\"value\"}"
+                    ))
+                    .executeUpdate();
+        });
     }
 }

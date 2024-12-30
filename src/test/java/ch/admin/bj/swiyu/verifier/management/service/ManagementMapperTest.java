@@ -74,7 +74,6 @@ class ManagementMapperTest {
         assertEquals("PresentationDefinitionDto must not be null", exception.getMessage());
     }
 
-
     private void assertEqualInputDescriptors(List<PresentationDefinition.InputDescriptor> left, List<InputDescriptorDto> right) {
         if (left == null) {
             assertNull(right);
@@ -137,100 +136,4 @@ class ManagementMapperTest {
             assertThat(rightFormat.getKeyBindingAlg()).containsExactlyElementsOf(leftFormat.keyBindingAlg());
         }
     }
-
-//
-//    @Test
-//    void testToDto() {
-//        InputDescriptor model = InputDescriptor.builder()
-//                .id(UUID.randomUUID().toString())
-//                .name("Test Name")
-//                .purpose("Test Purpose")
-//                .constraints(ConstraintDto.builder().build())
-//                .format(ApiFixtures.createFormatAlgorithmDto())
-//                .build();
-//
-//        InputDescriptorDto dto = InputDescriptorMapper.toDto(model);
-//
-//        assertNotNull(dto);
-//        assertEquals(model.getId(), dto.getId());
-//        assertEquals(model.getName(), dto.getName());
-//        assertEquals(model.getPurpose(), dto.getPurpose());
-//        assertEquals(model.getConstraints(), dto.getConstraints());
-//        assertEquals(model.getFormat(), dto.getFormat());
-//    }
-//
-//    @Test
-//    void testToDto_NullModel() {
-//        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-//            InputDescriptorMapper.toDto(null);
-//        });
-//
-//        assertEquals("InputDescriptor cannot be null", exception.getMessage());
-//    }
-//
-//    @Test
-//    void testToDTOs() {
-//        InputDescriptor model1 = InputDescriptor.builder()
-//                .id(UUID.randomUUID().toString())
-//                .name("Test Name 1")
-//                .purpose("Test Purpose 1")
-//                .constraints(ConstraintDto.builder().build())
-//                .format(ApiFixtures.createFormatAlgorithmDto())
-//                .build();
-//
-//        InputDescriptor model2 = InputDescriptor.builder()
-//                .id(UUID.randomUUID().toString())
-//                .name("Test Name 2")
-//                .purpose("Test Purpose 2")
-//                .constraints(ConstraintDto.builder().build())
-//                .format(ApiFixtures.createFormatAlgorithmDto())
-//                .build();
-//
-//        List<InputDescriptorDto> dtos = InputDescriptorMapper.toDTOs(List.of(model1, model2));
-//
-//        assertNotNull(dtos);
-//        assertEquals(2, dtos.size());
-//        assertEquals(model1.getId(), dtos.get(0).getId());
-//        assertEquals(model2.getId(), dtos.get(1).getId());
-//    }
-
-//    @Test
-//    void toDto_ShouldThrowException_WhenResponseDataIsNull() {
-//        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-//            ResponseDataMapper.toDto(null);
-//        });
-//
-//        assertEquals("Response data cannot be null", exception.getMessage());
-//    }
-//
-//    @Test
-//    void toDto_ShouldMapFieldsCorrectly_WhenResponseDataIsValid() {
-//        ResponseData responseData = new ResponseData();
-//        responseData.setErrorCode(VerificationErrorResponseCodeDto.CREDENTIAL_INVALID);
-//        responseData.setErrorDescription("Not Found");
-//        responseData.setCredentialSubjectData("{\"key\":\"value\"}");
-//
-//        ResponseDataDto responseDataDto = ResponseDataMapper.toDto(responseData);
-//
-//        assertNotNull(responseDataDto);
-//        assertEquals(VerificationErrorResponseCodeDto.CREDENTIAL_INVALID, responseDataDto.getErrorCode());
-//        assertEquals("Not Found", responseDataDto.getErrorDescription());
-//        assertNotNull(responseDataDto.getCredentialSubjectData());
-//        assertEquals("value", responseDataDto.getCredentialSubjectData().get("key"));
-//    }
-//
-//    @Test
-//    void toDto_ShouldHandleNullCredentialSubjectData() {
-//        ResponseData responseData = new ResponseData();
-//        responseData.setErrorCode(VerificationErrorResponseCodeDto.CREDENTIAL_INVALID);
-//        responseData.setErrorDescription("Not Found");
-//        responseData.setCredentialSubjectData(null);
-//
-//        ResponseDataDto responseDataDto = ResponseDataMapper.toDto(responseData);
-//
-//        assertNotNull(responseDataDto);
-//        assertEquals(VerificationErrorResponseCodeDto.CREDENTIAL_INVALID, responseDataDto.getErrorCode());
-//        assertEquals("Not Found", responseDataDto.getErrorDescription());
-//        assertNull(responseDataDto.getCredentialSubjectData());
-//    }
 }

@@ -29,6 +29,7 @@ public class Management {
 
     private String requestNonce;
 
+    @Enumerated(EnumType.STRING)
     private VerificationStatusEnum state;
 
     @NotNull

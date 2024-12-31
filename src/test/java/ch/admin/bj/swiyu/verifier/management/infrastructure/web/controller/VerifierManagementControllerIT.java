@@ -106,7 +106,7 @@ class VerifierManagementControllerIT {
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].id: Input descriptor is mandatory"))
+                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].id: id of input descriptor is mandatory"))
                 .andReturn();
     }
 

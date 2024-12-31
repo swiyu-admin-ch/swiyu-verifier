@@ -11,7 +11,6 @@ import java.util.List;
 public record FieldDto(
         @NotEmpty
         @Schema(description = "(Mandatory) Array of one or more JSONPath string expressions")
-        // TODO NullOrJsonPath
         List<String> path,
 
         @Schema(description = "(Optional) If present value MUST be a string that is unique")
@@ -26,5 +25,5 @@ public record FieldDto(
         @Schema(description = "(Optional) If present object with one or more properties matching the registered Claim Format")
         FilterDto filter
 ) {
-    // TODO other fields are currently ignored -> check https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor
+    // Note: some other fields are currently ignored -> check https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor
 }

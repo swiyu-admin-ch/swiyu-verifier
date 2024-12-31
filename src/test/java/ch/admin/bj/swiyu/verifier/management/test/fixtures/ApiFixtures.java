@@ -26,7 +26,7 @@ public class ApiFixtures {
                 null,
                 null,
                 new ConstraintDto(
-                        null,
+                        UUID.randomUUID().toString(),
                         null,
                         null,
                         null,
@@ -97,7 +97,7 @@ public class ApiFixtures {
 
     private static ConstraintDto constraintDto(Map<String, FormatAlgorithmDto> format) {
         return new ConstraintDto(
-                null,
+                UUID.randomUUID().toString(),
                 null,
                 null,
                 format,

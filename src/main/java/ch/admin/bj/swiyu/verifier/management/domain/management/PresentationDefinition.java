@@ -42,7 +42,7 @@ public record PresentationDefinition(
 
     public record InputDescriptor(
             @Id
-            @NotBlank(message = "Input descriptor is mandatory")
+            @NotBlank(message = "id of input descriptor is mandatory")
             String id,
             String name,
             String purpose,
@@ -54,9 +54,8 @@ public record PresentationDefinition(
     }
 
     public record Constraint(
-            // todo clarify why it is non-null here, but not in oid4vp
-            // @Id
-            // @NotBlank(message = "Input descriptor is mandatory")
+            @Id
+            @NotBlank(message = "Id of constraint is mandatory")
             String id,
             String name,
             String purpose,

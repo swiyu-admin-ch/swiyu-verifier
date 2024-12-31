@@ -13,7 +13,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record InputDescriptorDto(
         @Id
-        @NotBlank(message = "Input descriptor is mandatory")
+        @NotBlank(message = "id of input descriptor is mandatory")
         @Schema(description = "(Mandatory) unique string with no conflict with another id in the Presentation Definition", example = "11111111-1111-1111-1111-111111111111")
         String id,
 

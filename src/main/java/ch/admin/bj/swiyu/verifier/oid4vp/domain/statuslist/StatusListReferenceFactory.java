@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
 import kotlin.NotImplementedError;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 
 @Component
 @AllArgsConstructor
+@Slf4j
 public class StatusListReferenceFactory {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListResolverAdapter statusListResolverAdapter;
@@ -70,6 +72,7 @@ public class StatusListReferenceFactory {
         Optional.ofNullable(vcClaims.get("credentialStatus"))
                 .map(createBitStringStatusListsHigherOrder(presentationManagementEntity))
                 .ifPresent(referenceList::addAll);
+        log.trace("Built {} StatusListReferences for fetching status lists for id {}", referenceList.size(), presentationManagementEntity.getId());
         return referenceList;
     }
 

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -36,6 +37,7 @@ import static org.springframework.util.StringUtils.hasText;
  */
 @AllArgsConstructor
 @Service
+@Slf4j
 public class IssuerPublicKeyLoader {
 
     /**
@@ -87,6 +89,7 @@ public class IssuerPublicKeyLoader {
      */
     public PublicKey loadPublicKey(String issuer, String kid) throws LoadingPublicKeyOfIssuerFailedException {
         try {
+            log.trace("Fetching Public Key {} for issuer {}", kid, issuer);
             VerificationMethod method = loadVerificationMethod(issuer, kid);
             return parsePublicKey(method);
         } catch (DidResolveException | TrustDidWebException | RuntimeException e) {
@@ -113,7 +116,7 @@ public class IssuerPublicKeyLoader {
                 throw new IllegalStateException(("Could not resolve public key from issuer %s since its resolved DID " +
                         "document does not contain any verification methods").formatted(issuerDidTdw));
             }
-
+            log.trace("Resolved did document for issuer {}", issuerDidTdw);
             // Step 2: find the right method matching the key
             var method = verificationMethods.stream()
                     .filter(m -> m.getId().equals(issuerKeyId))
@@ -122,6 +125,7 @@ public class IssuerPublicKeyLoader {
                 throw new IllegalStateException(("Could not resolve public key from issuer %s since its resolved DID " +
                         "document does not contain any public keys for the key %s").formatted(issuerDidTdw, issuerKeyId));
             }
+            log.trace("Found Verification Method {}", issuerDidTdw);
             return method.get();
         }
     }

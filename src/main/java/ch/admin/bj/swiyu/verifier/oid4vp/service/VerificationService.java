@@ -50,6 +50,7 @@ public class VerificationService {
         try {
             // 1. Check if the process is still pending and not expired
             var entity = getManagementEntity(managementEntityId);
+            log.trace("Loaded management entity for {}", managementEntityId);
             verifyProcessNotClosed(entity);
 
             // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
@@ -59,10 +60,14 @@ public class VerificationService {
             }
 
             // 3. verifiy the presentation submission
+            log.trace("Starting submission verification for {}", managementEntityId);
             var credentialSubjectData = verifyPresentation(entity, request);
+            log.trace("Submission verification completed for {}", managementEntityId);
             markVerificationAsSucceeded(managementEntityId, credentialSubjectData);
+            log.trace("Saved successful verification result for {}", managementEntityId);
         } catch (VerificationException e) {
             markVerificationAsFailed(managementEntityId, e);
+            log.trace("Saved failed verification result for {}", managementEntityId);
             throw e; // rethrow since client get notified of the error
         }
     }
@@ -95,6 +100,7 @@ public class VerificationService {
         if (isBlank(request.getVp_token()) || isNull(presentationSubmission)) {
             throw submissionError(AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM);
         }
+        log.trace("Successfully verified presentation submission for id {}", entity.getId());
         return verifyPresentation(entity, request.getVp_token(), presentationSubmission);
 
     }
@@ -109,6 +115,7 @@ public class VerificationService {
         switch (format) {
             case SdjwtCredentialVerifier.CREDENTIAL_FORMAT -> {
                 var credentialToBeProcessed = extractVerifiableCredential(vpToken, managementEntity, presentationSubmission);
+                log.trace("Prepared VC for verification for id {}", managementEntity.getId());
                 var verifier = new SdjwtCredentialVerifier(
                         credentialToBeProcessed,
                         managementEntity,

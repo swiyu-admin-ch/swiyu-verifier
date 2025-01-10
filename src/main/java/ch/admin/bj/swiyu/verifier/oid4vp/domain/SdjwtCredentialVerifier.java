@@ -88,6 +88,7 @@ public class SdjwtCredentialVerifier {
         } catch (LoadingPublicKeyOfIssuerFailedException e) {
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
         }
+        log.trace("Loaded issuer public key for id {}", managementEntity.getId());
 
         // Step 3 (SD-JWT spec 8.1 / 2.3): validate the Issuer (that it is in trust
         // registry)
@@ -111,6 +112,7 @@ public class SdjwtCredentialVerifier {
             throw credentialError(e, CREDENTIAL_INVALID, "Signature mismatch");
         }
 
+        log.trace("Successfully verified signature of id {}", managementEntity.getId());
         // Step 5 (SD-JWT spec 8.1 / 2.4): Check that alg header is supported (currently
         // only alg="ES256" with type="vc+sd-jwt")
         var header = claims.getHeader();
@@ -130,7 +132,9 @@ public class SdjwtCredentialVerifier {
         int disclosureLength = parts.length;
         if (hasKeyBinding(payload)) {
             disclosureLength -= 1;
+            log.trace("Verifying holder keybinding of id {}", managementEntity.getId());
             validateKeyBinding(payload, parts[parts.length - 1]);
+            log.trace("Successfully verified holder keybinding of id {}", managementEntity.getId());
         }
 
         // Step 7 (SD-JWT spec 8.1 / 3 ): Process the Disclosures and embedded digests
@@ -138,7 +142,7 @@ public class SdjwtCredentialVerifier {
         List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, disclosureLength))
                 .map(Disclosure::parse).toList();
         List<String> digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
-
+        log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntity.getId());
         // Note for SD-JWT spec 8.1 / 3.3.2: Check if "disclosures" contains an "_sd"
         // arguments and throw exception when thats the case
         // -> since we don't expect issuers to add "_sd" to the claim, we don't need to
@@ -155,13 +159,16 @@ public class SdjwtCredentialVerifier {
             throw credentialError(CREDENTIAL_INVALID,
                     "Could not verify JWT problem with disclosures and _sd field");
         }
+        log.trace("Successfully verified disclosure digests of id {}", managementEntity.getId());
+
+        // Check VC Status
+        verifyStatus(payload);
+        // The VC is valid, we can now begin to check the data submission
 
         // Confirm that the returned Credential(s) meet all criteria sent in the
         // Presentation Definition in the Authorization Request.
         var sdjwt = checkPresentationDefinitionCriteria(payload, disclosures);
-
-        // Check VC Status
-        verifyStatus(payload);
+        log.trace("Successfully verified the presented VC for id {}", managementEntity.getId());
         return sdjwt;
     }
 
@@ -176,13 +183,14 @@ public class SdjwtCredentialVerifier {
 
         try {
             Map<String, Object> decodedSDJWT = decoder.decode(expectedMap, disclosures);
+            log.trace("Decoded SD-JWT to clear data for id {}", managementEntity.getId());
             sdJWTString = objectMapper.writeValueAsString(decodedSDJWT);
         } catch (PathNotFoundException e) {
             throw credentialError(e, CREDENTIAL_INVALID, e.getMessage());
         } catch (JsonProcessingException e) {
             throw credentialError(e, CREDENTIAL_INVALID, "An error occurred while parsing SDJWT");
         }
-
+        log.trace("Checking presentation data with definition criteria for id {}", managementEntity.getId());
         checkCommonPresentationDefinitionCriteria(sdJWTString, managementEntity);
 
         return sdJWTString;

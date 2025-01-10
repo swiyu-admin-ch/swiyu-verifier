@@ -13,6 +13,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jwt.SignedJWT;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.security.PublicKey;
@@ -34,6 +35,7 @@ import java.util.Optional;
  * </code>
  * </pre>
  */
+@Slf4j
 class TokenStatusListReference extends StatusListReference {
 
 
@@ -46,12 +48,15 @@ class TokenStatusListReference extends StatusListReference {
     public void verifyStatus() {
         try {
             Map<String, Object> statusListVC = getStatusListVC();
+            log.trace("Begin unpacking Status List");
             Map<String, Object> statusListData = (Map<String, Object>) statusListVC.get("status_list");
             int statusListBits = Integer.parseInt(statusListData.get("bits").toString());
             String zippedStatusList = (String) statusListData.get("lst");
             TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(statusListBits, zippedStatusList);
+            log.trace("Unpacked Status List with length {}", statusList.getStatusList().length);
             int statusListIndex = Integer.parseInt(getStatusListReferenceClaims().get("idx").toString());
             TokenStatusListBit credentialStatus = TokenStatusListBit.createStatus(statusList.getStatus(statusListIndex));
+            log.trace("Fetched credential status");
             switch (credentialStatus) {
                 case TokenStatusListBit.VALID:
                     break; // All Good!

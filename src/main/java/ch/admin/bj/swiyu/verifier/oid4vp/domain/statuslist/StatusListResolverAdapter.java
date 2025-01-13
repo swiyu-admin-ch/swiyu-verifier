@@ -24,8 +24,8 @@ public class StatusListResolverAdapter {
 
     public String resolveStatusList(String uri) {
         try {
-            validateStatusListSize(URI.create(uri).toURL());
             var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
+            validateStatusListSize(URI.create(rewrittenUrl).toURL());
             return restClientBuilder.build()
                     .get()
                     .uri(rewrittenUrl)

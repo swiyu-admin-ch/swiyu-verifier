@@ -16,7 +16,7 @@ public class ManagementFixtures {
     }
 
     public static Management management(int expirationInSeconds) {
-        return new Management(UUID.randomUUID(), expirationInSeconds, presentationDefinition(), true);
+        return new Management(UUID.randomUUID(), expirationInSeconds, presentationDefinition(), true, List.of("did:example:123"));
     }
 
     private static PresentationDefinition presentationDefinition() {

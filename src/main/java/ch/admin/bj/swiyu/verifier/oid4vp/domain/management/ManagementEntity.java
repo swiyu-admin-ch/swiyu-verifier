@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -41,6 +42,12 @@ public class ManagementEntity {
     private ResponseData walletResponse;
 
     private int expirationInSeconds;
+
+    // Comma-separated list of accepted issuer DIDs.
+    // Supports both Postgres and H2. Since H2 lacks text[] type support, we choose simplicity
+    // over external libraries (e.g., vladmihalcea) and use a comma-separated list instead.
+    @Column(name = "accepted_issuer_dids")
+    private String acceptedIssuerDids;
 
     /**
      * Expiration time as unix epoch
@@ -81,5 +88,13 @@ public class ManagementEntity {
 
     public boolean isExpired() {
         return System.currentTimeMillis() > expiresAt;
+    }
+
+    public List<String> getAcceptedIssuerDids() {
+        if (acceptedIssuerDids != null && !acceptedIssuerDids.isBlank()) {
+            return List.of(acceptedIssuerDids.split(","));
+        } else {
+            return List.of();
+        }
     }
 }

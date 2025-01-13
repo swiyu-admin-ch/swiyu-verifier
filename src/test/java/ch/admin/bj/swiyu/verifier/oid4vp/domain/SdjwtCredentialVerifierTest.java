@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.eid.didresolver.DidResolveException;
 import ch.admin.eid.didtoolbox.TrustDidWebException;
 import com.authlete.sd.Disclosure;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
@@ -41,6 +42,8 @@ class SdjwtCredentialVerifierTest {
     @MockBean
     private DidResolverAdapter didResolverAdapter;
     @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
     @MockBean
     private StatusListReferenceFactory statusListReferenceFactory;
@@ -66,7 +69,7 @@ class SdjwtCredentialVerifierTest {
         // lookup issuers public key
         var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
-        var publicKey = issuerPublicKeyLoader.loadPublicKey(sdJWTCredential);
+        var publicKey = issuerPublicKeyLoader.loadPublicKey(emulator.getIssuerId(), emulator.getKidHeaderValue());
 
         try {
             claims = Jwts.parser()
@@ -89,7 +92,7 @@ class SdjwtCredentialVerifierTest {
 
         var presentationDefinition = sdwjtPresentationDefinition(id, List.of("$.first_name", "$.last_name", "$.birthdate"));
         var managementEntity = managementEntity(id, presentationDefinition);
-        var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory);
+        var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
 
         assertFalse(cred.checkPresentationDefinitionCriteria(claims.getPayload(), disclosures).isEmpty());
     }
@@ -99,7 +102,7 @@ class SdjwtCredentialVerifierTest {
 
         var presentationDefinition = sdwjtPresentationDefinition(id, List.of("$.first_name", "$.last_name", "$.birthdate", "$.definitely_not_there"));
         var managementEntity = managementEntity(id, presentationDefinition);
-        var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory);
+        var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
         var payload = claims.getPayload();
 
         assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(payload, disclosures));
@@ -140,7 +143,7 @@ class SdjwtCredentialVerifierTest {
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory);
+        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
         cred.verifyPresentation();
     }
 
@@ -179,7 +182,7 @@ class SdjwtCredentialVerifierTest {
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory);
+        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
         assertThrows(VerificationException.class, cred::verifyPresentation);
         // We will not have the failed state here, as this is set in th exception handling
     }

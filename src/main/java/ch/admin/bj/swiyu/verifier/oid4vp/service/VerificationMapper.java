@@ -37,6 +37,7 @@ public class VerificationMapper {
             case PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE ->
                     VerificationErrorResponseCodeDto.PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
+            case ISSUER_NOT_ACCEPTED -> VerificationErrorResponseCodeDto.ISSUER_NOT_ACCEPTED;
         };
     }
 

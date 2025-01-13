@@ -54,8 +54,6 @@ public record PresentationDefinition(
     }
 
     public record Constraint(
-            @Id
-            @NotBlank(message = "Id of constraint is mandatory")
             String id,
             String name,
             String purpose,

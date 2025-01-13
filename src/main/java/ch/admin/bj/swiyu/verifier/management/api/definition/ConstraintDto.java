@@ -14,8 +14,7 @@ import java.util.Map;
 @Schema(name = "Constraint")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ConstraintDto(
-        @NotBlank(message = "id of constraint is mandatory")
-        @Schema(description = "(Mandatory) unique string with no conflict with another id in the Presentation Definition")
+        @Schema(description = "(Optional) unique string with no conflict with another id in the Presentation Definition")
         String id,
 
         @Schema(description = "(Optional) If present human-friendly name which describes the target field")

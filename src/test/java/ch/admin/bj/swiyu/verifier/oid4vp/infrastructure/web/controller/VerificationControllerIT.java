@@ -96,7 +96,7 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetRequestObject() throws Exception {
         mock.perform(get(String.format("/request-object/%s", requestId)))
@@ -129,11 +129,12 @@ class VerificationControllerIT {
                     assertThat(inputDescriptor.get("purpose")).isEqualTo("Input Descriptor Purpose");
 
                     var format = (LinkedTreeMap) inputDescriptor.get("format");
-                    var ldpVp = (Map<String, List>) format.get("ldp_vp");
-                    assertThat(ldpVp.get("proof_type").get(0)).isEqualTo("BBS2023");
+                    var ldpVp = (Map<String, List>) format.get("vc+sd-jwt");
+                    assertThat(ldpVp.get("sd-jwt_alg_values").get(0)).isEqualTo("ES256");
+                    assertThat(ldpVp.get("kb-jwt_alg_values").get(0)).isEqualTo("ES256");
 
                     var constraints = (LinkedTreeMap<List, List<LinkedTreeMap<List, List>>>) inputDescriptor.get("constraints");
-                    assertThat(constraints.get("fields").get(0).get("path").get(0)).isEqualTo("$.credentialSubject.hello");
+                    assertThat(constraints.get("fields").get(0).get("path").get(0)).isEqualTo("$");
 
                     var clientMetadata = (LinkedTreeMap) claims.getClaim("client_metadata");
                     assertThat(clientMetadata.get("client_name")).isEqualTo(applicationProperties.getClientName());
@@ -145,7 +146,7 @@ class VerificationControllerIT {
 
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldAcceptRefusal() throws Exception {
         mock.perform(post(String.format("/request-object/%s/response-data", requestId))
@@ -158,7 +159,7 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldRespond404onGetRequestObject() throws Exception {
         UUID notExistingRequestId = UUID.fromString("00000000-0000-0000-0000-000000000000");
@@ -167,7 +168,7 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldRespond404onPostResponseData() throws Exception {
         UUID notExistingRequestId = UUID.fromString("00000000-0000-0000-0000-000000000000");

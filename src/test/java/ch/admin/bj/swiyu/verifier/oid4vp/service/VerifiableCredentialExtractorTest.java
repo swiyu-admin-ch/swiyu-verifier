@@ -103,7 +103,7 @@ class VerifiableCredentialExtractorTest {
 
         var presentationDefinition = presentationDefinitionWithDescriptorFormat(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"), formats);
         var managementEntity = managementEntity(UUID.randomUUID(), presentationDefinition);
-        var presentationSubmission = presentationSubmissionWithFormat(2, true, "ldp_vp");
+        var presentationSubmission = presentationSubmissionWithFormat(2, true, "vc+sd-jwt");
 
         assertEquals(CredentialPathList, getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
     }
@@ -114,7 +114,7 @@ class VerifiableCredentialExtractorTest {
 
         var presentationDefinition = presentationDefinition(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"), null, null);
         var managementEntity = managementEntity(UUID.randomUUID(), presentationDefinition);
-        var presentationSubmission = presentationSubmissionWithFormat(2, true, "ldp_vp");
+        var presentationSubmission = presentationSubmissionWithFormat(2, true, "vc+sd-jwt");
         var exception = assertThrows(VerificationException.class, () -> getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
 
         assertEquals(VerificationError.INVALID_REQUEST, exception.getErrorType());

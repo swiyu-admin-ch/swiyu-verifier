@@ -11,9 +11,7 @@ import java.util.UUID;
 @UtilityClass
 public class CredentialSubmissionFixtures {
 
-    private static final String DEFAULT_FORMAT = "ldp_vp";
-
-    public static final String CredentialPath = String.format("$.verifiableCredential[%s].credentialSubject", 0);
+    private static final String DEFAULT_FORMAT = "vc+sd-jwt";
 
     public static final String CredentialPathList = String.format("$[%s].verifiableCredential[%s].credentialSubject", 0, 0);
 

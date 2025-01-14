@@ -1,0 +1,1 @@
+ALTER TABLE management ADD accepted_issuer_dids TEXT;

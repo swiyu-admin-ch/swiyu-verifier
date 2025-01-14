@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist.StatusListReferenceFa
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectDecoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.nimbusds.jose.JOSEException;
@@ -20,8 +21,10 @@ import com.nimbusds.jwt.SignedJWT;
 import io.jsonwebtoken.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -32,6 +35,7 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.credentialError;
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Verifies the presentation of a SD-JWT Credential.
@@ -47,6 +51,7 @@ public class SdjwtCredentialVerifier {
     private final ManagementEntity managementEntity;
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
+    private final ObjectMapper objectMapper;
 
 
     /**
@@ -80,23 +85,32 @@ public class SdjwtCredentialVerifier {
         String[] parts = vpToken.split("~");
         var issuerSignedJWTToken = parts[0];
 
-        // Step 2 (SD-JWT spec 8.1 / 2.3): validate that the signing key belongs to the
+        // Step 2: Check if issuer is in list of accepted issuers
+        // -> if accepted issuers are not set or empty, all issuers are allowed
+        var issuerDidTdw = extractIssuer(issuerSignedJWTToken);
+        if (managementEntity.getAcceptedIssuerDids() != null
+                && !managementEntity.getAcceptedIssuerDids().isEmpty()
+                && !managementEntity.getAcceptedIssuerDids().contains(issuerDidTdw)) {
+            throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers");
+        }
+
+        // Step 3 (SD-JWT spec 8.1 / 2.3): validate that the signing key belongs to the
         // Issuer ...
         PublicKey publicKey;
         try {
-            publicKey = issuerPublicKeyLoader.loadPublicKey(issuerSignedJWTToken);
+            publicKey = issuerPublicKeyLoader.loadPublicKey(issuerDidTdw, extractKeyId(issuerSignedJWTToken));
         } catch (LoadingPublicKeyOfIssuerFailedException e) {
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
         }
         log.trace("Loaded issuer public key for id {}", managementEntity.getId());
 
-        // Step 3 (SD-JWT spec 8.1 / 2.3): validate the Issuer (that it is in trust
+        // Step 4 (SD-JWT spec 8.1 / 2.3): validate the Issuer (that it is in trust
         // registry)
         // -> validating against trust registry is not in scope of public beta (only
         // holder validates against trust)
         // -> so for now validation against base registry
 
-        // Step 4 (SD-JWT spec 8.1 / 2.2): Validate the signature over the Issuer-signed
+        // Step 5 (SD-JWT spec 8.1 / 2.2): Validate the signature over the Issuer-signed
         // JWT
         Jws<Claims> claims;
         try {
@@ -113,7 +127,7 @@ public class SdjwtCredentialVerifier {
         }
 
         log.trace("Successfully verified signature of id {}", managementEntity.getId());
-        // Step 5 (SD-JWT spec 8.1 / 2.4): Check that alg header is supported (currently
+        // Step 6 (SD-JWT spec 8.1 / 2.4): Check that alg header is supported (currently
         // only alg="ES256" with type="vc+sd-jwt")
         var header = claims.getHeader();
 
@@ -127,7 +141,7 @@ public class SdjwtCredentialVerifier {
             throw credentialError(INVALID_FORMAT, "Invalid algorithm: %s requested %s".formatted(header.getAlgorithm(), requestedAlg));
         }
 
-        // Step 6 (SD-JWT spec 8.3): Key Binding Verification
+        // Step 7 (SD-JWT spec 8.3): Key Binding Verification
         Claims payload = claims.getPayload();
         int disclosureLength = parts.length;
         if (hasKeyBinding(payload)) {
@@ -137,7 +151,7 @@ public class SdjwtCredentialVerifier {
             log.trace("Successfully verified holder keybinding of id {}", managementEntity.getId());
         }
 
-        // Step 7 (SD-JWT spec 8.1 / 3 ): Process the Disclosures and embedded digests
+        // Step 8 (SD-JWT spec 8.1 / 3 ): Process the Disclosures and embedded digests
         // in the Issuer-signed JWT (section 3 in 8.1)
         List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, disclosureLength))
                 .map(Disclosure::parse).toList();
@@ -290,6 +304,37 @@ public class SdjwtCredentialVerifier {
             throw credentialError(MISSING_NONCE,
                     String.format("Holder Binding lacks correct nonce expected '%s' but was '%s' ", expectedNonce,
                             actualNonce));
+        }
+    }
+
+    private String extractIssuer(String jwtToken) {
+        var decodedBody = Base64.getDecoder().decode(jwtToken.split("\\.")[1]);
+        var body = toJson(decodedBody);
+        var issuer = body.get("iss");
+        if (issuer == null || !hasText(issuer.asText())) {
+            throw new IllegalArgumentException("Missing issuer in the JWT token");
+        }
+        return issuer.asText();
+    }
+
+    private String extractKeyId(String jwtToken) {
+        try {
+            var nimbusJwt = SignedJWT.parse(jwtToken);
+            var keyId = nimbusJwt.getHeader().getKeyID();
+            if (StringUtils.isBlank(keyId)) {
+                throw new IllegalArgumentException("Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
+            }
+            return keyId;
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("failed to parse json", e);
+        }
+    }
+
+    private JsonNode toJson(byte[] json) {
+        try {
+            return objectMapper.readTree(json);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("failed to parse json", e);
         }
     }
 }

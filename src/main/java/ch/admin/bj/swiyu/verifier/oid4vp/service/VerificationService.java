@@ -37,6 +37,7 @@ public class VerificationService {
     private final ManagementEntityRepository managementEntityRepository;
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
+    private final ObjectMapper objectMapper;
 
     /**
      * Validates the presentation request. If it fails, it will
@@ -120,7 +121,8 @@ public class VerificationService {
                         credentialToBeProcessed,
                         managementEntity,
                         issuerPublicKeyLoader,
-                        statusListReferenceFactory);
+                        statusListReferenceFactory,
+                        objectMapper);
                 return verifier.verifyPresentation();
             }
             default -> throw new IllegalArgumentException("Unknown format: " + format);

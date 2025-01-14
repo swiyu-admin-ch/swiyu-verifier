@@ -47,41 +47,6 @@ public class IssuerPublicKeyLoader {
     private final ObjectMapper objectMapper;
 
     /**
-     * Loads the DID document of the given <code>issuerDidTdw</code> from the base registry and returns the public key
-     * of the issuer.
-     * <p>
-     * Expects a JWT Token (<code>&lt;Header&gt;.&lt;Payload&gt;.&lt;Signature&gt;</code>) which has the issuer DID
-     * as <code>iss</code> claim and the key id as <code>kid</code> attribute in the header:
-     * <p>
-     * <pre>
-     *     Header:
-     *     {
-     *          ....
-     *          "kid": "did:example:123#key-1",
-     *          ...
-     *     }
-     *     Body:
-     *     {
-     *          ....
-     *          "iss": "did:example:123",
-     *          ...
-     *     }
-     *  </pre>
-     *
-     * @param jwtToken A JWT Token containing the issuer within the <code>iss</code> claim as did-tdw and the key id
-     *                 within the header as <code>kid</code>. The `kid` attribute is used to identify the verification
-     *                 method within the DID document of the issuer. Within the verification method the public key is
-     *                 stored as base64 encoded string.
-     * @return The public key of the issuer.
-     * @throws LoadingPublicKeyOfIssuerFailedException if the public key could not be loaded
-     */
-    public PublicKey loadPublicKey(String jwtToken) throws LoadingPublicKeyOfIssuerFailedException {
-        var issuerDidTdw = extractIssuer(jwtToken);
-        var issuerKeyId = extractKeyId(jwtToken);
-        return loadPublicKey(issuerDidTdw, issuerKeyId);
-    }
-
-    /**
      * Loads the public key of the issuer with the given <code>issuer</code> and <code>kid</code>.
      *
      * @return The public key of the issuer.
@@ -162,34 +127,6 @@ public class IssuerPublicKeyLoader {
             return ECKey.parse(json).toECPublicKey();
         } catch (JsonProcessingException | JOSEException | ParseException e) {
             throw new IllegalArgumentException("Failed to parse json web token", e);
-        }
-    }
-
-    private String extractIssuer(String jwtToken) {
-        var decodedBody = Base64.getDecoder().decode(jwtToken.split("\\.")[1]);
-        var body = toJson(decodedBody);
-        var issuer = body.get("iss");
-        if (issuer == null || !hasText(issuer.asText())) {
-            throw new IllegalArgumentException("Missing issuer in the JWT token");
-        }
-        return issuer.asText();
-    }
-
-    private String extractKeyId(String jwtToken) {
-        var decodedHeader = Base64.getDecoder().decode(jwtToken.split("\\.")[0]);
-        var header = toJson(decodedHeader);
-        var keyId = header.get("kid");
-        if (keyId == null || !hasText(keyId.asText())) {
-            throw new IllegalArgumentException("Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
-        }
-        return keyId.asText();
-    }
-
-    private JsonNode toJson(byte[] json) {
-        try {
-            return objectMapper.readTree(json);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("failed to parse json", e);
         }
     }
 

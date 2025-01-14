@@ -35,10 +35,8 @@ class IssuerPublicKeyLoaderTest {
         var issuerKeyId = issuerDidDocument.getVerificationMethod().getFirst().getId();
         when(mockedDidResolverAdapter.resolveDid(issuerDidTdw)).thenReturn(issuerDidDocument);
 
-        var sdjwt = sdjwt(issuerDidDocument.getId(), issuerKeyId);
-
         // WHEN
-        var publicKey = publicKeyLoader.loadPublicKey(sdjwt);
+        var publicKey = publicKeyLoader.loadPublicKey(issuerDidTdw, issuerKeyId);
 
         // THEN
         assertThat(publicKey.getAlgorithm()).isEqualTo("EC");
@@ -57,20 +55,12 @@ class IssuerPublicKeyLoaderTest {
         var issuerKeyId = issuerDidDocument.getVerificationMethod().getFirst().getId();
         when(mockedDidResolverAdapter.resolveDid(issuerDidTdw)).thenReturn(issuerDidDocument);
 
-        var sdjwt = sdjwt(issuerDidDocument.getId(), issuerKeyId);
-
         // WHEN
-        var publicKey = publicKeyLoader.loadPublicKey(sdjwt);
+        var publicKey = publicKeyLoader.loadPublicKey(issuerDidTdw, issuerKeyId);
 
         // THEN
         assertThat(publicKey.getAlgorithm()).isEqualTo("EC");
         assertThat(publicKey.getFormat()).isEqualTo("X.509");
         assertThat(publicKey.getEncoded()).isEqualTo(KeyFixtures.issuerPublicKeyEncoded());
     }
-
-    public static String sdjwt(String issuer, String kidHeader) {
-        return new SDJWTCredentialMock(issuer, kidHeader).createSDJWTMock();
-    }
-
-
 }

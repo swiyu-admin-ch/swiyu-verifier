@@ -110,10 +110,10 @@ class SdjwtCredentialVerifierTest {
         // Form Credential Request
         HashMap<String, FormatAlgorithm> formats = new HashMap<>();
         formats.put("vc+sd-jwt", FormatAlgorithm.builder()
-                .proofType(List.of("ES256"))
                 .keyBindingAlg(List.of("ES256"))
                 .alg(List.of("ES256"))
                 .build());
+
         var presentationDefinition = presentationDefinitionWithFields(
                 id,
                 List.of(
@@ -149,10 +149,10 @@ class SdjwtCredentialVerifierTest {
         // Form Credential Request
         HashMap<String, FormatAlgorithm> formats = new HashMap<>();
         formats.put("vc+sd-jwt", FormatAlgorithm.builder()
-                .proofType(List.of("ES256"))
                 .keyBindingAlg(List.of("ES256"))
                 .alg(List.of("ES256"))
                 .build());
+
         var presentationDefinition = presentationDefinitionWithFields(
                 id,
                 List.of(

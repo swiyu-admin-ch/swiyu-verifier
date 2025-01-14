@@ -108,8 +108,7 @@ public class RequestObjectMapper {
         }
         return new FormatAlgorithmDto(
                 toStringList(source.alg()),
-                toStringList(source.keyBindingAlg()),
-                toStringList(source.proofType())
+                toStringList(source.keyBindingAlg())
         );
     }
 

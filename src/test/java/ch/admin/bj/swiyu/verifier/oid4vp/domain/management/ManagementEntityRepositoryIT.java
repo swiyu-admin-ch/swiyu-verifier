@@ -92,9 +92,6 @@ class ManagementEntityRepositoryIT {
                           ],
                           "kb-jwt_alg_values": [
                             "ES256"
-                          ],
-                          "proof_type": [
-                            "ES256"
                           ]
                         }
                       },

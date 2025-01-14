@@ -39,9 +39,7 @@ public record PresentationDefinition(
             @NotNull
             @NotEmpty
             @JsonProperty("kb-jwt_alg_values")
-            List<String> keyBindingAlg,
-            @JsonProperty("proof_type")
-            List<String> proofType
+            List<String> keyBindingAlg
     ) {
     }
 

@@ -75,7 +75,7 @@ class VerificationControllerIT {
     private StatusListResolverAdapter mockedStatusListResolverAdapter;
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt_expired.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_expired.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnExpiredManagementObject() throws Exception {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -143,33 +143,6 @@ class VerificationControllerIT {
                 });
     }
 
-    @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt_no_signing.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
-    void shouldGetUnsignedRequestObject() throws Exception {
-        mock.perform(get(String.format("/request-object/%s", requestId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
-                .andExpect(jsonPath("$.client_id_scheme").value(applicationProperties.getClientIdScheme()))
-                .andExpect(jsonPath("$.response_type").value("vp_token"))
-                .andExpect(jsonPath("$.response_mode").value("direct_post"))
-                .andExpect(jsonPath("$.nonce").isNotEmpty())
-                .andExpect(jsonPath("$.response_uri").value(String.format("%s/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId)))
-                .andExpect(jsonPath("$.presentation_definition.id").isNotEmpty())
-                .andExpect(jsonPath("$.presentation_definition.name").value("Presentation Definition Name"))
-                .andExpect(jsonPath("$.presentation_definition.purpose").value("Presentation Definition Purpose"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].id").isNotEmpty())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name").value("Test Descriptor Name"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].purpose").value("Input Descriptor Purpose"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.ldp_vp").isNotEmpty())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].format.ldp_vp.proof_type").value("BBS2023"))
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields").isArray())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path").isArray())
-                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints.fields[0].path[0]").value("$.credentialSubject.hello"))
-                .andExpect(jsonPath("client_metadata.client_name").value(applicationProperties.getClientName()))
-                .andExpect(jsonPath("client_metadata.logo_uri").value(applicationProperties.getLogoUri()))
-                .andExpect(content().string(not(containsString("null")))).andReturn();
-    }
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
@@ -485,7 +458,7 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_proof.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingNestedSDJWTCredentialSD_thenSuccess() throws Exception {
         // GIVEN

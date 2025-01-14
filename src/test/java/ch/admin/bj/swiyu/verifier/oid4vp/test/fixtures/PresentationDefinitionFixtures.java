@@ -15,9 +15,9 @@ public class PresentationDefinitionFixtures {
 
     public static PresentationDefinition sdwjtPresentationDefinition(UUID requestId) {
         var formats = Map.of("vc+sd-jwt", FormatAlgorithm.builder()
-                .proofType(List.of("ES256"))
                 .keyBindingAlg(List.of("ES256"))
                 .alg(List.of("ES256")).build());
+
         return presentationDefinitionWithFields(
                 requestId,
                 List.of(
@@ -32,16 +32,9 @@ public class PresentationDefinitionFixtures {
 
     public static PresentationDefinition sdwjtPresentationDefinition(UUID requestId, List<String> requiredFields) {
         var formats = Map.of("vc+sd-jwt", FormatAlgorithm.builder()
-                .proofType(List.of("ES256"))
                 .keyBindingAlg(List.of("ES256"))
                 .alg(List.of("ES256")).build());
-        return presentationDefinition(requestId, requiredFields, null, formats);
-    }
 
-    public static PresentationDefinition ldpPresentationDefinition(UUID requestId, List<String> requiredFields) {
-        var formats = Map.of("ldp_vp", FormatAlgorithm.builder()
-                .proofType(List.of("BBS2023"))
-                .build());
         return presentationDefinition(requestId, requiredFields, null, formats);
     }
 

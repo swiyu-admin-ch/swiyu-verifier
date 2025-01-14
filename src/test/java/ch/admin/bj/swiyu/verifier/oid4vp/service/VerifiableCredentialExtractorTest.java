@@ -38,7 +38,7 @@ class VerifiableCredentialExtractorTest {
         var vpToken = "[{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\"}}]}]";
 
         var presentationSubmission = presentationSubmission(1, true);
-        var presentationDefinition = ldpPresentationDefinition(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
+        var presentationDefinition = sdwjtPresentationDefinition(requestId, List.of("$.first_name", "$.last_name", "$.birthdate"));
         var managementEntity = managementEntity(requestId, presentationDefinition);
 
         assertEquals(CredentialPathList, getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
@@ -48,7 +48,7 @@ class VerifiableCredentialExtractorTest {
     void testListCredential_thenSuccess() {
         String vpToken = "[{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\",\"zip\": \"1000\"}}]}, {\"verifiableCredential\": [{\"credentialSubject\": {\"zip\": \"1000\"}}]}]";
 
-        var presentationDefinition = ldpPresentationDefinition(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"));
+        var presentationDefinition = sdwjtPresentationDefinition(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"));
         var managementEntity = managementEntity(UUID.randomUUID(), presentationDefinition);
         var presentationSubmission = presentationSubmission(2, true);
 
@@ -76,7 +76,8 @@ class VerifiableCredentialExtractorTest {
 
         HashMap<String, PresentationDefinition.FormatAlgorithm> formats = new HashMap<>();
         formats.put("ldp_vp", PresentationDefinition.FormatAlgorithm.builder()
-                .proofType(List.of("BBS2023"))
+                .keyBindingAlg(List.of("ES256"))
+                .alg(List.of("ES256"))
                 .build());
 
         var presentationDefinition = presentationDefinitionWithDescriptorFormat(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"), formats);
@@ -94,9 +95,10 @@ class VerifiableCredentialExtractorTest {
     void testWhenCredFormatsInDescriptor_thenSuccess() {
         var vpToken = "[{\"type\": [\"VerifiablePresentation\"],\"verifiableCredential\": [{\"credentialSubject\": {\"first_name\": \"TestFirstname\",\"last_name\": \"TestLastName\",\"birthdate\": \"1949-01-22\",\"zip\": \"1000\"}}]}, {\"verifiableCredential\": [{\"credentialSubject\": {\"zip\": \"1000\"}}]}]";
 
-        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
-        formats.put("ldp_vp", FormatAlgorithm.builder()
-                .proofType(List.of("BBS2023"))
+        HashMap<String, PresentationDefinition.FormatAlgorithm> formats = new HashMap<>();
+        formats.put("vc+sd-jwt", PresentationDefinition.FormatAlgorithm.builder()
+                .keyBindingAlg(List.of("ES256"))
+                .alg(List.of("ES256"))
                 .build());
 
         var presentationDefinition = presentationDefinitionWithDescriptorFormat(requestId, List.of("$.first_name", "$.last_name", "$.birthdate", "$.zip"), formats);

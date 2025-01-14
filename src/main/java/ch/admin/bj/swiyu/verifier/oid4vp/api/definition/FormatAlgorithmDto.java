@@ -31,9 +31,4 @@ public class FormatAlgorithmDto {
     @JsonProperty("kb-jwt_alg_values")
     @Schema(description = "(Required) algorithms defining the keybinding algorithm for SDJWT family")
     private List<String> keyBindingAlg;
-
-    // TODO: remove in EID-1966
-    @JsonProperty("proof_type")
-    @Schema(description = "(Optional) Linked-Data integrity proof types")
-    private List<String> proofType;
 }

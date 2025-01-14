@@ -137,7 +137,7 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetRequestObject() throws Exception {
         mock.perform(get(String.format("/request-object/%s", requestId)))

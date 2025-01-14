@@ -12,11 +12,15 @@ import static org.hibernate.internal.util.collections.CollectionHelper.isEmpty;
 public class ApiFixtures {
 
     public static CreateVerificationManagementDto createVerificationManagementDto() {
-        return createVerificationManagementDto(presentationDefinitionDto());
+        return createVerificationManagementDto(null, presentationDefinitionDto());
     }
 
-    public static CreateVerificationManagementDto createVerificationManagementDto(PresentationDefinitionDto presentationDefinition) {
-        return new CreateVerificationManagementDto(false, presentationDefinition);
+    public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids) {
+        return createVerificationManagementDto(acceptedIssuerDids, presentationDefinitionDto());
+    }
+
+    public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids, PresentationDefinitionDto presentationDefinitionDto) {
+        return new CreateVerificationManagementDto(acceptedIssuerDids, false, presentationDefinitionDto);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
@@ -34,7 +38,9 @@ public class ApiFixtures {
                         null
                 )
         );
-        return new CreateVerificationManagementDto(isJWTSecured, new PresentationDefinitionDto(
+        return new CreateVerificationManagementDto(
+                List.of("did:example:123"),
+                isJWTSecured, new PresentationDefinitionDto(
                 UUID.randomUUID().toString(),
                 null,
                 null,

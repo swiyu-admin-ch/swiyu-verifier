@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.createVerificationManagementDto;
@@ -42,7 +43,7 @@ class ManagementServiceIT {
     @Test
     void createVerificationManagementTest() {
         // GIVEN
-        var request = createVerificationManagementDto();
+        var request = createVerificationManagementDto(List.of("did:example:123", "did:example:456"));
         // WHEN
         var result = managementService.createVerificationManagement(request);
         // THEN
@@ -53,6 +54,46 @@ class ManagementServiceIT {
         assertThat(management.getJwtSecuredAuthorizationRequest()).isEqualTo(request.jwtSecuredAuthorizationRequest());
         assertThat(management.getExpirationInSeconds()).isEqualTo(900);
         assertThat(management.getWalletResponse()).isNull();
+        // check accepted issuer dids are correctly stored and retrieved
+        assertThat(management.getAcceptedIssuerDids().size()).isEqualTo(2);
+        assertThat(management.getAcceptedIssuerDids().contains("did:example:123")).isTrue();
+        assertThat(management.getAcceptedIssuerDids().contains("did:example:456")).isTrue();
+    }
+
+    @Test
+    void createVerificationManagementTest_acceptedIssuersEmpty() {
+        // GIVEN
+        var request = createVerificationManagementDto(List.of());
+        // WHEN
+        var result = managementService.createVerificationManagement(request);
+        // THEN
+        var management = managementRepository.findById(result.id()).orElseThrow();
+        assertThat(management.getId()).isNotNull();
+        assertThat(management.getRequestNonce()).isNotBlank();
+        assertThat(management.getState()).isEqualTo(VerificationStatus.PENDING);
+        assertThat(management.getJwtSecuredAuthorizationRequest()).isEqualTo(request.jwtSecuredAuthorizationRequest());
+        assertThat(management.getExpirationInSeconds()).isEqualTo(900);
+        assertThat(management.getWalletResponse()).isNull();
+        // check accepted issuer dids list is empty
+        assertThat(management.getAcceptedIssuerDids()).isEmpty();
+    }
+
+    @Test
+    void createVerificationManagementTest_acceptedIssuersNull() {
+        // GIVEN
+        var request = createVerificationManagementDto(null);
+        // WHEN
+        var result = managementService.createVerificationManagement(request);
+        // THEN
+        var management = managementRepository.findById(result.id()).orElseThrow();
+        assertThat(management.getId()).isNotNull();
+        assertThat(management.getRequestNonce()).isNotBlank();
+        assertThat(management.getState()).isEqualTo(VerificationStatus.PENDING);
+        assertThat(management.getJwtSecuredAuthorizationRequest()).isEqualTo(request.jwtSecuredAuthorizationRequest());
+        assertThat(management.getExpirationInSeconds()).isEqualTo(900);
+        assertThat(management.getWalletResponse()).isNull();
+        // check accepted issuer dids list is empty
+        assertThat(management.getAcceptedIssuerDids()).isEmpty();
     }
 
     @Test
@@ -133,7 +174,7 @@ class ManagementServiceIT {
     @Test
     void createVerificationManagement_WithNullPresentation_thenIllegalArgumentException() {
         // GIVEN
-        var nullPresentationInRequest = createVerificationManagementDto(null);
+        var nullPresentationInRequest = createVerificationManagementDto(null, null);
         // WHEN / THEN
         assertThrows(IllegalArgumentException.class, () -> managementService.createVerificationManagement(nullPresentationInRequest));
     }

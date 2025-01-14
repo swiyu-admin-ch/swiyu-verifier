@@ -51,7 +51,8 @@ public class ManagementService {
                 UUID.randomUUID(),
                 applicationProperties.getVerificationTTL(),
                 presentationDefinition,
-                requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true)));
+                requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true),
+                request.acceptedIssuerDids()));
 
         log.info("Created pending verification for id: {}", management.getId());
 

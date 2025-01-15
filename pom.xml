@@ -46,7 +46,7 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <logstash-logback-encoder.version>7.2</logstash-logback-encoder.version>
-        <spring-cloud-dependencies.version>2024.0.0</spring-cloud-dependencies.version>
+        <spring-cloud-dependencies.version>2023.0.5</spring-cloud-dependencies.version>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     </properties>
     <dependencies>

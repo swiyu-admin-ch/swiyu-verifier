@@ -46,7 +46,7 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <logstash-logback-encoder.version>7.2</logstash-logback-encoder.version>
-        <spring-cloud-dependencies.version>2023.0.4</spring-cloud-dependencies.version>
+        <spring-cloud-dependencies.version>2024.0.0</spring-cloud-dependencies.version>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     </properties>
     <dependencies>
@@ -211,7 +211,7 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
-        <!-- End Cloud Kubernetes config -->
+        <!-- End  Spring Cloud -->
 
         <!-- Logging -->
         <dependency>
@@ -278,13 +278,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- fix CVE-2023-3635, delete once fabric8 is updated -->
-            <dependency>
-                <groupId>com.squareup.okio</groupId>
-                <artifactId>okio</artifactId>
-                <version>1.17.6</version>
-            </dependency>
-            <!-- end fix -->
         </dependencies>
     </dependencyManagement>
     <build>

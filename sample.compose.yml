@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:15.8
+    environment:
+      POSTGRES_USER: "verifier_mgmt_user"
+      POSTGRES_PASSWORD: "secret"
+      POSTGRES_DB: "verifier_db"
+    ports:
+      - '5434:5432'
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U verifier_mgmt_user -d verifier_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  verifier-agent-management:
+    image: bit-eid-docker-hosted.nexus.bit.admin.ch/eid/verifier-agent-management:0.0.2-20241218100224-18fe393
+    environment:
+      OID4VP_URL: "<url of your verifier-agent-oid4vp service>"
+    port: "8080:8080"
+    depends_on:
+      - postgres
+  verifier-agent-oid4vp:
+    image: bit-eid-docker-hosted.nexus.bit.admin.ch/eid/verifier-agent-oid4vp0.0.3-20241218090505-3530544
+    environment:
+      EXTERNAL_URL: "https://<external url of this service>"
+      VERIFIER_DID: "<Your VERIFIER_DID>"
+      DID_VERIFICATION_METHOD: "<Your VERIFIER_DID>#assert-key-01"
+      VERIFIER_NAME: "<Your verifier name>"
+      SIGNING_KEY: |
+        -----BEGIN EC PRIVATE KEY-----
+        <private key of the file "assert-key-01">
+        -----END EC PRIVATE KEY-----

@@ -7,6 +7,9 @@ import ch.admin.bj.swiyu.verifier.management.common.config.ApplicationProperties
 import ch.admin.bj.swiyu.verifier.management.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.management.service.ManagementService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -29,12 +32,41 @@ public class VerifierManagementController {
     private final ApplicationProperties applicationProperties;
 
     @PostMapping("/verifications")
-    @Operation(summary = "Creates a new verification process with the given attributes")
+    @Operation(
+            summary = "Creates a new verification process with the given attributes",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Verification created",
+                            content = @Content(schema = @Schema(implementation = ManagementResponseDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Bad Request. The request body is not valid",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    )
+            }
+    )
     public ManagementResponseDto createVerification(@Valid @RequestBody CreateVerificationManagementDto requestDto) {
         return presentationService.createVerificationManagement(requestDto);
     }
 
     @GetMapping("/verifications/{verificationId}")
+    @Operation(
+            summary = "Get verification by id",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Verification found",
+                            content = @Content(schema = @Schema(implementation = ManagementResponseDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Verification not found or already expired",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    )
+            }
+    )
     public ManagementResponseDto getVerification(@PathVariable UUID verificationId) {
         return presentationService.getManagement(verificationId);
     }

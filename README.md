@@ -37,16 +37,89 @@ flowchart TD
 
 ##  Third party usage
 > Are you a third-party user? Then you're right here! Otherwhise go to [gov internal usage](#Gov-internal-usage)
-### Set the environment variables
+### 1. Set the environment variables
 A sample compose file for an entire setup of both components and a database can be found in [sample.compose.yml](sample.compose.yml) file.
 **Replace all placeholder <VARIABLE_NAME>**.
 
-Please be aware that both the verifier-agent-management and the verifier-agent-oid4vci need to be publicly accessible over an domain configured in `EXTERNAL_URL` so that
+Please be aware that both the verifier-agent-management and the verifier-agent-oid4vci need to be publicly accessible over a domain configured in `EXTERNAL_URL` so that
 a wallet can communicate with them.
 
 The latest images are available here:
 - [verifier-agent-oid4vci](https://github.com/admin-ch-ssi/mirror-verifier-agent-oid4vp/pkgs/container/mirror-verifier-agent-oid4vp)
 - [verifier-agent-management](https://github.com/admin-ch-ssi/mirror-verifier-agent-management/pkgs/container/mirror-verifier-agent-management)
+
+### 2. Creating a verification
+> For a detailled understanding of the verfication process and the data structure of verification please consult the 
+> [DIF presentation exchange specification](https://identity.foundation/presentation-exchange/#presentation-definition).
+> For more information on the general verification flow consult the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html)
+
+Once the components are deployed cou can create your first verification. For this you first need to define a presentation
+definition. Based on that definition you can then create a verification request for a holder as shown in the example below. 
+In this case we're asking for a credential called "my-custom-vc" which should at least have the attributes 
+firstName and lastName. The following request can be performed by using the swagger endpoint on https://<EXTERNAL_URL of verifier-agent-management>**/swagger-ui/index.html**
+
+**Request**
+```bash
+curl -X 'POST' \
+  'https://<EXTERNAL_URL verification agent management>/verifications' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "presentation_definition": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "Test Verification",
+    "purpose": "We want to test a new Verifier",
+    "format": {
+      "vc+sd-jwt": {
+        "sd-jwt_alg_values": [
+          "ES256"
+        ],
+        "kb-jwt_alg_values": [
+          "ES256"
+        ]
+      }
+    },
+    "input_descriptors": [
+      {
+        "id": "my-custom-vc",
+        "name": "Custom VC",
+        "purpose": "DEMO vc",
+        "format": {
+          "vc+sd-jwt": {
+            "sd-jwt_alg_values": [
+              "ES256"
+            ],
+            "kb-jwt_alg_values": [
+              "ES256"
+            ]
+          }
+        },
+        "constraints": {
+          "fields": [
+            {
+              "path": [
+                "$.credentialSubject.firstName",
+                "$.credentialSubject.lastName"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}'
+```
+**Response**
+
+The response contains a verification_url which points to verification request just created. This link needs to be provided to the holder
+in order to submit an response to the verification request.
+```json
+{
+  ...
+  "verification_url": "https://<EXTERNAL_URL verifieri agent oid4vp>/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
+}
+```
+
 
 ## Gov internal usage
 ### 1. Setup up infrastructure
@@ -70,6 +143,8 @@ vaultsecrets:
 ### 2. Set the environment variables
 Due to the separation of the secret and non-secret variables the location is split. Make sure that you've set at least the following variables.
 Concerning the actual values take a look at the [sample.compose.yml](sample.compose.yml)
+
+> **After this** continue with [creating an initial verification](#2-creating-a-verification)
 
 | Location                | issuer-agent-management                                                                                    | issuer-agent-oid4vci |
 |-------------------------|------------------------------------------------------------------------------------------------------------|----------------------|

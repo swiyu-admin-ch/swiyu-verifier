@@ -1,4 +1,4 @@
-# Verification Validator Service
+# Generic verification service OID4VP
 
 This software is a web server implementing the technical standards as specified in
 the [Swiss E-ID & Trust Infrastructure technical roadmap](https://github.com/e-id-admin/open-source-community/blob/main/tech-roadmap/tech-roadmap.md).
@@ -13,40 +13,26 @@ instance of the service.
 The verification validator service is linked to the verification management services through a database, allowing to
 scale every service independently of the management service.
 
-## Table of Contents
-
-- [Overview](#Overview)
-- [Installation/Building](#installationbuilding)
-- [Implementation details](#implementation-details)
-- [Contribution](#contribution)
-- [License](#license)
-
-## Overview
-
-```plantuml
-@startuml
-    [Verifier Business System] as issint
-    (Verifier Management Service) as isam
-    [(Postgres)] as isdb
-    (Verifier Validator Service) as isoi
-    [Wallet] as wallet
-
-    issint --> isam
-    isam --> isdb
-    isoi --> isdb
-    wallet --> isoi
-@enduml
+```mermaid
+flowchart TD
+    issint[\Verifier Business System\]
+    isam(Verifier Management Service)
+    isdb[(Postgres)]
+    isoi(Verifier Validator Service)
+    wallet[Wallet]
+    issint ---> isam
+    isam ---> isdb
+    isoi ---> isdb
+    wallet ---> isoi
 ```
+# Deployment
+For the deployment of the component please consult [deployment section of the verifier-agent-management](https://bitbucket.bit.admin.ch/projects/EID/repos/verifier-agent-management/browse)
+because it is the main interaction point with the issuer managent/oid4vci bundle
 
-For a general overview over all components, please check [Overview](https://TODO-add-correct-link)
+# Development
 
-## Installation/Building
-
-### Build
-
-TODO shouldn't we provide information here for consumers who want to build a docker image ?
-
-### Local Development
+> Please be aware that this section **focus on the development of the verifier management service**. For the deployment of the
+> component please consult [deployment section of the verifier-agent-management](https://bitbucket.bit.admin.ch/projects/EID/repos/verifier-agent-management/browse).
 
 Run the following commands to start the service. This will also spin up a local postgres database from
 docker-compose.yml:
@@ -57,7 +43,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java ap
 
 After the start api definitions can be found [here](http://localhost:8080/swagger-ui/index.html#/)
 
-## Implementation details
+## Configuration
 
 ### Environment variables
 

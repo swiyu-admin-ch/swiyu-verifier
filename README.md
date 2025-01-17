@@ -1,4 +1,4 @@
-# Verification Management Service
+# Generic verifier management service
 
 This software is a web server implementing the technical standards as specified in
 the [Swiss E-ID & Trust Infrastructure technical roadmap](https://github.com/e-id-admin/open-source-community/blob/main/tech-roadmap/tech-roadmap.md).

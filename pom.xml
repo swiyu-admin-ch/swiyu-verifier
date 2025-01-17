@@ -171,7 +171,7 @@
                 ! TODO EID-1771: This is needs to be fixed by providing those libs via repository. !
             -->
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/didresolver-0.0.5.jar</systemPath>
+            <systemPath>${project.basedir}/lib/didresolver-1.0.0.jar</systemPath>
         </dependency>
 
         <!-- SD-JWT -->

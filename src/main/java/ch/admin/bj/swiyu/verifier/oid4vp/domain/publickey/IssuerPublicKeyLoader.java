@@ -4,6 +4,7 @@ import ch.admin.eid.didresolver.DidResolveException;
 import ch.admin.eid.didtoolbox.Jwk;
 import ch.admin.eid.didtoolbox.TrustDidWebException;
 import ch.admin.eid.didtoolbox.VerificationMethod;
+import ch.admin.eid.didtoolbox.VerificationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -105,8 +106,8 @@ public class IssuerPublicKeyLoader {
      */
     private PublicKey parsePublicKey(VerificationMethod method) {
         return switch (method.getVerificationType()) {
-            case "Multikey" -> parsePublicKeyOfTypeMultibaseKey(method.getPublicKeyMultibase());
-            case "JsonWebKey2020" -> parsePublicKeyOfTypeJsonWebKey(method.getPublicKeyJwk());
+            case VerificationType.MULTIKEY -> parsePublicKeyOfTypeMultibaseKey(method.getPublicKeyMultibase());
+            case VerificationType.JSON_WEB_KEY2020 -> parsePublicKeyOfTypeJsonWebKey(method.getPublicKeyJwk());
             default -> throw new IllegalArgumentException("Unsupported encoding type: " + method.getVerificationType() +
                     ". Only Multikey and JsonWebKey2020 are supported");
         };

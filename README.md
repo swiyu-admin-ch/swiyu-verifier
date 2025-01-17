@@ -1,4 +1,4 @@
-# Verification Management Service
+# Generic verifier management service
 
 This software is a web server implementing the technical standards as specified in
 the [Swiss E-ID & Trust Infrastructure technical roadmap](https://github.com/e-id-admin/open-source-community/blob/main/tech-roadmap/tech-roadmap.md).
@@ -27,9 +27,135 @@ flowchart TD
     wallet ---> isoi
 ```
 
-## How to start
+# Deployment
 
-### Local Development
+> Please make sure that you did the following before starting the deployment:
+> - Generated the signing keys file with the didtoolbox.jar
+> - Generated a DID which is registered on the identifier registry
+> - Registered yourself on the swiyuprobeta portal
+> - Registered yourself on the api self service portal
+
+##  Third party usage
+> Are you a third-party user? Then you're right here! Otherwhise go to [gov internal usage](#Gov-internal-usage)
+### 1. Set the environment variables
+A sample compose file for an entire setup of both components and a database can be found in [sample.compose.yml](sample.compose.yml) file.
+**Replace all placeholder <VARIABLE_NAME>**.
+
+Please be aware that both the verifier-agent-management and the verifier-agent-oid4vci need to be publicly accessible over a domain configured in `EXTERNAL_URL` so that
+a wallet can communicate with them.
+
+The latest images are available here:
+- [verifier-agent-oid4vci](https://github.com/admin-ch-ssi/mirror-verifier-agent-oid4vp/pkgs/container/mirror-verifier-agent-oid4vp)
+- [verifier-agent-management](https://github.com/admin-ch-ssi/mirror-verifier-agent-management/pkgs/container/mirror-verifier-agent-management)
+
+### 2. Creating a verification
+> For a detailled understanding of the verfication process and the data structure of verification please consult the 
+> [DIF presentation exchange specification](https://identity.foundation/presentation-exchange/#presentation-definition).
+> For more information on the general verification flow consult the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html)
+
+Once the components are deployed cou can create your first verification. For this you first need to define a presentation
+definition. Based on that definition you can then create a verification request for a holder as shown in the example below. 
+In this case we're asking for a credential called "my-custom-vc" which should at least have the attributes 
+firstName and lastName. The following request can be performed by using the swagger endpoint on https://<EXTERNAL_URL of verifier-agent-management>**/swagger-ui/index.html**
+
+**Request**
+```bash
+curl -X 'POST' \
+  'https://<EXTERNAL_URL verification agent management>/verifications' \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "presentation_definition": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "Test Verification",
+    "purpose": "We want to test a new Verifier",
+    "format": {
+      "vc+sd-jwt": {
+        "sd-jwt_alg_values": [
+          "ES256"
+        ],
+        "kb-jwt_alg_values": [
+          "ES256"
+        ]
+      }
+    },
+    "input_descriptors": [
+      {
+        "id": "my-custom-vc",
+        "name": "Custom VC",
+        "purpose": "DEMO vc",
+        "format": {
+          "vc+sd-jwt": {
+            "sd-jwt_alg_values": [
+              "ES256"
+            ],
+            "kb-jwt_alg_values": [
+              "ES256"
+            ]
+          }
+        },
+        "constraints": {
+          "fields": [
+            {
+              "path": [
+                "$.credentialSubject.firstName",
+                "$.credentialSubject.lastName"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}'
+```
+**Response**
+
+The response contains a verification_url which points to verification request just created. This link needs to be provided to the holder
+in order to submit an response to the verification request.
+```json
+{
+  ...
+  "verification_url": "https://<EXTERNAL_URL verifieri agent oid4vp>/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
+}
+```
+
+
+## Gov internal usage
+### 1. Setup up infrastructure
+When deployed in an RHOS setup the issuer-management / issuer-agent setup need the following setup
+#### Database
+Single postgresql databse service needs to be available. Make sure that the following bindings exist between your database and the application namespace:
+- database -> issuer-verifier-management: Full
+- database -> issuer-verifier-oid4vci: Read-Write
+#### MAV
+The MAV needs to be bound to the application namespace. Make sure the secrets are located in the path **default/application_secrets**
+and you configured the vault so that it uses the application_secrets as properties
+```yaml
+vaultsecrets:
+  vaultserver: https://mav.bit.admin.ch
+  serviceaccount: default
+  cluster: p-szb-ros-shrd-npr-01
+  path: default
+  properties:
+    - application_secrets
+``` 
+### 2. Set the environment variables
+Due to the separation of the secret and non-secret variables the location is split. Make sure that you've set at least the following variables.
+Concerning the actual values take a look at the [sample.compose.yml](sample.compose.yml)
+
+> **After this** continue with [creating an initial verification](#2-creating-a-verification)
+
+| Location                | issuer-agent-management                                                                                    | issuer-agent-oid4vci |
+|-------------------------|------------------------------------------------------------------------------------------------------------|----------------------|
+| GitOps                  | OID4VP_URL                                                                                                 | EXTERNAL_URL<br/>VERIFIER_DID<br/>DID_VERIFICATION_METHOD<br/>VERIFIER_NAME                     |
+| ManagedApplicationVault |  |  SIGNING_KEY                    |
+
+
+# Development
+
+> Please be aware that this section **focus on the development of the issuer management service**. For the deployment of the
+> component please consult [deployment section](#Deployment).
 
 Run the following commands to start the service. This will also spin up a local postgres database from
 the docker compose.yml:
@@ -40,7 +166,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java ap
 
 After the start api definitions can be found [here](http://localhost:8080/swagger-ui/index.html)
 
-## Implementation details
+## Configuration
 
 ### Environment variables
 

@@ -2,12 +2,16 @@ package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationService;
+import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +40,24 @@ public class VerificationController {
     private final VerificationService verificationService;
 
     @GetMapping("/request-object/{request_id}")
-    @Operation(summary = "Get Request Object", description = "Can return a RequestObjectDto as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management")
+    @Operation(
+            summary = "Get Request Object",
+            description = "Can return a RequestObjectDto as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Request object either as plaintext or signed JWT",
+                            content = @Content(
+                                    schema = @Schema(implementation = RequestObjectDto.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Request Object not found",
+                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                    )
+            }
+    )
     public Object getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
         return requestObjectService.assembleRequestObject(requestId);
     }
@@ -44,6 +65,24 @@ public class VerificationController {
     @PostMapping(value = "/request-object/{request_id}/response-data",
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE})
+    @Operation(
+            summary = "Receive Verification Presentation (from e.g. Wallet)",
+            externalDocs = @ExternalDocumentation(
+                    description = "OpenId4VP response parameters",
+                    url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.1"
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Verification Presentation received"
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Bad Request. The request body is not valid",
+                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                    )
+            }
+    )
     @ResponseStatus(HttpStatus.OK)
     @RequestBody(content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
     public void receiveVerificationPresentation(

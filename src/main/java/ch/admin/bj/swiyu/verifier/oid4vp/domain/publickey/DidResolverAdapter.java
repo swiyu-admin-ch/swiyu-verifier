@@ -8,6 +8,7 @@ import ch.admin.eid.didtoolbox.TrustDidWeb;
 import ch.admin.eid.didtoolbox.TrustDidWebException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -16,15 +17,16 @@ import org.springframework.web.client.RestClient;
 @Service
 @AllArgsConstructor
 public class DidResolverAdapter {
-    /**
-     * Returns the DID Document for the given DID.
-     *
-     * @param did - the id of the DID Document
-     * @return the DID Document for the given DID
-     */
+
     private final UrlRewriteProperties urlRewriteProperties;
     private final RestClient.Builder restClientBuilder;
 
+    /**
+     * Returns the DID Document for the given DID.
+     *
+     * @param didTdw - the id of the DID Document
+     * @return the DID Document for the given DID
+     */
     public DidDoc resolveDid(String didTdw) throws DidResolveException, TrustDidWebException {
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
@@ -32,6 +34,13 @@ public class DidResolverAdapter {
             TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog, true);
             String rawDidDoc = tdw.getDidDoc();
             return DidDoc.Companion.fromJson(rawDidDoc);
+        } catch (HttpServerErrorException | DidResolveException | TrustDidWebException e) {
+            throw e;
+
+        // there are cases where we receive unchecked general exceptions from the rust library
+        // in order to tackle this, in such a case we assume it is a user error (something with the did is wrong)
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
         }
     }
 

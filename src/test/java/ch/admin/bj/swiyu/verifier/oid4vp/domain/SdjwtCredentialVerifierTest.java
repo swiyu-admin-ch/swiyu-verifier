@@ -187,4 +187,28 @@ class SdjwtCredentialVerifierTest {
         // We will not have the failed state here, as this is set in th exception handling
     }
 
+    @Test
+    void testSDJWTIllegalSDClaim_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException, DidResolveException {
+        // The SD JWT has the claim set
+        var presentationDefinition = sdwjtPresentationDefinition(id, List.of("$.first_name", "$.last_name", "$.birthdate"));
+        var managementEntity = managementEntity(id, presentationDefinition);
+
+        // Create Default SDJWT Credential for presenting
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        id = UUID.randomUUID();
+        sdJWTCredential = emulator.createIssuerAttackSDJWTMock();
+
+        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
+
+        // lookup issuers public key
+        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
+        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
+        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+
+        assertEquals(VerificationStatus.PENDING, managementEntity.getState());
+        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
+        assertThrows(VerificationException.class, cred::verifyPresentation);
+        // We will not have the failed state here, as this is set in th exception handling
+    }
+
 }

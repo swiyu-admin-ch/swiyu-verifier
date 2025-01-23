@@ -70,7 +70,7 @@ public class SDJWTCredentialMock {
         return mapper.writeValueAsString(submission);
     }
 
-    public static PresentationSubmissionDto getPresentationSubmissionWithPath(UUID uuid, String path) throws JsonProcessingException {
+    public static PresentationSubmissionDto getPresentationSubmissionWithPath(UUID uuid, String path) {
         DescriptorDto descriptor = DescriptorDto.builder()
                 .path(path)
                 .format(SdjwtCredentialVerifier.CREDENTIAL_FORMAT)
@@ -107,7 +107,7 @@ public class SDJWTCredentialMock {
     /**
      * Adds A second (fake) VC to the VP Token generated to test the Presentation Exchange Credential Selection
      *
-     * @param sdjwt
+     * @param sdjwt full sd jwt serialized as string
      */
     public static String createMultipleVPTokenMock(String sdjwt) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -115,24 +115,40 @@ public class SDJWTCredentialMock {
     }
 
     public String createSDJWTMock(Integer statusListIndex) {
-        return createSDJWTMock(null, null, statusListIndex, "testCredentialType");
+        return createSDJWTMock(null, null, statusListIndex, "testCredentialType", getSDClaims());
     }
 
     public String createSDJWTMock() {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims());
     }
 
     public String createSDJWTMock(Long validFrom) {
-        return createSDJWTMock(validFrom, null, null, DEFAULT_VCT);
+        return createSDJWTMock(validFrom, null, null, DEFAULT_VCT, getSDClaims());
     }
 
     public String createSDJWTMock(Long validFrom, Long validUntil) {
-        return createSDJWTMock(validFrom, validUntil, null, DEFAULT_VCT);
+        return createSDJWTMock(validFrom, validUntil, null, DEFAULT_VCT, getSDClaims());
     }
 
-    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct) {
+    /**
+     * Creates a VC which has a selective disclosure overriding the issuer claim of the jwt
+     */
+    public String createIssuerAttackSDJWTMock() {
+        var sdClaims = getSDClaims();
+        sdClaims.put("iss", "did:example:12344321");
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims);
+    }
+
+
+    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
+
+        sdClaims.forEach((k, v) -> {
+            Disclosure dis = new Disclosure(k, v);
+            builder.putSDClaim(dis);
+            disclosures.add(dis);
+        });
 
         builder.putClaim("iss", issuerId);
         builder.putClaim("iat", Instant.now().getEpochSecond());
@@ -159,12 +175,6 @@ public class SDJWTCredentialMock {
         }
 
         builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
-
-        getSDClaims().forEach((k, v) -> {
-            Disclosure dis = new Disclosure(k, v);
-            builder.putSDClaim(dis);
-            disclosures.add(dis);
-        });
 
         try {
             Map<String, Object> claims = builder.build();

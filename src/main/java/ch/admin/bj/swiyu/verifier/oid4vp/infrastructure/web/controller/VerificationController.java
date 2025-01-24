@@ -95,12 +95,7 @@ public class VerificationController {
     ResponseEntity<VerificationErrorResponseDto> handleVerificationException(VerificationException e) {
         var error = toVerficationErrorResponseDto(e);
         log.warn(String.format("The received verification presentation could not be verified - caused by %s - %s", error.error(), error.errorCode()), e);
-        var httpStatus = HttpStatus.BAD_REQUEST;
-        switch (e.getErrorType()) {
-            case VERIFICATION_PROCESS_CLOSED -> httpStatus = HttpStatus.GONE;
-            case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> httpStatus = HttpStatus.NOT_FOUND;
-        }
-        return new ResponseEntity<>(error, httpStatus);
+        return new ResponseEntity<>(error, e.getSuggestedHttpStatus());
     }
 
 }

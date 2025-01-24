@@ -91,7 +91,7 @@ class VerificationControllerIT {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isGone())
                 .andExpect(jsonPath("error").value(VERIFICATION_PROCESS_CLOSED.toString()));
     }
 

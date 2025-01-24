@@ -189,6 +189,7 @@ class SdjwtCredentialVerifierTest {
 
     @Test
     void testSDJWTIllegalSDClaim_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException, DidResolveException {
+        // Note: this test may fail in the future if the sd-jwt library is fixed.
         // The SD JWT has the claim set
         var presentationDefinition = sdwjtPresentationDefinition(id, List.of("$.first_name", "$.last_name", "$.birthdate"));
         var managementEntity = managementEntity(id, presentationDefinition);

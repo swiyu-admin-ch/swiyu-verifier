@@ -23,6 +23,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.security.MessageDigest;
@@ -161,15 +162,16 @@ public class SdjwtCredentialVerifier {
 
         var disclosedClaimNames = disclosures.stream().map(Disclosure::getClaimName).collect(Collectors.toSet());
 
-        // 8.1 / 3.3.2: Check if "disclosures" contains an "_sd" arguments and throw exception when thats the case
-        if (disclosedClaimNames.contains("_sd")) {
-            throw credentialError(CREDENTIAL_INVALID, "Illegal disclosure found with claim name _sd");
+        // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
+        if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("_sd", "..."))) {
+            throw credentialError(CREDENTIAL_INVALID, "Illegal disclosure found with name _sd or ...");
         }
 
         // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.
-        if (disclosedClaimNames.removeAll(claims.getPayload().keySet())) {
+        if (CollectionUtils.containsAny(disclosedClaimNames, claims.getPayload().keySet())) { // If there is any result of the set intersection
             throw credentialError(CREDENTIAL_INVALID, "Can not resolve disclosures. Existing Claim would be overridden.");
         }
+
 
         // check if distinct disclosures
         if (new HashSet<>(disclosures).size() != disclosures.size()) {

@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:test_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;database_to_upper=FALSE;
+    username: sa
+    password: secret
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:db/h2
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+
+  docker:
+    compose:
+      enabled: false
+
+application:
+  external-url: "http://localhost:8080"
+  client_id: "did:example:12345"
+  client_id_scheme: "did"
+  client_name: "Local Test"
+  logo_uri: "www.example.ico"
+  signing_key: "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIGYpEuy/ijtVu+QOIsmXiK9HNPQ0bkBX+wvhaFAh/zoKoAoGCCqGSM49\nAwEHoUQDQgAEoqBwmYd3RAHs+sFe/U7UFTXbkWmPAaqKTHCvsV8tvxWeng+OkMo1\n8QOT2rDNk+qMBrCJnyyiRU6jMdH4q3z1Pg==\n-----END EC PRIVATE KEY-----\n"
+  signing-key-verification-method: "did:example:12345#key-1"
+  key-management-method: none

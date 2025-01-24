@@ -3,12 +3,12 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.VerifierMetadataDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
@@ -31,7 +31,7 @@ public class RequestObjectService {
     private final ApplicationProperties applicationProperties;
     private final ManagementEntityRepository managementRepository;
     private final ObjectMapper objectMapper;
-    private final JWSSigner signer;
+    private final SignerProvider signerProvider;
 
     @Transactional(readOnly = true)
     public Object assembleRequestObject(UUID managementEntityId) {
@@ -70,12 +70,16 @@ public class RequestObjectService {
         if (!managementEntity.getJwtSecuredAuthorizationRequest()) {
             return requestObject;
         }
+        if (!signerProvider.canProvideSigner()) {
+            log.error("Upstream system error. Upstream system requested presentation to be signed despite the verifier not being configured for it");
+            throw new IllegalStateException("Presentation was configured to be signed, but no signing key was configured.");
+        }
 
         var jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(applicationProperties.getSigningKeyVerificationMethod()).build();
         var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(requestObject));
 
         try {
-            signedJwt.sign(signer);
+            signedJwt.sign(signerProvider.getSigner());
         } catch (JOSEException e) {
             throw new IllegalStateException("Error signing JWT", e);
         }

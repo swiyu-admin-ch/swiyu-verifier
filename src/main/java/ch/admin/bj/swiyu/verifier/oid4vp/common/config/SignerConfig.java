@@ -1,7 +1,6 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.common.config;
 
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import com.nimbusds.jose.jwk.ECKey;
@@ -29,11 +28,11 @@ public class SignerConfig {
      * @throws Exception if the SigningProvider can not be created.
      */
     @Bean
-    public JWSSigner defaultSigner() throws Exception {
+    public SignerProvider defaultSigner() throws Exception {
         return switch (applicationProperties.getKeyManagementMethod()) {
             case "none" -> {
                 log.warn("Starting without any signing key configured. Attempting to provided signed presentation requests will cause errors!");
-                yield null;
+                yield new SignerProvider(null);
             }
             case "key" ->
                 // We are currently only supporting EC Keys
@@ -80,10 +79,10 @@ public class SignerConfig {
      * @return a newly created Signing Support
      * @throws JOSEException if the Signer could not be created with the provided key & provider
      */
-    private JWSSigner fromEC(ECKey privateKey, Provider provider) throws JOSEException {
+    private SignerProvider fromEC(ECKey privateKey, Provider provider) throws JOSEException {
         var signer = new ECDSASigner(privateKey);
         signer.getJCAContext().setProvider(provider);
-        return signer;
+        return new SignerProvider(signer);
     }
 
     /**
@@ -94,10 +93,10 @@ public class SignerConfig {
      * @return a newly created Signing Support
      * @throws JOSEException if the Signer could not be created with the provided key & provider
      */
-    private JWSSigner fromEC(ECPrivateKey privateKey, Provider provider) throws JOSEException {
+    private SignerProvider fromEC(ECPrivateKey privateKey, Provider provider) throws JOSEException {
         var signer = new ECDSASigner(privateKey);
         signer.getJCAContext().setProvider(provider);
-        return signer;
+        return new SignerProvider(signer);
     }
 
     /**
@@ -105,7 +104,7 @@ public class SignerConfig {
      * @return a newly created Signing Support
      * @throws JOSEException if the Signer could not be created with the provided key & provider
      */
-    private JWSSigner fromEC(ECKey privateKey) throws JOSEException {
+    private SignerProvider fromEC(ECKey privateKey) throws JOSEException {
         return fromEC(privateKey, BouncyCastleProviderSingleton.getInstance());
     }
 }

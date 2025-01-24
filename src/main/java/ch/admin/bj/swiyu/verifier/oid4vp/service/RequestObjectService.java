@@ -8,8 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.ECDSASigner;
-import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
@@ -32,6 +31,7 @@ public class RequestObjectService {
     private final ApplicationProperties applicationProperties;
     private final ManagementEntityRepository managementRepository;
     private final ObjectMapper objectMapper;
+    private final JWSSigner signer;
 
     @Transactional(readOnly = true)
     public Object assembleRequestObject(UUID managementEntityId) {
@@ -75,7 +75,7 @@ public class RequestObjectService {
         var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(requestObject));
 
         try {
-            signedJwt.sign(new ECDSASigner(ECKey.parseFromPEMEncodedObjects(applicationProperties.getSigningKey()).toECKey()));
+            signedJwt.sign(signer);
         } catch (JOSEException e) {
             throw new IllegalStateException("Error signing JWT", e);
         }

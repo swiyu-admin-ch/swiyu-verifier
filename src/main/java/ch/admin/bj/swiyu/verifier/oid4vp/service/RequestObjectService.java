@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError.VERIFICATION_PROCESS_CLOSED;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPresentationDefinitionDto;
 
@@ -40,6 +41,11 @@ public class RequestObjectService {
 
         var managementEntity = managementRepository.findById(managementEntityId)
                 .orElseThrow(() -> submissionError(AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
+
+        if (!managementEntity.isVerificationPending()) {
+            log.debug("ManagementEntity with id {} is requested after already processing it", managementEntityId);
+            throw submissionError(VERIFICATION_PROCESS_CLOSED);
+        }
 
         if (managementEntity.isExpired()) {
             log.debug("ManagementEntity with id {} is expired", managementEntityId);

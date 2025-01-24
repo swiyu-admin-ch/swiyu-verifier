@@ -51,11 +51,4 @@ public class VerificationException extends RuntimeException {
                 errorDescription
         );
     }
-
-    public boolean isAuthorizationRequestObjectNotFound() {
-        if (errorType == null) {
-            return false;
-        }
-        return errorType.equals(VerificationError.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND);
-    }
 }

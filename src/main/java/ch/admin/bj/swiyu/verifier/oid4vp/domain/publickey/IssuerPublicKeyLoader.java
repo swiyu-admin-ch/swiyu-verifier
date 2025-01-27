@@ -1,12 +1,10 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey;
 
-import ch.admin.eid.didresolver.DidResolveException;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.eid.didtoolbox.Jwk;
-import ch.admin.eid.didtoolbox.TrustDidWebException;
 import ch.admin.eid.didtoolbox.VerificationMethod;
 import ch.admin.eid.didtoolbox.VerificationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.ECKey;
@@ -14,14 +12,12 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
-import java.util.Base64;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.common.base64.Base64Utils.decodeMultibaseKey;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -58,7 +54,7 @@ public class IssuerPublicKeyLoader {
             log.trace("Fetching Public Key {} for issuer {}", kid, issuer);
             VerificationMethod method = loadVerificationMethod(issuer, kid);
             return parsePublicKey(method);
-        } catch (DidResolveException | TrustDidWebException | RuntimeException e) {
+        } catch (RuntimeException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
         }
     }
@@ -71,10 +67,10 @@ public class IssuerPublicKeyLoader {
      * @param issuerDidTdw the decentralized identifier of the issuer
      * @param issuerKeyId  the key id (in jwt token header provided as 'kid' attribute) indicating which verification method to use
      * @return The VerificationMethod The base64 encoded public key of the issuer as it is mentioned in the <code>verificationMethod</code> for the given issuerKeyId.
-     * @throws DidResolveException   if the DID document could not be resolved
+     * @throws DidResolverException   if the DID document could not be resolved
      * @throws IllegalStateException if the DID document does not contain any matching verification method for the given issuerKeyId
      */
-    private VerificationMethod loadVerificationMethod(String issuerDidTdw, String issuerKeyId) throws DidResolveException, TrustDidWebException {
+    private VerificationMethod loadVerificationMethod(String issuerDidTdw, String issuerKeyId) throws DidResolverException, IllegalStateException {
         try (var didDoc = didResolverAdapter.resolveDid(issuerDidTdw)) {
             // Step 1: get all verification methods within the document
             var verificationMethods = didDoc.getVerificationMethod();

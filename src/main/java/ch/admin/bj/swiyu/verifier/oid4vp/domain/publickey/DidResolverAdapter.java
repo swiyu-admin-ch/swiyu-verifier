@@ -1,14 +1,12 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.eid.didresolver.Did;
-import ch.admin.eid.didresolver.DidResolveException;
 import ch.admin.eid.didtoolbox.DidDoc;
 import ch.admin.eid.didtoolbox.TrustDidWeb;
-import ch.admin.eid.didtoolbox.TrustDidWebException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -27,20 +25,16 @@ public class DidResolverAdapter {
      * @param didTdw - the id of the DID Document
      * @return the DID Document for the given DID
      */
-    public DidDoc resolveDid(String didTdw) throws DidResolveException, TrustDidWebException {
+    public DidDoc resolveDid(String didTdw) throws DidResolverException {
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
             String didLog = retrieveDidLog(didUrl);
-            TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog, true);
-            String rawDidDoc = tdw.getDidDoc();
-            return DidDoc.Companion.fromJson(rawDidDoc);
-        } catch (HttpServerErrorException | DidResolveException | TrustDidWebException e) {
-            throw e;
-
-        // there are cases where we receive unchecked general exceptions from the rust library
-        // in order to tackle this, in such a case we assume it is a user error (something with the did is wrong)
+            try (TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog, true)) {
+                String rawDidDoc = tdw.getDidDoc();
+                return DidDoc.Companion.fromJson(rawDidDoc);
+            }
         } catch (Exception e) {
-            throw new IllegalArgumentException(e);
+            throw new DidResolverException(e);
         }
     }
 

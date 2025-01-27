@@ -31,9 +31,10 @@ because it is the main interaction point with the issuer managent/oid4vci bundle
 
 # Development
 
-> Please be aware that this section **focus on the development of the verifier management service**. For the deployment of the
+> Please be aware that this section **focus on the development of the verifier oid4vp service**. For the deployment of the
 > component please consult [deployment section of the verifier-agent-management](https://bitbucket.bit.admin.ch/projects/EID/repos/verifier-agent-management/browse).
 
+## Single service development
 Run the following commands to start the service. This will also spin up a local postgres database from
 docker-compose.yml:
 
@@ -42,6 +43,19 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java ap
 ```
 
 After the start api definitions can be found [here](http://localhost:8080/swagger-ui/index.html#/)
+
+## Integrated service development
+The integrated service development describes how to devolp this service together with its management component.  
+
+The managment component needs to be started and be fully running before the oid4vp component can be started.  
+
+Run the following commands to start this service.
+
+```shell
+mvn spring-boot:run -Dspring-boot.run.profiles=local,local-shared # start spring boot java application
+```
+
+After the start api definitions can be found [here](http://localhost:8003/swagger-ui/index.html).
 
 ## Configuration
 

@@ -1,3 +1,4 @@
+# For usage of this file please refer to the README.md#Integrated_service_development
 server:
   port: 8003
 
@@ -5,6 +6,7 @@ spring:
   docker:
     compose:
       enabled: false
+      
   datasource:
     url: "jdbc:postgresql://localhost:5434/verifier_db"
     username: "verifier_mgmt_user"

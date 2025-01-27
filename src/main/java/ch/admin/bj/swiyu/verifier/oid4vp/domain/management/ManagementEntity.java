@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.management;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

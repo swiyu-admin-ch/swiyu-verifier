@@ -1,8 +1,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.exception;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 
 @Getter
 public class VerificationException extends RuntimeException {
@@ -52,17 +51,5 @@ public class VerificationException extends RuntimeException {
                 errorCode,
                 errorDescription
         );
-    }
-
-    /**
-     * Get the http status code which should be used for this exception configuration.
-     */
-    public HttpStatusCode getSuggestedHttpStatus() {
-        var httpStatus = HttpStatus.BAD_REQUEST;
-        switch (this.getErrorType()) {
-            case VERIFICATION_PROCESS_CLOSED -> httpStatus = HttpStatus.GONE;
-            case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> httpStatus = HttpStatus.NOT_FOUND;
-        }
-        return httpStatus;
     }
 }

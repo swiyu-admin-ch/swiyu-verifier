@@ -20,8 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError.VERIFICATION_PROCESS_CLOSED;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError.VERIFICATION_PROCESS_CLOSED;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPresentationDefinitionDto;
 

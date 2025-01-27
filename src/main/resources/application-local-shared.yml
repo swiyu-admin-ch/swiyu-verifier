@@ -1,17 +1,6 @@
+# For usage of this file please refer to the README.md#Integrated_service_development
 server:
   port: 8002
-
-spring:
-  docker:
-    compose:
-      enabled: true
-      file: compose.yaml
-  datasource:
-    url: "jdbc:postgresql://localhost:5434/verifier_db"
-    username: "verifier_mgmt_user"
-    password: "secret"
-    driver-class-name: org.postgresql.Driver
-
 
 application:
   oid4vp-url: "${OID4VP_URL:http://localhost:8003}"

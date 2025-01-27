@@ -23,6 +23,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.security.MessageDigest;
@@ -30,6 +31,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.text.ParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
@@ -157,17 +159,25 @@ public class SdjwtCredentialVerifier {
                 .map(Disclosure::parse).toList();
         List<String> digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
         log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntity.getId());
-        // Note for SD-JWT spec 8.1 / 3.3.2: Check if "disclosures" contains an "_sd"
-        // arguments and throw exception when thats the case
-        // -> since we don't expect issuers to add "_sd" to the claim, we don't need to
-        // check for this
+
+        var disclosedClaimNames = disclosures.stream().map(Disclosure::getClaimName).collect(Collectors.toSet());
+
+        // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
+        if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("_sd", "..."))) {
+            throw credentialError(CREDENTIAL_INVALID, "Illegal disclosure found with name _sd or ...");
+        }
+
+        // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.
+        if (CollectionUtils.containsAny(disclosedClaimNames, claims.getPayload().keySet())) { // If there is any result of the set intersection
+            throw credentialError(CREDENTIAL_INVALID, "Can not resolve disclosures. Existing Claim would be overridden.");
+        }
+
 
         // check if distinct disclosures
         if (new HashSet<>(disclosures).size() != disclosures.size()) {
             throw credentialError(CREDENTIAL_INVALID,
                     "Request contains non-distinct disclosures");
         }
-
         if (!digestsFromDisclosures.stream()
                 .allMatch(dig -> Collections.frequency(payload.get("_sd", List.class), dig) == 1)) {
             throw credentialError(CREDENTIAL_INVALID,

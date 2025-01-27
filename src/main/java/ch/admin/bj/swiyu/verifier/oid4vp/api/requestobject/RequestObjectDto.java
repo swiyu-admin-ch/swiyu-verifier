@@ -49,8 +49,8 @@ public class RequestObjectDto {
     @JsonProperty("presentation_definition")
     private PresentationDefinitionDto presentationDefinition;
 
-    @JsonProperty("client_metadata")
-    private VerifierMetadataDto clientMetadata;
+    @JsonProperty("client_metadata_uri")
+    private String clientMetadataUri;
 
     @JsonProperty("state")
     private String state;

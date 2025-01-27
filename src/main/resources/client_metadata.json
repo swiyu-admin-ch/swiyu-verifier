@@ -1,0 +1,11 @@
+{
+  "client_id": "${CLIENT_ID}",
+  "client_name#en": "English name (all regions)",
+  "client_name#fr": "French name (all regions)",
+  "client_name#de-DE": "German name (region Germany)",
+  "client_name#de-CH": "German name (region Switzerland)",
+  "client_name#de": "German name (fallback)",
+  "client_name": "Fallback name",
+  "client_logo": "www.example.com/logo.png",
+  "client_logo#fr": "www.example.com/logo_fr.png"
+}

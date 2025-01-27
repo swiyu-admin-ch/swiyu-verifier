@@ -1,11 +1,10 @@
 application:
-  external-url: "${EXTERNAL_URL}"
-  client_id: "${VERIFIER_DID}"
+  external-url: "${EXTERNAL_URL:}"
+  client_id: "${VERIFIER_DID:}"
   client_id_scheme: "did"
-  client_name: "${VERIFIER_NAME}"
-  logo_uri: "${VERIFIER_LOGO}"
-  signing_key: "${secret.signing_key:${SIGNING_KEY}}"
-  signing-key-verification-method: "${DID_VERIFICATION_METHOD}"
+  signing_key: "${secret.signing_key:${SIGNING_KEY:}}"
+  signing-key-verification-method: "${DID_VERIFICATION_METHOD:}"
+  client-metadata-file: "${OPENID_CLIENT_METADATA_FILE:}"
   url-rewrite:
     mapping: "${URL_REWRITE_MAPPING:{}}"
 
@@ -13,9 +12,9 @@ spring:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
-    url: "${POSTGRES_JDBC}"
-    username: "${secret.db.username:${POSTGRES_USER}}"
-    password: "${secret.db.password:${POSTGRES_PASSWORD}}"
+    url: "${POSTGRES_JDBC:}"
+    username: "${secret.db.username:${POSTGRES_USER:}}"
+    password: "${secret.db.password:${POSTGRES_PASSWORD:}}"
   jpa:
     open-in-view: false
     hibernate:

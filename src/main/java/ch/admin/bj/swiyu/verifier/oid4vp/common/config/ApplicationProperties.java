@@ -27,15 +27,11 @@ public class ApplicationProperties {
     private String clientIdScheme;
 
     @NotNull
-    private String clientName;
-
-    @NotNull
     private String signingKey;
 
     @NotNull
     private String signingKeyVerificationMethod;
 
-    private String logoUri;
 
     @PostConstruct
     public void validateEcKey() {

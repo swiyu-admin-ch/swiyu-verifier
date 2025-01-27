@@ -21,7 +21,6 @@ application:
   external-url: "http://localhost:8080"
   client_id: "did:example:12345"
   client_id_scheme: "did"
-  client_name: "Local Test"
-  logo_uri: "www.example.ico"
+  client-metadata-file: "classpath:client_metadata.json"
   signing_key: "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIGYpEuy/ijtVu+QOIsmXiK9HNPQ0bkBX+wvhaFAh/zoKoAoGCCqGSM49\nAwEHoUQDQgAEoqBwmYd3RAHs+sFe/U7UFTXbkWmPAaqKTHCvsV8tvxWeng+OkMo1\n8QOT2rDNk+qMBrCJnyyiRU6jMdH4q3z1Pg==\n-----END EC PRIVATE KEY-----\n"
   signing-key-verification-method: "did:example:12345#key-1"

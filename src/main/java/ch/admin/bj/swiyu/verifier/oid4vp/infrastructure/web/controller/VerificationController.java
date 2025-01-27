@@ -3,12 +3,14 @@ package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationService;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -20,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVerficationErrorResponseDto;
@@ -38,6 +41,37 @@ public class VerificationController {
 
     private final RequestObjectService requestObjectService;
     private final VerificationService verificationService;
+    private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
+
+    @GetMapping("/openid-client-metadata.json")
+    @Operation(
+            summary = "Get Request Object",
+            description = "Can return a RequestObjectDto as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Request object either as plaintext or signed JWT",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    examples = {
+                                            @ExampleObject(name = "Sample Client Metadata", value = """
+                                                    {
+                                                        "client_id": "did:example:12345",
+                                                        "client_name#en": "English name (all regions)",
+                                                        "client_name#fr": "French name (all regions)",
+                                                        "client_name#de-DE": "German name (region Germany)",
+                                                        "client_name#de-CH": "German name (region Switzerland)",
+                                                        "client_name#de": "German name (fallback)",
+                                                        "client_name": "Fallback name",
+                                                        "client_logo": "www.example.com/logo.png",
+                                                        "client_logo#fr": "www.example.com/logo_fr.png"
+                                                    }""")
+                                    }
+                            )
+                    )})
+    public Map<String, Object> getOpenIdClientMetadata() {
+        return openIdClientMetadataConfiguration.getOpenIdClientMetadata();
+    }
 
     @GetMapping("/request-object/{request_id}")
     @Operation(

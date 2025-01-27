@@ -1,7 +1,6 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
-import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.VerifierMetadataDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,16 +47,11 @@ public class RequestObjectService {
 
         var presentation = managementEntity.getRequestedPresentation();
 
-        var metadata = VerifierMetadataDto.builder()
-                .clientName(applicationProperties.getClientName())
-                .logoUri(applicationProperties.getLogoUri())
-                .build();
-
         var requestObject = RequestObjectDto.builder()
                 .nonce(managementEntity.getRequestNonce())
                 .presentationDefinition(toPresentationDefinitionDto(presentation))
-                .clientMetadata(metadata)
                 .clientId(applicationProperties.getClientId())
+                .clientMetadataUri(String.format("%s/openid-client-metadata.json", applicationProperties.getExternalUrl()))
                 .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType("vp_token")
                 .responseMode("direct_post")

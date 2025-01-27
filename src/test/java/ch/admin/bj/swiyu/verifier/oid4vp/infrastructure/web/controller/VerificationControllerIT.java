@@ -46,13 +46,13 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.ge
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.getPresentationSubmissionString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -177,10 +177,9 @@ class VerificationControllerIT {
                     var constraints = (LinkedTreeMap<List, List<LinkedTreeMap<List, List>>>) inputDescriptor.get("constraints");
                     assertThat(constraints.get("fields").get(0).get("path").get(0)).isEqualTo("$");
 
-                    var clientMetadata = (LinkedTreeMap) claims.getClaim("client_metadata");
-                    assertThat(clientMetadata.get("client_name")).isEqualTo(applicationProperties.getClientName());
-                    assertThat(clientMetadata.get("logo_uri")).isEqualTo(applicationProperties.getLogoUri());
-
+                    var clientMetadataUri = claims.getClaim("client_metadata_uri");
+                    assertThat(clientMetadataUri).isNotNull();
+                    
                     assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
                 });
     }

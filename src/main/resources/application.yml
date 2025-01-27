@@ -7,23 +7,29 @@ application:
   signing_key: "${secret.signing_key:${SIGNING_KEY}}"
   signing-key-verification-method: "${DID_VERIFICATION_METHOD}"
 
-  key-management-method: "${SDJWT_SIGNING_KEY_MANAGEMENT_METHOD:key}"
+  key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
+  # Pin to unlock the hsm
   hsm:
-    user-pin: "${secret.key.sdjwt.hsm.pin.user:${SDJWT_HSM_USER_PIN:}}"
+    user-pin: "${secret.key.hsm.pin.user:${HSM_USER_PIN:}}"
     # Key identifier or alias, or label when using pkcs11-tool
-    key-id: "${secret.key.sdjwt.hsm.id:${SDJWT_HSM_KEYID:}}"
+    key-id: "${secret.key.hsm.id:${HSM_KEY_ID:}}"
     # Optional pin to unlock the key
-    key-pin: "${secret.key.sdjwt.hsm.pin.key:${SDJWT_HSM_KEY_PIN}}"
+    key-pin: "${secret.key.hsm.pin.key:${HSM_KEY_PIN:}}"
     # File Path to the HSM config file. For settings see https://docs.oracle.com/en/java/javase/21/security/pkcs11-reference-guide1.html
-    pkcs11-config: "${SDJWT_HSM_CONFIG_PATH:}"
+    pkcs11-config: "${HSM_CONFIG_PATH:}"
 
     # For Cloud HSM like eg. securosys
-    user: "${SDJWT_HSM_USER:}"
-    host: "${SDJWT_HSM_HOST:}"
-    password: "${SDJWT_HSM_PASSWORD:}"
-    port: "${SDJWT_HSM_PORT:}"
-    proxy-user: "${SDJWT_HSM_PROXY_USER:}"
-    proxy-password: "${SDJWT_HSM_PROXY_PASSWORD:}"
+    # User for logging in on the host
+    user: "${HSM_USER:}"
+    # URI of the HSM Host or Proxy to be connected to
+    host: "${HSM_HOST:}"
+    # Password for the Host
+    password: "${HSM_PASSWORD:}"
+    # Port for either the proxy or host
+    port: "${HSM_PORT:}"
+    # When using a proxy with username / password authentication
+    proxy-user: "${HSM_PROXY_USER:}"
+    proxy-password: "${HSM_PROXY_PASSWORD:}"
 
   url-rewrite:
     mapping: "${URL_REWRITE_MAPPING:{}}"

@@ -23,22 +23,21 @@ public class HSMProperties {
     private String proxyUser;
     private String proxyPassword;
 
+    public String getSecurosysStringConfig() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(getSecurosysConfigIfExists("credentials.host", getHost())); // Primus HSM Host - if used with proxy use proxy host here
+        sb.append(getSecurosysConfigIfExists("credentials.port", getPort())); // Primus HSM TCP port - if used with proxy use proxy port here
+        sb.append(getSecurosysConfigIfExists("primusProxyUser", getProxyUser())); // Primus Proxy user
+        sb.append(getSecurosysConfigIfExists("primusProxyPassword", getProxyPassword())); // Primus Proxy password
+        sb.append(getSecurosysConfigIfExists("credentials.user", getUser())); // Primus HSM user
+        sb.append(getSecurosysConfigIfExists("credentials.password", getPassword())); // Primus HSM password
+        return sb.toString();
+    }
 
-    private String securosysConfigIfExists(String propertyName, String value) {
+    private String getSecurosysConfigIfExists(String propertyName, String value) {
         if (value == null || value.isBlank()) {
             return "";
         }
         return String.format("com.securosys.primus.jce.%s=%s\n", propertyName, value);
-    }
-
-    public String securosysStringConfig() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(securosysConfigIfExists("credentials.host", getHost())); // Primus HSM Host - if used with proxy use proxy host here
-        sb.append(securosysConfigIfExists("credentials.port", getPort())); // Primus HSM TCP port - if used with proxy use proxy port here
-        sb.append(securosysConfigIfExists("primusProxyUser", getProxyUser())); // Primus Proxy user
-        sb.append(securosysConfigIfExists("primusProxyPassword", getProxyPassword())); // Primus Proxy password
-        sb.append(securosysConfigIfExists("credentials.user", getUser())); // Primus HSM user
-        sb.append(securosysConfigIfExists("credentials.password", getPassword())); // Primus HSM password
-        return sb.toString();
     }
 }

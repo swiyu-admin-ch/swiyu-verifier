@@ -51,7 +51,17 @@ After the start api definitions can be found [here](http://localhost:8080/swagge
 
 ## Configuration
 
-### Environment variables
+### Generate Keys
+
+Currently only EC 256 keys are used.
+Generate private key with:
+`openssl ecparam -genkey -name prime256v1 -noout -out ec_private.pem`
+Remember to keep private keys private and safe. It should never be transmitted, etc.
+
+On the base registry the public key is published. To generate the public key form the private key we can use
+`openssl ec -in private.pem -pubout -out ec_public.pem`
+
+### Configuration Environment Variables
 
 | Variable            | Description                                                                                                                                                                                                | Type             | Default |
 |---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|

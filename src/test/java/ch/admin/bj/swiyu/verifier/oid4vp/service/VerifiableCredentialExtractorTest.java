@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition;
@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition.FormatAlgorithm;
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerifiableCredentialExtractor.getPathToSupportedCredential;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.CredentialSubmissionFixtures.*;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementEntityFixtures.managementEntity;

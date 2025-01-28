@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Set;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError.*;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError.*;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerifiableCredentialExtractor.extractVerifiableCredential;
 import static java.util.Objects.isNull;

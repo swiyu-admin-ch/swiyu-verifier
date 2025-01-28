@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.exception;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
 import lombok.Getter;
 
 @Getter
@@ -50,12 +51,5 @@ public class VerificationException extends RuntimeException {
                 errorCode,
                 errorDescription
         );
-    }
-
-    public boolean isAuthorizationRequestObjectNotFound() {
-        if (errorType == null) {
-            return false;
-        }
-        return errorType.equals(VerificationError.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND);
     }
 }

@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationError;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
 import lombok.experimental.UtilityClass;

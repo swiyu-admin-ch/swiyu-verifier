@@ -26,7 +26,9 @@ flowchart TD
     wallet ---> isoi
 ```
 # Deployment
-For the deployment of the component please consult [deployment section of the verifier-agent-management](https://bitbucket.bit.admin.ch/projects/EID/repos/verifier-agent-management/browse)
+
+For the deployment of the component please
+consult [deployment section of the verifier-agent-management](https://bitbucket.bit.admin.ch/projects/EID/repos/verifier-agent-management/browse)
 because it is the main interaction point with the issuer managent/oid4vci bundle
 
 # Development
@@ -59,7 +61,17 @@ After the start api definitions can be found [here](http://localhost:8003/swagge
 
 ## Configuration
 
-### Environment variables
+### Generate Keys
+
+Currently only EC 256 keys are used.
+Generate private key with:
+`openssl ecparam -genkey -name prime256v1 -noout -out ec_private.pem`
+Remember to keep private keys private and safe. It should never be transmitted, etc.
+
+On the base registry the public key is published. To generate the public key form the private key we can use
+`openssl ec -in private.pem -pubout -out ec_public.pem`
+
+### Configuration Environment Variables
 
 | Variable            | Description                                                                                                                                                                                                | Type             | Default |
 |---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|
@@ -80,6 +92,29 @@ After the start api definitions can be found [here](http://localhost:8003/swagge
 | secret.db.username | Username to connect to the Issuer Agent Database shared with the issuer agent managment service  |
 | secret.db.password | Username to connect to the Issuer Agent Database                                                 |
 | secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable | 
+
+### HSM - Hardware Security Module
+
+For operations with an HSM, the keys need not be mounted directly into the environment running this application.
+Instead, a connection is created to the HSM via JCA. This can be with
+the [Sun PKCS11 provider](https://docs.oracle.com/en/java/javase/22/security/pkcs11-reference-guide1.html) or a vendor
+specific option.
+Note that for creating the keys it is expected that the public key is provided as self-signed certificated.
+
+| Variable                      | Description                                                                                                                                                                                |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| SIGNING_KEY_MANAGEMENT_METHOD | This variable serves as selector. `key` is used for a mounted key. `pkcs11` for the sun pkcs11 selector. For vendor specific libraries the project must be compiled with these configured. |
+| HSM_HOST                      | URI of the HSM Host or Proxy to be connected to                                                                                                                                            |
+| HSM_PORT                      |                                                                                                                                                                                            |
+| HSM_USER                      | User for logging in on the host                                                                                                                                                            |
+| HSM_PASSWORD                  | Password for logging in to the HSM                                                                                                                                                         |
+| HSM_PROXY_USER                |                                                                                                                                                                                            |
+| HSM_PROXY_PASSWORD            |                                                                                                                                                                                            |
+| HSM_USER_PIN                  | For some proprietary providers required pin                                                                                                                                                |
+| HSM_KEY_ID                    | Key identifier or alias, or label when using pkcs11-tool                                                                                                                                   |
+| HSM_KEY_PIN                   | Optional pin to unlock the key                                                                                                                                                             |
+| HSM_CONFIG_PATH               | File Path to the HSM config file when using [Sun PKCS11 provider](https://docs.oracle.com/en/java/javase/22/security/pkcs11-reference-guide1.html)                                         |
+| HSM_USER_PIN                  | PIN for getting keys from the HSM                                                                                                                                                          |
 
 ## Contribution
 

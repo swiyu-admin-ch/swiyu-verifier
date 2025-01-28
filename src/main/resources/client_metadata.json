@@ -6,6 +6,6 @@
   "client_name#de-CH": "German name (region Switzerland)",
   "client_name#de": "German name (fallback)",
   "client_name": "Fallback name",
-  "client_logo": "www.example.com/logo.png",
-  "client_logo#fr": "www.example.com/logo_fr.png"
+  "logo_uri": "www.example.com/logo.png",
+  "logo_uri#fr": "www.example.com/logo_fr.png"
 }

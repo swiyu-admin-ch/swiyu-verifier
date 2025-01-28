@@ -20,6 +20,7 @@ import java.util.Properties;
 @RequiredArgsConstructor
 public class OpenIdClientMetadataConfiguration {
     private final ApplicationProperties applicationProperties;
+    private final ObjectMapper objectMapper;
 
     @NotNull
     @Value("${application.client-metadata-file}")
@@ -34,6 +35,6 @@ public class OpenIdClientMetadataConfiguration {
         prop.setProperty("CLIENT_ID", applicationProperties.getClientId());
         PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
         var loadedTemplate = helper.replacePlaceholders(template, prop);
-        openIdClientMetadata = new ObjectMapper().readValue(loadedTemplate, Map.class);
+        openIdClientMetadata = objectMapper.readValue(loadedTemplate, Map.class);
     }
 }

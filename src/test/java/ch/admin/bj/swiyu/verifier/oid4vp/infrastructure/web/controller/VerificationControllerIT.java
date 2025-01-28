@@ -177,9 +177,11 @@ class VerificationControllerIT {
                     var constraints = (LinkedTreeMap<List, List<LinkedTreeMap<List, List>>>) inputDescriptor.get("constraints");
                     assertThat(constraints.get("fields").get(0).get("path").get(0)).isEqualTo("$");
 
-                    var clientMetadataUri = claims.getClaim("client_metadata_uri");
-                    assertThat(clientMetadataUri).isNotNull();
-                    
+                    var clientMetadata = (LinkedTreeMap) claims.getClaim("client_metadata");
+                    assertThat(clientMetadata.get("client_name")).isEqualTo("Fallback name");
+                    assertThat(clientMetadata.get("client_name#de-CH")).isEqualTo("German name (region Switzerland)");
+                    assertThat(clientMetadata.get("logo_uri")).isEqualTo("www.example.com/logo.png");
+
                     assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
                 });
     }

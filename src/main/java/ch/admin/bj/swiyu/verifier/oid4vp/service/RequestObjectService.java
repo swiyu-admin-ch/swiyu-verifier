@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -29,6 +30,7 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPr
 @AllArgsConstructor
 public class RequestObjectService {
     private final ApplicationProperties applicationProperties;
+    private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementEntityRepository managementRepository;
     private final ObjectMapper objectMapper;
 
@@ -51,7 +53,7 @@ public class RequestObjectService {
                 .nonce(managementEntity.getRequestNonce())
                 .presentationDefinition(toPresentationDefinitionDto(presentation))
                 .clientId(applicationProperties.getClientId())
-                .clientMetadataUri(String.format("%s/openid-client-metadata.json", applicationProperties.getExternalUrl()))
+                .clientMetadata(openIdClientMetadataConfiguration.getOpenIdClientMetadata())
                 .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType("vp_token")
                 .responseMode("direct_post")

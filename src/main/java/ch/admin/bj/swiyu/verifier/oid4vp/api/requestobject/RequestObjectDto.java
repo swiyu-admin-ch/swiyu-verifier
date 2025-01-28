@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * OID4VP Request Object send to the Wallet as response after receiving an Authorization Request.
  * Should be sent as JWT signed by the verifier.
@@ -49,8 +51,21 @@ public class RequestObjectDto {
     @JsonProperty("presentation_definition")
     private PresentationDefinitionDto presentationDefinition;
 
-    @JsonProperty("client_metadata_uri")
-    private String clientMetadataUri;
+    @JsonProperty("client_metadata")
+    @Schema(description = "A JSON object containing the Verifier metadata values providing further information about the verifier, such as name and logo. It is UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter is present.",
+            example = """
+                    {
+                        "client_id": "did:example:12345",
+                        "client_name#en": "English name (all regions)",
+                        "client_name#fr": "French name (all regions)",
+                        "client_name#de-DE": "German name (region Germany)",
+                        "client_name#de-CH": "German name (region Switzerland)",
+                        "client_name#de": "German name (fallback)",
+                        "client_name": "Fallback name",
+                        "client_logo": "www.example.com/logo.png",
+                        "client_logo#fr": "www.example.com/logo_fr.png"
+                    }""")
+    private Map<String, Object> clientMetadata;
 
     @JsonProperty("state")
     private String state;

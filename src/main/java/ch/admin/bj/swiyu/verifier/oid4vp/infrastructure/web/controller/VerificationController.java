@@ -45,8 +45,8 @@ public class VerificationController {
 
     @GetMapping("/openid-client-metadata.json")
     @Operation(
-            summary = "Get Request Object",
-            description = "Can return a RequestObjectDto as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management",
+            summary = "Get client metadata",
+            description = "Metadata providing further information about the verifier, such as name and logo.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",

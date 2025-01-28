@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.DidResolverAdapter;
@@ -11,7 +12,6 @@ import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.eid.didresolver.DidResolveException;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -91,7 +91,7 @@ class VerificationControllerIT {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isGone())
                 .andExpect(jsonPath("error").value(VERIFICATION_PROCESS_CLOSED.toString()));
     }
 
@@ -185,7 +185,6 @@ class VerificationControllerIT {
                     assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
                 });
     }
-
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
@@ -683,7 +682,7 @@ class VerificationControllerIT {
                     sdjwt.getIssuerId(),
                     sdjwt.getKidHeaderValue(),
                     KeyFixtures.issuerPublicKeyAsMultibaseKey()));
-        } catch (DidResolveException e) {
+        } catch (DidResolverException e) {
             throw new AssertionError(e);
         }
 

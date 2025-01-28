@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.verifier.oid4vp.domain.exception;
+package ch.admin.bj.swiyu.verifier.oid4vp.common.exception;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

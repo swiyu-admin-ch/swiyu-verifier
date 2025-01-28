@@ -1,0 +1,7 @@
+package ch.admin.bj.swiyu.verifier.oid4vp.domain.exception;
+
+public class DidResolverException extends RuntimeException {
+    public DidResolverException(Throwable cause) {
+        super(cause);
+    }
+}

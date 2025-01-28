@@ -1,11 +1,10 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.eid.didresolver.Did;
-import ch.admin.eid.didresolver.DidResolveException;
 import ch.admin.eid.didtoolbox.DidDoc;
 import ch.admin.eid.didtoolbox.TrustDidWeb;
-import ch.admin.eid.didtoolbox.TrustDidWebException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -16,22 +15,26 @@ import org.springframework.web.client.RestClient;
 @Service
 @AllArgsConstructor
 public class DidResolverAdapter {
-    /**
-     * Returns the DID Document for the given DID.
-     *
-     * @param did - the id of the DID Document
-     * @return the DID Document for the given DID
-     */
+
     private final UrlRewriteProperties urlRewriteProperties;
     private final RestClient.Builder restClientBuilder;
 
-    public DidDoc resolveDid(String didTdw) throws DidResolveException, TrustDidWebException {
+    /**
+     * Returns the DID Document for the given DID.
+     *
+     * @param didTdw - the id of the DID Document
+     * @return the DID Document for the given DID
+     */
+    public DidDoc resolveDid(String didTdw) throws DidResolverException {
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
             String didLog = retrieveDidLog(didUrl);
-            TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog, true);
-            String rawDidDoc = tdw.getDidDoc();
-            return DidDoc.Companion.fromJson(rawDidDoc);
+            try (TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog, true)) {
+                String rawDidDoc = tdw.getDidDoc();
+                return DidDoc.Companion.fromJson(rawDidDoc);
+            }
+        } catch (Exception e) {
+            throw new DidResolverException(e);
         }
     }
 

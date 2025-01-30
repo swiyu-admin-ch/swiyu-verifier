@@ -34,5 +34,8 @@ public class ApplicationProperties {
 
     private HSMProperties hsm;
 
+    @NotNull
+    private String requestObjectVersion;
+
 }
 

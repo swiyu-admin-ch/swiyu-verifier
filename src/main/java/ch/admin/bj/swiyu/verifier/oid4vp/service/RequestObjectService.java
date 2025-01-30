@@ -57,6 +57,7 @@ public class RequestObjectService {
 
         var requestObject = RequestObjectDto.builder()
                 .nonce(managementEntity.getRequestNonce())
+                .version(applicationProperties.getRequestObjectVersion())
                 .presentationDefinition(toPresentationDefinitionDto(presentation))
                 .clientId(applicationProperties.getClientId())
                 .clientMetadata(openIdClientMetadataConfiguration.getOpenIdClientMetadata())

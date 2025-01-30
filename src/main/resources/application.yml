@@ -5,6 +5,7 @@ application:
   signing_key: "${secret.signing_key:${SIGNING_KEY:}}"
   signing-key-verification-method: "${DID_VERIFICATION_METHOD:}"
   client-metadata-file: "${OPENID_CLIENT_METADATA_FILE:}"
+  request-object-version: "1.0.0"
 
   key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
   # Pin to unlock the hsm

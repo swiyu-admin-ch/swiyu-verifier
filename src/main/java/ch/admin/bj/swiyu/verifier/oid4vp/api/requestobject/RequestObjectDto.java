@@ -10,7 +10,7 @@ import lombok.Data;
 import java.util.Map;
 
 /**
- * OID4VP Request Object send to the Wallet as response after receiving an Authorization Request.
+ * OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
  * Should be sent as JWT signed by the verifier.
  * The public key should be accessible using client_id
  * <a href="https://www.rfc-editor.org/rfc/rfc9101.html#name-request-object-2">Spec for Request Object</a>
@@ -47,6 +47,9 @@ public class RequestObjectDto {
 
     @JsonProperty("nonce")
     private String nonce;
+
+    @JsonProperty("version")
+    private String version;
 
     @JsonProperty("presentation_definition")
     private PresentationDefinitionDto presentationDefinition;

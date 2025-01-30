@@ -29,18 +29,11 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
             // Handle invalid property exceptions during controller method invocation
             InvalidPropertyException.class,
     })
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException e) {
         String responseMessage = nonNull(e.getMessage()) ? e.getMessage() : "Bad request";
         log.debug("invalid request", e);
         return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(ResourceNotFoundException.class)
-    protected ResponseEntity<Object> handleResourceNotFoundException(final ResourceNotFoundException exception) {
-
-        log.info(exception.getMessage());
-
-        return new ResponseEntity<>(exception.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)

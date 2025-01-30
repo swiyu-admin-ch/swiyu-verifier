@@ -42,7 +42,7 @@ class VerifierManagementControllerIT {
         var reqField0 = reqDescriptor0.constraints().fields().getFirst();
         var sdJwtFormat = reqDescriptor0.format().get(sdJWTFormatType);
 
-        MvcResult result = mvc.perform(post("/verifications")
+        MvcResult result = mvc.perform(post("/api/v1/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -75,7 +75,7 @@ class VerifierManagementControllerIT {
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
-        MvcResult result1 = mvc.perform(get("/verifications/" + id))
+        MvcResult result1 = mvc.perform(get("/api/v1/verifications/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.request_nonce").isNotEmpty())
@@ -101,7 +101,7 @@ class VerifierManagementControllerIT {
         request.presentationDefinition().inputDescriptors().clear();
         request.presentationDefinition().inputDescriptors().add(inputDescriptorDto(null));
 
-        mvc.perform(post("/verifications")
+        mvc.perform(post("/api/v1/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -116,7 +116,7 @@ class VerifierManagementControllerIT {
         request.presentationDefinition().inputDescriptors().clear();
         request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_WithoutConstraints());
 
-        mvc.perform(post("/verifications")
+        mvc.perform(post("/api/v1/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -133,7 +133,7 @@ class VerifierManagementControllerIT {
         constraints.fields().clear();
         constraints.fields().add(new FieldDto(null, null, null, null, null));
         // WHEN / THEN
-        mvc.perform(post("/verifications")
+        mvc.perform(post("/api/v1/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -150,7 +150,7 @@ class VerifierManagementControllerIT {
         constraints.fields().clear();
 
         // WHEN / THEN
-        mvc.perform(post("/verifications")
+        mvc.perform(post("/api/v1/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -172,7 +172,7 @@ class VerifierManagementControllerIT {
         var expectedPresentationFormatError = "presentationDefinition.format: Invalid format";
         var expectedInputDescriptorFormatError = "presentationDefinition.inputDescriptors[0].format: Invalid format";
 
-        mvc.perform(post("/verifications")
+        mvc.perform(post("/api/v1/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -184,7 +184,7 @@ class VerifierManagementControllerIT {
     @Test
     void testCreateMinimalExample_thenSuccess() throws Exception {
         var minimal = createVerificationManagementDto_Minimal(true);
-        MvcResult result = mvc.perform(post("/verifications")
+        MvcResult result = mvc.perform(post("/api/v1/verifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(minimal)))
                 .andExpect(status().isOk())
@@ -192,7 +192,7 @@ class VerifierManagementControllerIT {
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
-        MvcResult result1 = mvc.perform(get("/verifications/" + id))
+        MvcResult result1 = mvc.perform(get("/api/v1/verifications/" + id))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();

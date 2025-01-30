@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures;
 
 import ch.admin.eid.didtoolbox.DidDoc;
+import ch.admin.eid.didtoolbox.TrustDidWebException;
 import lombok.experimental.UtilityClass;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures.issuerPublicKeyAsMultibaseKey;
@@ -13,21 +14,21 @@ public class DidDocFixtures {
     public static final String DEFAULT_ISSUER_DID_TDW = "did:test:issuer";
     public static final String DEFAULT_METHOD_KEY_ID = DEFAULT_ISSUER_DID_TDW + "#key-1";
 
-    public static DidDoc issuerDidDoc() {
+    public static DidDoc issuerDidDoc() throws TrustDidWebException {
         return issuerDidDocWithMultikey(
                 DEFAULT_ISSUER_DID_TDW,
                 DEFAULT_METHOD_KEY_ID,
                 issuerPublicKeyAsMultibaseKey());
     }
 
-    public static DidDoc issuerDidDoc(String issuerId, String keyId) {
+    public static DidDoc issuerDidDoc(String issuerId, String keyId) throws TrustDidWebException {
         return issuerDidDocWithMultikey(
                 issuerId,
                 keyId,
                 issuerPublicKeyAsMultibaseKey());
     }
 
-    public static DidDoc issuerDidDocWithJsonWebKey(String didTdw, String keyId, String jsonWekKey) {
+    public static DidDoc issuerDidDocWithJsonWebKey(String didTdw, String keyId, String jsonWekKey) throws TrustDidWebException {
         var template = """
                 {
                    "@context": [
@@ -65,7 +66,7 @@ public class DidDocFixtures {
         return DidDoc.Companion.fromJson(json);
     }
 
-    public static DidDoc issuerDidDocWithMultikey(String didTdw, String keyId, String publicKey) {
+    public static DidDoc issuerDidDocWithMultikey(String didTdw, String keyId, String publicKey) throws TrustDidWebException {
         var template = """
                 {
                    "@context": [

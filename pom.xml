@@ -40,7 +40,7 @@
         <bcpkix-jdk18on.version>1.78.1</bcpkix-jdk18on.version>
         <kotlin-stdlib.version>1.9.23</kotlin-stdlib.version>
         <jna.version>5.14.0</jna.version>
-        <didresolver.version>1.0.0</didresolver.version>
+        <didresolver.version>1.0.1</didresolver.version>
         <sd-jwt.version>1.4</sd-jwt.version>
         <jjwt-api.version>0.12.6</jjwt-api.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
@@ -171,7 +171,7 @@
                 ! TODO EID-1771: This is needs to be fixed by providing those libs via repository. !
             -->
             <scope>system</scope>
-            <systemPath>${project.basedir}/lib/didresolver-1.0.0.jar</systemPath>
+            <systemPath>${project.basedir}/lib/didresolver-${didresolver.version}.jar</systemPath>
         </dependency>
 
         <!-- SD-JWT -->

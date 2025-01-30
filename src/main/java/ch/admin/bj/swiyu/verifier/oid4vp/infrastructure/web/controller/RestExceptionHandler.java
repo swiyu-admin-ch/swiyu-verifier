@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -40,5 +41,11 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     @ResponseStatus(INTERNAL_SERVER_ERROR)
     public void handleException(Exception e, HttpServletRequest r) {
         log.error("Unhandled exception occured for uri {}", r.getRequestURL(), e);
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public void handleNoResourceFoundException(HttpServletRequest r) {
+        log.debug("resource not found for uri {}", r.getRequestURL());
     }
 }

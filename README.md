@@ -186,12 +186,15 @@ After the start api definitions can be found [here](http://localhost:8002/swagge
 
 ### Environment variables
 
-| Variable          | Description                                                                                                                                            | Type         | Default |
-|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
-| OID4VP_URL        | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/e-id-admin/eidch-verifier-agent-oid4vp) | string (url) | none    |
-| POSTGRES_USER     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                        | string       | none    |
-| POSTGRES_PASSWORD | Username to connect to the Issuer Agent Database                                                                                                       | string       | none    |
-| POSTGRES_URL      | JDBC Connection string to the shared DB                                                                                                                | string       | none    |
+| Variable                       | Description                                                                                                                                             | Type         | Default |
+|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
+| OID4VP_URL                     | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/e-id-admin/eidch-verifier-agent-oid4vp)  | string (url) | none    |
+| POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                         | string       | none    |
+| POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                        | string       | none    |
+| POSTGRES_URL                   | JDBC Connection string to the shared DB                                                                                                                 | string       | none    |
+| VERIFICATION_TTL_SEC           | Time to live until a verification request is marked as expired & the collected data is scheduled for removal                                            | int          | 900     |
+| DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which the data cleaning process should run in milliseconds.                                                                                 | int          | 420000  |
+
 
 ## Usage
 

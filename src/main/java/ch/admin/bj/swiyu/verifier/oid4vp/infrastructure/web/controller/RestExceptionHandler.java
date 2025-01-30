@@ -42,10 +42,4 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     public void handleException(Exception e, HttpServletRequest r) {
         log.error("Unhandled exception occured for uri {}", r.getRequestURL(), e);
     }
-
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    @ExceptionHandler(NoResourceFoundException.class)
-    public void handleNoResourceFoundException(HttpServletRequest r) {
-        log.debug("resource not found for uri {}", r.getRequestURL());
-    }
 }

@@ -93,6 +93,14 @@ class VerificationControllerIT {
                         .formField("vp_token", vpToken))
                 .andExpect(status().isGone())
                 .andExpect(jsonPath("error").value(VERIFICATION_PROCESS_CLOSED.toString()));
+
+        // new route
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("error").value(VERIFICATION_PROCESS_CLOSED.toString()));
     }
 
     @Test

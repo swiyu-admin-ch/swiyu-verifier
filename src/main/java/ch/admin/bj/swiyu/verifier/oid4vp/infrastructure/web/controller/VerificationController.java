@@ -37,13 +37,14 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVer
 @AllArgsConstructor
 @Slf4j
 @Tag(name = "OID4VP Verfifier API")
+@RequestMapping({"/", "/api/v1/"})
 public class VerificationController {
 
     private final RequestObjectService requestObjectService;
     private final VerificationService verificationService;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
 
-    @GetMapping(value = {"/openid-client-metadata.json", "/api/v1/openid-client-metadata.json"})
+    @GetMapping(value = {"openid-client-metadata.json"})
     @Operation(
             summary = "Get client metadata",
             description = "Metadata providing further information about the verifier, such as name and logo.",
@@ -73,7 +74,7 @@ public class VerificationController {
         return openIdClientMetadataConfiguration.getOpenIdClientMetadata();
     }
 
-    @GetMapping(value= {"/request-object/{request_id}", "/api/v1/request-object/{request_id}"})
+    @GetMapping(value= {"request-object/{request_id}"})
     @Operation(
             summary = "Get Request Object",
             description = "Can return a RequestObjectDto as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management",
@@ -96,7 +97,7 @@ public class VerificationController {
         return requestObjectService.assembleRequestObject(requestId);
     }
 
-    @PostMapping(value = {"/request-object/{request_id}/response-data", "api/v1/request-object/{request_id}/response-data"},
+    @PostMapping(value = {"request-object/{request_id}/response-data"},
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(

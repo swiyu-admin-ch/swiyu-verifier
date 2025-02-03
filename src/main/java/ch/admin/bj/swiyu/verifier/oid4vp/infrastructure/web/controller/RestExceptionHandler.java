@@ -39,21 +39,21 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(INTERNAL_SERVER_ERROR)
-    public void handleException(Exception e, HttpServletRequest r) {
-        log.error("Unhandled exception occured for uri {}", r.getRequestURL(), e);
-    }
-
     @ExceptionHandler(IOException.class)
     public ResponseEntity<Object> handleBrokenPipeException(IOException ex){
         if(ex.getMessage() != null && ex.getMessage().contains("Broken pipe")) {
             // This is most likely a wrapped client abort exception meaning the client has already disconnected
             // Because there's no point in returning a response null is returned
-            log.info("Client aborted connection: {}", ex.getMessage());
+            log.debug("Client aborted connection: {}", ex.getMessage());
             return null;
         }
         log.error("Unhandled IO exception occurred", ex);
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(INTERNAL_SERVER_ERROR)
+    public void handleException(Exception e, HttpServletRequest r) {
+        log.error("Unhandled exception occured for uri {}", r.getRequestURL(), e);
     }
 }

@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.io.IOException;
+
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
@@ -41,5 +43,17 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     @ResponseStatus(INTERNAL_SERVER_ERROR)
     public void handleException(Exception e, HttpServletRequest r) {
         log.error("Unhandled exception occured for uri {}", r.getRequestURL(), e);
+    }
+
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<Object> handleBrokenPipeException(IOException ex){
+        if(ex.getMessage() != null && ex.getMessage().contains("Broken pipe")) {
+            // This is most likely a wrapped client abort exception meaning the client has already disconnected
+            // Because there's no point in returning a response null is returned
+            log.info("Client aborted connection: {}", ex.getMessage());
+            return null;
+        }
+        log.error("Unhandled IO exception occurred", ex);
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

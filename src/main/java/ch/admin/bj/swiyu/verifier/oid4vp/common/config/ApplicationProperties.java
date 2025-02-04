@@ -35,7 +35,10 @@ public class ApplicationProperties {
     private HSMProperties hsm;
 
     @NotNull
-    private String requestObjectVersion;
+    private String requestObjectVersion = "1.0.0";
+
+    @NotNull
+    private String metadataVersion = "1.0";
 
 }
 

@@ -7,6 +7,5 @@
   "client_name#de": "German name (fallback)",
   "client_name": "Fallback name",
   "logo_uri": "www.example.com/logo.png",
-  "logo_uri#fr": "www.example.com/logo_fr.png",
-  "version": "1.0"
+  "logo_uri#fr": "www.example.com/logo_fr.png"
 }

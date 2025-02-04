@@ -16,6 +16,7 @@ services:
     image: bit-eid-docker-hosted.nexus.bit.admin.ch/eid/verifier-agent-management:0.0.2-20241218100224-18fe393
     environment:
       OID4VP_URL: "<url of your verifier-agent-oid4vp service>"
+      OPENID_CLIENT_METADATA_FILE: "file:/verifier_metadata"
     port: "8080:8080"
     depends_on:
       - postgres
@@ -30,3 +31,18 @@ services:
         -----BEGIN EC PRIVATE KEY-----
         <private key of the file "assert-key-01">
         -----END EC PRIVATE KEY-----
+
+configs:
+  verifier_metadata:
+    content: |
+      {
+        "client_id": "${CLIENT_ID}",
+        "client_name#en": "Development Demo Verifier",
+        "client_name#fr": "Vérificateur de démonstration de développement",
+        "client_name#de-DE": "Entwicklungs-Demo-Verifizierer",
+        "client_name#de-CH": "Entwickligs-Demo-Verifizier",
+        "client_name#de": "Entwicklungs-Demo-Verifizierer (Fallback DE)",
+        "client_name": "DEV Demo Verifier (Base)",
+        "logo_uri": "www.example.com/logo.png",
+        "logo_uri#fr": "www.example.com/logo_fr.png"
+      }

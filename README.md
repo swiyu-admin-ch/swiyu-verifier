@@ -35,11 +35,13 @@ flowchart TD
 > - Registered yourself on the swiyuprobeta portal
 > - Registered yourself on the api self service portal
 
-##  Third party usage
-> Are you a third-party user? Then you're right here! Otherwhise go to [gov internal usage](#Gov-internal-usage)
-### 1. Set the environment variables
+
+> Are you a third-party user? Then you're right here! Otherwhise go to [gov internal usage](gov.REAMDE.md)
+## 1. Set the environment variables
 A sample compose file for an entire setup of both components and a database can be found in [sample.compose.yml](sample.compose.yml) file.
-**Replace all placeholder <VARIABLE_NAME>**.
+**Replace all placeholder <VARIABLE_NAME>**. In addition to that you need to adapt the [verifier metadata](sample.compose.yml#L35) to your use case.
+Those information will be provided to the holder on a dedicated endpoint serving as metadata information of your verifier.
+The placeholder `${CLIENT_ID}` in your metadata file will be replaced on the fly by the value set for `VERIFIER_DID`.
 
 Please be aware that both the verifier-agent-management and the verifier-agent-oid4vci need to be publicly accessible over a domain configured in `EXTERNAL_URL` so that
 a wallet can communicate with them.
@@ -48,7 +50,7 @@ The latest images are available here:
 - [verifier-agent-oid4vci](https://github.com/admin-ch-ssi/mirror-verifier-agent-oid4vp/pkgs/container/mirror-verifier-agent-oid4vp)
 - [verifier-agent-management](https://github.com/admin-ch-ssi/mirror-verifier-agent-management/pkgs/container/mirror-verifier-agent-management)
 
-### 2. Creating a verification
+## 2. Creating a verification
 > For a detailled understanding of the verfication process and the data structure of verification please consult the 
 > [DIF presentation exchange specification](https://identity.foundation/presentation-exchange/#presentation-definition).
 > For more information on the general verification flow consult the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html)
@@ -120,38 +122,6 @@ in order to submit an response to the verification request.
 }
 ```
 
-
-## Gov internal usage
-### 1. Setup up infrastructure
-When deployed in an RHOS setup the issuer-management / issuer-agent setup need the following setup
-#### Database
-Single postgresql databse service needs to be available. Make sure that the following bindings exist between your database and the application namespace:
-- database -> issuer-verifier-management: Full
-- database -> issuer-verifier-oid4vci: Read-Write
-#### MAV
-The MAV needs to be bound to the application namespace. Make sure the secrets are located in the path **default/application_secrets**
-and you configured the vault so that it uses the application_secrets as properties
-```yaml
-vaultsecrets:
-  vaultserver: https://mav.bit.admin.ch
-  serviceaccount: default
-  cluster: p-szb-ros-shrd-npr-01
-  path: default
-  properties:
-    - application_secrets
-``` 
-### 2. Set the environment variables
-Due to the separation of the secret and non-secret variables the location is split. Make sure that you've set at least the following variables.
-Concerning the actual values take a look at the [sample.compose.yml](sample.compose.yml)
-
-> **After this** continue with [creating an initial verification](#2-creating-a-verification)
-
-| Location                | issuer-agent-management                                                                                    | issuer-agent-oid4vci |
-|-------------------------|------------------------------------------------------------------------------------------------------------|----------------------|
-| GitOps                  | OID4VP_URL                                                                                                 | EXTERNAL_URL<br/>VERIFIER_DID<br/>DID_VERIFICATION_METHOD<br/>VERIFIER_NAME                     |
-| ManagedApplicationVault |  |  SIGNING_KEY                    |
-
-
 # Development
 
 > Please be aware that this section **focus on the development of the issuer management service**. For the deployment of the
@@ -186,14 +156,14 @@ After the start api definitions can be found [here](http://localhost:8002/swagge
 
 ### Environment variables
 
-| Variable                       | Description                                                                                                                                             | Type         | Default |
-|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
-| OID4VP_URL                     | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/e-id-admin/eidch-verifier-agent-oid4vp)  | string (url) | none    |
-| POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                         | string       | none    |
-| POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                        | string       | none    |
-| POSTGRES_URL                   | JDBC Connection string to the shared DB                                                                                                                 | string       | none    |
-| VERIFICATION_TTL_SEC           | Time to live until a verification request is marked as expired & the collected data is scheduled for removal                                            | int          | 900     |
-| DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which the data cleaning process should run in milliseconds.                                                                                 | int          | 420000  |
+| Variable                       | Description                                                                                                                                            | Type         | Default |
+|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
+| OID4VP_URL                     | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/e-id-admin/eidch-verifier-agent-oid4vp) | string (url) | none    |
+| POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                        | string       | none    |
+| POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                       | string       | none    |
+| POSTGRES_JDBC                  | JDBC Connection string to the shared DB                                                                                                                | string       | none    |
+| VERIFICATION_TTL_SEC           | Validity period in seconds of an verification offer                                                                                                    | int          | 900     |
+| DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which expired offers should be removed from cache in milliseconds.                                                                         | int          | 420000  |
 
 
 ## Usage

@@ -52,7 +52,7 @@ public class RequestObjectServiceTest {
             String payload = new String(decoder.decode(chunks[1]));
             HashMap<String, Object> payloadMap = new ObjectMapper().readValue(payload, HashMap.class);
             assertThat(payloadMap).isNotNull();
-            assertThat(payloadMap.get("version")).isEqualTo("1.0.0");
+            assertThat(payloadMap.get("version")).isEqualTo("1.0");
         }
     }
 }

@@ -36,5 +36,6 @@ public class OpenIdClientMetadataConfiguration {
         PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
         var loadedTemplate = helper.replacePlaceholders(template, prop);
         openIdClientMetadata = objectMapper.readValue(loadedTemplate, Map.class);
+        openIdClientMetadata.put("version", applicationProperties.getMetadataVersion());
     }
 }

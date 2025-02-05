@@ -37,8 +37,9 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVer
 @AllArgsConstructor
 @Slf4j
 @Tag(name = "OID4VP Verfifier API")
-@RequestMapping({ "/api/v1/"})
-public class VerificationController {
+@Deprecated
+@RequestMapping({"/"})
+public class DepricatedVerificationController {
 
     private final RequestObjectService requestObjectService;
     private final VerificationService verificationService;

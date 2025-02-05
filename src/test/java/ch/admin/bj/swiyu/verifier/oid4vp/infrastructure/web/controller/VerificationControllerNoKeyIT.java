@@ -33,14 +33,14 @@ class VerificationControllerNoKeyIT {
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetSignedRequestObject_thenFailDuetoNoKey() throws Exception {
 
-        mock.perform(get(String.format("/request-object/%s", requestId))).andExpect(status().is5xxServerError());
+        mock.perform(get(String.format("/api/v1/request-object/%s", requestId))).andExpect(status().is5xxServerError());
     }
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_no_signature.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetRequestObject() throws Exception {
-        mock.perform(get(String.format("/request-object/%s", requestId)))
+        mock.perform(get(String.format("/api/v1/request-object/%s", requestId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("client_id").value(applicationProperties.getClientId()))
                 .andExpect(jsonPath("client_id_scheme").value(applicationProperties.getClientIdScheme()))

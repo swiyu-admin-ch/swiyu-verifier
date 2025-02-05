@@ -31,7 +31,7 @@ public class VerifierManagementController {
 
     private final ApplicationProperties applicationProperties;
 
-    @PostMapping("/verifications")
+    @PostMapping(value = {"/verifications", "/api/v1/verifications"})
     @Operation(
             summary = "Creates a new verification process with the given attributes",
             responses = {
@@ -51,7 +51,7 @@ public class VerifierManagementController {
         return presentationService.createVerificationManagement(requestDto);
     }
 
-    @GetMapping("/verifications/{verificationId}")
+    @GetMapping(value= {"/verifications/{verificationId}", "/api/v1/verifications/{verificationId}"})
     @Operation(
             summary = "Get verification by id",
             responses = {

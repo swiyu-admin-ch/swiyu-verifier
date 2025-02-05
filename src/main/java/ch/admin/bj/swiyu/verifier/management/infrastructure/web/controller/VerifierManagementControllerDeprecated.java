@@ -24,15 +24,16 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RestController
 @AllArgsConstructor
 @Slf4j
+@Deprecated
 @Tag(name = "OID4VP Management API")
-@RequestMapping(value="/api/v1/verifications")
-public class VerifierManagementController {
+@RequestMapping(value="/verifications")
+public class VerifierManagementControllerDeprecated {
 
     private final ManagementService presentationService;
 
     private final ApplicationProperties applicationProperties;
 
-    @PostMapping(value = { ""})
+    @PostMapping(value = {})
     @Operation(
             summary = "Creates a new verification process with the given attributes",
             responses = {

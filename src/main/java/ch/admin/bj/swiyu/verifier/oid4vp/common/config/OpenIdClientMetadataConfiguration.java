@@ -33,9 +33,9 @@ public class OpenIdClientMetadataConfiguration {
         var template = clientMetadataResource.getContentAsString(Charset.defaultCharset());
         Properties prop = new Properties();
         prop.setProperty("CLIENT_ID", applicationProperties.getClientId());
-        prop.setProperty("version", applicationProperties.getMetadataVersion());
         PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
         var loadedTemplate = helper.replacePlaceholders(template, prop);
         openIdClientMetadata = objectMapper.readValue(loadedTemplate, Map.class);
+        openIdClientMetadata.put("version", applicationProperties.getMetadataVersion());
     }
 }

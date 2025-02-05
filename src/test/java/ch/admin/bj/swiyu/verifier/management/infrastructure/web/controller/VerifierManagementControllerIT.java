@@ -198,5 +198,12 @@ class VerifierManagementControllerIT {
                 .andReturn();
 
         assertEquals(-1, result1.getResponse().getContentAsString().indexOf("null"));
+
+        MvcResult result2 = mvc.perform(get("/verifications/" + id))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        assertEquals(-1, result2.getResponse().getContentAsString().indexOf("null"));
     }
 }

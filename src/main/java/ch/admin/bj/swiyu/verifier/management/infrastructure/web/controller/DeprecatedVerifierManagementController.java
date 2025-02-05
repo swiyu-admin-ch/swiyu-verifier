@@ -27,7 +27,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @Deprecated
 @Tag(name = "OID4VP Management API")
 @RequestMapping(value="/verifications")
-public class VerifierManagementControllerDeprecated {
+public class DeprecatedVerifierManagementController {
 
     private final ManagementService presentationService;
 

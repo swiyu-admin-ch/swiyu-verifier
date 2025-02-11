@@ -24,7 +24,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RestController
 @AllArgsConstructor
 @Slf4j
-@Deprecated
+@Deprecated(since = "0.1.2-SNAPSHOT", forRemoval = true)
 @Tag(name = "OID4VP Management API")
 @RequestMapping(value="/verifications")
 public class DeprecatedVerifierManagementController {
@@ -33,7 +33,7 @@ public class DeprecatedVerifierManagementController {
 
     private final ApplicationProperties applicationProperties;
 
-    @PostMapping(value = {})
+    @PostMapping
     @Operation(
             summary = "Creates a new verification process with the given attributes",
             responses = {

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
 FROM bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:21-jre-ubi9-minimal
 USER 0
 

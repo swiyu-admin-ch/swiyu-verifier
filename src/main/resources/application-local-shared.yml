@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
 # For usage of this file please refer to the README.md#Integrated_service_development
 server:
   port: 8003
@@ -12,4 +16,3 @@ spring:
     username: "verifier_mgmt_user"
     password: "secret"
     driver-class-name: org.postgresql.Driver
-

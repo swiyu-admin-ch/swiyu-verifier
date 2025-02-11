@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Swiss Confederation
+
+SPDX-License-Identifier: MIT
+-->
+
 # Security Policy
 
 ## Reporting a Vulnerability

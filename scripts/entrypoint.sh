@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+#
+
 # Add microservice CAs
 echo "Adding certificates to Java truststore:"
 if ls /certs-app/*.crt &> /dev/null; then

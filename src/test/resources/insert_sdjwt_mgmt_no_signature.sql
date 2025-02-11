@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 INSERT INTO public.management (id, request_nonce, state, requested_presentation, wallet_response, expiration_in_seconds,
                                expires_at, accepted_issuer_dids, jwt_secured_authorization_request)
 VALUES ('deadbeef-dead-dead-dead-deaddeafbeef', 'P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL', 'PENDING',

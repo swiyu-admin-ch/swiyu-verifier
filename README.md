@@ -1,3 +1,11 @@
+<!--
+SPDX-FileCopyrightText: 2025 Swiss Confederation
+
+SPDX-License-Identifier: MIT
+-->
+
+![Public Beta banner](https://github.com/e-id-admin/eidch-public-beta/blob/main/assets/github-banner-publicbeta.jpg)
+
 # Generic verification service OID4VP
 
 This software is a web server implementing the technical standards as specified in
@@ -12,6 +20,16 @@ instance of the service.
 
 The verification validator service is linked to the verification management services through a database, allowing to
 scale every service independently of the management service.
+
+## Table of Contents
+
+- [Overview](#Overview)
+- [Deployment](#deployment)
+- [Development](#development)
+- [Contributions and feedback](#contributions-and-feedback)
+- [License](#license)
+
+## Overview
 
 ```mermaid
 flowchart TD
@@ -116,7 +134,7 @@ Note that for creating the keys it is expected that the public key is provided a
 | HSM_CONFIG_PATH               | File Path to the HSM config file when using [Sun PKCS11 provider](https://docs.oracle.com/en/java/javase/22/security/pkcs11-reference-guide1.html)                                         |
 | HSM_USER_PIN                  | PIN for getting keys from the HSM                                                                                                                                                          |
 
-## Contribution
+## Contributions and feedback
 
 We appreciate feedback and contribution. More information can be found in the [CONTRIBUTING-File](/CONTRIBUTING.md).
 

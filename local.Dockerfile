@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
 FROM eclipse-temurin:21
 
 RUN mkdir -p /app

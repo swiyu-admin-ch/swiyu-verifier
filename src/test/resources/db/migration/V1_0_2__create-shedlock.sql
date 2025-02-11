@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 -- Table required due to usage of mvn dependency shedlock-spring
 CREATE TABLE shedlock(
                          name VARCHAR(64) NOT NULL,

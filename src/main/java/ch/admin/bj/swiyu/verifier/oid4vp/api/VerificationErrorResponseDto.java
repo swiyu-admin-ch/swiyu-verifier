@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.oid4vp.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -21,4 +27,3 @@ public record VerificationErrorResponseDto(
         String errorDescription
 ) {
 }
-

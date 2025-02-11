@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
 spring:
   datasource:
     driver-class-name: org.h2.Driver

@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.oid4vp.api.submission;
 
 import com.fasterxml.jackson.annotation.JsonProperty;

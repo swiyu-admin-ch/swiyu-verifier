@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.management;
 
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -40,6 +46,31 @@ public class ArchitectureTest {
     @ArchTest
     public static final ArchTests namingRules = ArchTests.in(NamingRules.class);
 
+    private static Architectures.LayeredArchitecture getArchitectureLayers() {
+        return layeredArchitecture()
+                .consideringAllDependencies()
+                .layer(Layer.API.layerName)
+                .definedBy(Layer.API.packageIdentifiers)
+                .layer(Layer.DOMAIN.layerName)
+                .definedBy(Layer.DOMAIN.packageIdentifiers)
+                .layer(Layer.SERVICE.layerName)
+                .definedBy(Layer.SERVICE.packageIdentifiers)
+                .optionalLayer(Layer.INFRASTRUCTURE.layerName)
+                .definedBy(Layer.INFRASTRUCTURE.packageIdentifiers)
+                .optionalLayer(Layer.WEB.layerName)
+                .definedBy(Layer.WEB.packageIdentifiers)
+                .optionalLayer(Layer.COMMON.layerName)
+                .definedBy(Layer.COMMON.packageIdentifiers)
+                .whereLayer(Layer.WEB.layerName)
+                .mayNotBeAccessedByAnyLayer();
+    }
+
+    private static String[] concat(String[]... arrays) {
+        return Arrays.stream(arrays)
+                .flatMap(Arrays::stream)
+                .toArray(String[]::new);
+    }
+
     @Getter
     enum Layer {
         DOMAIN("Domain", "..domain.."),
@@ -79,6 +110,32 @@ public class ArchitectureTest {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class CodingRules {
 
+        @ArchTest
+        public static final ArchRule classes_should_not_use_field_injection = noFields()
+                .should(beAnnotatedWith("org.springframework.beans.factory.annotation.Autowired"))
+                .because("field injection is evil, see http://olivergierke.de/2013/11/why-field-injection-is-evil/");
+        @ArchTest
+        static final ArchRule classes_should_not_throw_generic_exceptions =
+                GeneralCodingRules.NO_CLASSES_SHOULD_THROW_GENERIC_EXCEPTIONS;
+
+        @ArchTest
+        static final ArchRule classes_should_not_use_java_util_logging =
+                GeneralCodingRules.NO_CLASSES_SHOULD_USE_JAVA_UTIL_LOGGING;
+        @ArchTest
+        static final ArchRule service_classes_should_not_have_state = classes()
+                .that(annotatedWith(Service.class))
+                .or(annotatedWith(Component.class))
+                .should()
+                .haveOnlyFinalFields()
+                .as("Spring services should only have final fields")
+                .because(
+                        """
+                                final fields make sure, that a service has no state. \
+                                This is required when running a microservice with multiple instances.\
+                                """
+                )
+                .allowEmptyShould(true);
+
         /**
          * ArchRules which support freezing. @see <a
          * href="https://www.archunit.org/userguide/html/000_Index.html#_freezing_arch_rules">freezing_arch_rules</a>
@@ -106,54 +163,10 @@ public class ArchitectureTest {
                     service_classes_should_not_have_state
             );
         }
-
-        @ArchTest
-        static final ArchRule classes_should_not_throw_generic_exceptions =
-                GeneralCodingRules.NO_CLASSES_SHOULD_THROW_GENERIC_EXCEPTIONS;
-
-        @ArchTest
-        static final ArchRule classes_should_not_use_java_util_logging =
-                GeneralCodingRules.NO_CLASSES_SHOULD_USE_JAVA_UTIL_LOGGING;
-
-        @ArchTest
-        public static final ArchRule classes_should_not_use_field_injection = noFields()
-                .should(beAnnotatedWith("org.springframework.beans.factory.annotation.Autowired"))
-                .because("field injection is evil, see http://olivergierke.de/2013/11/why-field-injection-is-evil/");
-
-        @ArchTest
-        static final ArchRule service_classes_should_not_have_state = classes()
-                .that(annotatedWith(Service.class))
-                .or(annotatedWith(Component.class))
-                .should()
-                .haveOnlyFinalFields()
-                .as("Spring services should only have final fields")
-                .because(
-                        """
-                                final fields make sure, that a service has no state. \
-                                This is required when running a microservice with multiple instances.\
-                                """
-                )
-                .allowEmptyShould(true);
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class ArchitectureRules {
-
-        /**
-         * ArchRules which support freezing. @see <a
-         * href="https://www.archunit.org/userguide/html/000_Index.html#_freezing_arch_rules">freezing_arch_rules</a>
-         */
-        @NoArgsConstructor(access = AccessLevel.PRIVATE)
-        public static class Freezing {
-
-            @ArchTest
-            static final ArchRule freezing_architecture_is_respected = FreezingArchRule.freeze(
-                    architecture_is_respected
-            );
-
-            @ArchTest
-            static final ArchRule freezing_no_cycles_between_slices = FreezingArchRule.freeze(no_cycles_between_slices);
-        }
 
         @ArchTest
         static final ArchRule architecture_is_respected = getArchitectureLayers()
@@ -170,7 +183,6 @@ public class ArchitectureTest {
                         Layer.INFRASTRUCTURE.layerName)
                 .whereLayer(Layer.INFRASTRUCTURE.layerName)
                 .mayNotBeAccessedByAnyLayer();
-
         /**
          * Infrastructure Layer is allowed to access domain exceptions, but no other domain classes. This
          * is an exception so we don't have to convert domain exceptions to infrastructure exceptions.
@@ -181,12 +193,27 @@ public class ArchitectureTest {
                 .and().areNotAssignableTo(Exception.class)
                 .should().onlyBeAccessed()
                 .byAnyPackage(concat(Layer.DOMAIN.packageIdentifiers, Layer.SERVICE.packageIdentifiers));
-
         @ArchTest
         static final ArchRule no_cycles_between_slices = SlicesRuleDefinition.slices()
                 .matching("..verifier.(**)..")
                 .should()
                 .beFreeOfCycles();
+
+        /**
+         * ArchRules which support freezing. @see <a
+         * href="https://www.archunit.org/userguide/html/000_Index.html#_freezing_arch_rules">freezing_arch_rules</a>
+         */
+        @NoArgsConstructor(access = AccessLevel.PRIVATE)
+        public static class Freezing {
+
+            @ArchTest
+            static final ArchRule freezing_architecture_is_respected = FreezingArchRule.freeze(
+                    architecture_is_respected
+            );
+
+            @ArchTest
+            static final ArchRule freezing_no_cycles_between_slices = FreezingArchRule.freeze(no_cycles_between_slices);
+        }
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -260,30 +287,5 @@ public class ArchitectureTest {
                 .resideInAPackage("..service")
                 .should()
                 .beInterfaces();
-    }
-
-    private static Architectures.LayeredArchitecture getArchitectureLayers() {
-        return layeredArchitecture()
-                .consideringAllDependencies()
-                .layer(Layer.API.layerName)
-                .definedBy(Layer.API.packageIdentifiers)
-                .layer(Layer.DOMAIN.layerName)
-                .definedBy(Layer.DOMAIN.packageIdentifiers)
-                .layer(Layer.SERVICE.layerName)
-                .definedBy(Layer.SERVICE.packageIdentifiers)
-                .optionalLayer(Layer.INFRASTRUCTURE.layerName)
-                .definedBy(Layer.INFRASTRUCTURE.packageIdentifiers)
-                .optionalLayer(Layer.WEB.layerName)
-                .definedBy(Layer.WEB.packageIdentifiers)
-                .optionalLayer(Layer.COMMON.layerName)
-                .definedBy(Layer.COMMON.packageIdentifiers)
-                .whereLayer(Layer.WEB.layerName)
-                .mayNotBeAccessedByAnyLayer();
-    }
-
-    private static String[] concat(String[]... arrays) {
-        return Arrays.stream(arrays)
-                .flatMap(Arrays::stream)
-                .toArray(String[]::new);
     }
 }

@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.management.domain.management;
 
 import jakarta.persistence.*;
@@ -66,18 +72,6 @@ public class Management {
         this.acceptedIssuerDids = convertToComaSeperatedList(acceptedIssuerDids);
     }
 
-    public List<String> getAcceptedIssuerDids() {
-        if (this.acceptedIssuerDids != null && !this.acceptedIssuerDids.isBlank()) {
-            return List.of(this.acceptedIssuerDids.split(","));
-        } else {
-            return emptyList();
-        }
-    }
-
-    public boolean isExpired() {
-        return System.currentTimeMillis() > expiresAt;
-    }
-
     private static String createNonce() {
         final SecureRandom random = new SecureRandom();
         final Base64.Encoder base64encoder = Base64.getEncoder().withoutPadding();
@@ -90,6 +84,18 @@ public class Management {
 
     private static long calculateExpiresAt(int expirationInSeconds) {
         return System.currentTimeMillis() + (expirationInSeconds * 1000L);
+    }
+
+    public List<String> getAcceptedIssuerDids() {
+        if (this.acceptedIssuerDids != null && !this.acceptedIssuerDids.isBlank()) {
+            return List.of(this.acceptedIssuerDids.split(","));
+        } else {
+            return emptyList();
+        }
+    }
+
+    public boolean isExpired() {
+        return System.currentTimeMillis() > expiresAt;
     }
 
     private String convertToComaSeperatedList(List<String> allowedIssuerDids) {

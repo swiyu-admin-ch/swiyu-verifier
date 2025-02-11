@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.management.infrastructure.web.config;
 
 import jakarta.servlet.FilterChain;
@@ -35,6 +41,10 @@ import static net.logstash.logback.argument.StructuredArguments.value;
 class RequestLoggingFilter extends OncePerRequestFilter {
 
     public static final String UNKNOWN_METHOD = "UNKNOWN";
+
+    private static String method(ServletServerHttpRequest request) {
+        return request.getMethod().toString();
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
@@ -79,9 +89,5 @@ class RequestLoggingFilter extends OncePerRequestFilter {
                 keyValue("remoteAddr", remoteAddress.toString()),
                 keyValue("requestHeaders", servletServerHttpRequest.getHeaders()),
                 keyValue("responseHeaders", responseHeaders));
-    }
-
-    private static String method(ServletServerHttpRequest request) {
-        return request.getMethod().toString();
     }
 }

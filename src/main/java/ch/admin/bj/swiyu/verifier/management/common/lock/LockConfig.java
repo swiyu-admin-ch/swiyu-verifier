@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.management.common.lock;
 
 import net.javacrumbs.shedlock.core.DefaultLockingTaskExecutor;

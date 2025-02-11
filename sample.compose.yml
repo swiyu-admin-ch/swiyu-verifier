@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
 services:
   postgres:
     image: postgres:15.8
@@ -22,7 +26,7 @@ services:
       POSTGRES_DB: "verifier_db"
       POSTGRES_JDBC: "jdbc:postgresql://postgres:5432/verifier_db"
     ports:
-     - "8080:8080"
+      - "8080:8080"
     depends_on:
       - postgres
   verifier-agent-oid4vp:

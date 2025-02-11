@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.management.api;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,4 +18,3 @@ public record ApiErrorDto(
         @NotNull String detail
 ) {
 }
-

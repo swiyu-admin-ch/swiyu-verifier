@@ -1,0 +1,15 @@
+version = 1
+
+[[annotations]]
+path = "src/main/resources/db/migration/**"
+SPDX-FileCopyrightText = "2025 Swiss Confederation"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+    ".mvn/**",
+    "mvnw.cmd",
+    "mvnw"
+]
+SPDX-FileCopyrightText = "UNSPECIFIED"
+SPDX-License-Identifier = "Apache-2.0"

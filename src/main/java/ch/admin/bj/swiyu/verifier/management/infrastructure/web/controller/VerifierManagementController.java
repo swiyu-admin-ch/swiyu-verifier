@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.management.api.ApiErrorDto;
@@ -51,7 +57,7 @@ public class VerifierManagementController {
         return presentationService.createVerificationManagement(requestDto);
     }
 
-    @GetMapping(value= {"/verifications/{verificationId}", "/api/v1/verifications/{verificationId}"})
+    @GetMapping(value = {"/verifications/{verificationId}", "/api/v1/verifications/{verificationId}"})
     @Operation(
             summary = "Get verification by id",
             responses = {

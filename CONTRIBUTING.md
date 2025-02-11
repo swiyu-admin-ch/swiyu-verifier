@@ -1,9 +1,17 @@
-# Contribution
+<!--
+SPDX-FileCopyrightText: 2025 Swiss Confederation
 
-Contributions are welcome via GitHub Issues (pull requests and branches are disabled). For this poc the team will handle comments and issues directly related to the code. For more general inputs and feedback please use [elfa@bit.admin.ch](mailto:elfa@bit.admin.ch).
+SPDX-License-Identifier: MIT
+-->
 
-Please feel free to fork, checkout and run the code yourself.
+# Contributions and feedback
 
-As this project is a proof of concept and part of a bigger goal, please be aware that this is an example- and not a reference implementation.
+Contributions are welcome via GitHub issues. Before opening an issue, please check
+whether [a ticket already exists](../../issues) that describes your intention.
+
+Since we only publish snapshots of the code until further notice, we cannot process pull requests.
+
+The development of Public Beta is taking place within a tight timeframe. We do our best to respond to your feedback as
+quickly as possible.
 
 Thank you for your contribution

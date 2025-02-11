@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Swiss Confederation
+
+SPDX-License-Identifier: MIT
+-->
+
 ## Gov usage
 ### 1. Setup up infrastructure
 When deployed in an RHOS setup the issuer-management / issuer-agent setup need the following setup
@@ -27,4 +33,3 @@ Concerning the actual values take a look at the [sample.compose.yml](sample.comp
 |-------------------------|-------------------------|-----------------------------------------------------------------------------|
 | GitOps                  | OID4VP_URL              | EXTERNAL_URL<br/>VERIFIER_DID<br/>DID_VERIFICATION_METHOD<br/>VERIFIER_NAME |
 | ManagedApplicationVault |                         | SIGNING_KEY                                                                 |
-

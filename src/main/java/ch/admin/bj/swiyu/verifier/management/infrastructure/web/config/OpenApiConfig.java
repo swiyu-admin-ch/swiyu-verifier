@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Swiss Confederation
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package ch.admin.bj.swiyu.verifier.management.infrastructure.web.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
@@ -11,4 +17,5 @@ import org.springframework.context.annotation.Configuration;
                 description = "Generic Verifier management service"
         )
 )
-public class OpenApiConfig { }
+public class OpenApiConfig {
+}

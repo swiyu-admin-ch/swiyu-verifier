@@ -13,16 +13,28 @@ services:
       timeout: 5s
       retries: 5
   verifier-agent-management:
-    image: bit-eid-docker-hosted.nexus.bit.admin.ch/eid/verifier-agent-management:0.0.2-20241218100224-18fe393
+    image: bit-eid-docker-hosted.nexus.bit.admin.ch/eid/verifier-agent-management:0.1.2-20250204073909-6419bd3
     environment:
       OID4VP_URL: "<url of your verifier-agent-oid4vp service>"
-    port: "8080:8080"
+      # Persistence
+      POSTGRES_USER: "verifier_mgmt_user"
+      POSTGRES_PASSWORD: "secret"
+      POSTGRES_DB: "verifier_db"
+      POSTGRES_JDBC: "jdbc:postgresql://postgres:5432/verifier_db"
+    ports:
+     - "8080:8080"
     depends_on:
       - postgres
   verifier-agent-oid4vp:
-    image: bit-eid-docker-hosted.nexus.bit.admin.ch/eid/verifier-agent-oid4vp0.0.3-20241218090505-3530544
+    image: bit-eid-docker-hosted.nexus.bit.admin.ch/eid/verifier-agent-oid4vp:0.1.2-20250204082945-fb722ab
+    configs:
+      - source: verifier_metadata
+        target: /verifier_metadata.json
+    ports:
+      - "8081:8080"
     environment:
       EXTERNAL_URL: "https://<external url of this service>"
+      OPENID_CLIENT_METADATA_FILE: "file:/verifier_metadata.json"
       VERIFIER_DID: "<Your VERIFIER_DID>"
       DID_VERIFICATION_METHOD: "<Your VERIFIER_DID>#assert-key-01"
       VERIFIER_NAME: "<Your verifier name>"
@@ -30,3 +42,23 @@ services:
         -----BEGIN EC PRIVATE KEY-----
         <private key of the file "assert-key-01">
         -----END EC PRIVATE KEY-----
+      # Persistence
+      POSTGRES_USER: "verifier_mgmt_user"
+      POSTGRES_PASSWORD: "secret"
+      POSTGRES_DB: "verifier_db"
+      POSTGRES_JDBC: "jdbc:postgresql://postgres:5432/verifier_db"
+
+configs:
+  verifier_metadata:
+    content: |
+      {
+        "client_id": "${CLIENT_ID}",
+        "client_name#en": "Development Demo Verifier",
+        "client_name#fr": "Vérificateur de démonstration de développement",
+        "client_name#de-DE": "Entwicklungs-Demo-Verifizierer",
+        "client_name#de-CH": "Entwickligs-Demo-Verifizier",
+        "client_name#de": "Entwicklungs-Demo-Verifizierer (Fallback DE)",
+        "client_name": "DEV Demo Verifier (Base)",
+        "logo_uri": "www.example.com/logo.png",
+        "logo_uri#fr": "www.example.com/logo_fr.png"
+      }

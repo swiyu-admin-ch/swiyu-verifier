@@ -60,11 +60,6 @@ Please be aware that both the verifier-agent-management and the verifier-agent-o
 over a domain configured in `EXTERNAL_URL` so that
 a wallet can communicate with them.
 
-The latest images are available here:
-
-- [verifier-agent-oid4vci](https://github.com/admin-ch-ssi/mirror-verifier-agent-oid4vp/pkgs/container/mirror-verifier-agent-oid4vp)
-- [verifier-agent-management](https://github.com/admin-ch-ssi/mirror-verifier-agent-management/pkgs/container/mirror-verifier-agent-management)
-
 ## 2. Creating a verification
 
 > For a detailled understanding of the verfication process and the data structure of verification please consult the

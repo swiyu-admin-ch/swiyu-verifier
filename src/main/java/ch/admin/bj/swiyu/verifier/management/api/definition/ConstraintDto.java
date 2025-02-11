@@ -35,7 +35,7 @@ public record ConstraintDto(
         @NotNull
         @NotEmpty
         @Schema(description = "Selection which properties are requested of the holder", example = """
-                [{"path": ["$.vct"],"filter":{"type": "string","const":"elfa-sdjwt"}},{"path":["$.dateOfBirth"]}]
+                [{"path": ["$.vct"],"filter":{"type": "string","const":"test-sdjwt"}},{"path":["$.dateOfBirth"]}]
                 """)
         List<@Valid FieldDto> fields,
 

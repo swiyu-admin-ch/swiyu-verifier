@@ -22,6 +22,17 @@ instance of the service.
 The verification management service is linked to the verification validator services through a database, allowing to
 scale the validator service independently of the management service.
 
+## Table of Contents
+
+- [Overview](#Overview)
+- [Deployment](#deployment)
+- [Development](#development)
+- [Usage](#usage)
+- [Contributions and feedback](#contributions-and-feedback)
+- [License](#license)
+
+## Overview
+
 ```mermaid
 flowchart TD
     issint[\Verifier Business System\]
@@ -194,7 +205,7 @@ To perform a verification, it is required to first create the request. This is d
 endpoint.
 What data is requested can be selected by adding in additional fields only containing "path".
 Filters are currently only supported for `$.vct` - the Verifiable Credential Type.
-In the following example we request to have the dateOfBirth revealed to us from a Credential with the type "elfa-sdjwt".
+In the following example we request to have the dateOfBirth revealed to us from a Credential with the type "test-sdjwt".
 
 ```json
 {
@@ -223,7 +234,7 @@ In the following example we request to have the dateOfBirth revealed to us from 
             ],
             "filter": {
               "type": "string",
-              "const": "elfa-sdjwt"
+              "const": "test-sdjwt"
             }
           },
           {
@@ -240,9 +251,12 @@ In the following example we request to have the dateOfBirth revealed to us from 
 
 The response of this post call contains the URI which has to be provided to the holder.
 
-## Contribution
+## Contributions and feedback
 
-We appreciate feedback and contribution. More information can be found in the [CONTRIBUTING-File](/CONTRIBUTING.md).
+The code for this repository is developed privately and will be released after each sprint. The published code can
+therefore only be a snapshot of the current development and not a thoroughly tested version. However, we welcome any
+feedback on the code regarding both the implementation and security aspects. Please follow the guidelines for
+contributing found in [CONTRIBUTING.md](/CONTRIBUTING.md).
 
 ## License
 

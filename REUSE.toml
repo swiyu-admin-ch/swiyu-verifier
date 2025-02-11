@@ -5,7 +5,6 @@ path = [
     "src/main/resources/db/migration/**",
     "lib/**",
     "src/main/resources/client_metadata.json",
-    "src/test/java/ch/admin/bj/swiyu/verifier/oid4vp/test/*"
 ]
 SPDX-FileCopyrightText = "2025 Swiss Confederation"
 SPDX-License-Identifier = "MIT"

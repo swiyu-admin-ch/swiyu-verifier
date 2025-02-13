@@ -1,9 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2025 Swiss Confederation
- *
- * SPDX-License-Identifier: MIT
- */
-
 package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.management.api.ApiErrorDto;
@@ -30,15 +24,16 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RestController
 @AllArgsConstructor
 @Slf4j
+@Deprecated(since = "0.1.2-SNAPSHOT", forRemoval = true)
 @Tag(name = "OID4VP Management API")
-@RequestMapping(value="/api/v1/verifications")
-public class VerifierManagementController {
+@RequestMapping(value="/verifications")
+public class DeprecatedVerifierManagementController {
 
     private final ManagementService presentationService;
 
     private final ApplicationProperties applicationProperties;
 
-    @PostMapping(value = { ""})
+    @PostMapping
     @Operation(
             summary = "Creates a new verification process with the given attributes",
             responses = {

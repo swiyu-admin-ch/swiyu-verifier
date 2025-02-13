@@ -291,6 +291,15 @@
                 <version>1.17.6</version>
             </dependency>
             <!-- end fix -->
+
+            <!-- fix for CVE-2024-57699 update once jsonpath is updated -->
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>2.5.2</version>
+            </dependency>
+            <!-- end fix -->
+
         </dependencies>
     </dependencyManagement>
     <build>

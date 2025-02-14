@@ -4,12 +4,12 @@ SPDX-FileCopyrightText: 2025 Swiss Confederation
 SPDX-License-Identifier: MIT
 -->
 
-![Public Beta banner](https://github.com/e-id-admin/eidch-public-beta/blob/main/assets/github-banner-publicbeta.jpg)
+![github-banner](https://github.com/swiyu-admin-ch/swiyu-admin-ch.github.io/blob/main/assets/images/github-banner.jpg)
 
 # Generic verification service OID4VP
 
 This software is a web server implementing the technical standards as specified in
-the [Swiss E-ID & Trust Infrastructure technical roadmap](https://github.com/e-id-admin/open-source-community/blob/main/tech-roadmap/tech-roadmap.md).
+the [Swiss e-ID and trust infrastructure: Initial implementation](https://swiyu-admin-ch.github.io/initial-technology/).
 Together with the other generic components provided, this software forms a collection of APIs allowing issuance and
 verification of verifiable credentials without the need of reimplementing the standards.
 
@@ -46,13 +46,13 @@ flowchart TD
 # Deployment
 
 For the deployment of the component please
-consult [deployment section of the verifier-agent-management](https://bitbucket.bit.admin.ch/projects/EID/repos/verifier-agent-management/browse)
+consult [deployment section of the verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management)
 because it is the main interaction point with the issuer managent/oid4vci bundle
 
 # Development
 
 > Please be aware that this section **focus on the development of the verifier oid4vp service**. For the deployment of the
-> component please consult [deployment section of the verifier-agent-management](https://bitbucket.bit.admin.ch/projects/EID/repos/verifier-agent-management/browse).
+> component please consult [deployment section of the verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management).
 
 ## Single service development
 Run the following commands to start the service. This will also spin up a local postgres database from
@@ -101,7 +101,7 @@ On the base registry the public key is published. To generate the public key for
 | POSTGRES_JDBC               | JDBC Connection string to the shared DB                                                                                                                                                                    | string           | none    |
 | SIGNING_KEY                 | Private Key in PEM format used to sign request objects sent to the holder                                                                                                                                  | string           | none    |
 | URL_REWRITE_MAPPING         | Json object for url replacements during rest client call. Key represents the original url and value the one which should be used instead (e.g. {"https://mysample1.ch":"https://somethingdiffeerent1.ch"}) | string           | "{}"    |
-| OPENID_CLIENT_METADATA_FILE | Path to the verifier metdata file as shown in the [verifier-agent-management](https://bitbucket.bit.admin.ch/projects/EID/repos/verifier-agent-management/browse/sample.compose.yml) sample                | string           | None    |
+| OPENID_CLIENT_METADATA_FILE | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                | string           | None    |
 
 ### Kubernetes Vault Keys
 

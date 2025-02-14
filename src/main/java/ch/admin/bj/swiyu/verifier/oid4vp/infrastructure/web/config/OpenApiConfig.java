@@ -18,8 +18,7 @@ import org.springframework.context.annotation.Configuration;
                 description = "Generic Verifier Agent OID4VP service",
                 contact = @Contact(
                         email = "eid@bit.admin.ch",
-                        name = "eID Generica",
-                        url = "https://confluence.bit.admin.ch/display/EIDTEAM/E-ID+Team+Tergum"
+                        name = "eID Generica"
                 )
         )
 )

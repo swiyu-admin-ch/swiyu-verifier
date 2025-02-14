@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
   verifier-agent-management:
-    image: ghcr.io/e-id-admin/eidch-verifier-agent-management:latest
+    image: ghcr.io/swiyu-admin-ch/eidch-verifier-agent-management:latest
     environment:
       OID4VP_URL: "<url of your verifier-agent-oid4vp service>"
       # Persistence
@@ -30,7 +30,7 @@ services:
     depends_on:
       - postgres
   verifier-agent-oid4vp:
-    image: ghcr.io/e-id-admin/eidch-verifier-agent-oid4vp:latest
+    image: ghcr.io/swiyu-admin-ch/eidch-verifier-agent-oid4vp:latest
     configs:
       - source: verifier_metadata
         target: /verifier_metadata.json

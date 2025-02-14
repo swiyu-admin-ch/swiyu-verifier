@@ -4,12 +4,12 @@ SPDX-FileCopyrightText: 2025 Swiss Confederation
 SPDX-License-Identifier: MIT
 -->
 
-![Public Beta banner](https://github.com/e-id-admin/eidch-public-beta/blob/main/assets/github-banner-publicbeta.jpg)
+![github-banner](https://github.com/swiyu-admin-ch/swiyu-admin-ch.github.io/blob/main/assets/images/github-banner.jpg)
 
 # Generic verifier management service
 
 This software is a web server implementing the technical standards as specified in
-the [Swiss E-ID & Trust Infrastructure technical roadmap](https://github.com/e-id-admin/open-source-community/blob/main/tech-roadmap/tech-roadmap.md).
+the [Swiss e-ID and trust infrastructure: Initial implementation](https://swiyu-admin-ch.github.io/initial-technology/).
 Together with the other generic components provided, this software forms a collection of APIs allowing issuance and
 verification of verifiable credentials without the need of reimplementing the standards.
 
@@ -188,14 +188,14 @@ After the start api definitions can be found [here](http://localhost:8002/swagge
 
 ### Environment variables
 
-| Variable                       | Description                                                                                                                                            | Type         | Default |
-|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
-| OID4VP_URL                     | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/e-id-admin/eidch-verifier-agent-oid4vp) | string (url) | none    |
-| POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                        | string       | none    |
-| POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                       | string       | none    |
-| POSTGRES_JDBC                  | JDBC Connection string to the shared DB                                                                                                                | string       | none    |
-| VERIFICATION_TTL_SEC           | Validity period in seconds of an verification offer                                                                                                    | int          | 900     |
-| DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which expired offers should be removed from cache in milliseconds.                                                                         | int          | 420000  |
+| Variable                       | Description                                                                                                                                                | Type         | Default |
+|--------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
+| OID4VP_URL                     | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/swiyu-admin-ch/eidch-verifier-agent-oid4vp) | string (url) | none    |
+| POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                            | string       | none    |
+| POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                           | string       | none    |
+| POSTGRES_JDBC                  | JDBC Connection string to the shared DB                                                                                                                    | string       | none    |
+| VERIFICATION_TTL_SEC           | Validity period in seconds of an verification offer                                                                                                        | int          | 900     |
+| DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which expired offers should be removed from cache in milliseconds.                                                                             | int          | 420000  |
 
 ## Usage
 

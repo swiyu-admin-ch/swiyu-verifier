@@ -16,9 +16,9 @@ The MAV needs to be bound to the application namespace. Make sure the secrets ar
 and you configured the vault so that it uses the application_secrets as properties
 ```yaml
 vaultsecrets:
-  vaultserver: https://mav.bit.admin.ch
+  vaultserver: https://my-vault-server.example.com
   serviceaccount: default
-  cluster: p-szb-ros-shrd-npr-01
+  cluster: xyz-cluster
   path: default
   properties:
     - application_secrets

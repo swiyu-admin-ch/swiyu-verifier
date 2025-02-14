@@ -69,8 +69,8 @@ public abstract class StatusListReference {
      * This is the shape of for TokenStatusList
      * <pre><code>
      *    {
-     *        "iss": "did:tdw:gnsgindemrqwgmzzgjrgcntgg42tknjtgizgkztbmrsdcnbzgm3dcn3gmnrgcnjwhftdimbthfstmnjrgbqwmmbthayteyjxme2wgoi=:identifier-data-service-d.bit.admin.ch:api:v1:did:c84eebdd-4417-4d88-bb5e-f0ce0ee38844",
-     *        "sub": "https://status-data-service-d.apps.p-szb-ros-shrd-npr-01.cloud.admin.ch/api/v1/statuslist/05d2e09f-21dc-4699-878f-89a8a2222c67.jwt",
+     *        "iss": "did:tdw:gnsgindemrqwgmzzgjrgcntgg42tknjtgizgkztbmrsdcnbzgm3dcn3gmnrgcnjwhftdimbthfstmnjrgbqwmmbthayteyjxme2wgoi=:identifier-data-service.bit.admin.ch:api:v1:did:c84eebdd-4417-4d88-bb5e-f0ce0ee38844",
+     *        "sub": "https://status-data-service.apps.p-szb-ros-shrd-npr-01.cloud.admin.ch/api/v1/statuslist/05d2e09f-21dc-4699-878f-89a8a2222c67.jwt",
      *        "iat": 1726829581,
      *        "status_list": {
      *            "bits": 2,

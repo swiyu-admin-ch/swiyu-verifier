@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+# This code will be replaced by the local.Dockerfile by the open source helper 
+
 FROM bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:21-jre-ubi9-minimal
 USER 0
 

@@ -196,6 +196,9 @@ After the start api definitions can be found [here](http://localhost:8002/swagge
 | POSTGRES_JDBC                  | JDBC Connection string to the shared DB                                                                                                                    | string       | none    |
 | VERIFICATION_TTL_SEC           | Validity period in seconds of an verification offer                                                                                                        | int          | 900     |
 | DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which expired offers should be removed from cache in milliseconds.                                                                             | int          | 420000  |
+| MONITORING_BASIC_AUTH_ENABLED  | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                                                |
+| MONITORING_BASIC_AUTH_USERNAME | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                                               |
+| MONITORING_BASIC_AUTH_PASSWORD | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                                               |
 
 ## Usage
 

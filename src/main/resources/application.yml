@@ -36,7 +36,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info, prometheus
 
 application:
   # TTL is set to 900 seconds -> 15 minutes
@@ -51,3 +51,9 @@ logging:
   level:
     ch.admin.bj.swiyu: INFO
     ch.admin.bj.swiyu.verifier.management.infrastructure.web.config.RequestLoggingFilter: DEBUG
+
+monitoring:
+  basic-auth:
+    enabled: ${MONITORING_BASIC_AUTH_ENABLED:false}
+    username: "${MONITORING_BASIC_AUTH_USERNAME:}"
+    password: "${MONITORING_BASIC_AUTH_PASSWORD:}"

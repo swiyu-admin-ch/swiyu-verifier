@@ -34,8 +34,6 @@ jobs:
           distribution: "temurin"
           java-version: "21"
           cache: "maven"
-      - name: Remove BIT Maven Proxy
-        run: rm .mvn/jvm.config
       - name: Build with Maven
         run: mvn versions:set -DnewVersion=${{ github.ref_name }} && mvn --batch-mode package
       # https://docs.github.com/de/actions/use-cases-and-examples/publishing-packages/publishing-docker-images#publishing-images-to-github-packages

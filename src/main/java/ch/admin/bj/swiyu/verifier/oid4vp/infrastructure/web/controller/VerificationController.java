@@ -13,6 +13,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfi
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationService;
+import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -50,6 +51,7 @@ public class VerificationController {
     private final VerificationService verificationService;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
 
+    @Timed
     @GetMapping(value = {"openid-client-metadata.json"})
     @Operation(
             summary = "Get client metadata",
@@ -80,6 +82,7 @@ public class VerificationController {
         return openIdClientMetadataConfiguration.getOpenIdClientMetadata();
     }
 
+    @Timed
     @GetMapping(value= {"request-object/{request_id}"})
     @Operation(
             summary = "Get Request Object",
@@ -103,6 +106,7 @@ public class VerificationController {
         return requestObjectService.assembleRequestObject(requestId);
     }
 
+    @Timed
     @PostMapping(value = {"request-object/{request_id}/response-data"},
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE})

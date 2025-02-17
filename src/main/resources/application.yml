@@ -63,9 +63,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info, prometheus
 
 logging:
   level:
     ch.admin.bj.swiyu: INFO
     ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RequestLoggingFilter: DEBUG
+
+monitoring:
+  basic-auth:
+    enabled: ${MONITORING_BASIC_AUTH_ENABLED:false}
+    username: "${MONITORING_BASIC_AUTH_USERNAME:}"
+    password: "${MONITORING_BASIC_AUTH_PASSWORD:}"

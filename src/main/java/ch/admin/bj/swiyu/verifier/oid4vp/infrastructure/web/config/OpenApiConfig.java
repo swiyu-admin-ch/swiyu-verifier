@@ -6,21 +6,34 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.info.Contact;
-import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.models.OpenAPI;
+import lombok.AllArgsConstructor;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@AllArgsConstructor
 @Configuration
-@OpenAPIDefinition(
-        info = @Info(
-                title = "OID4VP service",
-                description = "Generic Verifier Agent OID4VP service",
-                contact = @Contact(
-                        email = "eid@bit.admin.ch",
-                        name = "eID Generica"
-                )
-        )
-)
 public class OpenApiConfig {
+
+    @Bean
+    public OpenAPI openApi() {
+        return new OpenAPI().info(new io.swagger.v3.oas.models.info.Info()
+                .title("OID4VP service")
+                .description("Generic Verifier Agent OID4VP service")
+                .contact(new io.swagger.v3.oas.models.info.Contact()
+                        .name("eID Generica")
+                        .email("eid@bit.admin.ch")
+                )
+        );
+
+    }
+
+    @Bean
+    GroupedOpenApi api() {
+        return GroupedOpenApi.builder()
+                .group("API")
+                .pathsToMatch("/**")
+                .build();
+    }
 }

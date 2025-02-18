@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.security;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.MonitoringProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.MonitoringBasicAuthProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -30,14 +30,14 @@ import java.util.UUID;
 public class MonitoringSecurityConfig {
 
     private final static String BASIC_AUTH_ROLE_NAME = UUID.randomUUID().toString();
-    private final MonitoringProperties monitoringProperties;
+    private final MonitoringBasicAuthProperties basicAuthProperties;
 
     @Bean
     public UserDetailsService userDetailsService() {
         PasswordEncoder passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
         InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
-        manager.createUser(User.withUsername(monitoringProperties.getBasicAuth().username())
-                .password(passwordEncoder.encode(monitoringProperties.getBasicAuth().password()))
+        manager.createUser(User.withUsername(basicAuthProperties.getUsername())
+                .password(passwordEncoder.encode(basicAuthProperties.getPassword()))
                 .roles(BASIC_AUTH_ROLE_NAME)
                 .build());
         return manager;

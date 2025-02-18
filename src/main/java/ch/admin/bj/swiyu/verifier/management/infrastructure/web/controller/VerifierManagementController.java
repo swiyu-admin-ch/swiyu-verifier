@@ -12,6 +12,7 @@ import ch.admin.bj.swiyu.verifier.management.api.management.ManagementResponseDt
 import ch.admin.bj.swiyu.verifier.management.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.management.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.management.service.ManagementService;
+import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -38,6 +39,7 @@ public class VerifierManagementController {
 
     private final ApplicationProperties applicationProperties;
 
+    @Timed
     @PostMapping(value = { ""})
     @Operation(
             summary = "Creates a new verification process with the given attributes",
@@ -58,6 +60,7 @@ public class VerifierManagementController {
         return presentationService.createVerificationManagement(requestDto);
     }
 
+    @Timed
     @GetMapping(value= {"/{verificationId}"})
     @Operation(
             summary = "Get verification by id",

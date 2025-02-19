@@ -191,13 +191,14 @@ public class SdjwtCredentialVerifier {
         }
         log.trace("Successfully verified disclosure digests of id {}", managementEntity.getId());
 
-        // Check VC Status
-        verifyStatus(payload);
-        // The VC is valid, we can now begin to check the data submission
-
         // Confirm that the returned Credential(s) meet all criteria sent in the
         // Presentation Definition in the Authorization Request.
         var sdjwt = checkPresentationDefinitionCriteria(payload, disclosures);
+
+        // The data submission is valid, we can now begin to check the status of the VC
+        // Otherwise the
+        verifyStatus(payload);
+
         log.trace("Successfully verified the presented VC for id {}", managementEntity.getId());
         return sdjwt;
     }
@@ -208,7 +209,6 @@ public class SdjwtCredentialVerifier {
             throws VerificationException {
         Map<String, Object> expectedMap = new HashMap<>(claims);
         SDObjectDecoder decoder = new SDObjectDecoder();
-        ObjectMapper objectMapper = new ObjectMapper();
         String sdJWTString;
 
         try {

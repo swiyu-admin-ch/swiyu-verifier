@@ -101,7 +101,7 @@ After the start api definitions can be found [here](http://localhost:8080/swagge
 ## Integrated service development
 The integrated service development describes how to devolp this service together with its management component.  
 
-The managment component needs to be started and be fully running before the oid4vp component can be started.  
+The management component needs to be started and be fully running before the oid4vp component can be started.  
 
 Run the following commands to start this service.
 

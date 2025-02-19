@@ -189,16 +189,16 @@ After the start api definitions can be found [here](http://localhost:8002/swagge
 ### Environment variables
 
 | Variable                       | Description                                                                                                                                                | Type         | Default |
-|--------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------- |
 | OID4VP_URL                     | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/swiyu-admin-ch/eidch-verifier-agent-oid4vp) | string (url) | none    |
 | POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                            | string       | none    |
 | POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                           | string       | none    |
 | POSTGRES_JDBC                  | JDBC Connection string to the shared DB                                                                                                                    | string       | none    |
 | VERIFICATION_TTL_SEC           | Validity period in seconds of an verification offer                                                                                                        | int          | 900     |
 | DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which expired offers should be removed from cache in milliseconds.                                                                             | int          | 420000  |
-| MONITORING_BASIC_AUTH_ENABLED  | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                                                |
-| MONITORING_BASIC_AUTH_USERNAME | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                                               |
-| MONITORING_BASIC_AUTH_PASSWORD | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                                               |
+| MONITORING_BASIC_AUTH_ENABLED  | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                       |
+| MONITORING_BASIC_AUTH_USERNAME | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                      |
+| MONITORING_BASIC_AUTH_PASSWORD | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                      |
 
 ## Usage
 
@@ -253,6 +253,27 @@ In the following example we request to have the dateOfBirth revealed to us from 
 ```
 
 The response of this post call contains the URI which has to be provided to the holder.
+
+ 
+### Codes
+
+#### VerificationErrorResponseCode
+| Value                             | Description                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| credential_invalid                | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |
+| jwt_expired                       | During the verification process an expired jwt was used.                                                                             |
+| missing_nonce                     | During the verification process a nonce was missing.                                                                                 |
+| invalid_format                    | The data send in the verification process used an invalid format.                                                                    |
+| credential_expired                | The credential presented during validation was expired.                                                                              |
+| unsupported_format                | The credential presented during validation was in an unsupported format.                                                             |
+| credential_revoked                | The credential presented during validation was revoked.                                                                              |
+| credential_suspended              | The credential presented during validation was suspended.                                                                            |
+| credential_missing_data           | The credential presented during validation does not contain the required fields.                                                     |
+| unresolvable_status_list          | The credential presented during validation contains a status list which cannot be reached during validation.                         |
+| public_key_of_issuer_unresolvable | The credential presented during validation was issued by an entity that does not provide the public key at the time of verification. |
+| issuer_not_accepted               | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                       |
+| holder_binding_mismatch           | The holder has provided invalid proof that the credential is under their control.                                                    |
+| client_rejected                   | The holder rejected the verification request.                                                                                        |
 
 ## Contributions and feedback
 

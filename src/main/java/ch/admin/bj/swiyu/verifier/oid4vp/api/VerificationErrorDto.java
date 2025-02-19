@@ -15,7 +15,16 @@ import lombok.AllArgsConstructor;
  * OpenID for Verifiable Presentations</a>.
  */
 @AllArgsConstructor
-@Schema(name = "VerificationError", enumAsRef = true)
+@Schema(name = "VerificationError", enumAsRef = true, description = """
+        
+        | Value                                     | Description                                                                                                          |
+        | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+        | invalid_request                           | The request was invalid.<br>This is a general purpose code if none of the other codes apply.                         |
+        | authorization_request_missing_error_param | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request. |
+        | authorization_request_object_not_found    | The requested verification process cannot be found.                                                                  |
+        | verification_process_closed               | The requested verification process is already closed.                                                                |
+        | invalid_presentation_definition           | The provided credential presentation was invalid.                                                                    |
+        """)
 public enum VerificationErrorDto {
     AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND("authorization_request_object_not_found"),
     AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM("authorization_request_missing_error_param"),

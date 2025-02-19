@@ -25,6 +25,7 @@ scale every service independently of the management service.
 
 - [Overview](#Overview)
 - [Deployment](#deployment)
+- [Usage](#usage)
 - [Development](#development)
 - [Contributions and feedback](#contributions-and-feedback)
 - [License](#license)
@@ -48,6 +49,39 @@ flowchart TD
 For the deployment of the component please
 consult [deployment section of the verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management)
 because it is the main interaction point with the issuer managent/oid4vci bundle
+
+# Usage 
+
+## Codes
+
+### VerificationError
+| Value                                     | Description                                                                                                          |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| invalid_request                           | The request was invalid.<br>This is a general purpose code if none of the other codes apply.                         |
+| authorization_request_missing_error_param | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.  |
+| authorization_request_object_not_found    | The requested verification process cannot be found.                                                                  |
+| verification_process_closed               | The requested verification process is already closed.                                                                |
+| invalid_presentation_definition           | The provided credential presentation was invalid.                                                                    |
+
+
+### VerificationErrorResponseCode
+| Value                             | Description                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| credential_invalid                | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |
+| jwt_expired                       | During the verification process an expired jwt was used.                                                                             |
+| missing_nonce                     | During the verification process a nonce was missing.                                                                                 |
+| invalid_format                    | The data send in the verification process used an invalid format.                                                                    |
+| credential_expired                | The credential presented during validation was expired.                                                                              |
+| unsupported_format                | The credential presented during validation was in an unsupported format.                                                             |
+| credential_revoked                | The credential presented during validation was revoked.                                                                              |
+| credential_suspended              | The credential presented during validation was suspended.                                                                            |
+| credential_missing_data           | The credential presented during validation does not contain the required fields.                                                     |
+| unresolvable_status_list          | The credential presented during validation contains a status list which cannot be reached during validation.                         |
+| public_key_of_issuer_unresolvable | The credential presented during validation was issued by an entity that does not provide the public key at the time of verification. |
+| issuer_not_accepted               | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                       |
+| holder_binding_mismatch           | The holder has provided invalid proof that the credential is under their control.                                                    |
+| client_rejected                   | The holder rejected the verification request.                                                                                        |
+
 
 # Development
 
@@ -92,7 +126,7 @@ On the base registry the public key is published. To generate the public key for
 ### Configuration Environment Variables
 
 | Variable                    | Description                                                                                                                                                                                                | Type             | Default |
-|-----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------- |
 | EXTERNAL_URL                | URL of this deployed instance in order to add it to the request                                                                                                                                            | URL              | None    |
 | VERIFIER_DID                | DID of this service-instance to identify the requester                                                                                                                                                     | string (did:tdw) | none    |
 | DID_VERIFICATION_METHOD     | The full DID with fragment as used to find the public key for sd-jwt VCs in the DID Document. eg: `did:tdw:<base-registry-url>:<issuer_uuid>#<sd-jwt-public-key-fragment>`                                 | string (did:tdw) | none    |
@@ -101,15 +135,15 @@ On the base registry the public key is published. To generate the public key for
 | POSTGRES_JDBC               | JDBC Connection string to the shared DB                                                                                                                                                                    | string           | none    |
 | SIGNING_KEY                 | Private Key in PEM format used to sign request objects sent to the holder                                                                                                                                  | string           | none    |
 | URL_REWRITE_MAPPING         | Json object for url replacements during rest client call. Key represents the original url and value the one which should be used instead (e.g. {"https://mysample1.ch":"https://somethingdiffeerent1.ch"}) | string           | "{}"    |
-| OPENID_CLIENT_METADATA_FILE | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                | string           | None    |
+| OPENID_CLIENT_METADATA_FILE | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                       | string           | None    |
 
 ### Kubernetes Vault Keys
 
 | Variable           | Description                                                                                      |
-|--------------------|--------------------------------------------------------------------------------------------------|
+| ------------------ | ------------------------------------------------------------------------------------------------ |
 | secret.db.username | Username to connect to the Issuer Agent Database shared with the issuer agent managment service  |
 | secret.db.password | Username to connect to the Issuer Agent Database                                                 |
-| secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable | 
+| secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable |
 
 ### HSM - Hardware Security Module
 
@@ -120,7 +154,7 @@ specific option.
 Note that for creating the keys it is expected that the public key is provided as self-signed certificated.
 
 | Variable                      | Description                                                                                                                                                                                |
-|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SIGNING_KEY_MANAGEMENT_METHOD | This variable serves as selector. `key` is used for a mounted key. `pkcs11` for the sun pkcs11 selector. For vendor specific libraries the project must be compiled with these configured. |
 | HSM_HOST                      | URI of the HSM Host or Proxy to be connected to                                                                                                                                            |
 | HSM_PORT                      |                                                                                                                                                                                            |

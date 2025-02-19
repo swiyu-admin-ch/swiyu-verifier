@@ -196,7 +196,6 @@ public class SdjwtCredentialVerifier {
         var sdjwt = checkPresentationDefinitionCriteria(payload, disclosures);
 
         // The data submission is valid, we can now begin to check the status of the VC
-        // Otherwise the
         verifyStatus(payload);
 
         log.trace("Successfully verified the presented VC for id {}", managementEntity.getId());

@@ -7,8 +7,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,7 +33,7 @@ public class StatusListResolverAdapter {
 
         return restClient.get().retrieve()
                 .onStatus(status -> status != HttpStatus.OK, (request, response) -> {
-                    throw VerificationException.credentialError(VerificationErrorResponseCode.CREDENTIAL_INVALID, "Status list could not be retrieved");
+                    throw new DidResolverException( "Status list could not be retrieved");
                 })
                 .body(String.class);
     }

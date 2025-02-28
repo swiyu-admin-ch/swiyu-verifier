@@ -16,6 +16,7 @@ import org.springframework.http.client.ClientHttpResponse;
 
 import java.io.IOException;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -42,7 +43,7 @@ class ContentLengthInterceptorTest {
         when(response.getHeaders()).thenReturn(headers);
         when(execution.execute(Mockito.any(HttpRequest.class), Mockito.any(byte[].class))).thenReturn(response);
 
-        contentLengthInterceptor.intercept(request, new byte[0], execution);
+         assertDoesNotThrow(() -> contentLengthInterceptor.intercept(request, new byte[0], execution));
     }
 
     @Test

@@ -9,56 +9,54 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
-
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-public class StatusListResolverAdapterTest {
+@ExtendWith(MockitoExtension.class)
+@RestClientTest(StatusListResolverAdapter.class)
+class StatusListResolverAdapterTest {
 
     private StatusListResolverAdapter statusListResolverAdapter;
 
+    private MockRestServiceServer mockServer;
+
+    private RestClient.Builder builder;
+
+    @MockitoBean
+    private UrlRewriteProperties urlRewriteProperties;
+
+    @MockitoBean
+    private RestClient restClient;
+
     @BeforeEach
     void setUp() {
-        statusListResolverAdapter = new StatusListResolverAdapter(new UrlRewriteProperties(), mock(RestClient.Builder.class));
+        builder = RestClient.builder();
+        mockServer = MockRestServiceServer.bindTo(this.builder).build();
+        statusListResolverAdapter = new StatusListResolverAdapter(urlRewriteProperties, this.builder);
     }
 
     @Test
-    void testValidateStatusListSize_ValidSize() throws Exception {
-        var url = mock(URL.class);
-        var connection = mock(HttpURLConnection.class);
+    void testValidateStatusListSize_ExceedsMaxSize() {
+        var url = "https://example.com/statuslist";
 
-        when(url.openConnection()).thenReturn(connection);
-        when(connection.getContentLengthLong()).thenReturn(1024L); // 1 KB
+        // Check with content size of 10 MB + 1 byte
+        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(String.valueOf(10485761L), MediaType.APPLICATION_JSON)
+                        .header("Content-Length", String.valueOf(10485761L)));
 
-        statusListResolverAdapter.validateStatusListSize(url);
-    }
-
-    @Test
-    void testValidateStatusListSize_ExceedsMaxSize() throws Exception {
-        var url = mock(URL.class);
-        var connection = mock(HttpURLConnection.class);
-
-        when(url.openConnection()).thenReturn(connection);
-        when(connection.getContentLengthLong()).thenReturn(10485761L); // 10 MB + 1 byte
-
-        var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.validateStatusListSize(url));
+        var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.resolveStatusList(url));
         assertEquals("Status list size from " + url + " exceeds maximum allowed size", exception.getMessage());
-    }
-
-    @Test
-    void testValidateStatusListSize_FailedConnection() throws Exception {
-        var url = mock(URL.class);
-
-        when(url.openConnection()).thenThrow(new IOException("Connection failed"));
-
-        var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.validateStatusListSize(url));
-        assertEquals("Failed to validate status list size from " + url, exception.getMessage());
     }
 }

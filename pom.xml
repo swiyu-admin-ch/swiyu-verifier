@@ -38,6 +38,8 @@
         <sonar.coverage.exclusions>
             **/*Dto.java,**/config/*,**/*Exception.java,**/*Constants.java,**/*Registry.java,**/*Config.java,**/*Mock*,**/*Application.java
         </sonar.coverage.exclusions>
+        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+        <editorconfig-maven-plugin.version>0.1.3</editorconfig-maven-plugin.version>
     </properties>
     <dependencies>
         <dependency>
@@ -221,7 +223,38 @@
     </dependencyManagement>
 
     <build>
-        <plugins>
+        <plugins> 
+            <plugin>
+                <!-- See https://www.baeldung.com/checkstyle-java for more info -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven-checkstyle-plugin.version}</version>
+                <configuration>
+                    <!-- See https://checkstyle.sourceforge.io/config.html -->
+                    <configLocation>google_checks.xml</configLocation>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.ec4j.maven</groupId>
+                <artifactId>editorconfig-maven-plugin</artifactId>
+                <version>${editorconfig-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

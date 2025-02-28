@@ -35,7 +35,7 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Build with Maven
-        run: mvn versions:set -DnewVersion=${{ github.ref_name }} && mvn --batch-mode package
+        run: mvn versions:set -DnewVersion=${{ github.ref_name }} && mvn --batch-mode clean generate-resources package
       # https://docs.github.com/de/actions/use-cases-and-examples/publishing-packages/publishing-docker-images#publishing-images-to-github-packages
       - name: Login to Container Registry
         uses: docker/login-action@v3

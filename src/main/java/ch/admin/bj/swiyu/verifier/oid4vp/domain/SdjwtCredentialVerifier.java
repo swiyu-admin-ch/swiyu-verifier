@@ -81,6 +81,9 @@ public class SdjwtCredentialVerifier {
      * 8.3 Verification by the Verifier
      * </a>
      * </li>
+     * <li>
+     *     <a href=https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#section-3.2.2.2>SD-JWT VC 3.2</a>
+     * </li>
      * </ul>
      * .
      *
@@ -171,6 +174,11 @@ public class SdjwtCredentialVerifier {
         // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
         if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("_sd", "..."))) {
             throw credentialError(CREDENTIAL_INVALID, "Illegal disclosure found with name _sd or ...");
+        }
+
+        // SD-JWT VC 3.2.2
+        if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("iss", "nbf", "exp", "cnf", "vct", "status"))) {
+            throw credentialError(CREDENTIAL_INVALID, "If present, the following registered JWT claims MUST be included in the SD-JWT and MUST NOT be included in the Disclosures: 'iss', 'nbf', 'exp', 'cnf', 'vct', 'status'");
         }
 
         // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.

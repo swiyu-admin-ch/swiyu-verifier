@@ -33,6 +33,7 @@ import lombok.Getter;
         | issuer_not_accepted               | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                       |
         | holder_binding_mismatch           | The holder has provided invalid proof that the credential is under their control.                                                    |
         | client_rejected                   | The holder rejected the verification request.                                                                                        |
+        | issuer_not_accepted               | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                    |
         """)
 public enum VerificationErrorResponseCodeDto {
 

@@ -16,7 +16,7 @@
     </parent>
     <groupId>ch.admin.bj.swiyu</groupId>
     <artifactId>verifier-oid4vp</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <name>verifier-oid4vp</name>
     <description>Generic verifier for public beta</description>
     <properties>

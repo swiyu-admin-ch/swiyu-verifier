@@ -45,7 +45,8 @@ public enum VerificationErrorResponseCodeDto {
     CREDENTIAL_MISSING_DATA("credential_missing_data"),
     UNRESOLVABLE_STATUS_LIST("unresolvable_status_list"),
     PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE("public_key_of_issuer_unresolvable"),
-    CLIENT_REJECTED("client_rejected");
+    CLIENT_REJECTED("client_rejected"),
+    ISSUER_NOT_ACCEPTED("issuer_not_accepted");
 
     private final String displayName;
 

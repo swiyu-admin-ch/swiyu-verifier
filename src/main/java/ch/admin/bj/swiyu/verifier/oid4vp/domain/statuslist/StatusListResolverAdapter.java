@@ -33,7 +33,7 @@ public class StatusListResolverAdapter {
 
         return restClient.get().retrieve()
                 .onStatus(status -> status != HttpStatus.OK, (request, response) -> {
-                    throw new DidResolverException( "Status list could not be retrieved");
+                    throw new DidResolverException( "Status list with uri: %s could not be retrieved".formatted(uri));
                 })
                 .body(String.class);
     }

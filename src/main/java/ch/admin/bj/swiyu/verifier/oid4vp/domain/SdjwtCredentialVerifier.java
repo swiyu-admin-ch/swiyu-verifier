@@ -182,7 +182,6 @@ public class SdjwtCredentialVerifier {
         }
 
         // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.
-        // check duplicates in disclosures &&
         if (CollectionUtils.containsAny(disclosedClaimNames, claims.getPayload().keySet())) { // If there is any result of the set intersection
             throw credentialError(CREDENTIAL_INVALID, "Can not resolve disclosures. Existing Claim would be overridden.");
         }

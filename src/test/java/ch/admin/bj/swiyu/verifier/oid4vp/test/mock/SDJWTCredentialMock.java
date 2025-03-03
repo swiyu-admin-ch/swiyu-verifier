@@ -145,6 +145,41 @@ public class SDJWTCredentialMock {
         return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims);
     }
 
+    public String createIllegalSDJWTMock() {
+        var sdClaims = getSDClaims();
+        sdClaims.put("iss", "did:example:12344321");
+        return createIllegalSDJWTMock(DEFAULT_VCT, sdClaims);
+    }
+
+    /**
+     * Adds a key binding proof the SD-JWT.
+     *
+     * @param sdjwt a string {jwt}~{disclosure-1}~...{disclosure-n}~
+     * @return complete sdjwt with key binding as a string {jwt}~{disclosure-1}~...{disclosure-n}~{keyBindingProof}
+     */
+    public String addKeyBindingProof(String sdjwt, String nonce, String aud) throws NoSuchAlgorithmException, ParseException, JOSEException {
+        // Create hash, hope not to have any indigestion
+        var hash = new String(Base64.getUrlEncoder().withoutPadding().encode(MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes())));
+        HashMap<String, Object> proofData = new HashMap<>();
+        proofData.put("sd_hash", hash);
+        proofData.put("iat", Instant.now().getEpochSecond());
+        proofData.put("aud", aud);
+        proofData.put("nonce", nonce);
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("kb+jwt")).build();
+        var jwt = new SignedJWT(header, JWTClaimsSet.parse(proofData));
+        jwt.sign(new ECDSASigner(holderKey));
+        return sdjwt + jwt.serialize();
+    }
+
+    private static HashMap<String, String> getSDClaims() {
+        HashMap<String, String> claims = new HashMap<>();
+
+        claims.put("first_name", "TestFirstname");
+        claims.put("last_name", "TestLastName");
+        claims.put("birthdate", "1949-01-22");
+
+        return claims;
+    }
 
     private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims) {
         SDObjectBuilder builder = new SDObjectBuilder();
@@ -200,32 +235,53 @@ public class SDJWTCredentialMock {
     }
 
     /**
-     * Adds a key binding proof the SD-JWT.
-     *
-     * @param sdjwt a string {jwt}~{disclosure-1}~...{disclosure-n}~
-     * @return complete sdjwt with key binding as a string {jwt}~{disclosure-1}~...{disclosure-n}~{keyBindingProof}
+     * Create a SD-JWT which has claims which are mandatory to be disclosed as disclosable claims
      */
-    public String addKeyBindingProof(String sdjwt, String nonce, String aud) throws NoSuchAlgorithmException, ParseException, JOSEException {
-        // Create hash, hope not to have any indigestion
-        var hash = new String(Base64.getUrlEncoder().withoutPadding().encode(MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes())));
-        HashMap<String, Object> proofData = new HashMap<>();
-        proofData.put("sd_hash", hash);
-        proofData.put("iat", Instant.now().getEpochSecond());
-        proofData.put("aud", aud);
-        proofData.put("nonce", nonce);
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("kb+jwt")).build();
-        var jwt = new SignedJWT(header, JWTClaimsSet.parse(proofData));
-        jwt.sign(new ECDSASigner(holderKey));
-        return sdjwt + jwt.serialize();
-    }
+    private String createIllegalSDJWTMock(String vct, HashMap<String, String> sdClaims) {
+        SDObjectBuilder builder = new SDObjectBuilder();
+        List<Disclosure> disclosures = new ArrayList<>();
 
-    private static HashMap<String, String> getSDClaims() {
-        HashMap<String, String> claims = new HashMap<>();
+        sdClaims.forEach((k, v) -> {
+            Disclosure dis = new Disclosure(k, v);
+            builder.putSDClaim(dis);
+            disclosures.add(dis);
+        });
 
-        claims.put("first_name", "TestFirstname");
-        claims.put("last_name", "TestLastName");
-        claims.put("birthdate", "1949-01-22");
+        // vct & cnf among others have to be always included - they may not be selectively disclosed
+        var mandatoryClaims = Map.of(
+                "vct", vct,
+                "cnf", holderKey.toPublicJWK().toJSONObject()
+        );
+        mandatoryClaims.forEach((k, v) -> {
+            if (v == null) {
+                return;
+            }
+            Disclosure dis = new Disclosure(k, v);
+            builder.putSDClaim(dis);
+            disclosures.add(dis);
+        });
 
-        return claims;
+        // issuer will be caught even before getting to selective disclosures.
+        builder.putClaim("iss", issuerId);
+
+
+        builder.putClaim("iat", Instant.now().getEpochSecond());
+
+
+        try {
+            Map<String, Object> claims = builder.build();
+            var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                    .type(new JOSEObjectType("vc+sd-jwt"))
+                    .keyID(kidHeaderValue)
+                    .build();
+            JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);
+            SignedJWT jwt = new SignedJWT(header, claimsSet);
+            JWSSigner signer = new ECDSASigner(key);
+            jwt.sign(signer);
+
+            return new SDJWT(jwt.serialize(), disclosures).toString();
+        } catch (ParseException | JOSEException e) {
+            throw new AssertionError(e);
+        }
     }
 }

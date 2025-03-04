@@ -6,6 +6,14 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
+import java.io.IOException;
+import java.security.PublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.text.ParseException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
@@ -14,14 +22,9 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.jwt.proc.BadJWTException;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.IOException;
-import java.security.PublicKey;
-import java.security.interfaces.ECPublicKey;
-import java.text.ParseException;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Referenced Token
@@ -95,6 +98,8 @@ class TokenStatusListReference extends StatusListReference {
         }
         // Step 2: validate the signature of the VC
         try {
+            // See https://connect2id.com/products/nimbus-jose-jwt/examples/validating-jwt-access-tokens#framework
+            new DefaultJWTClaimsVerifier<>(null, Set.of("iss")).verify(vc.getJWTClaimsSet(), null);
             var issuer = vc.getJWTClaimsSet().getIssuer();
             var publicKey = getIssuerPublicKeyLoader().loadPublicKey(issuer, vc.getHeader().getKeyID());
             if (!vc.verify(toJwsVerifier(publicKey))) {
@@ -103,6 +108,8 @@ class TokenStatusListReference extends StatusListReference {
         } catch (LoadingPublicKeyOfIssuerFailedException | ParseException | JOSEException |
                  IllegalArgumentException e) {
             throw statusListError("Failed to verify JWT: Could not verify against issuer public key", e);
+        } catch (BadJWTException e) {
+            throw statusListError("Failed to verify JWT: Invalid JWT token", e);
         }
     }
 

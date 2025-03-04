@@ -6,6 +6,19 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain;
 
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
+import java.util.*;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition.*;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures.issuerDidDoc;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementEntityFixtures.managementEntity;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.presentationDefinitionWithFields;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.sdwjtPresentationDefinition;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
+
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.DidResolverAdapter;
@@ -30,18 +43,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
-import java.util.*;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition.*;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures.issuerDidDoc;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementEntityFixtures.managementEntity;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.presentationDefinitionWithFields;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.sdwjtPresentationDefinition;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
-
 @ActiveProfiles("test")
 @SpringBootTest
 class SdjwtCredentialVerifierTest {
@@ -53,6 +54,8 @@ class SdjwtCredentialVerifierTest {
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
     @MockBean
     private StatusListReferenceFactory statusListReferenceFactory;
+    @Autowired
+    private VerificationProperties verificationProperties;
 
     private UUID id;
     private String sdJWTCredential;
@@ -98,7 +101,7 @@ class SdjwtCredentialVerifierTest {
 
         var presentationDefinition = sdwjtPresentationDefinition(id, List.of("$.first_name", "$.last_name", "$.birthdate"));
         var managementEntity = managementEntity(id, presentationDefinition);
-        var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
+        var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
 
         assertFalse(cred.checkPresentationDefinitionCriteria(claims.getPayload(), disclosures).isEmpty());
     }
@@ -108,7 +111,7 @@ class SdjwtCredentialVerifierTest {
 
         var presentationDefinition = sdwjtPresentationDefinition(id, List.of("$.first_name", "$.last_name", "$.birthdate", "$.definitely_not_there"));
         var managementEntity = managementEntity(id, presentationDefinition);
-        var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
+        var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
         var payload = claims.getPayload();
 
         assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(payload, disclosures));
@@ -149,7 +152,7 @@ class SdjwtCredentialVerifierTest {
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
+        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
         cred.verifyPresentation();
     }
 
@@ -188,7 +191,7 @@ class SdjwtCredentialVerifierTest {
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
+        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
         assertThrows(VerificationException.class, cred::verifyPresentation);
         // We will not have the failed state here, as this is set in th exception handling
     }
@@ -213,7 +216,7 @@ class SdjwtCredentialVerifierTest {
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
+        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
         assertThrows(VerificationException.class, cred::verifyPresentation);
         // We will not have the failed state here, as this is set in th exception handling
     }
@@ -238,7 +241,7 @@ class SdjwtCredentialVerifierTest {
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper);
+        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
         assertThrows(VerificationException.class, cred::verifyPresentation);
         // We will not have the failed state here, as this is set in th exception handling
     }

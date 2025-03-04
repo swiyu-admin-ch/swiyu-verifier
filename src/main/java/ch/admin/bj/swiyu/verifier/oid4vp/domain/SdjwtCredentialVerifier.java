@@ -6,7 +6,23 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain;
 
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.text.ParseException;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode.*;
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.credentialError;
+import static org.springframework.util.StringUtils.hasText;
+
 import ch.admin.bj.swiyu.verifier.oid4vp.common.base64.Base64Utils;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
@@ -24,26 +40,14 @@ import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.jwt.proc.BadJWTException;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import io.jsonwebtoken.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.util.CollectionUtils;
-
-import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.text.ParseException;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode.*;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.credentialError;
-import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Verifies the presentation of a SD-JWT Credential.
@@ -60,6 +64,7 @@ public class SdjwtCredentialVerifier {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
+    private final VerificationProperties verificationProperties;
 
 
     /**
@@ -293,11 +298,22 @@ public class SdjwtCredentialVerifier {
             if (!keyBindingJWT.verify(new ECDSAVerifier(keyBinding.toECKey()))) {
                 throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding provided does not match the one in the credential");
             }
+            // See https://connect2id.com/products/nimbus-jose-jwt/examples/validating-jwt-access-tokens#framework
+            new DefaultJWTClaimsVerifier<>(null, Set.of("iat")).verify(keyBindingJWT.getJWTClaimsSet(), null);
+            var proofIssueTime = keyBindingJWT.getJWTClaimsSet().getIssueTime().toInstant();
+            var now = Instant.now();
+            // iat not within acceptable proof time window
+            if (proofIssueTime.isBefore(now.minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()))
+                    || proofIssueTime.isAfter(now.plusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()))) {
+                throw credentialError(HOLDER_BINDING_MISMATCH, String.format("Holder Binding proof was not issued at an acceptable time. Expected %d +/- %d seconds", now.getEpochSecond(), verificationProperties.getAcceptableProofTimeWindowSeconds()));
+            }
             keyBindingClaims = keyBindingJWT.getJWTClaimsSet();
         } catch (ParseException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed");
         } catch (JOSEException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Failed to verify the holder key binding - only supporting EC Keys");
+        } catch (BadJWTException e) {
+            throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding is not a valid JWT");
         }
         return keyBindingClaims;
     }

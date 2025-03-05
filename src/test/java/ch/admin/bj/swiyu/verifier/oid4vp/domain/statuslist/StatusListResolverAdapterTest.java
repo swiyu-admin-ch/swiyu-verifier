@@ -11,19 +11,13 @@ import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.StatusListRestClientConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.AutoConfigureMockRestServiceServer;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.web.client.RestClient;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -35,7 +29,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 @RestClientTest({StatusListResolverAdapter.class})
 @Import({StatusListRestClientConfig.class})
-public class StatusListResolverAdapterTest {
+class StatusListResolverAdapterTest {
 
     @Autowired
     MockRestServiceServer mockServer;
@@ -46,7 +40,7 @@ public class StatusListResolverAdapterTest {
     @MockitoBean
     private UrlRewriteProperties urlRewriteProperties;
 
-    private String url = "https://example.com/statuslist";
+    private final String url = "https://example.com/statuslist";
 
     @BeforeEach
     void setUp() {

@@ -8,6 +8,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,26 +16,24 @@ import org.springframework.web.client.RestClient;
 
 @Service
 @Data
+@AllArgsConstructor
 public class StatusListResolverAdapter {
 
     private final UrlRewriteProperties urlRewriteProperties;
-    private final RestClient.Builder restClientBuilder;
-
-    public StatusListResolverAdapter(UrlRewriteProperties urlRewriteProperties, RestClient.Builder builder) {
-        this.urlRewriteProperties = urlRewriteProperties;
-        this.restClientBuilder = builder;
-    }
+    private final RestClient statusListRestClient;
 
     public String resolveStatusList(String uri) {
-        var restClient = restClientBuilder
-                    .baseUrl(uri)
-                    .requestInterceptor(new ContentLengthInterceptor())
-                    .build();
 
-        return restClient.get().retrieve()
+        var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
+
+        var test = statusListRestClient.get()
+                .uri(uri)
+                .retrieve()
                 .onStatus(status -> status != HttpStatus.OK, (request, response) -> {
-                    throw new DidResolverException( "Status list with uri: %s could not be retrieved".formatted(uri));
+                    throw new DidResolverException( "Status list with uri: %s could not be retrieved".formatted(rewrittenUrl));
                 })
                 .body(String.class);
+
+        return test;
     }
 }

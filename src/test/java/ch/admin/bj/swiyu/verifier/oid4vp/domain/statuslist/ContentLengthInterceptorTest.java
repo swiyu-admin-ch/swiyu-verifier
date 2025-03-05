@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.ContentLengthInterceptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

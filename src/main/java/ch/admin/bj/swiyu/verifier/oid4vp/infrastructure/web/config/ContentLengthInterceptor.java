@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
+package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpRequest;
@@ -20,7 +20,7 @@ public class ContentLengthInterceptor implements ClientHttpRequestInterceptor {
 
     @NotNull
     @Override
-    public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+    public ClientHttpResponse intercept(@NotNull HttpRequest request, @NotNull byte[] body, ClientHttpRequestExecution execution) throws IOException {
         ClientHttpResponse response = execution.execute(request, body);
         long contentLength = response.getHeaders().getContentLength();
 

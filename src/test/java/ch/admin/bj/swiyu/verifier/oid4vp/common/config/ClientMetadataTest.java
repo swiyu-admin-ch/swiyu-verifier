@@ -8,6 +8,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.common.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -20,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class ClientMetadataTest {
     @Autowired
     OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
+
+    @Autowired
+    BuildProperties buildProperties;
 
     @Test
     void testClientMetadataConfiguration() {

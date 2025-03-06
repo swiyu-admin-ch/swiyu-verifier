@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -283,30 +284,12 @@ public class SdjwtCredentialVerifier {
         try {
             SignedJWT keyBindingJWT = SignedJWT.parse(keyBindingProof);
 
-            if (!"kb+jwt".equals(keyBindingJWT.getHeader().getType().toString())) {
-                throw credentialError(HOLDER_BINDING_MISMATCH,
-                        String.format("Type of holder binding typ is expected to be kb+jwt but was %s",
-                                keyBindingJWT.getHeader().getType().toString()));
-            }
-
-            // Check if kb algorithm matches the required format
-            var requestedKeyBindingAlg = getRequestedFormat(CREDENTIAL_FORMAT, managementEntity).keyBindingAlg();
-            if (!requestedKeyBindingAlg.contains(keyBindingJWT.getHeader().getAlgorithm().getName())) {
-                throw credentialError(HOLDER_BINDING_MISMATCH, "Holder binding algorithm must be in %s".formatted(requestedKeyBindingAlg));
-            }
+            validateKeyBindingHeader(keyBindingJWT.getHeader());
 
             if (!keyBindingJWT.verify(new ECDSAVerifier(keyBinding.toECKey()))) {
                 throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding provided does not match the one in the credential");
             }
-            // See https://connect2id.com/products/nimbus-jose-jwt/examples/validating-jwt-access-tokens#framework
-            new DefaultJWTClaimsVerifier<>(null, Set.of("iat")).verify(keyBindingJWT.getJWTClaimsSet(), null);
-            var proofIssueTime = keyBindingJWT.getJWTClaimsSet().getIssueTime().toInstant();
-            var now = Instant.now();
-            // iat not within acceptable proof time window
-            if (proofIssueTime.isBefore(now.minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()))
-                    || proofIssueTime.isAfter(now.plusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()))) {
-                throw credentialError(HOLDER_BINDING_MISMATCH, String.format("Holder Binding proof was not issued at an acceptable time. Expected %d +/- %d seconds", now.getEpochSecond(), verificationProperties.getAcceptableProofTimeWindowSeconds()));
-            }
+            validateKeyBindingClaims(keyBindingJWT);
             keyBindingClaims = keyBindingJWT.getJWTClaimsSet();
         } catch (ParseException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed");
@@ -316,6 +299,38 @@ public class SdjwtCredentialVerifier {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding is not a valid JWT");
         }
         return keyBindingClaims;
+    }
+
+    /**
+     * Check they type and format of the key binding jwt
+     */
+    private void validateKeyBindingHeader(JWSHeader keyBindingHeader) {
+        if (!"kb+jwt".equals(keyBindingHeader.getType().toString())) {
+            throw credentialError(HOLDER_BINDING_MISMATCH,
+                    String.format("Type of holder binding typ is expected to be kb+jwt but was %s",
+                            keyBindingHeader.getType().toString()));
+        }
+
+        // Check if kb algorithm matches the required format
+        var requestedKeyBindingAlg = getRequestedFormat(CREDENTIAL_FORMAT, managementEntity).keyBindingAlg();
+        if (!requestedKeyBindingAlg.contains(keyBindingHeader.getAlgorithm().getName())) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Holder binding algorithm must be in %s".formatted(requestedKeyBindingAlg));
+        }
+    }
+
+    /**
+     * Check if the jwt has been issued in an acceptable time window
+     */
+    private void validateKeyBindingClaims(SignedJWT keyBindingJWT) throws BadJWTException, ParseException {
+        // See https://connect2id.com/products/nimbus-jose-jwt/examples/validating-jwt-access-tokens#framework
+        new DefaultJWTClaimsVerifier<>(null, Set.of("iat")).verify(keyBindingJWT.getJWTClaimsSet(), null);
+        var proofIssueTime = keyBindingJWT.getJWTClaimsSet().getIssueTime().toInstant();
+        var now = Instant.now();
+        // iat not within acceptable proof time window
+        if (proofIssueTime.isBefore(now.minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()))
+                || proofIssueTime.isAfter(now.plusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()))) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, String.format("Holder Binding proof was not issued at an acceptable time. Expected %d +/- %d seconds", now.getEpochSecond(), verificationProperties.getAcceptableProofTimeWindowSeconds()));
+        }
     }
 
     @NotNull

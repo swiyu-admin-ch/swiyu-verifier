@@ -8,7 +8,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
-import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.StatusListRestClientConfig;
+import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RestClientConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +28,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 @RestClientTest({StatusListResolverAdapter.class})
-@Import({StatusListRestClientConfig.class})
-class StatusListResolverAdapterTest {
+@Import({RestClientConfig.class})
+class StatusListResolverAdapterIT {
 
     @Autowired
     MockRestServiceServer mockServer;

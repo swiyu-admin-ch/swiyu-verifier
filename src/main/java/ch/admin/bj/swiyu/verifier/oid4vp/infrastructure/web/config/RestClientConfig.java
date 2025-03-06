@@ -13,7 +13,7 @@ import org.springframework.web.client.RestClient;
 
 @Configuration
 @AllArgsConstructor
-public class StatusListRestClientConfig {
+public class RestClientConfig {
 
     @Bean
     public RestClient statusListRestClient(RestClient.Builder builder) {

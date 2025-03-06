@@ -21,10 +21,6 @@ public class OpenApiConfig {
         return new OpenAPI().info(new io.swagger.v3.oas.models.info.Info()
                 .title("OID4VP service")
                 .description("Generic Verifier Agent OID4VP service")
-                .contact(new io.swagger.v3.oas.models.info.Contact()
-                        .name("eID Generica")
-                        .email("eid@bit.admin.ch")
-                )
         );
 
     }

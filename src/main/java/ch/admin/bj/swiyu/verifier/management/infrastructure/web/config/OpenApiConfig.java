@@ -16,24 +16,20 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 
-        @Bean
-        public OpenAPI openApi() {
-                return new OpenAPI().info(new io.swagger.v3.oas.models.info.Info()
-                        .title("Verifier management API")
-                        .description("Generic Verifier management service")
-                        .contact(new io.swagger.v3.oas.models.info.Contact()
-                                .name("e-ID - Team Tergum")
-                                .email("eid@bit.admin.ch")
-                        )
-                );
+    @Bean
+    public OpenAPI openApi() {
+        return new OpenAPI().info(new io.swagger.v3.oas.models.info.Info()
+                .title("Verifier management API")
+                .description("Generic Verifier management service")
+        );
 
-        }
+    }
 
-        @Bean
-        GroupedOpenApi api() {
-                return GroupedOpenApi.builder()
-                        .group("API")
-                        .pathsToMatch("/**")
-                        .build();
-        }
+    @Bean
+    GroupedOpenApi api() {
+        return GroupedOpenApi.builder()
+                .group("API")
+                .pathsToMatch("/**")
+                .build();
+    }
 }

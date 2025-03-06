@@ -22,21 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   Updated Spring Boot Parent, fixing CVE-2024-50379
--   Reject VCs which present claims as selective disclosures that MUST NOT be selectively disclosed
+- Updated Spring Boot Parent, fixing CVE-2024-50379
+- Reject VCs which present claims as selective disclosures that MUST NOT be selectively disclosed
 
 ## 1.1.0
 
 ### Added
 
--   Extending prometheus export with metrics for build
+- Extending prometheus export with metrics for build
 
 ## 1.0.1
 
 ### Added
 
--   Adding documentation for error codes used
+- Adding documentation for error codes used
 
 ## 1.0.0
 
--   Initial Release
+- Initial Release

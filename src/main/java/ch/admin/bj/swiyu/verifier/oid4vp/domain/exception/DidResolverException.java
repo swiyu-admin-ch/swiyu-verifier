@@ -10,4 +10,8 @@ public class DidResolverException extends RuntimeException {
     public DidResolverException(Throwable cause) {
         super(cause);
     }
+
+    public DidResolverException(String message) {
+        super(message);
+    }
 }

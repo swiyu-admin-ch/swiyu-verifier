@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ActiveProfiles("test")
 @SpringBootTest
-public class ClientMetadataTest {
+class ClientMetadataTest {
     @Autowired
     OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
 

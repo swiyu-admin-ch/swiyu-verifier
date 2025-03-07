@@ -139,7 +139,7 @@ public class VerificationController {
     @ExceptionHandler(VerificationException.class)
     ResponseEntity<VerificationErrorResponseDto> handleVerificationException(VerificationException e) {
         var error = toVerficationErrorResponseDto(e);
-        log.warn(String.format("The received verification presentation could not be verified - caused by %s - %s", error.error(), error.errorCode()), e);
+        log.warn("The received verification presentation could not be verified - caused by {}-{}:{}", error.error(), error.errorCode(), error.errorDescription(), e);
         HttpStatus httpStatus;
         switch (e.getErrorType()) {
             case VERIFICATION_PROCESS_CLOSED -> httpStatus = HttpStatus.GONE;

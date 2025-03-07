@@ -6,6 +6,14 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RestClientConfig;
@@ -19,28 +27,17 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
-
 @RestClientTest({StatusListResolverAdapter.class})
 @Import({RestClientConfig.class})
 class StatusListResolverAdapterIT {
 
+    private final String url = "https://example.com/statuslist";
     @Autowired
     MockRestServiceServer mockServer;
-
     @Autowired
     StatusListResolverAdapter statusListResolverAdapter;
-
     @MockitoBean
     private UrlRewriteProperties urlRewriteProperties;
-
-    private final String url = "https://example.com/statuslist";
 
     @BeforeEach
     void setUp() {

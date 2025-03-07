@@ -6,13 +6,13 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config;
 
+import java.io.IOException;
+
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
-
-import java.io.IOException;
 
 public class ContentLengthInterceptor implements ClientHttpRequestInterceptor {
 

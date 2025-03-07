@@ -30,7 +30,7 @@ public class StatusListResolverAdapter {
                 .uri(uri)
                 .retrieve()
                 .onStatus(status -> status != HttpStatus.OK, (request, response) -> {
-                    throw new DidResolverException( "Status list with uri: %s could not be retrieved".formatted(rewrittenUrl));
+                    throw new DidResolverException("Status list with uri: %s could not be retrieved".formatted(rewrittenUrl));
                 })
                 .body(String.class);
     }

@@ -6,6 +6,14 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.test.mock;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
+import java.time.Instant;
+import java.util.*;
+
+import static java.util.Objects.nonNull;
+
 import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.DescriptorDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.SdjwtCredentialVerifier;
@@ -21,14 +29,6 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
-import java.time.Instant;
-import java.util.*;
-
-import static java.util.Objects.nonNull;
 
 @Getter
 public class SDJWTCredentialMock {
@@ -158,11 +158,15 @@ public class SDJWTCredentialMock {
      * @return complete sdjwt with key binding as a string {jwt}~{disclosure-1}~...{disclosure-n}~{keyBindingProof}
      */
     public String addKeyBindingProof(String sdjwt, String nonce, String aud) throws NoSuchAlgorithmException, ParseException, JOSEException {
+        return addKeyBindingProof(sdjwt, nonce, aud, Instant.now().getEpochSecond());
+    }
+
+    public String addKeyBindingProof(String sdjwt, String nonce, String aud, long iat) throws NoSuchAlgorithmException, ParseException, JOSEException {
         // Create hash, hope not to have any indigestion
         var hash = new String(Base64.getUrlEncoder().withoutPadding().encode(MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes())));
         HashMap<String, Object> proofData = new HashMap<>();
         proofData.put("sd_hash", hash);
-        proofData.put("iat", Instant.now().getEpochSecond());
+        proofData.put("iat", iat);
         proofData.put("aud", aud);
         proofData.put("nonce", nonce);
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("kb+jwt")).build();

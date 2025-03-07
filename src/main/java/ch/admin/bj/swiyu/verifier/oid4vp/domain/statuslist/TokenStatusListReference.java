@@ -21,6 +21,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.LoadingPublicKeyOfIssu
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
@@ -99,22 +100,21 @@ class TokenStatusListReference extends StatusListReference {
         // Step 2: validate the signature of the VC
         try {
             // See https://connect2id.com/products/nimbus-jose-jwt/examples/validating-jwt-access-tokens#framework
-            new DefaultJWTClaimsVerifier<>(null, Set.of("iss")).verify(vc.getJWTClaimsSet(), null);
+            new DefaultJWTClaimsVerifier<>(
+                    // Validate that the issuer of the VC is the same as the issuer of referenced token
+                    new JWTClaimsSet.Builder().issuer(getReferencedTokenIssuer()).build(),
+                    Set.of("iss")
+            ).verify(vc.getJWTClaimsSet(), null);
             var issuer = vc.getJWTClaimsSet().getIssuer();
             var publicKey = getIssuerPublicKeyLoader().loadPublicKey(issuer, vc.getHeader().getKeyID());
             if (!vc.verify(toJwsVerifier(publicKey))) {
                 throw statusListError("Failed to verify JWT: Issuer public key does not match signature!");
             }
-
-            // Step 3: validate that the issuer of the VC is the same as the issuer of referenced token
-            if(!vc.getJWTClaimsSet().getIssuer().equals(getReferencedTokenIssuer())) {
-                throw statusListError("Failed to verify JWT: Issuer of the status list does not match the issuer of the referenced token");
-            }
         } catch (LoadingPublicKeyOfIssuerFailedException | ParseException | JOSEException |
                  IllegalArgumentException e) {
             throw statusListError("Failed to verify JWT: Could not verify against issuer public key", e);
         } catch (BadJWTException e) {
-            throw statusListError("Failed to verify JWT: Invalid JWT token", e);
+            throw statusListError(String.format("Failed to verify JWT: Invalid JWT token. %s", e.getMessage()), e);
         }
     }
 

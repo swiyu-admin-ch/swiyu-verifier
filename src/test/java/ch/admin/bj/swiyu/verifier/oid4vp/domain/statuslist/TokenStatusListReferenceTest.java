@@ -15,8 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -28,25 +27,26 @@ public class TokenStatusListReferenceTest {
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
 
     private final String issuerOfReferencedToken = "TEST_ISSUER_ID";
+    private SDJWTCredentialMock emulator;
 
     @BeforeEach
     public void beforeEac() throws JOSEException, LoadingPublicKeyOfIssuerFailedException {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        emulator = new SDJWTCredentialMock();
         String tokenStatusList = createTokenStatusListTokenVerifiableCredential(
                 StatusListGenerator.SPEC_STATUS_LIST,
                 emulator.getKey(),
                 emulator.getIssuerId(),
                 emulator.getKidHeaderValue()
         );
-        when(issuerPublicKeyLoader.loadPublicKey(issuerOfReferencedToken, "TEST_ISSUER_ID#key-1")).thenReturn(
-                emulator.getKey().toECPublicKey()
-        );
         when(statusListResolverAdapter.resolveStatusList(eq("https://example.com/statuslists/1"))).thenReturn(tokenStatusList);
     }
 
 
     @Test
-    public void givenMatchingTokenStatusReference_whenVerified_thenSuccess() {
+    public void givenMatchingTokenStatusReference_whenVerified_thenSuccess() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
+        when(issuerPublicKeyLoader.loadPublicKey(issuerOfReferencedToken, "TEST_ISSUER_ID#key-1")).thenReturn(
+                emulator.getKey().toECPublicKey()
+        );
         var tokenStatusListReference = new TokenStatusListReference(
                 statusListResolverAdapter,
                 Map.of(
@@ -71,6 +71,6 @@ public class TokenStatusListReferenceTest {
                 "DIFFERENT-ISSUER"
         );
         var err = assertThrows(VerificationException.class, tokenStatusListReference::verifyStatus);
-        assertEquals(err.getErrorDescription(), "Failed to verify JWT: Issuer of the status list does not match the issuer of the referenced token");
+        assertTrue(err.getErrorDescription().contains("Failed to verify JWT: Invalid JWT token. JWT iss claim has value TEST_ISSUER_ID, must be DIFFERENT-ISSUER"));
     }
 }

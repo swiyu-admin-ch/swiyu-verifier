@@ -57,6 +57,7 @@
         <logstash-logback-encoder.version>7.2</logstash-logback-encoder.version>
         <spring-cloud-dependencies.version>2024.0.0</spring-cloud-dependencies.version>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+        <primus-jce.version>2.4.4</primus-jce.version>
     </properties>
     <dependencies>
         <dependency>
@@ -230,6 +231,12 @@
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
         <!-- End  Spring Cloud -->
+
+        <dependency>
+            <groupId>com.securosys.primus</groupId>
+            <artifactId>jce</artifactId>
+            <version>${primus-jce.version}</version>
+        </dependency>
 
         <!-- Logging -->
         <dependency>

@@ -9,8 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Limiting allowed issuer of status list to the issuer of the referenced token, as there is currently 
- no use case where the issuer of the status list would be different from the issuer of the token.
+- Limiting allowed issuer of status list to the issuer of the referenced token, as there is currently
+  no use case where the issuer of the status list would be different from the issuer of the token.
+
+## 1.2.1
+
+### Changed
+
+- Provide securosys HSM Primus jce provider (no change necessary for user)
 
 ## 1.2.0
 

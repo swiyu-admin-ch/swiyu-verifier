@@ -10,7 +10,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationService;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
@@ -138,7 +138,7 @@ public class DepricatedVerificationController {
         var error = toVerficationErrorResponseDto(e);
         log.warn(String.format("The received verification presentation could not be verified - caused by %s - %s", error.error(), error.errorCode()), e);
         HttpStatus httpStatus;
-        switch (e.getErrorType()) {
+        switch (e.getErrorResponseCode()) {
             case VERIFICATION_PROCESS_CLOSED -> httpStatus = HttpStatus.GONE;
             case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> httpStatus = HttpStatus.NOT_FOUND;
             default -> httpStatus = HttpStatus.BAD_REQUEST;

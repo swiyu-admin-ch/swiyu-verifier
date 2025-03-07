@@ -37,7 +37,6 @@ import lombok.Getter;
         """)
 public enum VerificationErrorResponseCodeDto {
 
-    CREDENTIAL_INVALID("credential_invalid"),
     JWT_EXPIRED("jwt_expired"),
     INVALID_FORMAT("invalid_format"),
     CREDENTIAL_EXPIRED("credential_expired"),
@@ -50,7 +49,13 @@ public enum VerificationErrorResponseCodeDto {
     UNRESOLVABLE_STATUS_LIST("unresolvable_status_list"),
     PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE("public_key_of_issuer_unresolvable"),
     CLIENT_REJECTED("client_rejected"),
-    ISSUER_NOT_ACCEPTED("issuer_not_accepted");
+    ISSUER_NOT_ACCEPTED("issuer_not_accepted"),
+    AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND("authorization_request_object_not_found"),
+    AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM("authorization_request_missing_error_param"),
+    VERIFICATION_PROCESS_CLOSED("verification_process_closed"),
+    INVALID_PRESENTATION_DEFINITION("invalid_presentation_definition"),
+    MALFORMED_CREDENTIAL("malformed_credential"),
+    PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED("presentation_submission_constraint_violated");
 
     private final String displayName;
 

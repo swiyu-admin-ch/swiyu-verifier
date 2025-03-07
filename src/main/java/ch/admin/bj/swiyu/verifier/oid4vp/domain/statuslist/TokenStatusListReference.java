@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.nimbusds.jose.JOSEException;
@@ -26,6 +26,8 @@ import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import lombok.extern.slf4j.Slf4j;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
 
 /**
  * Referenced Token
@@ -79,7 +81,7 @@ class TokenStatusListReference extends StatusListReference {
         } catch (IllegalArgumentException e) {
             throw VerificationException.credentialError(e, VerificationErrorResponseCode.CREDENTIAL_REVOKED, "Unexpected VC Status!");
         } catch (IndexOutOfBoundsException e) {
-            throw VerificationException.credentialError(e, VerificationErrorResponseCode.CREDENTIAL_INVALID, "The VC cannot be validated as the remote list does not contain this VC!");
+            throw VerificationException.credentialError(e, UNRESOLVABLE_STATUS_LIST,"The VC cannot be validated as the remote list does not contain this VC!");
         }
     }
 

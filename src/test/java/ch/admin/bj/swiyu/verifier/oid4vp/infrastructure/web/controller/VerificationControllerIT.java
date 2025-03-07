@@ -13,7 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto.VERIFICATION_PROCESS_CLOSED;
+import static ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto.INVALID_CREDENTIAL;
+import static ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto.INVALID_REQUEST;
+import static ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseCodeDto.VERIFICATION_PROCESS_CLOSED;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.getMultiplePresentationSubmissionString;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.getPresentationSubmissionString;
@@ -27,7 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto;
+import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
@@ -102,7 +104,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isGone())
-                .andExpect(jsonPath("error").value(VERIFICATION_PROCESS_CLOSED.toString()));
+                .andExpect(jsonPath("$.error").value(INVALID_REQUEST.toString()))
+                .andExpect(jsonPath("$.error_code").value(VERIFICATION_PROCESS_CLOSED.toString()));
 
         // new route
         mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
@@ -110,7 +113,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isGone())
-                .andExpect(jsonPath("error").value(VERIFICATION_PROCESS_CLOSED.toString()));
+                .andExpect(jsonPath("$.error").value(INVALID_REQUEST.toString()))
+                .andExpect(jsonPath("$.error_code").value(VERIFICATION_PROCESS_CLOSED.toString()));
     }
 
     @Test
@@ -131,7 +135,7 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("errorDescription").value(containsString("Issuer not in list of accepted issuers")));
+                .andExpect(jsonPath("error_description").value(containsString("Issuer not in list of accepted issuers")));
     }
 
     @Test
@@ -236,7 +240,8 @@ class VerificationControllerIT {
                         .formField("error", "trying_to_get_404")
                         .formField("error_description", "mimi"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value(VerificationErrorDto.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND.toString()));
+                .andExpect(jsonPath("$.error").value(INVALID_REQUEST.toString()))
+                .andExpect(jsonPath("$.error_code").value(VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND.toString()));
     }
 
     @Test
@@ -365,8 +370,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription").value("Request contains non-distinct disclosures"));
+                .andExpect(jsonPath("$.error").value("invalid_credential"))
+                .andExpect(jsonPath("$.error_description").value("Request contains non-distinct disclosures"));
 
         var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
@@ -399,7 +404,7 @@ class VerificationControllerIT {
         var responseBody = response.getResponse().getContentAsString();
         assertThat(response.getResponse().getContentAsString())
                 .withFailMessage("Should have response body").isNotBlank();
-        assertThat(responseBody).contains(VerificationErrorDto.INVALID_REQUEST.toString());
+        assertThat(responseBody).contains(INVALID_CREDENTIAL.toString());
         assertThat(responseBody).contains("Invalid algorithm");
     }
 
@@ -429,7 +434,7 @@ class VerificationControllerIT {
         var responseBody = response.getResponse().getContentAsString();
         assertThat(response.getResponse().getContentAsString())
                 .withFailMessage("Should have response body").isNotBlank();
-        assertThat(responseBody).contains(VerificationErrorDto.INVALID_REQUEST.toString());
+        assertThat(responseBody).contains(INVALID_CREDENTIAL.toString());
         assertThat(responseBody).contains("holder_binding_mismatch");
     }
 
@@ -453,8 +458,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription").value("Could not verify JWT credential is not yet valid"));
+                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error_description").value("Could not verify JWT credential is not yet valid"));
 
         var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
@@ -481,8 +486,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription").value("Could not verify JWT credential is expired"));
+                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error_description").value("Could not verify JWT credential is expired"));
 
         var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
@@ -510,8 +515,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription").value("Could not verify JWT problem with disclosures and _sd field"));
+                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error_description").value("Could not verify JWT problem with disclosures and _sd field"));
 
         var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
@@ -576,8 +581,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription").value("Failed to verify JWT: Issuer public key does not match signature!"));
+                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error_description").value("Failed to verify JWT: Issuer public key does not match signature!"));
     }
 
 
@@ -600,8 +605,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription").value("Signature mismatch"));
+                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error_description").value("Signature mismatch"));
     }
 
     @Test
@@ -625,7 +630,7 @@ class VerificationControllerIT {
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription", containsString("DescriptorDto map cannot be empty")));
+                .andExpect(jsonPath("error_description", containsString("DescriptorDto map cannot be empty")));
     }
 
     @Test
@@ -649,7 +654,7 @@ class VerificationControllerIT {
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription", containsString("format - must not be blank")));
+                .andExpect(jsonPath("error_description", containsString("format - must not be blank")));
     }
 
     @Test
@@ -678,8 +683,8 @@ class VerificationControllerIT {
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_request"))
-                .andExpect(jsonPath("errorDescription", containsString("The VC cannot be validated as the remote list does not contain this VC!")))
+                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error_description", containsString("The VC cannot be validated as the remote list does not contain this VC!")))
                 .andReturn();
 
         var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();

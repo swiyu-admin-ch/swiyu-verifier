@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.oid4vp.domain.exception;
+package ch.admin.bj.swiyu.verifier.oid4vp.common.exception;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
 import lombok.Getter;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError.INVALID_CREDENTIAL;
 
 @Getter
 public class VerificationException extends RuntimeException {
@@ -22,12 +23,21 @@ public class VerificationException extends RuntimeException {
         this.errorDescription = errorDescription;
     }
 
-    public static VerificationException submissionError(VerificationError error) {
+    public static VerificationException submissionError(VerificationErrorResponseCode error) {
         return new VerificationException(
                 null /* submissionError is only caused by business cases and not exceptions */,
+                VerificationError.INVALID_REQUEST,
                 error,
-                null,
                 null
+        );
+    }
+
+    public static VerificationException submissionError(VerificationErrorResponseCode error, String errorDescription) {
+        return new VerificationException(
+                null /* submissionError is only caused by business cases and not exceptions */,
+                VerificationError.INVALID_REQUEST,
+                error,
+                errorDescription
         );
     }
 
@@ -43,18 +53,31 @@ public class VerificationException extends RuntimeException {
 
     public static VerificationException credentialError(VerificationErrorResponseCode errorCode,
                                                         String errorDescription) {
-        return credentialError(
-                null /* in case of manual throwing there is no cause */,
+        return new VerificationException(
+                null,
+                INVALID_CREDENTIAL,
                 errorCode,
-                errorDescription);
+                errorDescription
+        );
     }
 
-    public static VerificationException credentialError(Throwable cause, VerificationErrorResponseCode errorCode,
+    public static VerificationException credentialError(Throwable cause,
+                                                        VerificationErrorResponseCode errorCode,
                                                         String errorDescription) {
         return new VerificationException(
                 cause,
-                VerificationError.INVALID_REQUEST,
+                INVALID_CREDENTIAL,
                 errorCode,
+                errorDescription
+        );
+    }
+
+    public static VerificationException credentialError(Throwable cause,
+                                                        String errorDescription) {
+        return new VerificationException(
+                cause,
+                INVALID_CREDENTIAL,
+                null,
                 errorDescription
         );
     }

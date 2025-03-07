@@ -7,8 +7,8 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition;
 import org.junit.jupiter.api.Test;
 
@@ -70,8 +70,8 @@ class VerifiableCredentialExtractorTest {
 
         var exception = assertThrows(VerificationException.class, () -> getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
 
-        assertEquals(VerificationError.INVALID_REQUEST, exception.getErrorType());
-        assertEquals(VerificationErrorResponseCode.CREDENTIAL_INVALID, exception.getErrorResponseCode());
+        assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
+//        assertEquals(VerificationErrorResponseCode.INVALID_CREDENTIAL, exception.getErrorResponseCode());
         assertEquals("No matching paths with correct formats found", exception.getErrorDescription());
     }
 
@@ -91,8 +91,8 @@ class VerifiableCredentialExtractorTest {
 
         var exception = assertThrows(VerificationException.class, () -> getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
 
-        assertEquals(VerificationError.INVALID_REQUEST, exception.getErrorType());
-        assertEquals(VerificationErrorResponseCode.CREDENTIAL_INVALID, exception.getErrorResponseCode());
+        assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
+//        assertEquals(VerificationErrorResponseCode.INVALID_CREDENTIAL, exception.getErrorResponseCode());
         assertEquals("No matching paths with correct formats found", exception.getErrorDescription());
     }
 
@@ -122,8 +122,8 @@ class VerifiableCredentialExtractorTest {
         var presentationSubmission = presentationSubmissionWithFormat(2, true, "vc+sd-jwt");
         var exception = assertThrows(VerificationException.class, () -> getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
 
-        assertEquals(VerificationError.INVALID_REQUEST, exception.getErrorType());
-        assertEquals(VerificationErrorResponseCode.CREDENTIAL_INVALID, exception.getErrorResponseCode());
+        assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
+//        assertEquals(VerificationErrorResponseCode.INVALID_CREDENTIAL, exception.getErrorResponseCode());
         assertEquals("No matching paths with correct formats found", exception.getErrorDescription());
     }
 

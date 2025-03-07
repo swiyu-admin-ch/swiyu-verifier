@@ -9,8 +9,9 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import java.util.Set;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError.*;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.submissionError;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError.INVALID_REQUEST;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.*;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerifiableCredentialExtractor.extractVerifiableCredential;
 import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -18,8 +19,9 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.SdjwtCredentialVerifier;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
@@ -100,7 +102,7 @@ public class VerificationService {
             validatePresentationSubmission(presentationSubmission);
             return presentationSubmission;
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            throw submissionError(INVALID_REQUEST, e.getMessage());
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_DEFINITION,e.getMessage());
         }
 
     }

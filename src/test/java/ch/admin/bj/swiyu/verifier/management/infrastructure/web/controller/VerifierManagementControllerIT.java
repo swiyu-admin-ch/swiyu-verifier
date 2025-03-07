@@ -6,6 +6,12 @@
 
 package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 
+import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import ch.admin.bj.swiyu.verifier.management.api.definition.FieldDto;
 import ch.admin.bj.swiyu.verifier.management.api.definition.FormatAlgorithmDto;
 import ch.admin.bj.swiyu.verifier.management.domain.management.VerificationStatus;
@@ -22,18 +28,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @AutoConfigureTestDatabase(connection = EmbeddedDatabaseConnection.H2)
 class VerifierManagementControllerIT {
 
+    private static final String BASE_URL = "/api/v1/verifications";
     @Autowired
     protected MockMvc mvc;
 
@@ -81,7 +82,7 @@ class VerifierManagementControllerIT {
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
-        MvcResult result1 = mvc.perform(get("/api/v1/verifications/" + id))
+        MvcResult result1 = mvc.perform(get(BASE_URL + "/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.request_nonce").isNotEmpty())
@@ -190,7 +191,7 @@ class VerifierManagementControllerIT {
     @Test
     void testCreateMinimalExample_thenSuccess() throws Exception {
         var minimal = createVerificationManagementDto_Minimal(true);
-        MvcResult result = mvc.perform(post("/api/v1/verifications")
+        MvcResult result = mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(minimal)))
                 .andExpect(status().isOk())
@@ -198,14 +199,14 @@ class VerifierManagementControllerIT {
 
         String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
-        MvcResult result1 = mvc.perform(get("/api/v1/verifications/" + id))
+        MvcResult result1 = mvc.perform(get(BASE_URL + "/" + id))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         assertEquals(-1, result1.getResponse().getContentAsString().indexOf("null"));
 
-        MvcResult result2 = mvc.perform(get("/verifications/" + id))
+        MvcResult result2 = mvc.perform(get(BASE_URL + "/" + id))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();

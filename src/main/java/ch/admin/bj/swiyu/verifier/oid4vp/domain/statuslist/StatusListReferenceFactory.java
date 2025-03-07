@@ -71,9 +71,13 @@ public class StatusListReferenceFactory {
      */
     public List<StatusListReference> createStatusListReferences(Map<String, Object> vcClaims, ManagementEntity presentationManagementEntity) {
         List<StatusListReference> referenceList = new LinkedList<>();
+        var referencedTokenIssuer = Optional
+                .ofNullable(vcClaims.get("iss"))
+                .map(Object::toString)
+                .orElseThrow();
         Optional.ofNullable(vcClaims.get("status"))
                 .map(o -> (Map<String, Object>) o)
-                .map(createTokenStatusListReferences(presentationManagementEntity))
+                .map(createTokenStatusListReferences(referencedTokenIssuer))
                 .ifPresent(referenceList::addAll);
         Optional.ofNullable(vcClaims.get("credentialStatus"))
                 .map(createBitStringStatusListsHigherOrder(presentationManagementEntity))
@@ -83,10 +87,11 @@ public class StatusListReferenceFactory {
     }
 
 
-    private Function<Map<String, Object>, List<TokenStatusListReference>> createTokenStatusListReferences(ManagementEntity presentationManagementEntity) {
+    private Function<Map<String, Object>, List<TokenStatusListReference>> createTokenStatusListReferences(String referencedTokenIssuer) {
         return tokenStatusListReferenceTokenEntry -> List.of(
                 new TokenStatusListReference(statusListResolverAdapter, (Map<String, Object>) tokenStatusListReferenceTokenEntry.get("status_list"),
-                        issuerPublicKeyLoader));
+                        issuerPublicKeyLoader, referencedTokenIssuer)
+        );
     }
 
     private Function<Object, List<StatusListReference>> createBitStringStatusListsHigherOrder(ManagementEntity presentationManagementEntity) {

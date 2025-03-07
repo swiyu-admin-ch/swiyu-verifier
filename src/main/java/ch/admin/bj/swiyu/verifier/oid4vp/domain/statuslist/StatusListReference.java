@@ -55,6 +55,8 @@ public abstract class StatusListReference {
 
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
 
+    private final String referencedTokenIssuer;
+
     /**
      * Verifies the status of the index pointed to by the status list reference
      * Should the verification fail, a runtime exception is thrown

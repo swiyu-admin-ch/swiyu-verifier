@@ -40,8 +40,8 @@ import java.util.Optional;
 class TokenStatusListReference extends StatusListReference {
 
 
-    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, IssuerPublicKeyLoader issuerPublicKeyLoader) {
-        super(adapter, statusListReferenceClaims, issuerPublicKeyLoader);
+    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, IssuerPublicKeyLoader issuerPublicKeyLoader, String referencedTokenIssuer) {
+        super(adapter, statusListReferenceClaims, issuerPublicKeyLoader, referencedTokenIssuer);
     }
 
 
@@ -99,6 +99,11 @@ class TokenStatusListReference extends StatusListReference {
             var publicKey = getIssuerPublicKeyLoader().loadPublicKey(issuer, vc.getHeader().getKeyID());
             if (!vc.verify(toJwsVerifier(publicKey))) {
                 throw statusListError("Failed to verify JWT: Issuer public key does not match signature!");
+            }
+
+            // Step 3: validate that the issuer of the VC is the same as the issuer of referenced token
+            if(!vc.getJWTClaimsSet().getIssuer().equals(getReferencedTokenIssuer())) {
+                throw statusListError("Failed to verify JWT: Issuer of the status list does not match the issuer of the referenced token");
             }
         } catch (LoadingPublicKeyOfIssuerFailedException | ParseException | JOSEException |
                  IllegalArgumentException e) {

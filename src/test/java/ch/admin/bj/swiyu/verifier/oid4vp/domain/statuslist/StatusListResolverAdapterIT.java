@@ -14,6 +14,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RestClientConfig;
@@ -27,6 +28,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 
+import java.util.List;
+
 @RestClientTest({StatusListResolverAdapter.class})
 @Import({RestClientConfig.class})
 class StatusListResolverAdapterIT {
@@ -38,6 +41,9 @@ class StatusListResolverAdapterIT {
     StatusListResolverAdapter statusListResolverAdapter;
     @MockitoBean
     private UrlRewriteProperties urlRewriteProperties;
+
+    @MockitoBean
+    private ApplicationProperties applicationProperties;
 
     @BeforeEach
     void setUp() {
@@ -64,5 +70,14 @@ class StatusListResolverAdapterIT {
 
         var exception = assertThrows(DidResolverException.class, () -> statusListResolverAdapter.resolveStatusList(url));
         assertEquals("Status list with uri: " + url + " could not be retrieved", exception.getMessage());
+    }
+
+    @Test
+    void testInvalidDomain_thenIllegalArgumentException() {
+        var hosts = List.of("not_example.com");
+        when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(hosts);
+
+        var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.resolveStatusList(url));
+        assertEquals("StatusList %s does not contain a valid host from %s".formatted(url, hosts), exception.getMessage());
     }
 }

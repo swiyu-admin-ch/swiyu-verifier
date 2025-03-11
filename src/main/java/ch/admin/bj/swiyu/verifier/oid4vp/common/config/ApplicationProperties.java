@@ -13,6 +13,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
+
 @Slf4j
 @Validated
 @Data
@@ -46,4 +48,5 @@ public class ApplicationProperties {
     @NotNull
     private String metadataVersion = "1.0";
 
+    private List<String> acceptedStatusListHosts;
 }

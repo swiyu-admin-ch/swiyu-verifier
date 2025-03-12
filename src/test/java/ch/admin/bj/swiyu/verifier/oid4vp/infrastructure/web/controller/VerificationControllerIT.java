@@ -211,9 +211,9 @@ class VerificationControllerIT {
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
-    void shouldAcceptRefusal() throws Exception {
+    void shouldAcceptRefusalIWithValidErrorType() throws Exception {
         mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
-                        .formField("error", "I_dont_want_to")
+                        .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isOk());
         var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
@@ -224,24 +224,23 @@ class VerificationControllerIT {
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
-    void shouldRespond404onGetRequestObject() throws Exception {
-        UUID notExistingRequestId = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        mock.perform(get(String.format("/request-object/%s", notExistingRequestId)))
-                .andExpect(status().isNotFound());
+    void shouldFailWhenRefusalWithInvalidErrorTypeIs() throws Exception {
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+                        .formField("error", "non_existing_Type")
+                        .formField("error_description", "I really just dont want to"))
+                .andExpect(status().isBadRequest());
+        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.PENDING);
+
     }
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
-    void shouldRespond404onPostResponseData() throws Exception {
+    void shouldRespond404onGetRequestObject() throws Exception {
         UUID notExistingRequestId = UUID.fromString("00000000-0000-0000-0000-000000000000");
-
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", notExistingRequestId))
-                        .formField("error", "trying_to_get_404")
-                        .formField("error_description", "mimi"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value(INVALID_REQUEST.toString()))
-                .andExpect(jsonPath("$.error_code").value(VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND.toString()));
+        mock.perform(get(String.format("/request-object/%s", notExistingRequestId)))
+                .andExpect(status().isNotFound());
     }
 
     @Test

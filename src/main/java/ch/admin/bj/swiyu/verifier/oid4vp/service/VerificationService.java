@@ -102,7 +102,7 @@ public class VerificationService {
             validatePresentationSubmission(presentationSubmission);
             return presentationSubmission;
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_DEFINITION,e.getMessage());
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION,e.getMessage());
         }
 
     }

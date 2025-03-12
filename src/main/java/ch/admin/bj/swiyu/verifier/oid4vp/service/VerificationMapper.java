@@ -49,6 +49,7 @@ public class VerificationMapper {
             case INVALID_PRESENTATION_DEFINITION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION;
             case MALFORMED_CREDENTIAL -> VerificationErrorResponseCodeDto.MALFORMED_CREDENTIAL;
             case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED -> VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
+            case INVALID_PRESENTATION_SUBMISSION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_SUBMISSION;
         };
     }
 

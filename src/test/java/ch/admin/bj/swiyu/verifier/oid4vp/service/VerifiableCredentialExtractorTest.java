@@ -71,7 +71,7 @@ class VerifiableCredentialExtractorTest {
         var exception = assertThrows(VerificationException.class, () -> getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
 
         assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
-//        assertEquals(VerificationErrorResponseCode.INVALID_CREDENTIAL, exception.getErrorResponseCode());
+        assertEquals(VerificationErrorResponseCode.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED, exception.getErrorResponseCode());
         assertEquals("No matching paths with correct formats found", exception.getErrorDescription());
     }
 
@@ -92,7 +92,7 @@ class VerifiableCredentialExtractorTest {
         var exception = assertThrows(VerificationException.class, () -> getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
 
         assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
-//        assertEquals(VerificationErrorResponseCode.INVALID_CREDENTIAL, exception.getErrorResponseCode());
+        assertEquals(VerificationErrorResponseCode.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED, exception.getErrorResponseCode());
         assertEquals("No matching paths with correct formats found", exception.getErrorDescription());
     }
 
@@ -123,7 +123,6 @@ class VerifiableCredentialExtractorTest {
         var exception = assertThrows(VerificationException.class, () -> getPathToSupportedCredential(managementEntity, vpToken, presentationSubmission));
 
         assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
-//        assertEquals(VerificationErrorResponseCode.INVALID_CREDENTIAL, exception.getErrorResponseCode());
         assertEquals("No matching paths with correct formats found", exception.getErrorDescription());
     }
 

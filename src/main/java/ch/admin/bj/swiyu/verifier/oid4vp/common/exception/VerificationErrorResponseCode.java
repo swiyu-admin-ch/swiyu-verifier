@@ -31,6 +31,7 @@ public enum VerificationErrorResponseCode {
     PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE("public_key_of_issuer_unresolvable"),
     CLIENT_REJECTED("client_rejected"),
     MALFORMED_CREDENTIAL("malformed_credential"),
+    INVALID_PRESENTATION_SUBMISSION("invalid_presentation_submission"),
     PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED("presentation_submission_constraint_violated"),
     INVALID_PRESENTATION_DEFINITION("invalid_presentation_definition"),
     ISSUER_NOT_ACCEPTED("issuer_not_accepted"),

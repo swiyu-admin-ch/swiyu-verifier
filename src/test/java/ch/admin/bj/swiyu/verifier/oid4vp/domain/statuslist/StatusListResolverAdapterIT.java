@@ -16,7 +16,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RestClientConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,7 +68,7 @@ class StatusListResolverAdapterIT {
         this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
                 .andRespond(withResourceNotFound());
 
-        var exception = assertThrows(DidResolverException.class, () -> statusListResolverAdapter.resolveStatusList(url));
+        var exception = assertThrows(StatusListFetchFailedException.class, () -> statusListResolverAdapter.resolveStatusList(url));
         assertEquals("Status list with uri: " + url + " could not be retrieved", exception.getMessage());
     }
 

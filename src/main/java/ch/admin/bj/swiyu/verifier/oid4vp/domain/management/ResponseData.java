@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.management;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import lombok.Builder;
 
 /**

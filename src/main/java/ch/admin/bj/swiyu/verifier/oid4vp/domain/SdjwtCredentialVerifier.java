@@ -17,13 +17,13 @@ import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode.*;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.credentialError;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.*;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.credentialError;
 import static org.springframework.util.StringUtils.hasText;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.LoadingPublicKeyOfIssuerFailedException;
@@ -136,11 +136,11 @@ public class SdjwtCredentialVerifier {
                     .build()
                     .parseSignedClaims(issuerSignedJWTToken);
         } catch (PrematureJwtException e) {
-            throw credentialError(e, CREDENTIAL_INVALID, "Could not verify JWT credential is not yet valid");
+            throw credentialError(e, MALFORMED_CREDENTIAL, "Could not verify JWT credential is not yet valid");
         } catch (ExpiredJwtException e) {
-            throw credentialError(e, CREDENTIAL_INVALID, "Could not verify JWT credential is expired");
+            throw credentialError(e,MALFORMED_CREDENTIAL, "Could not verify JWT credential is expired");
         } catch (JwtException e) {
-            throw credentialError(e, CREDENTIAL_INVALID, "Signature mismatch");
+            throw credentialError(e, MALFORMED_CREDENTIAL,"Signature mismatch");
         }
 
         log.trace("Successfully verified signature of id {}", managementEntity.getId());
@@ -179,28 +179,28 @@ public class SdjwtCredentialVerifier {
 
         // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
         if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("_sd", "..."))) {
-            throw credentialError(CREDENTIAL_INVALID, "Illegal disclosure found with name _sd or ...");
+            throw credentialError( MALFORMED_CREDENTIAL,"Illegal disclosure found with name _sd or ...");
         }
 
         // SD-JWT VC 3.2.2
         if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("iss", "nbf", "exp", "cnf", "vct", "status"))) {
-            throw credentialError(CREDENTIAL_INVALID, "If present, the following registered JWT claims MUST be included in the SD-JWT and MUST NOT be included in the Disclosures: 'iss', 'nbf', 'exp', 'cnf', 'vct', 'status'");
+            throw credentialError( MALFORMED_CREDENTIAL,"If present, the following registered JWT claims MUST be included in the SD-JWT and MUST NOT be included in the Disclosures: 'iss', 'nbf', 'exp', 'cnf', 'vct', 'status'");
         }
 
         // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.
         if (CollectionUtils.containsAny(disclosedClaimNames, claims.getPayload().keySet())) { // If there is any result of the set intersection
-            throw credentialError(CREDENTIAL_INVALID, "Can not resolve disclosures. Existing Claim would be overridden.");
+            throw credentialError( MALFORMED_CREDENTIAL,"Can not resolve disclosures. Existing Claim would be overridden.");
         }
 
 
         // check if distinct disclosures
         if (new HashSet<>(disclosures).size() != disclosures.size()) {
-            throw credentialError(CREDENTIAL_INVALID,
+            throw credentialError(MALFORMED_CREDENTIAL,
                     "Request contains non-distinct disclosures");
         }
         if (!digestsFromDisclosures.stream()
                 .allMatch(dig -> Collections.frequency(payload.get("_sd", List.class), dig) == 1)) {
-            throw credentialError(CREDENTIAL_INVALID,
+            throw credentialError(MALFORMED_CREDENTIAL,
                     "Could not verify JWT problem with disclosures and _sd field");
         }
         log.trace("Successfully verified disclosure digests of id {}", managementEntity.getId());
@@ -229,9 +229,9 @@ public class SdjwtCredentialVerifier {
             log.trace("Decoded SD-JWT to clear data for id {}", managementEntity.getId());
             sdJWTString = objectMapper.writeValueAsString(decodedSDJWT);
         } catch (PathNotFoundException e) {
-            throw credentialError(e, CREDENTIAL_INVALID, e.getMessage());
+            throw credentialError(e, e.getMessage());
         } catch (JsonProcessingException e) {
-            throw credentialError(e, CREDENTIAL_INVALID, "An error occurred while parsing SDJWT");
+            throw credentialError(e, "An error occurred while parsing SDJWT");
         }
         log.trace("Checking presentation data with definition criteria for id {}", managementEntity.getId());
         checkCommonPresentationDefinitionCriteria(sdJWTString, managementEntity);

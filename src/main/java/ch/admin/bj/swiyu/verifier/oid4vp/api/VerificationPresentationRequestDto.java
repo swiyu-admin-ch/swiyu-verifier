@@ -41,7 +41,7 @@ public class VerificationPresentationRequestDto {
     @Schema(
             description = "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.4)"
     )
-    private String error;
+    private VerificationClientErrorDto error;
 
     @Schema(
             description = "Error description as seems fit"
@@ -50,6 +50,6 @@ public class VerificationPresentationRequestDto {
 
     @JsonIgnore
     public boolean isClientRejection() {
-        return hasText(error);
+        return error != null;
     }
 }

@@ -7,7 +7,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.management;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -66,7 +66,7 @@ public class ManagementEntity {
     }
 
     public void verificationFailed(VerificationError type, VerificationErrorResponseCode errorCode) {
-        if (type == VerificationError.VERIFICATION_PROCESS_CLOSED) {
+        if (type == VerificationError.INVALID_REQUEST && errorCode == VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED) {
             // edge case: when this error type occurs, the entity is already in a Non-PENDING state
             // so we keep it in the current state
             return;

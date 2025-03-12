@@ -5,17 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.4
+
+### Changed
+
+- Disabled logging of all actuator requests. The default filter regex pattern is `.*/actuator/.*`. The expression can be
+  customized by setting the `request.logging.uri-filter-pattern` property.
+
 ## 2.0.3
 
 ### Changed
 
-- Add additional legacy client error code client_rejected, because the current swiyu wallet still uses this custom error code
+- Add additional legacy client error code client_rejected, because the current swiyu wallet still uses this custom error
+  code
 
 ## 2.0.2
 
 ### Changed
 
-- Changed the referenced oid4vp specification to the correct version https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html
+- Changed the referenced oid4vp specification to the correct
+  version https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html
 
 ## 2.0.1
 
@@ -27,7 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Adapted the error code structure to be aligned with RFC 6749 and limited the possible error codes during the presentation submission to the values in https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.4
+- Adapted the error code structure to be aligned with RFC 6749 and limited the possible error codes during the
+  presentation submission to the values
+  in https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.4
 
 ## 1.2.2
 

@@ -50,7 +50,7 @@ For the deployment of the component please
 consult [deployment section of the verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management)
 because it is the main interaction point with the issuer managent/oid4vci bundle
 
-# Usage 
+# Usage
 
 ## Codes
 
@@ -136,7 +136,6 @@ On the base registry the public key is published. To generate the public key for
 | SIGNING_KEY                                                          | Private Key in PEM format used to sign request objects sent to the holder                                                                                                                                  | string           | none    |
 | URL_REWRITE_MAPPING                                                  | Json object for url replacements during rest client call. Key represents the original url and value the one which should be used instead (e.g. {"https://mysample1.ch":"https://somethingdiffeerent1.ch"}) | string           | "{}"    |
 | OPENID_CLIENT_METADATA_FILE                                          | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                       | string           | None    |
-| APPLICATION_ACCEPTED-STATUS-LIST-HOSTS=example.com,other-example.com | List of statuslist-hosts accepted in the verification process the list can be null                              | string           | None    |
 
 ### Kubernetes Vault Keys
 

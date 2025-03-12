@@ -8,7 +8,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListFetchFailedException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
@@ -17,6 +17,8 @@ import org.springframework.web.client.RestClient;
 
 import java.net.MalformedURLException;
 import java.net.URI;
+
+import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
 @Service
 @Data
@@ -45,7 +47,7 @@ public class StatusListResolverAdapter {
                 .uri(uri)
                 .retrieve()
                 .onStatus(status -> status != HttpStatus.OK, (request, response) -> {
-                    throw new DidResolverException("Status list with uri: %s could not be retrieved"
+                    throw new StatusListFetchFailedException("Status list with uri: %s could not be retrieved"
                             .formatted(rewrittenUrl));
                 })
                 .body(String.class);
@@ -56,7 +58,7 @@ public class StatusListResolverAdapter {
         var acceptedStatusListHosts = applicationProperties.getAcceptedStatusListHosts();
         var url = URI.create(rewrittenUrl).toURL();
 
-        if (acceptedStatusListHosts.isEmpty()) {
+        if (isEmpty(acceptedStatusListHosts)) {
             return true;
         }
 

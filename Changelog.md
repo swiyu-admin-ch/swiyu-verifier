@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0
+
+### Changed
+
+- Adapted the error code structure to be aligned with RFC 6749 and limited the possible error codes during the presentation submission to the values in https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.4
+
 ## 1.2.2
 
 ### Fixed

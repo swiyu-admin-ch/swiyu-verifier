@@ -17,8 +17,8 @@ import lombok.experimental.UtilityClass;
 import java.util.*;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.common.base64.Base64Utils.decodeBase64;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode.CREDENTIAL_INVALID;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.credentialError;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.credentialError;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
@@ -61,7 +61,7 @@ public class VerifiableCredentialExtractor {
         if (isCredentialList) {
             Integer numberOfProvidedCreds = JsonPath.read(document, "$.length()");
             if (descriptorMap.size() != numberOfProvidedCreds) {
-                throw credentialError(CREDENTIAL_INVALID, "Credential description does not match, credential");
+                throw credentialError( PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED,"Credential description does not match, credential");
             }
         }
 
@@ -72,7 +72,7 @@ public class VerifiableCredentialExtractor {
                 .orElse(null);
 
         if (supportedCredentialPaths == null || supportedCredentialPaths.isEmpty()) {
-            throw credentialError(CREDENTIAL_INVALID, "No matching paths with correct formats found");
+            throw credentialError( PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED,"No matching paths with correct formats found");
         }
 
         // TODO: assume only 1 credential at the moment

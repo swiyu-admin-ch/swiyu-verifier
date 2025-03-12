@@ -10,8 +10,8 @@ import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -29,7 +29,6 @@ public class VerificationMapper {
             return null;
         }
         return switch (source) {
-            case CREDENTIAL_INVALID -> VerificationErrorResponseCodeDto.CREDENTIAL_INVALID;
             case JWT_EXPIRED -> VerificationErrorResponseCodeDto.JWT_EXPIRED;
             case INVALID_FORMAT -> VerificationErrorResponseCodeDto.INVALID_FORMAT;
             case CREDENTIAL_EXPIRED -> VerificationErrorResponseCodeDto.CREDENTIAL_EXPIRED;
@@ -44,6 +43,13 @@ public class VerificationMapper {
                     VerificationErrorResponseCodeDto.PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
             case ISSUER_NOT_ACCEPTED -> VerificationErrorResponseCodeDto.ISSUER_NOT_ACCEPTED;
+            case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
+            case AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM -> VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
+            case VERIFICATION_PROCESS_CLOSED -> VerificationErrorResponseCodeDto.VERIFICATION_PROCESS_CLOSED;
+            case INVALID_PRESENTATION_DEFINITION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION;
+            case MALFORMED_CREDENTIAL -> VerificationErrorResponseCodeDto.MALFORMED_CREDENTIAL;
+            case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED -> VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
+            case INVALID_PRESENTATION_SUBMISSION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_SUBMISSION;
         };
     }
 
@@ -52,12 +58,9 @@ public class VerificationMapper {
             return null;
         }
         return switch (source) {
-            case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> VerificationErrorDto.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
-            case AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM ->
-                    VerificationErrorDto.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
-            case VERIFICATION_PROCESS_CLOSED -> VerificationErrorDto.VERIFICATION_PROCESS_CLOSED;
-            case INVALID_PRESENTATION_DEFINITION -> VerificationErrorDto.INVALID_PRESENTATION_DEFINITION;
             case INVALID_REQUEST -> VerificationErrorDto.INVALID_REQUEST;
+            case SERVER_ERROR -> VerificationErrorDto.SERVER_ERROR;
+            case INVALID_CREDENTIAL -> VerificationErrorDto.INVALID_CREDENTIAL;
         };
     }
 }

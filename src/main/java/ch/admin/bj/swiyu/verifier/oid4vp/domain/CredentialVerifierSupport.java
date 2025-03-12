@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
@@ -17,7 +17,8 @@ import lombok.experimental.UtilityClass;
 import java.util.HashMap;
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.VerificationException.credentialError;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.credentialError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition.Field;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition.FormatAlgorithm;
 import static java.util.Objects.isNull;
@@ -40,14 +41,14 @@ public class CredentialVerifierSupport {
             if (hasAdditionalFilters || incorrectConstDescriptor) {
                 // The Credential is not invalid, but we do not support the presentation sent by the wallet.
                 throw credentialError(
-                        VerificationErrorResponseCode.CREDENTIAL_INVALID,
+                        PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED,
                         "Fields with filter constraint must only occur on path '$.vct' and in combination with the 'const' operation"
                 );
             }
             String value = ctx.read(concatPaths(credentialPath, field.path().getFirst()));
             if (!filter.constDescriptor().equals(value)) {
                 throw credentialError(
-                        VerificationErrorResponseCode.CREDENTIAL_INVALID,
+                        PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED,
                         "Validation criteria not matched, expected filter with const value '%s'".formatted(filter.constDescriptor())
                 );
             }
@@ -57,7 +58,7 @@ public class CredentialVerifierSupport {
                 try {
                     ctx.read(concatPaths(credentialPath, path));
                 } catch (PathNotFoundException e) {
-                    throw credentialError(e, VerificationErrorResponseCode.CREDENTIAL_INVALID, e.getMessage());
+                    throw credentialError(e, e.getMessage());
                 }
             });
         }

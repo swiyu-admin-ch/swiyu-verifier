@@ -19,6 +19,7 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.ge
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.getPresentationSubmissionString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
@@ -30,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
@@ -56,8 +58,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -68,7 +70,7 @@ class VerificationControllerIT {
 
     private static final UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
     private static final String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
-    private static final String publicKey = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
+    private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     @Autowired
     private MockMvc mock;
@@ -78,10 +80,12 @@ class VerificationControllerIT {
     private ApplicationProperties applicationProperties;
     @Autowired
     private VerificationProperties verificationProperties;
-    @MockBean
+    @MockitoBean
     private DidResolverAdapter didResolverAdapter;
-    @MockBean
+    @MockitoBean
     private StatusListResolverAdapter mockedStatusListResolverAdapter;
+
+    private UrlRewriteProperties urlRewriteProperties;
 
 
     @Test
@@ -164,7 +168,7 @@ class VerificationControllerIT {
                     var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
                     assertThat(responseJwt.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
                     assertThat(responseJwt.getHeader().getKeyID()).isEqualTo(applicationProperties.getSigningKeyVerificationMethod());
-                    assertThat(responseJwt.verify(new ECDSAVerifier(ECKey.parse(publicKey)))).isTrue();
+                    assertThat(responseJwt.verify(new ECDSAVerifier(ECKey.parse(PUBLIC_KEY)))).isTrue();
 
                     // checking claims
                     var claims = responseJwt.getJWTClaimsSet();
@@ -177,28 +181,28 @@ class VerificationControllerIT {
 
                     var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
                     assertThat(presentationDefinition.get("id")).isNotNull();
-                    assertThat(presentationDefinition.get("name")).isEqualTo("Presentation Definition Name");
-                    assertThat(presentationDefinition.get("purpose")).isEqualTo("Presentation Definition Purpose");
+                    assertEquals("Presentation Definition Name", presentationDefinition.get("name"));
+                    assertEquals("Presentation Definition Purpose", presentationDefinition.get("purpose"));
 
                     var inputDescriptors = (List<LinkedTreeMap>) presentationDefinition.get("input_descriptors");
-                    var inputDescriptor = inputDescriptors.get(0);
+                    var inputDescriptor = inputDescriptors.getFirst();
 
                     assertThat(inputDescriptor.get("id")).isNotNull();
-                    assertThat(inputDescriptor.get("name")).isEqualTo("Test Descriptor Name");
-                    assertThat(inputDescriptor.get("purpose")).isEqualTo("Input Descriptor Purpose");
+                    assertEquals("Test Descriptor Name", inputDescriptor.get("name"));
+                    assertEquals("Input Descriptor Purpose", inputDescriptor.get("purpose"));
 
-                    var format = (LinkedTreeMap) inputDescriptor.get("format");
-                    var ldpVp = (Map<String, List>) format.get("vc+sd-jwt");
-                    assertThat(ldpVp.get("sd-jwt_alg_values").get(0)).isEqualTo("ES256");
-                    assertThat(ldpVp.get("kb-jwt_alg_values").get(0)).isEqualTo("ES256");
+                    var format = (LinkedTreeMap<String, Object>) inputDescriptor.get("format");
+                    var vp = (Map<String, List>) format.get("vc+sd-jwt");
+                    assertEquals("ES256", vp.get("sd-jwt_alg_values").getFirst());
+                    assertEquals("ES256", vp.get("kb-jwt_alg_values").getFirst());
 
                     var constraints = (LinkedTreeMap<List, List<LinkedTreeMap<List, List>>>) inputDescriptor.get("constraints");
-                    assertThat(constraints.get("fields").get(0).get("path").get(0)).isEqualTo("$");
+                    assertThat(constraints.get("fields").getFirst().get("path").getFirst()).isEqualTo("$");
 
                     var clientMetadata = (LinkedTreeMap) claims.getClaim("client_metadata");
-                    assertThat(clientMetadata.get("client_name")).isEqualTo("Fallback name");
-                    assertThat(clientMetadata.get("client_name#de-CH")).isEqualTo("German name (region Switzerland)");
-                    assertThat(clientMetadata.get("logo_uri")).isEqualTo("www.example.com/logo.png");
+                    assertEquals("Fallback name", clientMetadata.get("client_name"));
+                    assertEquals("German name (region Switzerland)", clientMetadata.get("client_name#de-CH"));
+                    assertEquals("www.example.com/logo.png", clientMetadata.get("logo_uri"));
 
                     assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
                 });

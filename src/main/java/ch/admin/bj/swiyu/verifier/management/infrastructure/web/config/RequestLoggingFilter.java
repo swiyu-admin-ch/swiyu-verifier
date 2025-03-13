@@ -47,8 +47,11 @@ class RequestLoggingFilter extends OncePerRequestFilter {
     /**
      * By default we don't want all the /actuator access being logged since it pollutes the logs.
      */
-    @Value("${request.logging.uri-filter-pattern:.*/actuator/.*}")
-    private Pattern uriFilterPattern;
+    private final Pattern uriFilterPattern;
+
+    RequestLoggingFilter(@Value("${request.logging.uri-filter-pattern:.*/actuator/.*}") Pattern unsetUriFilterPatternunset) {
+        uriFilterPattern = unsetUriFilterPatternunset;
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,

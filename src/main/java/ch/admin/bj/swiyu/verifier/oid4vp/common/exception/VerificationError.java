@@ -13,7 +13,10 @@ public enum VerificationError {
      * The other error types as indicated in <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.4">OpenID4VP</a>
      * are not listed because they are only relevant for the holder during the presentation submission / response
      */
+    // RFC Codes
     INVALID_REQUEST,
     SERVER_ERROR,
+
+    // Codes according to custom profile
     INVALID_CREDENTIAL;
 }

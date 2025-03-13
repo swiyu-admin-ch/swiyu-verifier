@@ -16,15 +16,19 @@ import lombok.AllArgsConstructor;
  */
 @AllArgsConstructor
 @Schema(name = "VerificationError", enumAsRef = true, description = """
-        | Value                                                   | Description                                                                                  |
-        |---------------------------------------------------------|----------------------------------------------------------------------------------------------|
-        | invalid_request                                         | The request was invalid.<br>This is a general purpose code if none of the other codes apply. |
-        | server_error                                            | The authorization server encountered an unexpected                                           |
-        | invalid_credential                                      | The credential presented during validation was deemed invalid.                               |
+        | Value              | Description                                                                                  |
+        |--------------------|----------------------------------------------------------------------------------------------|
+        | invalid_request    | The request was invalid.<br>This is a general purpose code if none of the other codes apply. |
+        | server_error       | The authorization server encountered an unexpected                                           |
+        | invalid_credential | The credential presented during validation was deemed invalid.                               |
+        | client_rejected    | The End-User did not give consent to share the requested Credentials with the Verifier.      |
         """)
 public enum VerificationErrorDto {
+    // RFC codes
     INVALID_REQUEST("invalid_request"),
     SERVER_ERROR("server_error"),
+
+    // Codes according to custom profile
     INVALID_CREDENTIAL("invalid_credential");
 
     private final String displayName;

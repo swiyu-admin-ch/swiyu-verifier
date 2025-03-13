@@ -43,7 +43,7 @@ class ManagementMapperTest {
         assertEqualFormat(mgmt.getRequestedPresentation().format(), dto.presentationDefinition().format());
         assertEqualInputDescriptors(mgmt.getRequestedPresentation().inputDescriptors(), dto.presentationDefinition().inputDescriptors());
         assertNull(dto.walletResponse());
-        String expectedVerificationUrl = "%s/request-object/%s".formatted(OID4VP_URL, mgmt.getId());
+        String expectedVerificationUrl = "%s/api/v1/request-object/%s".formatted(OID4VP_URL, mgmt.getId());
         assertEquals(expectedVerificationUrl, dto.verificationUrl());
     }
 

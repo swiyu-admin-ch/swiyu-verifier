@@ -24,7 +24,7 @@ public class VerificationPresentationRequestDto {
 
     @Schema(
             description = "Submitted token (e.g. of the wallet) according to " +
-                    "[OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.1)"
+                    "[OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1)"
     )
     private String vp_token;
 
@@ -39,7 +39,7 @@ public class VerificationPresentationRequestDto {
     private String presentation_submission;
 
     @Schema(
-            description = "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.4)"
+            description = "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#name-error-response)"
     )
     private VerificationClientErrorDto error;
 

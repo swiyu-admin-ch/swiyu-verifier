@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 
 /**
- * Allowed error responses the wallet can make according to <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.4">OpenID4VP</a>
+ * Allowed error responses the wallet can make according to <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.4">OpenID4VP</a>
  */
 @AllArgsConstructor
 @Schema(name = "VerificationClientError")

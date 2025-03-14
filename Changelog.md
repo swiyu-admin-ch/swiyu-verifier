@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Additional env variable (application.accepted-status-list-hosts) to limit the accepted status list hosts during a verification.
+-   Additional env variable (application.accepted-status-list-hosts) to limit the accepted status list hosts during a verification. The default values are the prod status list and can be overwritten by the environment variable APPLICATION_ACCEPTED_STATUS_LIST_HOSTS.
 
 ## 2.0.4
 

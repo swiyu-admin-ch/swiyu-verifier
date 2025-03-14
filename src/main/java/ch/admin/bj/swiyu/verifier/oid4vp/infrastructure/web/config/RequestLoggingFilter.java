@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -23,6 +24,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -41,8 +43,19 @@ class RequestLoggingFilter extends OncePerRequestFilter {
 
     public static final String UNKNOWN_METHOD = "UNKNOWN";
 
+    /**
+     * By default we don't want all the /actuator access being logged since it pollutes the logs.
+     */
+    private final Pattern uriFilterPattern;
+
+    RequestLoggingFilter(@Value("${request.logging.uri-filter-pattern:.*/actuator/.*}") Pattern unsetUriFilterPatternunset) {
+        uriFilterPattern = unsetUriFilterPatternunset;
+    }
+
+
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
         boolean shouldSkipTracing = isAsyncDispatch(request);
         if (shouldSkipTracing) {
             filterChain.doFilter(request, response);
@@ -58,35 +71,46 @@ class RequestLoggingFilter extends OncePerRequestFilter {
     }
 
     private void logRequest(HttpServletRequest request) {
-        var servletRequest = request instanceof ServletServerHttpRequest ?
-                (ServletServerHttpRequest) request : new ServletServerHttpRequest(request);
+        var servletRequest = request instanceof ServletServerHttpRequest ? (ServletServerHttpRequest) request
+                : new ServletServerHttpRequest(request);
         var method = method(servletRequest);
-        log.debug("Incoming {} Request to {}",
-                value("method", method),
-                value("uri", servletRequest.getURI().toASCIIString()));
+        if (shouldTraceUri(request.getRequestURI())) {
+            log.debug("Incoming {} Request to {}",
+                    value("method", method),
+                    value("uri", servletRequest.getURI().toASCIIString()));
+        }
 
     }
 
     private void logResponse(HttpServletRequest request, HttpServletResponse response, ZonedDateTime incomingTime) {
         var responseHeaders = response.getHeaderNames().stream().distinct()
                 .collect(Collectors.toMap(Function.identity(), name -> new ArrayList<>(response.getHeaders(name))));
-        var servletServerHttpRequest = request instanceof ServletServerHttpRequest ?
-                (ServletServerHttpRequest) request : new ServletServerHttpRequest(request);
+        var servletServerHttpRequest = request instanceof ServletServerHttpRequest ? (ServletServerHttpRequest) request
+                : new ServletServerHttpRequest(request);
         var method = method(servletServerHttpRequest);
         var durationTime = ChronoUnit.MILLIS.between(incomingTime, ZonedDateTime.now());
         var remoteAddress = servletServerHttpRequest.getRemoteAddress();
         String format = "Response: {} {} {} {} {} {} {}";
-        log.debug(format,
-                value("method", method),
-                value("uri", servletServerHttpRequest.getURI().toASCIIString()),
-                keyValue("result", response.getStatus()),
-                keyValue("dt", durationTime),
-                keyValue("remoteAddr", remoteAddress.toString()),
-                keyValue("requestHeaders", servletServerHttpRequest.getHeaders()),
-                keyValue("responseHeaders", responseHeaders));
+        if (shouldTraceUri(request.getRequestURI())) {
+            log.debug(format,
+                    value("method", method),
+                    value("uri", servletServerHttpRequest.getURI().toASCIIString()),
+                    keyValue("result", response.getStatus()),
+                    keyValue("dt", durationTime),
+                    keyValue("remoteAddr", remoteAddress == null ? null : remoteAddress.toString()),
+                    keyValue("requestHeaders", servletServerHttpRequest.getHeaders()),
+                    keyValue("responseHeaders", responseHeaders));
+        }
+    }
+
+    private boolean shouldTraceUri(String uri) {
+        if (uriFilterPattern == null) {
+            return true;
+        }
+        return !uriFilterPattern.matcher(uri).matches();
     }
 
     private static String method(ServletServerHttpRequest request) {
-        return request.getMethod().toString();
+        return request.getMethod() == null ? UNKNOWN_METHOD : request.getMethod().toString();
     }
 }

@@ -114,7 +114,7 @@ public class VerificationController {
             summary = "Receive Verification Presentation (from e.g. Wallet)",
             externalDocs = @ExternalDocumentation(
                     description = "OpenId4VP response parameters",
-                    url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.1"
+                    url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1"
             ),
             responses = {
                     @ApiResponse(

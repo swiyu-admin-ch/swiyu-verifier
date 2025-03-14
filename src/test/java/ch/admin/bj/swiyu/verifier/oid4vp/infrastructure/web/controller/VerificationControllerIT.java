@@ -30,7 +30,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
@@ -103,7 +102,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -181,7 +180,7 @@ class VerificationControllerIT {
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
-                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId));
+                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/api/v1/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId));
 
                     var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
                     assertThat(presentationDefinition.get("id")).isNotNull();

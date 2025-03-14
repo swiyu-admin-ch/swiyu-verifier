@@ -6,6 +6,14 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
+import java.util.Map;
+import java.util.UUID;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.submissionError;
+import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPresentationDefinitionDto;
+
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
@@ -21,14 +29,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Map;
-import java.util.UUID;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED;
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.submissionError;
-import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPresentationDefinitionDto;
 
 
 @Slf4j
@@ -70,7 +70,7 @@ public class RequestObjectService {
                 .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType("vp_token")
                 .responseMode("direct_post")
-                .responseUri(String.format("%s/request-object/%s/response-data",
+                .responseUri(String.format("%s/api/v1/request-object/%s/response-data",
                         applicationProperties.getExternalUrl(),
                         managementEntityId))
                 .build();

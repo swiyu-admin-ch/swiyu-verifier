@@ -11,8 +11,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 
 /**
- * RFC 6749 Error codes as metioned in <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#section-6.4">OpenID4VP</a>
- * OpenID for Verifiable Presentations</a>.
+ * RFC 6749 Error codes as mentioned in <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.4">OpenID4VP</a>
+ * OpenID for Verifiable Presentations</a> which are supported by this implementation.
  */
 @AllArgsConstructor
 @Schema(name = "VerificationError", enumAsRef = true, description = """
@@ -23,8 +23,11 @@ import lombok.AllArgsConstructor;
         | invalid_credential                                      | The credential presented during validation was deemed invalid.                               |
         """)
 public enum VerificationErrorDto {
+    // RFC codes
     INVALID_REQUEST("invalid_request"),
     SERVER_ERROR("server_error"),
+
+    // Codes according to custom profile
     INVALID_CREDENTIAL("invalid_credential");
 
     private final String displayName;

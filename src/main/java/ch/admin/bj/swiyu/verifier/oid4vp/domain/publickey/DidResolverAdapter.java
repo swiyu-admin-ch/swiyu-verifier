@@ -35,7 +35,7 @@ public class DidResolverAdapter {
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
             String didLog = retrieveDidLog(didUrl);
-            try (TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog, true)) {
+            try (TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog)) {
                 String rawDidDoc = tdw.getDidDoc();
                 return DidDoc.Companion.fromJson(rawDidDoc);
             }

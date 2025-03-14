@@ -17,7 +17,7 @@
     </parent>
     <groupId>ch.admin.bj.swiyu</groupId>
     <artifactId>verifier-oid4vp</artifactId>
-    <version>2.0.5-SNAPSHOT</version>
+    <version>2.0.6-SNAPSHOT</version>
     <name>verifier-oid4vp</name>
     <description>Generic verifier for public beta</description>
     <properties>
@@ -51,7 +51,7 @@
         <bcpkix-jdk18on.version>1.80</bcpkix-jdk18on.version>
         <kotlin-stdlib.version>1.9.23</kotlin-stdlib.version>
         <jna.version>5.14.0</jna.version>
-        <didresolver.version>1.0.1</didresolver.version>
+        <didresolver.version>2.0.0</didresolver.version>
         <sd-jwt.version>1.4</sd-jwt.version>
         <jjwt-api.version>0.12.6</jjwt-api.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>

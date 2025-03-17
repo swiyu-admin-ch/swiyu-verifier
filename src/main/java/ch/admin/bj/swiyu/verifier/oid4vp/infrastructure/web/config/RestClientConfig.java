@@ -16,7 +16,7 @@ import org.springframework.web.client.RestClient;
 public class RestClientConfig {
 
     @Bean
-    public RestClient statusListRestClient(RestClient.Builder builder) {
+    public RestClient defaultRestClient(RestClient.Builder builder) {
         return builder
                 .requestInterceptor(new ContentLengthInterceptor())
                 .build();

@@ -44,7 +44,7 @@ public class StatusListResolverAdapter {
 
 
         return statusListRestClient.get()
-                .uri(uri)
+                .uri(rewrittenUrl)
                 .retrieve()
                 .onStatus(status -> status != HttpStatus.OK, (request, response) -> {
                     throw new StatusListFetchFailedException("Status list with uri: %s could not be retrieved"

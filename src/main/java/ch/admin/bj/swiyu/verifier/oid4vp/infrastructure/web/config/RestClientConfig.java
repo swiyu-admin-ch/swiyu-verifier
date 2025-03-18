@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,11 +15,12 @@ import org.springframework.web.client.RestClient;
 @Configuration
 @AllArgsConstructor
 public class RestClientConfig {
+    private final VerificationProperties verificationProperties;
 
     @Bean
     public RestClient defaultRestClient(RestClient.Builder builder) {
         return builder
-                .requestInterceptor(new ContentLengthInterceptor())
+                .requestInterceptor(new ContentLengthInterceptor(verificationProperties.getObjectSizeLimit()))
                 .build();
     }
 }

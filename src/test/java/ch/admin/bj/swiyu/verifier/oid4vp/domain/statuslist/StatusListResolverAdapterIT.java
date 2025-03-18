@@ -6,6 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
@@ -16,6 +18,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RestClientConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,8 +31,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 
-import java.util.List;
-
 @RestClientTest({StatusListResolverAdapter.class})
 @Import({RestClientConfig.class})
 class StatusListResolverAdapterIT {
@@ -39,11 +40,14 @@ class StatusListResolverAdapterIT {
     MockRestServiceServer mockServer;
     @Autowired
     StatusListResolverAdapter statusListResolverAdapter;
+
     @MockitoBean
     private UrlRewriteProperties urlRewriteProperties;
 
     @MockitoBean
     private ApplicationProperties applicationProperties;
+    @MockitoBean
+    private VerificationProperties verificationProperties;
 
     @BeforeEach
     void setUp() {
@@ -53,10 +57,10 @@ class StatusListResolverAdapterIT {
     @Test
     void testValidateStatusListSize_ExceedsMaxSize() {
 
-        // Check with content size of 10 MB + 1 byte
+        // Check with content size of 10 MB
         this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess("Status list content", MediaType.TEXT_PLAIN)
-                        .header("Content-Length", String.valueOf(10485761L)));
+                        .header("Content-Length", String.valueOf(10485760L)));
 
         var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.resolveStatusList(url));
         assertEquals("Status list size from " + url + " exceeds maximum allowed size", exception.getMessage());

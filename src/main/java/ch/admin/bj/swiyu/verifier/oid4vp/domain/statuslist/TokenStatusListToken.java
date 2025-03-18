@@ -6,14 +6,14 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.zip.InflaterInputStream;
+
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * See <a href="https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-02.html#name-status-list-token-in-jwt-fo">spec</a>
@@ -22,8 +22,6 @@ import java.util.zip.InflaterInputStream;
 @Slf4j
 @Getter
 public class TokenStatusListToken {
-
-    private static final int MAX_UNCOMPRESSED_SIZE_IN_BYTES = 10485760; // 10MB
 
     /**
      * Indicator how many consecutive bits of the token status list are contained within one status list entry.
@@ -48,8 +46,47 @@ public class TokenStatusListToken {
         this.statusList = statusList;
     }
 
-    public static TokenStatusListToken loadTokenStatusListToken(int bits, String lst) throws IOException {
-        return new TokenStatusListToken(bits, decodeStatusList(lst));
+    public static TokenStatusListToken loadTokenStatusListToken(int bits, String lst, int maxBufferSize) throws IOException {
+        return new TokenStatusListToken(bits, decodeStatusList(lst, maxBufferSize));
+    }
+
+    /**
+     * Decodes and decompresses a Base64-encoded and compressed status list.
+     *
+     * <p>This method performs the following steps:
+     * <ul>
+     *     <li>Decodes the input string using Base64 decoding.</li>
+     *     <li>Decompresses the deflated data using a {@link InflaterInputStream}.</li>
+     *     <li>Ensures that the decompressed data does not exceed a predefined safe limit to prevent potential compression bomb attacks.</li>
+     * </ul>
+     *
+     * @param lst           The Base64-encoded and deflate-compressed input string.
+     * @param maxBufferSize The allowed size limit at which decoding stops with an IOException
+     * @return A byte array containing the decompressed data.
+     * @throws IOException If an error occurs during decoding, decompression, or if the decompressed data exceeds the allowed limit.
+     */
+    public static byte[] decodeStatusList(String lst, int maxBufferSize) throws IOException {
+        byte[] zippedData = Base64.getUrlDecoder().decode(lst);
+
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(zippedData);
+             InflaterInputStream inflaterStream = new InflaterInputStream(byteArrayInputStream);
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            int totalSize = 0; // Track total decompressed data size
+
+            // Check if the decompressed data size exceeds the allowed limit
+            while ((bytesRead = inflaterStream.read(buffer)) != -1) {
+                totalSize += bytesRead;
+                if (totalSize > maxBufferSize) {
+                    throw new IOException("Decompressed data exceeds safe limit! Possible compression bomb attack.");
+                }
+                output.write(buffer, 0, bytesRead);
+            }
+            // Return the fully decompressed byte array
+            return output.toByteArray();
+        }
     }
 
     /**
@@ -68,44 +105,6 @@ public class TokenStatusListToken {
         var maskedByte = entryByte & mask;
         // Shift the status to the start of the byte so 1 = revoked, 2 = suspended, etc, also removes all bits smaller than our status
         return maskedByte >> bitIndex;
-    }
-
-    /**
-     * Decodes and decompresses a Base64-encoded and compressed status list.
-     *
-     * <p>This method performs the following steps:
-     * <ul>
-     *     <li>Decodes the input string using Base64 decoding.</li>
-     *     <li>Decompresses the deflated data using a {@link InflaterInputStream}.</li>
-     *     <li>Ensures that the decompressed data does not exceed a predefined safe limit to prevent potential compression bomb attacks.</li>
-     * </ul>
-     *
-     * @param lst The Base64-encoded and deflate-compressed input string.
-     * @return A byte array containing the decompressed data.
-     * @throws IOException If an error occurs during decoding, decompression, or if the decompressed data exceeds the allowed limit.
-     */
-    public static byte[] decodeStatusList(String lst) throws IOException {
-        byte[] zippedData = Base64.getUrlDecoder().decode(lst);
-
-        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(zippedData);
-             InflaterInputStream inflaterStream = new InflaterInputStream(byteArrayInputStream);
-             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            int totalSize = 0; // Track total decompressed data size
-
-            // Check if the decompressed data size exceeds the allowed limit
-            while ((bytesRead = inflaterStream.read(buffer)) != -1) {
-                totalSize += bytesRead;
-                if (totalSize > MAX_UNCOMPRESSED_SIZE_IN_BYTES) {
-                    throw new IOException("Decompressed data exceeds safe limit! Possible compression bomb attack.");
-                }
-                output.write(buffer, 0, bytesRead);
-            }
-            // Return the fully decompressed byte array
-            return output.toByteArray();
-        }
     }
 
     private byte getStatusEntryByte(int idx) {

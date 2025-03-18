@@ -15,10 +15,10 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
 import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.credentialError;
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
 import static org.springframework.util.StringUtils.hasText;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.base64.Base64Utils;
@@ -138,9 +138,9 @@ public class SdjwtCredentialVerifier {
         } catch (PrematureJwtException e) {
             throw credentialError(e, MALFORMED_CREDENTIAL, "Could not verify JWT credential is not yet valid");
         } catch (ExpiredJwtException e) {
-            throw credentialError(e,MALFORMED_CREDENTIAL, "Could not verify JWT credential is expired");
+            throw credentialError(e, MALFORMED_CREDENTIAL, "Could not verify JWT credential is expired");
         } catch (JwtException e) {
-            throw credentialError(e, MALFORMED_CREDENTIAL,"Signature mismatch");
+            throw credentialError(e, MALFORMED_CREDENTIAL, "Signature mismatch");
         }
 
         log.trace("Successfully verified signature of id {}", managementEntity.getId());
@@ -179,17 +179,17 @@ public class SdjwtCredentialVerifier {
 
         // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
         if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("_sd", "..."))) {
-            throw credentialError( MALFORMED_CREDENTIAL,"Illegal disclosure found with name _sd or ...");
+            throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
         }
 
         // SD-JWT VC 3.2.2
         if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("iss", "nbf", "exp", "cnf", "vct", "status"))) {
-            throw credentialError( MALFORMED_CREDENTIAL,"If present, the following registered JWT claims MUST be included in the SD-JWT and MUST NOT be included in the Disclosures: 'iss', 'nbf', 'exp', 'cnf', 'vct', 'status'");
+            throw credentialError(MALFORMED_CREDENTIAL, "If present, the following registered JWT claims MUST be included in the SD-JWT and MUST NOT be included in the Disclosures: 'iss', 'nbf', 'exp', 'cnf', 'vct', 'status'");
         }
 
         // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.
         if (CollectionUtils.containsAny(disclosedClaimNames, claims.getPayload().keySet())) { // If there is any result of the set intersection
-            throw credentialError( MALFORMED_CREDENTIAL,"Can not resolve disclosures. Existing Claim would be overridden.");
+            throw credentialError(MALFORMED_CREDENTIAL, "Can not resolve disclosures. Existing Claim would be overridden.");
         }
 
 

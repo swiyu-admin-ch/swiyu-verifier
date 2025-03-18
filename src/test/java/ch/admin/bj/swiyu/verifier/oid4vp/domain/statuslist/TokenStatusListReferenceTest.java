@@ -1,5 +1,13 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
+import java.util.Map;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.LoadingPublicKeyOfIssuerFailedException;
@@ -12,21 +20,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Map;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 public class TokenStatusListReferenceTest {
+    private final String issuerOfReferencedToken = "TEST_ISSUER_ID";
     @Mock
     private StatusListResolverAdapter statusListResolverAdapter;
     @Mock
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
-
-    private final String issuerOfReferencedToken = "TEST_ISSUER_ID";
     private SDJWTCredentialMock emulator;
 
     @BeforeEach
@@ -55,7 +55,7 @@ public class TokenStatusListReferenceTest {
                 ),
                 issuerPublicKeyLoader,
                 issuerOfReferencedToken
-        );
+                , 204800);
         tokenStatusListReference.verifyStatus();
     }
 
@@ -69,7 +69,7 @@ public class TokenStatusListReferenceTest {
                 ),
                 issuerPublicKeyLoader,
                 "DIFFERENT-ISSUER"
-        );
+                , 204800);
         var err = assertThrows(VerificationException.class, tokenStatusListReference::verifyStatus);
         assertTrue(err.getErrorDescription().contains("Failed to verify JWT: Invalid JWT token. JWT iss claim has value TEST_ISSUER_ID, must be DIFFERENT-ISSUER"));
     }

@@ -18,4 +18,10 @@ public class VerificationProperties {
      */
     @NotNull
     private int acceptableProofTimeWindowSeconds;
+
+    /**
+     * Size Limit of fetched objects like did document or status list.
+     */
+    @NotNull
+    private int objectSizeLimit;
 }

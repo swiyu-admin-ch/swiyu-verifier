@@ -8,15 +8,18 @@ package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config;
 
 import java.io.IOException;
 
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 
+@RequiredArgsConstructor
 public class ContentLengthInterceptor implements ClientHttpRequestInterceptor {
 
-    private static final int MAX_STATUS_LIST_SIZE = 10485760; // 10 MB
+
+    private final int maxSize;
 
     @NotNull
     @Override
@@ -24,7 +27,7 @@ public class ContentLengthInterceptor implements ClientHttpRequestInterceptor {
         ClientHttpResponse response = execution.execute(request, body);
         long contentLength = response.getHeaders().getContentLength();
 
-        if (contentLength > MAX_STATUS_LIST_SIZE) {
+        if (contentLength > this.maxSize) {
             throw new IllegalArgumentException("Status list size from %s exceeds maximum allowed size".formatted(request.getURI()));
         }
 

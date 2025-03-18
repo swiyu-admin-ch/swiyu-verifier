@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
+
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
@@ -26,8 +28,6 @@ import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import lombok.extern.slf4j.Slf4j;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
 
 /**
  * Referenced Token
@@ -46,8 +46,8 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErr
 class TokenStatusListReference extends StatusListReference {
 
 
-    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, IssuerPublicKeyLoader issuerPublicKeyLoader, String referencedTokenIssuer) {
-        super(adapter, statusListReferenceClaims, issuerPublicKeyLoader, referencedTokenIssuer);
+    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, IssuerPublicKeyLoader issuerPublicKeyLoader, String referencedTokenIssuer, int maxBufferSize) {
+        super(adapter, statusListReferenceClaims, issuerPublicKeyLoader, referencedTokenIssuer, maxBufferSize);
     }
 
 
@@ -59,7 +59,7 @@ class TokenStatusListReference extends StatusListReference {
             Map<String, Object> statusListData = (Map<String, Object>) statusListVC.get("status_list");
             int statusListBits = Integer.parseInt(statusListData.get("bits").toString());
             String zippedStatusList = (String) statusListData.get("lst");
-            TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(statusListBits, zippedStatusList);
+            TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(statusListBits, zippedStatusList, getMaxBufferSize());
             log.trace("Unpacked Status List with length {}", statusList.getStatusList().length);
             int statusListIndex = Integer.parseInt(getStatusListReferenceClaims().get("idx").toString());
             TokenStatusListBit credentialStatus = TokenStatusListBit.createStatus(statusList.getStatus(statusListIndex));
@@ -81,7 +81,7 @@ class TokenStatusListReference extends StatusListReference {
         } catch (IllegalArgumentException e) {
             throw VerificationException.credentialError(e, VerificationErrorResponseCode.CREDENTIAL_REVOKED, "Unexpected VC Status!");
         } catch (IndexOutOfBoundsException e) {
-            throw VerificationException.credentialError(e, UNRESOLVABLE_STATUS_LIST,"The VC cannot be validated as the remote list does not contain this VC!");
+            throw VerificationException.credentialError(e, UNRESOLVABLE_STATUS_LIST, "The VC cannot be validated as the remote list does not contain this VC!");
         }
     }
 

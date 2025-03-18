@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
 import lombok.AllArgsConstructor;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Component;
 public class StatusListReferenceFactory {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListResolverAdapter statusListResolverAdapter;
+    private final VerificationProperties verificationProperties;
 
     /**
      * Creates a number of StatusListReferences according to the StatusLists found in the vcClaims
@@ -85,7 +87,7 @@ public class StatusListReferenceFactory {
     private Function<Map<String, Object>, List<TokenStatusListReference>> createTokenStatusListReferences(String referencedTokenIssuer) {
         return tokenStatusListReferenceTokenEntry -> List.of(
                 new TokenStatusListReference(statusListResolverAdapter, (Map<String, Object>) tokenStatusListReferenceTokenEntry.get("status_list"),
-                        issuerPublicKeyLoader, referencedTokenIssuer)
+                        issuerPublicKeyLoader, referencedTokenIssuer, verificationProperties.getObjectSizeLimit())
         );
     }
 

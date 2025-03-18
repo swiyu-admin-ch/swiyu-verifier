@@ -31,7 +31,7 @@ class ContentLengthInterceptorTest {
 
     @BeforeEach
     void setUp() {
-        contentLengthInterceptor = new ContentLengthInterceptor();
+        contentLengthInterceptor = new ContentLengthInterceptor(204800);
         request = mock(HttpRequest.class);
         execution = mock(ClientHttpRequestExecution.class);
         response = mock(ClientHttpResponse.class);

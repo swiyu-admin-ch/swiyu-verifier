@@ -23,7 +23,7 @@ import org.springframework.web.client.RestClient;
 public class DidResolverAdapter {
 
     private final UrlRewriteProperties urlRewriteProperties;
-    private final RestClient.Builder restClientBuilder;
+    private final RestClient restClient;
 
     /**
      * Returns the DID Document for the given DID.
@@ -45,6 +45,6 @@ public class DidResolverAdapter {
     }
 
     private String retrieveDidLog(String uri) {
-        return restClientBuilder.build().get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
+        return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
     }
 }

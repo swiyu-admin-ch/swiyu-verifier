@@ -47,6 +47,10 @@ verification:
 
 
 spring:
+  http:
+    client:
+      read-timeout: 1000 # 1 second until next tcp data package is received or timeout
+      connect-timeout: 10000 # 10 seconds until tcp handshake is done
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver

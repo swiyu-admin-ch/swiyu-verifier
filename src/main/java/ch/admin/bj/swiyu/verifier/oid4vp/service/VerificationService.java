@@ -9,7 +9,6 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import java.util.Set;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError.INVALID_REQUEST;
 import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerifiableCredentialExtractor.extractVerifiableCredential;
@@ -20,8 +19,8 @@ import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
@@ -56,7 +55,8 @@ public class VerificationService {
      * @param managementEntityId the id of the ManagementEntity
      * @param request            the presentation request to verify
      */
-    @Transactional(noRollbackFor = VerificationException.class)
+    @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
+    // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
     public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
         try {
             // 1. Check if the process is still pending and not expired
@@ -83,6 +83,7 @@ public class VerificationService {
         }
     }
 
+
     private static void verifyProcessNotClosed(ManagementEntity entity) {
         if (entity.isExpired() || !entity.isVerificationPending()) {
             throw submissionError(VERIFICATION_PROCESS_CLOSED);
@@ -102,7 +103,7 @@ public class VerificationService {
             validatePresentationSubmission(presentationSubmission);
             return presentationSubmission;
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION,e.getMessage());
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
         }
 
     }

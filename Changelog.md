@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Use connection & read timeout when trying to resolve DIDs & status lists.
 - Upgrade DID Resolver library
 
 ### Fixed

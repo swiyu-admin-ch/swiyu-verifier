@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Use rewritten url instead of input urls in status list resolver adapter
 
+## 2.0.8
+
 ### Changed
 
 - Upgrade DID Resolver library

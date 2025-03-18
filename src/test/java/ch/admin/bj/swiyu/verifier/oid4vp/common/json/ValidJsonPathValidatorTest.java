@@ -39,8 +39,8 @@ public class ValidJsonPathValidatorTest {
 
     @Test
     void testInvalidJsonPathWithRegularExpression() {
-        assertFalse(validator.isValid("$.foo.bar[^[a-zA-Z0-9]+$]", context), "Regular expressions should be invalid.");
-        assertFalse(validator.isValid("$.foo.bar[([a-zA-Z]+)*]", context), "Regular expressions should be invalid.");
+        assertFalse(validator.isValid("$.foo[?(@.bar =~ /[a-zA-Z0-9]+/)]", context), "Regular expressions should be invalid.");
+        assertFalse(validator.isValid("$.foo.bar[?(@ =~ /^[a-zA-Z]+$/)]", context), "Regular expressions should be invalid.");
     }
 
     @Test

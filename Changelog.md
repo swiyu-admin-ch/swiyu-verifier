@@ -10,26 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Use connection & read timeout when trying to resolve DIDs & status lists.
+- Upgrade DID Resolver library
+
+### Fixed
+
+- Disallow JSONPath filter expressions in validation.
 
 ## 2.0.7
 
 ### Changed
 
-- Changed workflow file to fix image build on github
+-   Changed workflow file to fix image build on github
 
 ## 2.0.6
 
 ### Changed
 
-- Upgrade did-resolver library from version 1.0.1 to 2.0.0
+-   Upgrade did-resolver library from version 1.0.1 to 2.0.0
+
 
 ## 2.0.5
 
 ### Added
 
-- Additional env variable (application.accepted-status-list-hosts) to limit the accepted status list hosts during a
-  verification. The default values are the prod status list and can be overwritten by the environment variable
-  APPLICATION_ACCEPTED_STATUS_LIST_HOSTS.
+-   Additional env variable (application.accepted-status-list-hosts) to limit the accepted status list hosts during a verification. The default values are the prod status list and can be overwritten by the environment variable APPLICATION_ACCEPTED_STATUS_LIST_HOSTS.
 
 ## 2.0.4
 
@@ -56,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed potential decompression bomb security issue
+-   Fixed potential decompression bomb security issue
 
 ## 2.0.0
 
@@ -70,47 +74,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Limiting allowed issuer of status list to the issuer of the referenced token, as there is currently
-  no use case where the issuer of the status list would be different from the issuer of the token.
+-   Limiting allowed issuer of status list to the issuer of the referenced token, as there is currently
+    no use case where the issuer of the status list would be different from the issuer of the token.
 
 ## 1.2.1
 
 ### Changed
 
-- Provide securosys HSM Primus jce provider (no change necessary for user)
+-   Provide securosys HSM Primus jce provider (no change necessary for user)
 
 ## 1.2.0
 
 ### Added
 
-- Add new acceptable-proof-time-window-seconds settings, checking if the holder's proof has been created in a realistic
-  timeframe. It is not recommended to change this value unless you have very high latency or extreme clock skew.
+-   Add new acceptable-proof-time-window-seconds settings, checking if the holder's proof has been created in a realistic
+    timeframe. It is not recommended to change this value unless you have very high latency or extreme clock skew.
 
 ## 1.1.2
 
 ### Fixed
 
-- Changing the status list get process to 1 call instead of 2 with checking the content size
+-   Changing the status list get process to 1 call instead of 2 with checking the content size
 
 ## 1.1.1
 
 ### Fixed
 
-- Updated Spring Boot Parent, fixing CVE-2024-50379
-- Reject VCs which present claims as selective disclosures that MUST NOT be selectively disclosed
+-   Updated Spring Boot Parent, fixing CVE-2024-50379
+-   Reject VCs which present claims as selective disclosures that MUST NOT be selectively disclosed
 
 ## 1.1.0
 
 ### Added
 
-- Extending prometheus export with metrics for build
+-   Extending prometheus export with metrics for build
 
 ## 1.0.1
 
 ### Added
 
-- Adding documentation for error codes used
+-   Adding documentation for error codes used
 
 ## 1.0.0
 
-- Initial Release
+-   Initial Release

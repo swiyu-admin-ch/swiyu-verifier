@@ -30,7 +30,21 @@ import lombok.Getter;
         | issuer_not_accepted               | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                       |
         | holder_binding_mismatch           | The holder has provided invalid proof that the credential is under their control.                                                    |
         | client_rejected                   | The holder rejected the verification request.                                                                                        |
+        | issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                    |
+        | authorization_request_missing_error_param   | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.                  |
+        | authorization_request_object_not_found      | The requested verification process cannot be found.                                                                                  |
+        | verification_process_closed                 | The requested verification process is already closed.                                                                                |
+        | invalid_presentation_definition             | The provided credential presentation was invalid.                                                                                    |
+        | presentation_submission_constraint_violated | The presentation submission provided violated at least one constraint defined in the presentation definition                         |
+        | invalid_presentation_submission             | The presentation submission couldn't be deserialized and is therefore invalid                                                        |
+        | invalid_scope                        | Requested scope value is invalid, unknown or malformed  |
+        | invalid_request                       |  Various issues with the request                           |
+        | invalid_client                       | client_metadata parameter exists, but the Wallet recognizes Client Identifier and knows metadata associated with it, Verifier's pre-registered metadata has been found based on the Client Identifier, but client_metadata parameter is also present |
+        | vp_formats_not_supported                       | The Wallet doesn't support any of the formats requested by the Verifier |
+        | invalid_presentation_definition_uri | Presentation Definition URI can't be reached |
+        | invalid_presentation_definition_reference  | Presentation Definition URI can be reached, but the presentation_definition cannot be found there |
         """)
+
 public enum VerificationErrorResponseCodeDto {
 
     CREDENTIAL_INVALID("credential_invalid"),
@@ -45,8 +59,21 @@ public enum VerificationErrorResponseCodeDto {
     CREDENTIAL_MISSING_DATA("credential_missing_data"),
     UNRESOLVABLE_STATUS_LIST("unresolvable_status_list"),
     PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE("public_key_of_issuer_unresolvable"),
-    CLIENT_REJECTED("client_rejected"),
-    ISSUER_NOT_ACCEPTED("issuer_not_accepted");
+    ISSUER_NOT_ACCEPTED("issuer_not_accepted"),
+    AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND("authorization_request_object_not_found"),
+    AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM("authorization_request_missing_error_param"),
+    VERIFICATION_PROCESS_CLOSED("verification_process_closed"),
+    INVALID_PRESENTATION_DEFINITION("invalid_presentation_definition"),
+    MALFORMED_CREDENTIAL("malformed_credential"),
+    PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED("presentation_submission_constraint_violated"),
+    INVALID_PRESENTATION_SUBMISSION("invalid_presentation_submission"),
+    INVALID_SCOPE("invalid_scope"),
+    INVALID_REQUEST("invalid_request"),
+    INVALID_CLIENT("invalid_client"),
+    VP_FORMATS_NOT_SUPPORTED("vp_formats_not_supported"),
+    INVALID_PRESENTATION_DEFINITION_URI("invalid_presentation_definition_uri"),
+    INVALID_PRESENTATION_DEFINITION_REFERENCE("invalid_presentation_definition_reference"),
+    CLIENT_REJECTED("client_rejected");
 
     private final String displayName;
 

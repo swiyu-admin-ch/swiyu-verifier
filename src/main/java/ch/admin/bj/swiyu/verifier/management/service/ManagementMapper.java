@@ -285,6 +285,24 @@ public class ManagementMapper {
             case ISSUER_NOT_ACCEPTED -> VerificationErrorResponseCodeDto.ISSUER_NOT_ACCEPTED;
             case PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE ->
                     VerificationErrorResponseCodeDto.PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE;
+            case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND ->
+                    VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
+            case AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM ->
+                    VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
+            case VERIFICATION_PROCESS_CLOSED -> VerificationErrorResponseCodeDto.VERIFICATION_PROCESS_CLOSED;
+            case INVALID_PRESENTATION_DEFINITION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION;
+            case MALFORMED_CREDENTIAL -> VerificationErrorResponseCodeDto.MALFORMED_CREDENTIAL;
+            case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED ->
+                    VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
+            case INVALID_PRESENTATION_SUBMISSION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_SUBMISSION;
+            case INVALID_SCOPE -> VerificationErrorResponseCodeDto.INVALID_SCOPE;
+            case INVALID_REQUEST -> VerificationErrorResponseCodeDto.INVALID_REQUEST;
+            case INVALID_CLIENT -> VerificationErrorResponseCodeDto.INVALID_CLIENT;
+            case VP_FORMATS_NOT_SUPPORTED -> VerificationErrorResponseCodeDto.VP_FORMATS_NOT_SUPPORTED;
+            case INVALID_PRESENTATION_DEFINITION_URI ->
+                    VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION_URI;
+            case INVALID_PRESENTATION_DEFINITION_REFERENCE ->
+                    VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION_REFERENCE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
         };
     }

@@ -28,8 +28,21 @@ public enum VerificationErrorResponseCode {
     CREDENTIAL_MISSING_DATA("credential_missing_data"),
     UNRESOLVABLE_STATUS_LIST("unresolvable_status_list"),
     PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE("public_key_of_issuer_unresolvable"),
-    CLIENT_REJECTED("client_rejected"),
-    ISSUER_NOT_ACCEPTED("issuer_not_accepted");
+    ISSUER_NOT_ACCEPTED("issuer_not_accepted"),
+    AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND("authorization_request_object_not_found"),
+    AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM("authorization_request_missing_error_param"),
+    VERIFICATION_PROCESS_CLOSED("verification_process_closed"),
+    INVALID_PRESENTATION_DEFINITION("invalid_presentation_definition"),
+    MALFORMED_CREDENTIAL("malformed_credential"),
+    PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED("presentation_submission_constraint_violated"),
+    INVALID_PRESENTATION_SUBMISSION("invalid_presentation_submission"),
+    INVALID_SCOPE("invalid_scope"),
+    INVALID_REQUEST("invalid_request"),
+    INVALID_CLIENT("invalid_client"),
+    VP_FORMATS_NOT_SUPPORTED("vp_formats_not_supported"),
+    INVALID_PRESENTATION_DEFINITION_URI("invalid_presentation_definition_uri"),
+    INVALID_PRESENTATION_DEFINITION_REFERENCE("invalid_presentation_definition_reference"),
+    CLIENT_REJECTED("client_rejected");
 
     // the value as it is written to json -> only needed because we already have data like this
     // stored in the db (would be a breaking change to simplify it).

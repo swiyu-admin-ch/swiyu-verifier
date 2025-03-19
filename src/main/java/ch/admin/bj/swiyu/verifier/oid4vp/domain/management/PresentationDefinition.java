@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.management;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.common.json.ValidJsonPath;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -78,6 +79,7 @@ public record PresentationDefinition(
 
     @Builder
     public record Field(
+            @ValidJsonPath
             @NotEmpty
             List<String> path,
             String id,

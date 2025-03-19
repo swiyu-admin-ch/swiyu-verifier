@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.api.definition;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.common.json.ValidJsonPath;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
@@ -24,6 +25,7 @@ import java.util.List;
 @Schema(name = "Field")
 public class FieldDto {
 
+    @ValidJsonPath
     @NotEmpty
     @Schema(description = "(Mandatory) Array of one or more JSONPath string expressions")
     private List<String> path;

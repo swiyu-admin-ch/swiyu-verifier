@@ -47,6 +47,8 @@ import lombok.Getter;
 
 public enum VerificationErrorResponseCodeDto {
 
+    // TODO : Split logic for submission errors from wallet and internal errors from verifier agent as already done in the oid4vp
+
     CREDENTIAL_INVALID("credential_invalid"),
     JWT_EXPIRED("jwt_expired"),
     INVALID_FORMAT("invalid_format"),

@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-name: Publish Docker Image
+name: (Mirror only) Publish Docker Image
 run-name: ${{ github.repository }} is building and publishing a docker image
 on:
   release:
@@ -56,4 +56,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          file: local.Dockerfile
+          file: Dockerfile

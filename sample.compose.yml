@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: MIT
 
 services:
-  postgres:
+  verifier_postgres:
     image: postgres:15.8
     environment:
       POSTGRES_USER: "verifier_mgmt_user"
       POSTGRES_PASSWORD: "secret"
       POSTGRES_DB: "verifier_db"
     ports:
-      - '5434:5432'
+      - "5435:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U verifier_mgmt_user -d verifier_db" ]
+      test: ["CMD-SHELL", "pg_isready -U verifier_mgmt_user -d verifier_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,18 +24,18 @@ services:
       POSTGRES_USER: "verifier_mgmt_user"
       POSTGRES_PASSWORD: "secret"
       POSTGRES_DB: "verifier_db"
-      POSTGRES_JDBC: "jdbc:postgresql://postgres:5432/verifier_db"
+      POSTGRES_JDBC: "jdbc:postgresql://verifier_postgres:5432/verifier_db"
     ports:
-      - "8080:8080"
+      - "8082:8080"
     depends_on:
-      - postgres
+      - verifier_postgres
   verifier-agent-oid4vp:
     image: ghcr.io/swiyu-admin-ch/eidch-verifier-agent-oid4vp:latest
     configs:
       - source: verifier_metadata
         target: /verifier_metadata.json
     ports:
-      - "8081:8080"
+      - "8083:8080"
     environment:
       EXTERNAL_URL: "https://<external url of this service>"
       OPENID_CLIENT_METADATA_FILE: "file:/verifier_metadata.json"
@@ -50,7 +50,7 @@ services:
       POSTGRES_USER: "verifier_mgmt_user"
       POSTGRES_PASSWORD: "secret"
       POSTGRES_DB: "verifier_db"
-      POSTGRES_JDBC: "jdbc:postgresql://postgres:5432/verifier_db"
+      POSTGRES_JDBC: "jdbc:postgresql://verifier_postgres:5432/verifier_db"
 
 configs:
   verifier_metadata:

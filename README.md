@@ -188,17 +188,18 @@ After the start api definitions can be found [here](http://localhost:8002/swagge
 
 ### Environment variables
 
-| Variable                       | Description                                                                                                                                                | Type         | Default |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------- |
-| OID4VP_URL                     | Defines the location (url) of the public facing validator ->  check [verifier-agent-oid4vp](https://github.com/swiyu-admin-ch/eidch-verifier-agent-oid4vp) | string (url) | none    |
-| POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                            | string       | none    |
-| POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                           | string       | none    |
-| POSTGRES_JDBC                  | JDBC Connection string to the shared DB                                                                                                                    | string       | none    |
-| VERIFICATION_TTL_SEC           | Validity period in seconds of an verification offer                                                                                                        | int          | 900     |
-| DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which expired offers should be removed from cache in milliseconds.                                                                             | int          | 420000  |
-| MONITORING_BASIC_AUTH_ENABLED  | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                       |
-| MONITORING_BASIC_AUTH_USERNAME | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                      |
-| MONITORING_BASIC_AUTH_PASSWORD | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                      |
+| Variable                       | Description                                                                                                                                               | Type         | Default |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------- |
+| OID4VP_URL                     | Defines the location (url) of the public facing validator -> check [verifier-agent-oid4vp](https://github.com/swiyu-admin-ch/eidch-verifier-agent-oid4vp) | string (url) | none    |
+| POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                           | string       | none    |
+| POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                          | string       | none    |
+| POSTGRES_JDBC                  | JDBC Connection string to the shared DB                                                                                                                   | string       | none    |
+| VERIFICATION_TTL_SEC           | Validity period in seconds of an verification offer                                                                                                       | int          | 900     |
+| DATA_CLEAR_PROCESS_INTERVAL_MS | Inverval in which expired offers should be removed from cache in milliseconds.                                                                            | int          | 420000  |
+| MONITORING_BASIC_AUTH_ENABLED  | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                      |
+| MONITORING_BASIC_AUTH_USERNAME | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                     |
+| MONITORING_BASIC_AUTH_PASSWORD | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                     |
+| MY_SPRING_PROFILES             | Sets the profiles for the images in the entrypoint file.                                                                                                  |
 
 ## Usage
 
@@ -212,52 +213,44 @@ In the following example we request to have the dateOfBirth revealed to us from 
 
 ```json
 {
-  "id": "00000000-0000-0000-0000-000000000000",
-  "name": "Example Verification",
-  "purpose": "We want to test a new Verifier",
-  "input_descriptors": [
-    {
-      "id": "11111111-1111-1111-1111-111111111111",
-      "name": "Example Data Request",
-      "format": {
-        "vc+sd-jwt": {
-          "sd-jwt_alg_values": [
-            "ES256"
-          ],
-          "kb-jwt_alg_values": [
-            "ES256"
-          ]
-        }
-      },
-      "constraints": {
-        "fields": [
-          {
-            "path": [
-              "$.vct"
-            ],
-            "filter": {
-              "type": "string",
-              "const": "test-sdjwt"
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "Example Verification",
+    "purpose": "We want to test a new Verifier",
+    "input_descriptors": [
+        {
+            "id": "11111111-1111-1111-1111-111111111111",
+            "name": "Example Data Request",
+            "format": {
+                "vc+sd-jwt": {
+                    "sd-jwt_alg_values": ["ES256"],
+                    "kb-jwt_alg_values": ["ES256"]
+                }
+            },
+            "constraints": {
+                "fields": [
+                    {
+                        "path": ["$.vct"],
+                        "filter": {
+                            "type": "string",
+                            "const": "test-sdjwt"
+                        }
+                    },
+                    {
+                        "path": ["$.dateOfBirth"]
+                    }
+                ]
             }
-          },
-          {
-            "path": [
-              "$.dateOfBirth"
-            ]
-          }
-        ]
-      }
-    }
-  ]
+        }
+    ]
 }
 ```
 
 The response of this post call contains the URI which has to be provided to the holder.
 
- 
 ### Codes
 
 #### VerificationErrorResponseCode
+
 | Value                             | Description                                                                                                                          |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | credential_invalid                | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |

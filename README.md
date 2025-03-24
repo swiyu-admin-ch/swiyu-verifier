@@ -24,12 +24,12 @@ scale the validator service independently of the management service.
 
 ## Table of Contents
 
-- [Overview](#Overview)
-- [Deployment](#deployment)
-- [Development](#development)
-- [Usage](#usage)
-- [Contributions and feedback](#contributions-and-feedback)
-- [License](#license)
+-   [Overview](#Overview)
+-   [Deployment](#deployment)
+-   [Development](#development)
+-   [Usage](#usage)
+-   [Contributions and feedback](#contributions-and-feedback)
+-   [License](#license)
 
 ## Overview
 
@@ -49,11 +49,11 @@ flowchart TD
 # Deployment
 
 > Please make sure that you did the following before starting the deployment:
-> - Generated the signing keys file with the didtoolbox.jar
-> - Generated a DID which is registered on the identifier registry
-> - Registered yourself on the swiyuprobeta portal
-> - Registered yourself on the api self service portal
-
+>
+> -   Generated the signing keys file with the didtoolbox.jar
+> -   Generated a DID which is registered on the identifier registry
+> -   Registered yourself on the swiyuprobeta portal
+> -   Registered yourself on the api self service portal
 
 > Are you a third-party user? Then you're right here! Otherwhise go to [gov internal usage](gov.REAMDE.md)
 
@@ -199,7 +199,7 @@ After the start api definitions can be found [here](http://localhost:8002/swagge
 | MONITORING_BASIC_AUTH_ENABLED  | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                      |
 | MONITORING_BASIC_AUTH_USERNAME | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                     |
 | MONITORING_BASIC_AUTH_PASSWORD | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                     |
-| MY_SPRING_PROFILES             | Sets the profiles for the images in the entrypoint file.                                                                                                  |
+| STAGE                          | Sets the profiles for the images in the entrypoint file.                                                                                                  |
 
 ## Usage
 

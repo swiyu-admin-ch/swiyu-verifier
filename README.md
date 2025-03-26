@@ -24,12 +24,12 @@ scale the validator service independently of the management service.
 
 ## Table of Contents
 
--   [Overview](#Overview)
--   [Deployment](#deployment)
--   [Development](#development)
--   [Usage](#usage)
--   [Contributions and feedback](#contributions-and-feedback)
--   [License](#license)
+- [Overview](#Overview)
+- [Deployment](#deployment)
+- [Development](#development)
+- [Usage](#usage)
+- [Contributions and feedback](#contributions-and-feedback)
+- [License](#license)
 
 ## Overview
 
@@ -50,12 +50,12 @@ flowchart TD
 
 > Please make sure that you did the following before starting the deployment:
 >
-> -   Generated the signing keys file with the didtoolbox.jar
-> -   Generated a DID which is registered on the identifier registry
-> -   Registered yourself on the swiyuprobeta portal
-> -   Registered yourself on the api self service portal
+> - Generated the signing keys file with the didtoolbox.jar
+> - Generated a DID which is registered on the identifier registry
+> - Registered yourself on the swiyuprobeta portal
+> - Registered yourself on the api self service portal
 
-> Are you a third-party user? Then you're right here! Otherwhise go to [gov internal usage](gov.REAMDE.md)
+> Are you a third-party user? Then you're right here! Otherwhise go to [gov internal usage](gov.README)
 
 ## 1. Set the environment variables
 
@@ -189,7 +189,7 @@ After the start api definitions can be found [here](http://localhost:8002/swagge
 ### Environment variables
 
 | Variable                       | Description                                                                                                                                               | Type         | Default |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------- |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|---------|
 | OID4VP_URL                     | Defines the location (url) of the public facing validator -> check [verifier-agent-oid4vp](https://github.com/swiyu-admin-ch/eidch-verifier-agent-oid4vp) | string (url) | none    |
 | POSTGRES_USER                  | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                           | string       | none    |
 | POSTGRES_PASSWORD              | Username to connect to the Issuer Agent Database                                                                                                          | string       | none    |
@@ -252,7 +252,7 @@ The response of this post call contains the URI which has to be provided to the 
 #### VerificationErrorResponseCode
 
 | Value                             | Description                                                                                                                          |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | credential_invalid                | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |
 | jwt_expired                       | During the verification process an expired jwt was used.                                                                             |
 | missing_nonce                     | During the verification process a nonce was missing.                                                                                 |

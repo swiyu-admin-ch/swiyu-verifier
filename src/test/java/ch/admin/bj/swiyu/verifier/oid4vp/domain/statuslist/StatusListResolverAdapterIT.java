@@ -20,6 +20,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListFetchFailedException;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RestClientConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,13 +63,13 @@ class StatusListResolverAdapterIT {
                 .andRespond(withSuccess("Status list content", MediaType.TEXT_PLAIN)
                         .header("Content-Length", String.valueOf(10485760L)));
 
-        var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.resolveStatusList(url));
+        var exception = assertThrows(StatusListMaxSizeExceededException.class, () -> statusListResolverAdapter.resolveStatusList(url));
         assertEquals("Status list size from " + url + " exceeds maximum allowed size", exception.getMessage());
     }
 
 
     @Test
-    void testUnresolvableStatusList_thenIllegalArgumentException() {
+    void testUnresolvableStatusList_thenStatusListMaxSizeExceededException() {
         this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
                 .andRespond(withResourceNotFound());
 
@@ -83,5 +84,17 @@ class StatusListResolverAdapterIT {
 
         var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.resolveStatusList(url));
         assertEquals("StatusList %s does not contain a valid host from %s".formatted(url, hosts), exception.getMessage());
+    }
+
+    @Test
+    void testCorrectRewrittenUrlUsed_thenStatusListMaxSizeExceededException() {
+
+        var differentUrl = "https://example-different.com/different";
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(differentUrl);
+
+        this.mockServer.expect(requestTo(differentUrl)).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("statuslist", MediaType.TEXT_PLAIN));
+        statusListResolverAdapter.resolveStatusList(url);
+        this.mockServer.verify();
     }
 }

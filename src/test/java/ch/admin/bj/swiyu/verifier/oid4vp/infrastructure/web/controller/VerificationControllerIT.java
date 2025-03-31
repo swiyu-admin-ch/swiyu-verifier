@@ -34,7 +34,9 @@ import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDt
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
+import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.DidResolverAdapter;
@@ -691,6 +693,39 @@ class VerificationControllerIT {
 
         var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+    }
+
+    @Test
+    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+    void statusListResponseBodyTooBig_thenException() throws Exception {
+
+        // GIVEN
+        var expectedErrorMesssage = "Status list size from %s exceeds maximum allowed size".formatted("https://test-statuslist.example");
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        // ContetLengthInterceptor throws invalid argument exception if status list is too big
+        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT)))
+                .thenThrow(new StatusListMaxSizeExceededException(expectedErrorMesssage));
+
+        var sdJWT = emulator.createSDJWTMock(100);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error_description", containsString(expectedErrorMesssage)))
+                .andReturn();
+
+        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+        assertThat(managementEntity.getWalletResponse().errorCode()).isEqualTo(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST);
     }
 
 

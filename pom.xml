@@ -22,6 +22,7 @@
     <description>Generic verifier for public beta</description>
     <properties>
         <java.version>21</java.version>
+        <maven.compiler.proc>full</maven.compiler.proc>
         <sonar.jacoco.itReportPath>${project.basedir}/target/jacoco-it.exec</sonar.jacoco.itReportPath>
         <sonar.jacoco.reportPath>${project.basedir}/target/jacoco.exec</sonar.jacoco.reportPath>
         <sonar.exclusions>

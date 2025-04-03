@@ -64,10 +64,11 @@ public class ManagementEntity {
         return state == VerificationStatus.PENDING;
     }
 
-    public void verificationFailed(VerificationErrorResponseCode errorCode) {
+    public void verificationFailed(VerificationErrorResponseCode errorCode, String errorDescription) {
         this.state = VerificationStatus.FAILED;
         this.walletResponse = ResponseData.builder()
                 .errorCode(errorCode)
+                .errorDescription(errorDescription)
                 .build();
     }
 

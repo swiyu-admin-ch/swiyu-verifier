@@ -78,7 +78,7 @@ public class VerificationService {
             managementEntity.verificationSucceeded(credentialSubjectData);
             log.trace("Saved successful verification result for {}", managementEntityId);
         } catch (VerificationException e) {
-            managementEntity.verificationFailed(e.getErrorResponseCode());
+            managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
             log.trace("Saved failed verification result for {}", managementEntityId);
             throw e; // rethrow since client get notified of the error
         }

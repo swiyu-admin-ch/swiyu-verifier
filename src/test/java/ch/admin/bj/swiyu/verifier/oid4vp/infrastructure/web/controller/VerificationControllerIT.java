@@ -14,8 +14,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto.INVALID_CREDENTIAL;
-import static ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto.INVALID_REQUEST;
-import static ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseCodeDto.VERIFICATION_PROCESS_CLOSED;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.getMultiplePresentationSubmissionString;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.getPresentationSubmissionString;
@@ -106,18 +104,7 @@ class VerificationControllerIT {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
-                .andExpect(status().isGone())
-                .andExpect(jsonPath("$.error").value(INVALID_REQUEST.toString()))
-                .andExpect(jsonPath("$.error_code").value(VERIFICATION_PROCESS_CLOSED.toString()));
-
-        // new route
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isGone())
-                .andExpect(jsonPath("$.error").value(INVALID_REQUEST.toString()))
-                .andExpect(jsonPath("$.error_code").value(VERIFICATION_PROCESS_CLOSED.toString()));
+                .andExpect(status().isGone());
     }
 
     @Test

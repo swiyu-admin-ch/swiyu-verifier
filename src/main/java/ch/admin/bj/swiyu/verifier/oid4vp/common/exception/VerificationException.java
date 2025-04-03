@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.common.exception;
 
-import lombok.Getter;
-
 import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError.INVALID_CREDENTIAL;
+
+import lombok.Getter;
 
 @Getter
 public class VerificationException extends RuntimeException {
@@ -21,15 +21,6 @@ public class VerificationException extends RuntimeException {
         this.errorType = errorType;
         this.errorResponseCode = errorResponseCode;
         this.errorDescription = errorDescription;
-    }
-
-    public static VerificationException submissionError(VerificationErrorResponseCode error) {
-        return new VerificationException(
-                null /* submissionError is only caused by business cases and not exceptions */,
-                VerificationError.INVALID_REQUEST,
-                error,
-                null
-        );
     }
 
     public static VerificationException submissionError(VerificationErrorResponseCode error, String errorDescription) {

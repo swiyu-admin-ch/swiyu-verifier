@@ -43,12 +43,12 @@ public class VerificationMapper {
                     VerificationErrorResponseCodeDto.PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
             case ISSUER_NOT_ACCEPTED -> VerificationErrorResponseCodeDto.ISSUER_NOT_ACCEPTED;
-            case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
-            case AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM -> VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
-            case VERIFICATION_PROCESS_CLOSED -> VerificationErrorResponseCodeDto.VERIFICATION_PROCESS_CLOSED;
+            case AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM ->
+                    VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
             case INVALID_PRESENTATION_DEFINITION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION;
             case MALFORMED_CREDENTIAL -> VerificationErrorResponseCodeDto.MALFORMED_CREDENTIAL;
-            case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED -> VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
+            case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED ->
+                    VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
             case INVALID_PRESENTATION_SUBMISSION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_SUBMISSION;
         };
     }

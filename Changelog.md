@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Provide more detailed error description to business verifier for tracking what went wrong
+- Use correct typ in Request Object JWT ("typ": "oauth-authz-req+jwt") and in http response content type which is "
+  application/oauth-authz-req+jwt"
 
 ## 2.0.11
 

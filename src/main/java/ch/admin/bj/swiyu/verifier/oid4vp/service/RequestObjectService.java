@@ -21,6 +21,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -84,7 +85,11 @@ public class RequestObjectService {
             throw new IllegalStateException("Presentation was configured to be signed, but no signing key was configured.");
         }
 
-        var jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(applicationProperties.getSigningKeyVerificationMethod()).build();
+        var jwsHeader = new JWSHeader
+                .Builder(JWSAlgorithm.ES256)
+                .keyID(applicationProperties.getSigningKeyVerificationMethod())
+                .type(new JOSEObjectType("oauth-authz-req+jwt")) //as specified in https://www.rfc-editor.org/rfc/rfc9101.html#section-10.8
+                .build();
         var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(requestObject));
 
         try {

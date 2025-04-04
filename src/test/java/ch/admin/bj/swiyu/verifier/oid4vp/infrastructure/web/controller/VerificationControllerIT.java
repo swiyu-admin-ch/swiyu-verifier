@@ -165,7 +165,8 @@ class VerificationControllerIT {
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
     @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetRequestObject() throws Exception {
-        mock.perform(get(String.format("/api/v1/request-object/%s", requestId)))
+        mock.perform(get(String.format("/api/v1/request-object/%s", requestId))
+                        .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
                     var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());

@@ -9,13 +9,10 @@ package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVerficationErrorResponseDto;
-
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
-import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationService;
 import io.micrometer.core.annotation.Timed;
@@ -143,18 +140,5 @@ public class VerificationController {
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRequestDto request) {
         verificationService.receiveVerificationPresentation(requestId, request);
-    }
-
-    @ExceptionHandler(VerificationException.class)
-    ResponseEntity<VerificationErrorResponseDto> handleVerificationException(VerificationException e) {
-        var error = toVerficationErrorResponseDto(e);
-        log.warn("The received verification presentation could not be verified - caused by {}-{}:{}", error.error(), error.errorCode(), error.errorDescription(), e);
-        HttpStatus httpStatus;
-        switch (e.getErrorResponseCode()) {
-            case VERIFICATION_PROCESS_CLOSED -> httpStatus = HttpStatus.GONE;
-            case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> httpStatus = HttpStatus.NOT_FOUND;
-            default -> httpStatus = HttpStatus.BAD_REQUEST;
-        }
-        return new ResponseEntity<>(error, httpStatus);
     }
 }

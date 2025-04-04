@@ -35,9 +35,7 @@ public enum VerificationErrorResponseCode {
     PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED("presentation_submission_constraint_violated"),
     INVALID_PRESENTATION_DEFINITION("invalid_presentation_definition"),
     ISSUER_NOT_ACCEPTED("issuer_not_accepted"),
-    AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND("authorization_request_object_not_found"),
-    AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM("authorization_request_missing_error_param"),
-    VERIFICATION_PROCESS_CLOSED("verification_process_closed");
+    AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM("authorization_request_missing_error_param");
 
     // the value as it is written to json -> only needed because we already have data like this
     // stored in the db (would be a breaking change to simplify it).

@@ -6,6 +6,15 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
+import java.io.IOException;
+import java.util.NoSuchElementException;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVerficationErrorResponseDto;
+import static java.util.Objects.nonNull;
+
+import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.ProcessClosedException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,10 +28,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-
-import java.io.IOException;
-
-import static java.util.Objects.nonNull;
 
 
 /**
@@ -52,16 +57,9 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @NotNull
-    private static ResponseEntity<Object> createBadRequestResponse(Exception e) {
-        String responseMessage = nonNull(e.getMessage()) ? e.getMessage() : "Bad request";
-        log.debug("invalid request", e);
-        return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
-    }
-
     @ExceptionHandler(IOException.class)
-    public ResponseEntity<Object> handleBrokenPipeException(IOException ex){
-        if(ex.getMessage() != null && ex.getMessage().contains("Broken pipe")) {
+    public ResponseEntity<Object> handleBrokenPipeException(IOException ex) {
+        if (ex.getMessage() != null && ex.getMessage().contains("Broken pipe")) {
             // This is most likely a wrapped client abort exception meaning the client has already disconnected
             // Because there's no point in returning a response null is returned
             log.debug("Client aborted connection", ex);
@@ -73,11 +71,35 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(MultipartException.class)
     public ResponseEntity<Object> handleUnexpectedStreamClosing(MultipartException ex) {
-        if(ex.getMessage() != null && ex.getMessage().contains("Stream ended unexpectedly")) {
+        if (ex.getMessage() != null && ex.getMessage().contains("Stream ended unexpectedly")) {
             log.debug("Stream ended unexpectedly", ex);
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
         }
         log.error("Unhandled MultipartException exception occurred", ex);
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Object> handleNoSuchElementException(NoSuchElementException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ProcessClosedException.class)
+    public ResponseEntity<Object> handleProcessAlreadyClosedException(ProcessClosedException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.GONE);
+    }
+
+    @ExceptionHandler(VerificationException.class)
+    ResponseEntity<VerificationErrorResponseDto> handleVerificationException(VerificationException e) {
+        var error = toVerficationErrorResponseDto(e);
+        log.warn("The received verification presentation could not be verified - caused by {}-{}:{}", error.error(), error.errorCode(), error.errorDescription(), e);
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @NotNull
+    private static ResponseEntity<Object> createBadRequestResponse(Exception e) {
+        String responseMessage = nonNull(e.getMessage()) ? e.getMessage() : "Bad request";
+        log.debug("invalid request", e);
+        return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
     }
 }

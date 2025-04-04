@@ -7,17 +7,16 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED;
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPresentationDefinitionDto;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.SignerProvider;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -48,16 +47,16 @@ public class RequestObjectService {
         log.info("Prepare request object for mgmt-id {}", managementEntityId);
 
         var managementEntity = managementRepository.findById(managementEntityId)
-                .orElseThrow(() -> submissionError(AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
+                .orElseThrow();
 
         if (!managementEntity.isVerificationPending()) {
             log.debug("ManagementEntity with id {} is requested after already processing it", managementEntityId);
-            throw submissionError(VERIFICATION_PROCESS_CLOSED);
+            throw new ProcessClosedException();
         }
 
         if (managementEntity.isExpired()) {
             log.debug("ManagementEntity with id {} is expired", managementEntityId);
-            throw submissionError(AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND);
+            throw new NoSuchElementException("Verification Request with id " + managementEntityId + " is expired");
         }
 
         var presentation = managementEntity.getRequestedPresentation();

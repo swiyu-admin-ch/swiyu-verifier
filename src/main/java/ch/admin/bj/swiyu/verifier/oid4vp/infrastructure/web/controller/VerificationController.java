@@ -6,9 +6,6 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
-import java.util.Map;
-import java.util.UUID;
-
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
@@ -30,6 +27,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * OpenID4VC Issuance Controller
@@ -99,7 +99,7 @@ public class VerificationController {
                     )
             }
     )
-    public ResponseEntity<?> getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
+    public ResponseEntity<Object> getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
         var requestObject = requestObjectService.assembleRequestObject(requestId);
         var responseBuilder = ResponseEntity.ok();
         if (requestObject instanceof String) {

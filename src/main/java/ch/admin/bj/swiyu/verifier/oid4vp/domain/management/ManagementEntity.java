@@ -6,11 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.management;
 
-import java.util.List;
-import java.util.UUID;
-
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +16,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "management")
@@ -25,7 +27,12 @@ import org.hibernate.type.SqlTypes;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class ManagementEntity {
+
+    @Embedded
+    @Valid
+    private final AuditMetadata auditMetadata = new AuditMetadata();
 
     @Id
     private UUID id;

@@ -32,7 +32,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.*;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
 @AnalyzeClasses(
-        packagesOf = {Oid4vpApplication.class},
+        packagesOf = {Application.class},
         importOptions = {ImportOption.DoNotIncludeTests.class, ImportOption.DoNotIncludeJars.class}
 )
 public class ArchitectureTest {

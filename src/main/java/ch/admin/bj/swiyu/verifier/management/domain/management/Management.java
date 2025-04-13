@@ -7,11 +7,13 @@
 package ch.admin.bj.swiyu.verifier.management.domain.management;
 
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -27,7 +29,12 @@ import static java.util.Collections.emptyList;
 )
 @Getter
 @NoArgsConstructor // JPA
+@EntityListeners(AuditingEntityListener.class)
 public class Management {
+
+    @Embedded
+    @Valid
+    private final AuditMetadata auditMetadata = new AuditMetadata();
 
     @Id
     private UUID id;

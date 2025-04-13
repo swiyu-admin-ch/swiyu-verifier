@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureTestDatabase(connection = EmbeddedDatabaseConnection.H2)
-class VerifierManagementApplicationIT {
+class ApplicationIT {
 
     @Autowired
     private VerifierManagementController verifierManagementController;

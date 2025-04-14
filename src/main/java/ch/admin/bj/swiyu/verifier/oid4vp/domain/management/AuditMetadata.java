@@ -3,9 +3,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.domain.management;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.*;
-import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
@@ -24,14 +22,6 @@ public class AuditMetadata {
     private Instant lastModifiedAt;
 
     @Column
-    @LastModifiedBy
-    private String lastModifiedBy;
-
-    @Column
     @CreatedDate
     private Instant createdAt;
-
-    @Column
-    @CreatedBy
-    private String createdBy;
 }

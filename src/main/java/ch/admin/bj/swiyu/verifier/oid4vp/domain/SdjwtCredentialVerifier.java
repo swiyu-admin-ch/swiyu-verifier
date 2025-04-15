@@ -362,13 +362,16 @@ public class SdjwtCredentialVerifier {
     }
 
     private String extractIssuer(String jwtToken) {
-        var decodedBody = Base64.getDecoder().decode(jwtToken.split("\\.")[1]);
-        var body = toJson(decodedBody);
-        var issuer = body.get("iss");
-        if (issuer == null || !hasText(issuer.asText())) {
+        try {
+            SignedJWT nimbusJwt = SignedJWT.parse(jwtToken);
+            var issuer = nimbusJwt.getJWTClaimsSet().getIssuer();
+            if (StringUtils.isBlank(issuer)) {
+                throw new IllegalArgumentException("Invalid issuer in the JWT token");
+            }
+            return issuer;
+        } catch (ParseException e) {
             throw new IllegalArgumentException("Missing issuer in the JWT token");
         }
-        return issuer.asText();
     }
 
     private String extractKeyId(String jwtToken) {
@@ -380,14 +383,6 @@ public class SdjwtCredentialVerifier {
             }
             return keyId;
         } catch (ParseException e) {
-            throw new IllegalArgumentException("failed to parse json", e);
-        }
-    }
-
-    private JsonNode toJson(byte[] json) {
-        try {
-            return objectMapper.readTree(json);
-        } catch (IOException e) {
             throw new IllegalArgumentException("failed to parse json", e);
         }
     }

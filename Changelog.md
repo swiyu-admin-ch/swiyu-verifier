@@ -5,13 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.13
+
+### Changed
+
+- Removed manual parsing of jwt token and replaces it with lib function
+
 ## 2.0.12
 
 ### Changed
 
 - Provide more detailed error description to business verifier for tracking what went wrong
 - Use correct typ in Request Object JWT ("typ": "oauth-authz-req+jwt") and in http response content type which is "
-  application/oauth-authz-req+jwt"
+  application/oauth-authz-req+jwt" 
 
 ## 2.0.11
 

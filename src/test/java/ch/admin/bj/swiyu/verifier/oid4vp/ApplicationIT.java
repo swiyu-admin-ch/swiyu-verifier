@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class Oid4vpApplicationIT {
+class ApplicationIT {
 
     @Autowired
     private VerificationController verificationController;

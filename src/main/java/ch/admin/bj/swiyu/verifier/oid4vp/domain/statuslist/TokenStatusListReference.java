@@ -20,7 +20,6 @@ import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorRespo
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.LoadingPublicKeyOfIssuerFailedException;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListReference;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListResolverAdapter;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;

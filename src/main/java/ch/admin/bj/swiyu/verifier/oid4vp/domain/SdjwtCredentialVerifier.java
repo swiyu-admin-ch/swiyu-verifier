@@ -364,11 +364,11 @@ public class SdjwtCredentialVerifier {
             SignedJWT nimbusJwt = SignedJWT.parse(jwtToken);
             var issuer = nimbusJwt.getJWTClaimsSet().getIssuer();
             if (StringUtils.isBlank(issuer)) {
-                throw new IllegalArgumentException("Invalid issuer in the JWT token");
+                throw new IllegalArgumentException("Missing issuer in the JWT token");
             }
             return issuer;
         } catch (ParseException e) {
-            throw new IllegalArgumentException("Missing issuer in the JWT token");
+            throw new IllegalArgumentException("Invalid issuer in the JWT token");
         }
     }
 

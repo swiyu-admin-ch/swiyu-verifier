@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Import({ManagementService.class, ApplicationProperties.class})
 @DataJpaTest
+@EnableJpaAuditing
 @ActiveProfiles("test")
 @Transactional(propagation = Propagation.NOT_SUPPORTED) // we don't want the tests to start in a transaction by default
 class ManagementServiceIT {

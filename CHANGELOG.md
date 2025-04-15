@@ -5,11 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.13
+## 2.0.14
 
 ### Changed
 
 -   Improved tests and throw dedicated exception if the status list is exceeding the maximum size.
+
+## 2.0.13
+
+### Added
+
+-   Added audit metadata to entities
 
 ## 2.0.12
 

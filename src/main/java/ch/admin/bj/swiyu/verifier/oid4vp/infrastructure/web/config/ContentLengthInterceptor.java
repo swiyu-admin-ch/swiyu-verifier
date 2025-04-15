@@ -8,7 +8,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config;
 
 import java.io.IOException;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListMaxSizeExceededException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListMaxSizeExceededException;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpRequest;

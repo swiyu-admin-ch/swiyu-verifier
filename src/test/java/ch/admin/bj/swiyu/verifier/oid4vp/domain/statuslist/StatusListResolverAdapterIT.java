@@ -19,9 +19,10 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListFetchFailedException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListMaxSizeExceededException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListFetchFailedException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.RestClientConfig;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListResolverAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

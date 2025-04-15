@@ -24,7 +24,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist.StatusListReferenceFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;

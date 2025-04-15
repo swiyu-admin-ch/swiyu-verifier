@@ -4,15 +4,14 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
+package ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist;
 
 import java.text.ParseException;
 import java.util.Map;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListMaxSizeExceededException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -19,7 +19,6 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErr
 import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.credentialError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
 import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
-import static org.springframework.util.StringUtils.hasText;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
@@ -32,7 +31,6 @@ import ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist.StatusListReferenceFa
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectDecoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.nimbusds.jose.JOSEException;

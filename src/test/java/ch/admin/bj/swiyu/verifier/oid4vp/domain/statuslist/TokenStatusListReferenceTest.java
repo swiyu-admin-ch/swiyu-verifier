@@ -9,8 +9,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListResolverAdapter;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import com.nimbusds.jose.JOSEException;

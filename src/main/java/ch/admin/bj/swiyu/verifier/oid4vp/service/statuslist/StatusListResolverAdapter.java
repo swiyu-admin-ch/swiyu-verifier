@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
+package ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.StatusListFetchFailedException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.http.HttpStatus;

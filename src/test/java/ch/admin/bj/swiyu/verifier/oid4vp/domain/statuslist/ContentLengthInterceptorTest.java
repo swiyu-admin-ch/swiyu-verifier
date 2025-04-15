@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.config.ContentLengthInterceptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,6 @@ class ContentLengthInterceptorTest {
         when(response.getHeaders()).thenReturn(headers);
         when(execution.execute(Mockito.any(HttpRequest.class), Mockito.any(byte[].class))).thenReturn(response);
 
-        assertThrows(IllegalArgumentException.class, () -> contentLengthInterceptor.intercept(request, new byte[0], execution));
+        assertThrows(StatusListMaxSizeExceededException.class, () -> contentLengthInterceptor.intercept(request, new byte[0], execution));
     }
 }

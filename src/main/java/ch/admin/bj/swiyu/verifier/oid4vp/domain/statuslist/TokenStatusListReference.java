@@ -18,8 +18,9 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErr
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListResolverAdapter;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.ECDSAVerifier;

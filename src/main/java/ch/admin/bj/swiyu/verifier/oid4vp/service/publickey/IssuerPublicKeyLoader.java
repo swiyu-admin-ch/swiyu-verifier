@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey;
+package ch.admin.bj.swiyu.verifier.oid4vp.service.publickey;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.exception.DidResolverException;
 import ch.admin.eid.didtoolbox.Jwk;
 import ch.admin.eid.didtoolbox.VerificationMethod;
 import ch.admin.eid.didtoolbox.VerificationType;

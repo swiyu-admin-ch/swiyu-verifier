@@ -11,11 +11,15 @@ import java.util.Map;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListMaxSizeExceededException;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListResolverAdapter;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.credentialError;
 
 
 /**
@@ -98,6 +102,9 @@ public abstract class StatusListReference {
             return signedVC.getJWTClaimsSet().getClaims();
         } catch (VerificationException e) {
             throw e;
+        } catch (StatusListMaxSizeExceededException e) {
+            log.warn("Could not retrieve status list vc from %s: %s", uri, e.getMessage());
+            throw credentialError(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST, e.getMessage());
         } catch (RuntimeException e) {
             log.warn("Could not retrieve status list vc.", e);
             throw statusListError(String.format("Could not retrieve status list vc from %s", uri));
@@ -110,13 +117,13 @@ public abstract class StatusListReference {
     protected abstract void verifyJWT(SignedJWT vc);
 
     protected VerificationException statusListError(String errorText) {
-        return VerificationException.credentialError(
+        return credentialError(
                 VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST,
                 errorText);
     }
 
     protected VerificationException statusListError(String errorText, Throwable cause) {
-        return VerificationException.credentialError(
+        return credentialError(
                 cause,
                 VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST,
                 errorText);

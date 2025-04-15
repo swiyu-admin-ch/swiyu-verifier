@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.oid4vp.domain.exception;
+package ch.admin.bj.swiyu.verifier.oid4vp.service.publickey;
 
 public class DidResolverException extends RuntimeException {
     public DidResolverException(Throwable cause) {

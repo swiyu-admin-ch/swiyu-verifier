@@ -12,12 +12,12 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.3</version>
+        <version>3.4.4</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ch.admin.bj.swiyu</groupId>
     <artifactId>verifier-oid4vp</artifactId>
-    <version>2.0.12-SNAPSHOT</version>
+    <version>2.0.13-SNAPSHOT</version>
     <name>verifier-oid4vp</name>
     <description>Generic verifier for public beta</description>
     <properties>
@@ -66,7 +66,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <version>1.14.2</version>
+            <version>1.14.3</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -312,14 +312,6 @@
                 <groupId>com.squareup.okio</groupId>
                 <artifactId>okio</artifactId>
                 <version>1.17.6</version>
-            </dependency>
-            <!-- end fix -->
-
-            <!-- fix for CVE-2024-57699 update once jsonpath is updated -->
-            <dependency>
-                <groupId>net.minidev</groupId>
-                <artifactId>json-smart</artifactId>
-                <version>2.5.2</version>
             </dependency>
             <!-- end fix -->
 

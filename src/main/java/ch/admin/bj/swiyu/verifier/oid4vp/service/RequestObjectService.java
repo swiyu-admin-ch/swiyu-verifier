@@ -7,20 +7,20 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED;
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPresentationDefinitionDto;
 
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.SignerProvider;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -47,16 +47,16 @@ public class RequestObjectService {
         log.info("Prepare request object for mgmt-id {}", managementEntityId);
 
         var managementEntity = managementRepository.findById(managementEntityId)
-                .orElseThrow(() -> submissionError(AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND));
+                .orElseThrow();
 
         if (!managementEntity.isVerificationPending()) {
             log.debug("ManagementEntity with id {} is requested after already processing it", managementEntityId);
-            throw submissionError(VERIFICATION_PROCESS_CLOSED);
+            throw new ProcessClosedException();
         }
 
         if (managementEntity.isExpired()) {
             log.debug("ManagementEntity with id {} is expired", managementEntityId);
-            throw submissionError(AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND);
+            throw new NoSuchElementException("Verification Request with id " + managementEntityId + " is expired");
         }
 
         var presentation = managementEntity.getRequestedPresentation();
@@ -84,7 +84,11 @@ public class RequestObjectService {
             throw new IllegalStateException("Presentation was configured to be signed, but no signing key was configured.");
         }
 
-        var jwsHeader = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(applicationProperties.getSigningKeyVerificationMethod()).build();
+        var jwsHeader = new JWSHeader
+                .Builder(JWSAlgorithm.ES256)
+                .keyID(applicationProperties.getSigningKeyVerificationMethod())
+                .type(new JOSEObjectType("oauth-authz-req+jwt")) //as specified in https://www.rfc-editor.org/rfc/rfc9101.html#section-10.8
+                .build();
         var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(requestObject));
 
         try {

@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
-import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationService;
 import io.micrometer.core.annotation.Timed;
@@ -32,8 +31,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVerficationErrorResponseDto;
-
 /**
  * OpenID4VC Issuance Controller
  * <p>
@@ -44,7 +41,7 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerificationMapper.toVer
 @AllArgsConstructor
 @Slf4j
 @Tag(name = "OID4VP Verfifier API")
-@RequestMapping({ "/api/v1/"})
+@RequestMapping({"/api/v1/"})
 public class VerificationController {
 
     private final RequestObjectService requestObjectService;
@@ -83,7 +80,7 @@ public class VerificationController {
     }
 
     @Timed
-    @GetMapping(value= {"request-object/{request_id}"})
+    @GetMapping(value = {"request-object/{request_id}"}, produces = {"application/oauth-authz-req+jwt", MediaType.APPLICATION_JSON_VALUE})
     @Operation(
             summary = "Get Request Object",
             description = "Can return a RequestObjectDto as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management",
@@ -102,8 +99,17 @@ public class VerificationController {
                     )
             }
     )
-    public Object getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
-        return requestObjectService.assembleRequestObject(requestId);
+    public ResponseEntity<Object> getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
+        var requestObject = requestObjectService.assembleRequestObject(requestId);
+        var responseBuilder = ResponseEntity.ok();
+        if (requestObject instanceof String) {
+            // JWT Request Object
+            responseBuilder.contentType(new MediaType("application", "oauth-authz-req+jwt"));
+        } else {
+            // Unsecured Request Object
+            responseBuilder.contentType(MediaType.APPLICATION_JSON);
+        }
+        return responseBuilder.body(requestObject);
     }
 
     @Timed
@@ -134,18 +140,5 @@ public class VerificationController {
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRequestDto request) {
         verificationService.receiveVerificationPresentation(requestId, request);
-    }
-
-    @ExceptionHandler(VerificationException.class)
-    ResponseEntity<VerificationErrorResponseDto> handleVerificationException(VerificationException e) {
-        var error = toVerficationErrorResponseDto(e);
-        log.warn("The received verification presentation could not be verified - caused by {}-{}:{}", error.error(), error.errorCode(), error.errorDescription(), e);
-        HttpStatus httpStatus;
-        switch (e.getErrorResponseCode()) {
-            case VERIFICATION_PROCESS_CLOSED -> httpStatus = HttpStatus.GONE;
-            case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> httpStatus = HttpStatus.NOT_FOUND;
-            default -> httpStatus = HttpStatus.BAD_REQUEST;
-        }
-        return new ResponseEntity<>(error, httpStatus);
     }
 }

@@ -6,7 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.management;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
+import java.util.List;
+import java.util.UUID;
+
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -16,9 +18,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "management")
@@ -65,15 +64,11 @@ public class ManagementEntity {
         return state == VerificationStatus.PENDING;
     }
 
-    public void verificationFailed(VerificationError type, VerificationErrorResponseCode errorCode) {
-        if (type == VerificationError.INVALID_REQUEST && errorCode == VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED) {
-            // edge case: when this error type occurs, the entity is already in a Non-PENDING state
-            // so we keep it in the current state
-            return;
-        }
+    public void verificationFailed(VerificationErrorResponseCode errorCode, String errorDescription) {
         this.state = VerificationStatus.FAILED;
         this.walletResponse = ResponseData.builder()
                 .errorCode(errorCode)
+                .errorDescription(errorDescription)
                 .build();
     }
 

@@ -6,13 +6,16 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
+import java.text.ParseException;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
-import lombok.AllArgsConstructor;
-import org.checkerframework.checker.signedness.qual.Signed;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,24 +23,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
-import java.text.ParseException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
 public class RequestObjectServiceTest {
     private static final UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
-
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     RequestObjectService requestObjectService;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
@@ -48,15 +41,17 @@ public class RequestObjectServiceTest {
         assertThat(requestObject).isNotNull();
         if (requestObject instanceof String) {
 
-           SignedJWT jwt = SignedJWT.parse((String) requestObject);
-           assertThat(jwt).isNotNull();
-           assertThat(jwt.getJWTClaimsSet()).isNotNull();
-
+            SignedJWT jwt = SignedJWT.parse((String) requestObject);
+            assertThat(jwt).isNotNull();
+            assertThat(jwt.getJWTClaimsSet()).isNotNull();
+            var header = jwt.getHeader();
+            assertThat(header).isNotNull();
+            assertThat(header.getType().toString()).isEqualTo("oauth-authz-req+jwt");
             Base64.Decoder decoder = Base64.getUrlDecoder();
             String[] chunks = ((String) requestObject).split("\\.");
-            String header = new String(decoder.decode(chunks[0]));
-            String payload = new String(decoder.decode(chunks[1]));
-            HashMap<String, Object> payloadMap = new ObjectMapper().readValue(payload, HashMap.class);
+
+            var payload = new String(decoder.decode(chunks[1]));
+            var payloadMap = objectMapper.readValue(payload, HashMap.class);
             assertThat(payloadMap).isNotNull();
             assertThat(payloadMap.get("version")).isEqualTo("1.0");
         }

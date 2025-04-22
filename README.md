@@ -184,6 +184,14 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local,local-shared # start spring
 
 After the start api definitions can be found [here](http://localhost:8002/swagger-ui/index.html).
 
+### Updating Openapi Spec
+
+The `openapi.yaml` can be updated by using the generate-doc profile.
+
+```
+mvn verify -P generate-doc
+```
+
 ## Configuration
 
 ### Environment variables

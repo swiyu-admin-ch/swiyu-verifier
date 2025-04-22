@@ -44,6 +44,7 @@ flowchart TD
     isoi ---> isdb
     wallet ---> isoi
 ```
+
 # Deployment
 
 For the deployment of the component please
@@ -55,18 +56,19 @@ because it is the main interaction point with the issuer managent/oid4vci bundle
 ## Codes
 
 ### VerificationError
-| Value                                     | Description                                                                                                          |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| invalid_request                           | The request was invalid.<br>This is a general purpose code if none of the other codes apply.                         |
-| authorization_request_missing_error_param | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.  |
-| authorization_request_object_not_found    | The requested verification process cannot be found.                                                                  |
-| verification_process_closed               | The requested verification process is already closed.                                                                |
-| invalid_presentation_definition           | The provided credential presentation was invalid.                                                                    |
 
+| Value                                     | Description                                                                                                         |
+|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| invalid_request                           | The request was invalid.<br>This is a general purpose code if none of the other codes apply.                        |
+| authorization_request_missing_error_param | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request. |
+| authorization_request_object_not_found    | The requested verification process cannot be found.                                                                 |
+| verification_process_closed               | The requested verification process is already closed.                                                               |
+| invalid_presentation_definition           | The provided credential presentation was invalid.                                                                   |
 
 ### VerificationErrorResponseCode
+
 | Value                             | Description                                                                                                                          |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | credential_invalid                | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |
 | jwt_expired                       | During the verification process an expired jwt was used.                                                                             |
 | missing_nonce                     | During the verification process a nonce was missing.                                                                                 |
@@ -82,13 +84,16 @@ because it is the main interaction point with the issuer managent/oid4vci bundle
 | holder_binding_mismatch           | The holder has provided invalid proof that the credential is under their control.                                                    |
 | client_rejected                   | The holder rejected the verification request.                                                                                        |
 
-
 # Development
 
-> Please be aware that this section **focus on the development of the verifier oid4vp service**. For the deployment of the
-> component please consult [deployment section of the verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management).
+> Please be aware that this section **focus on the development of the verifier oid4vp service**. For the deployment of
+> the
+> component please
+>
+consult [deployment section of the verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management).
 
 ## Single service development
+
 Run the following commands to start the service. This will also spin up a local postgres database from
 docker-compose.yml:
 
@@ -99,9 +104,10 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java ap
 After the start api definitions can be found [here](http://localhost:8080/swagger-ui/index.html#/)
 
 ## Integrated service development
-The integrated service development describes how to devolp this service together with its management component.  
 
-The management component needs to be started and be fully running before the oid4vp component can be started.  
+The integrated service development describes how to devolp this service together with its management component.
+
+The management component needs to be started and be fully running before the oid4vp component can be started.
 
 Run the following commands to start this service.
 
@@ -110,6 +116,14 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local,local-shared # start spring
 ```
 
 After the start api definitions can be found [here](http://localhost:8003/swagger-ui/index.html).
+
+### Updating Openapi Spec
+
+The `openapi.yaml` can be updated by using the generate-doc profile.
+
+```
+mvn verify -P generate-doc
+```
 
 ## Configuration
 
@@ -125,22 +139,22 @@ On the base registry the public key is published. To generate the public key for
 
 ### Configuration Environment Variables
 
-| Variable                                                             | Description                                                                                                                                                                                                | Type             | Default |
-|----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| ---------------- | ------- |
-| EXTERNAL_URL                                                         | URL of this deployed instance in order to add it to the request                                                                                                                                            | URL              | None    |
-| VERIFIER_DID                                                         | DID of this service-instance to identify the requester                                                                                                                                                     | string (did:tdw) | none    |
-| DID_VERIFICATION_METHOD                                              | The full DID with fragment as used to find the public key for sd-jwt VCs in the DID Document. eg: `did:tdw:<base-registry-url>:<issuer_uuid>#<sd-jwt-public-key-fragment>`                                 | string (did:tdw) | none    |
-| POSTGRES_USER                                                        | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                                                                            | string           | none    |
-| POSTGRES_PASSWORD                                                    | Username to connect to the Issuer Agent Database                                                                                                                                                           | string           | none    |
-| POSTGRES_JDBC                                                        | JDBC Connection string to the shared DB                                                                                                                                                                    | string           | none    |
-| SIGNING_KEY                                                          | Private Key in PEM format used to sign request objects sent to the holder                                                                                                                                  | string           | none    |
-| URL_REWRITE_MAPPING                                                  | Json object for url replacements during rest client call. Key represents the original url and value the one which should be used instead (e.g. {"https://mysample1.ch":"https://somethingdiffeerent1.ch"}) | string           | "{}"    |
-| OPENID_CLIENT_METADATA_FILE                                          | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                       | string           | None    |
+| Variable                    | Description                                                                                                                                                                                                | Type             | Default |
+|-----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|
+| EXTERNAL_URL                | URL of this deployed instance in order to add it to the request                                                                                                                                            | URL              | None    |
+| VERIFIER_DID                | DID of this service-instance to identify the requester                                                                                                                                                     | string (did:tdw) | none    |
+| DID_VERIFICATION_METHOD     | The full DID with fragment as used to find the public key for sd-jwt VCs in the DID Document. eg: `did:tdw:<base-registry-url>:<issuer_uuid>#<sd-jwt-public-key-fragment>`                                 | string (did:tdw) | none    |
+| POSTGRES_USER               | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                                                                            | string           | none    |
+| POSTGRES_PASSWORD           | Username to connect to the Issuer Agent Database                                                                                                                                                           | string           | none    |
+| POSTGRES_JDBC               | JDBC Connection string to the shared DB                                                                                                                                                                    | string           | none    |
+| SIGNING_KEY                 | Private Key in PEM format used to sign request objects sent to the holder                                                                                                                                  | string           | none    |
+| URL_REWRITE_MAPPING         | Json object for url replacements during rest client call. Key represents the original url and value the one which should be used instead (e.g. {"https://mysample1.ch":"https://somethingdiffeerent1.ch"}) | string           | "{}"    |
+| OPENID_CLIENT_METADATA_FILE | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                       | string           | None    |
 
 ### Kubernetes Vault Keys
 
 | Variable           | Description                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------ |
+|--------------------|--------------------------------------------------------------------------------------------------|
 | secret.db.username | Username to connect to the Issuer Agent Database shared with the issuer agent managment service  |
 | secret.db.password | Username to connect to the Issuer Agent Database                                                 |
 | secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable |
@@ -154,7 +168,7 @@ specific option.
 Note that for creating the keys it is expected that the public key is provided as self-signed certificated.
 
 | Variable                      | Description                                                                                                                                                                                |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | SIGNING_KEY_MANAGEMENT_METHOD | This variable serves as selector. `key` is used for a mounted key. `pkcs11` for the sun pkcs11 selector. For vendor specific libraries the project must be compiled with these configured. |
 | HSM_HOST                      | URI of the HSM Host or Proxy to be connected to                                                                                                                                            |
 | HSM_PORT                      |                                                                                                                                                                                            |

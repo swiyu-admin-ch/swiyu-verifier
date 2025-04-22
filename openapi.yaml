@@ -1,0 +1,397 @@
+openapi: 3.0.1
+info:
+  title: OID4VP service
+  description: Generic Verifier Agent OID4VP service
+servers:
+  - url: http://localhost:8080
+    description: Generated server url
+paths:
+  /api/v1/request-object/{request_id}/response-data:
+    post:
+      tags:
+        - OID4VP Verfifier API
+      summary: Receive Verification Presentation (from e.g. Wallet)
+      externalDocs:
+        description: OpenId4VP response parameters
+        url: https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1
+      operationId: receiveVerificationPresentation
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/VerificationPresentationRequest"
+      responses:
+        "400":
+          description: Bad Request. The request body is not valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationErrorResponse"
+        "200":
+          description: Verification Presentation received
+  /api/v1/request-object/{request_id}:
+    get:
+      tags:
+        - OID4VP Verfifier API
+      summary: Get Request Object
+      description: Can return a RequestObjectDto as JSON Object or a SignedJwt String
+        depending of JAR (JWT secured authorization request) flag in verifier management
+      operationId: getRequestObject
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                type: object
+        "200":
+          description: Request object either as plaintext or signed JWT
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/RequestObject"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestObject"
+        "404":
+          description: Request Object not found
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/VerificationErrorResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationErrorResponse"
+  /api/v1/openid-client-metadata.json:
+    get:
+      tags:
+        - OID4VP Verfifier API
+      summary: Get client metadata
+      description: "Metadata providing further information about the verifier, such\
+        \ as name and logo."
+      operationId: getOpenIdClientMetadata
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                type: object
+        "200":
+          description: Request object either as plaintext or signed JWT
+          content:
+            application/json:
+              examples:
+                Sample Client Metadata:
+                  description: Sample Client Metadata
+                  value:
+                    client_id: did:example:12345
+                    client_name#en: English name (all regions)
+                    client_name#fr: French name (all regions)
+                    client_name#de-DE: German name (region Germany)
+                    client_name#de-CH: German name (region Switzerland)
+                    client_name#de: German name (fallback)
+                    client_name: Fallback name
+                    client_logo: www.example.com/logo.png
+                    client_logo#fr: www.example.com/logo_fr.png
+components:
+  schemas:
+    VerificationError:
+      type: string
+      description: |
+        | Value                                                   | Description                                                                                  |
+        |---------------------------------------------------------|----------------------------------------------------------------------------------------------|
+        | invalid_request                                         | The request was invalid.<br>This is a general purpose code if none of the other codes apply. |
+        | server_error                                            | The authorization server encountered an unexpected                                           |
+        | invalid_credential                                      | The credential presented during validation was deemed invalid.                               |
+      enum:
+        - invalid_request
+        - server_error
+        - invalid_credential
+    VerificationErrorResponse:
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/VerificationError"
+        error_code:
+          $ref: "#/components/schemas/VerificationErrorResponseCode"
+        error_description:
+          type: string
+    VerificationErrorResponseCode:
+      type: string
+      description: |
+        | Value                                       | Description                                                                                                                          |
+        |---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+        | credential_invalid                          | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |
+        | jwt_expired                                 | During the verification process an expired jwt was used.                                                                             |
+        | missing_nonce                               | During the verification process a nonce was missing.                                                                                 |
+        | invalid_format                              | The data send in the verification process used an invalid format.                                                                    |
+        | credential_expired                          | The credential presented during validation was expired.                                                                              |
+        | unsupported_format                          | The credential presented during validation was in an unsupported format.                                                             |
+        | credential_revoked                          | The credential presented during validation was revoked.                                                                              |
+        | credential_suspended                        | The credential presented during validation was suspended.                                                                            |
+        | credential_missing_data                     | The credential presented during validation does not contain the required fields.                                                     |
+        | unresolvable_status_list                    | The credential presented during validation contains a status list which cannot be reached during validation.                         |
+        | public_key_of_issuer_unresolvable           | The credential presented during validation was issued by an entity that does not provide the public key at the time of verification. |
+        | issuer_not_accepted                         | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                       |
+        | malformed_credential                        | The credential presented during validation isnt valid according to the format specification in question                              |
+        | holder_binding_mismatch                     | The holder has provided invalid proof that the credential is under their control.                                                    |
+        | client_rejected                             | The holder rejected the verification request.                                                                                        |
+        | issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                    |
+        | authorization_request_missing_error_param   | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.                  |
+        | authorization_request_object_not_found      | The requested verification process cannot be found.                                                                                  |
+        | verification_process_closed                 | The requested verification process is already closed.                                                                                |
+        | invalid_presentation_definition             | The provided credential presentation was invalid.                                                                                    |
+        | presentation_submission_constraint_violated | The presentation submission provided violated at least one constraint defined in the presentation definition                         |
+        | invalid_presentation_submission             | The presentation submission couldn't be deserialized and is therefore invalid                                                        |
+      enum:
+        - jwt_expired
+        - invalid_format
+        - credential_expired
+        - missing_nonce
+        - unsupported_format
+        - credential_revoked
+        - credential_suspended
+        - holder_binding_mismatch
+        - credential_missing_data
+        - unresolvable_status_list
+        - public_key_of_issuer_unresolvable
+        - client_rejected
+        - issuer_not_accepted
+        - authorization_request_object_not_found
+        - authorization_request_missing_error_param
+        - verification_process_closed
+        - invalid_presentation_definition
+        - malformed_credential
+        - presentation_submission_constraint_violated
+        - invalid_presentation_submission
+    VerificationPresentationRequest:
+      type: object
+      properties:
+        vp_token:
+          type: string
+          description: "Submitted token (e.g. of the wallet) according to [OpenID4VP\
+            \ specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1)"
+        presentation_submission:
+          type: string
+          description: "The presentation submission as defined in [DIF presentation\
+            \ submission](https://identity.foundation/presentation-exchange/#presentation-submission)"
+        error:
+          type: string
+          description: "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#name-error-response)"
+          enum:
+            - invalid_scope
+            - invalid_request
+            - invalid_client
+            - vp_formats_not_supported
+            - invalid_presentation_definition_uri
+            - invalid_presentation_definition_reference
+            - client_rejected
+        error_description:
+          type: string
+          description: Error description as seems fit
+    Constraint:
+      required:
+        - fields
+        - id
+      type: object
+      properties:
+        id:
+          type: string
+          description: (Mandatory) unique string with no conflict with another id
+            in the Presentation Definition
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the data is requested
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/Field"
+    Field:
+      required:
+        - path
+      type: object
+      properties:
+        path:
+          type: array
+          description: (Mandatory) Array of one or more JSONPath string expressions
+          items:
+            type: string
+            description: (Mandatory) Array of one or more JSONPath string expressions
+        id:
+          type: string
+          description: (Optional) If present value MUST be a string that is unique
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+        purpose:
+          type: string
+          description: (Optional) If present describes purpose for which the field
+            is requested
+        filter:
+          $ref: "#/components/schemas/Filter"
+    Filter:
+      type: object
+      properties:
+        type:
+          pattern: string
+          type: string
+          description: (Optional) If present value MUST be 'string'
+          default: string
+        const:
+          type: string
+          description: (Optional) If present value MUST be a string / no pattern
+      description: (Optional) If present object with one or more properties matching
+        the registered Claim Format
+    FormatAlgorithm:
+      required:
+        - kb-jwt_alg_values
+        - sd-jwt_alg_values
+      type: object
+      properties:
+        sd-jwt_alg_values:
+          type: array
+          description: (Required) algorithms string from the SDJWT family
+          items:
+            type: string
+            description: (Required) algorithms string from the SDJWT family
+        kb-jwt_alg_values:
+          type: array
+          description: (Required) algorithms defining the keybinding algorithm for
+            SDJWT family
+          items:
+            type: string
+            description: (Required) algorithms defining the keybinding algorithm for
+              SDJWT family
+      description: (Optional) If present object with one or more properties matching
+        the registered Claim Format
+    InputDescriptor:
+      required:
+        - constraints
+        - id
+      type: object
+      properties:
+        id:
+          type: string
+          description: (Mandatory) unique string with no conflict with another id
+            in the Presentation Definition
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the data is requested
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format
+        constraints:
+          $ref: "#/components/schemas/Constraint"
+    PresentationDefinition:
+      required:
+        - input_descriptors
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the presentation definition is
+            requested
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format
+        input_descriptors:
+          type: array
+          items:
+            $ref: "#/components/schemas/InputDescriptor"
+    RequestObject:
+      type: object
+      properties:
+        client_id:
+          type: string
+        client_id_scheme:
+          type: string
+        response_type:
+          type: string
+        response_mode:
+          type: string
+        response_uri:
+          type: string
+        nonce:
+          type: string
+        version:
+          type: string
+        presentation_definition:
+          $ref: "#/components/schemas/PresentationDefinition"
+        client_metadata:
+          type: object
+          additionalProperties:
+            type: object
+            description: "A JSON object containing the Verifier metadata values providing\
+              \ further information about the verifier, such as name and logo. It\
+              \ is UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter\
+              \ is present."
+            example:
+              client_id: did:example:12345
+              client_name#en: English name (all regions)
+              client_name#fr: French name (all regions)
+              client_name#de-DE: German name (region Germany)
+              client_name#de-CH: German name (region Switzerland)
+              client_name#de: German name (fallback)
+              client_name: Fallback name
+              client_logo: www.example.com/logo.png
+              client_logo#fr: www.example.com/logo_fr.png
+          description: "A JSON object containing the Verifier metadata values providing\
+            \ further information about the verifier, such as name and logo. It is\
+            \ UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter\
+            \ is present."
+          example:
+            client_id: did:example:12345
+            client_name#en: English name (all regions)
+            client_name#fr: French name (all regions)
+            client_name#de-DE: German name (region Germany)
+            client_name#de-CH: German name (region Switzerland)
+            client_name#de: German name (fallback)
+            client_name: Fallback name
+            client_logo: www.example.com/logo.png
+            client_logo#fr: www.example.com/logo_fr.png
+        state:
+          type: string

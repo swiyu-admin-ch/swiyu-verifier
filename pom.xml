@@ -60,6 +60,7 @@
         <spring-cloud-dependencies.version>2024.0.0</spring-cloud-dependencies.version>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
         <primus-jce.version>2.4.4</primus-jce.version>
+        <skip.doc-generate>true</skip.doc-generate>
     </properties>
     <dependencies>
         <dependency>
@@ -316,6 +317,16 @@
 
         </dependencies>
     </dependencyManagement>
+
+    <profiles>
+        <profile>
+            <id>generate-doc</id>
+            <properties>
+                <skip.doc-generate>false</skip.doc-generate>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
@@ -369,6 +380,28 @@
                             <goal>build-info</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <!-- Starting the Server to fetch OpenAPI Documentation -->
+                        <id>pre-documentation</id>
+                        <goals>
+                            <goal>start</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.doc-generate}</skip>
+                            <profiles>
+                                <profile>local</profile>
+                            </profiles>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>post-documentation</id>
+                        <goals>
+                            <goal>stop</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.doc-generate}</skip>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -388,6 +421,27 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <!-- Requires the Server to be started to work, thus requires the pre- & post-documentation of spring-boot-maven-plugin-->
+            <plugin>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-maven-plugin</artifactId>
+                <version>1.4</version>
+                <configuration>
+                    <attachArtifact>true</attachArtifact>
+                    <outputDir>${project.basedir}</outputDir>
+                    <outputFileName>openapi.yaml</outputFileName>
+                    <apiDocsUrl>http://localhost:8080/v3/api-docs.yaml</apiDocsUrl>
+                    <skip>${skip.doc-generate}</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>documentation</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
 

@@ -6,18 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
-import java.io.IOException;
-import java.security.PublicKey;
-import java.security.interfaces.ECPublicKey;
-import java.text.ParseException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
-
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListResolverAdapter;
@@ -29,6 +20,16 @@ import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.security.PublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.text.ParseException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
 
 /**
  * Referenced Token
@@ -57,7 +58,7 @@ class TokenStatusListReference extends StatusListReference {
         try {
             Map<String, Object> statusListVC = getStatusListVC();
             log.trace("Begin unpacking Status List");
-            Map<String, Object> statusListData = (Map<String, Object>) statusListVC.get("status_list");
+            Map<String, Object> statusListData = JsonUtil.getJsonObject(statusListVC.get("status_list"));
             int statusListBits = Integer.parseInt(statusListData.get("bits").toString());
             String zippedStatusList = (String) statusListData.get("lst");
             TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(statusListBits, zippedStatusList, getMaxBufferSize());

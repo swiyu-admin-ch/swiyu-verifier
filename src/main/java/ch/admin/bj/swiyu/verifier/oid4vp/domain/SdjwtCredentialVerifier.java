@@ -6,28 +6,15 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain;
 
-import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.text.ParseException;
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.*;
-import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.credentialError;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
-
 import ch.admin.bj.swiyu.verifier.oid4vp.common.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist.StatusListReference;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist.StatusListReferenceFactory;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectDecoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -47,6 +34,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.util.CollectionUtils;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.text.ParseException;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode.*;
+import static ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException.credentialError;
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
+import static ch.admin.bj.swiyu.verifier.oid4vp.domain.CredentialVerifierSupport.getRequestedFormat;
 
 /**
  * Verifies the presentation of a SD-JWT Credential.
@@ -306,7 +306,7 @@ public class SdjwtCredentialVerifier {
         if (!"kb+jwt".equals(keyBindingHeader.getType().toString())) {
             throw credentialError(HOLDER_BINDING_MISMATCH,
                     String.format("Type of holder binding typ is expected to be kb+jwt but was %s",
-                            keyBindingHeader.getType().toString()));
+                            keyBindingHeader.getType()));
         }
 
         // Check if kb algorithm matches the required format
@@ -342,7 +342,7 @@ public class SdjwtCredentialVerifier {
         }
         JWK keyBinding;
         try {
-            keyBinding = JWK.parse((Map<String, Object>) keyBindingClaim);
+            keyBinding = JWK.parse(JsonUtil.getJsonObject(keyBindingClaim));
         } catch (ParseException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding Key could not be parsed");
         }

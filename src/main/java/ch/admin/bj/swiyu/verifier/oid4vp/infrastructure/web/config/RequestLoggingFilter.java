@@ -41,8 +41,6 @@ import static net.logstash.logback.argument.StructuredArguments.value;
 @Slf4j
 class RequestLoggingFilter extends OncePerRequestFilter {
 
-    public static final String UNKNOWN_METHOD = "UNKNOWN";
-
     /**
      * By default we don't want all the /actuator access being logged since it pollutes the logs.
      */
@@ -68,6 +66,10 @@ class RequestLoggingFilter extends OncePerRequestFilter {
         } finally {
             logResponse(request, response, incomingTime);
         }
+    }
+
+    private static String method(ServletServerHttpRequest request) {
+        return request.getMethod().toString();
     }
 
     private void logRequest(HttpServletRequest request) {
@@ -97,7 +99,7 @@ class RequestLoggingFilter extends OncePerRequestFilter {
                     value("uri", servletServerHttpRequest.getURI().toASCIIString()),
                     keyValue("result", response.getStatus()),
                     keyValue("dt", durationTime),
-                    keyValue("remoteAddr", remoteAddress == null ? null : remoteAddress.toString()),
+                    keyValue("remoteAddr", remoteAddress.toString()),
                     keyValue("requestHeaders", servletServerHttpRequest.getHeaders()),
                     keyValue("responseHeaders", responseHeaders));
         }
@@ -108,9 +110,5 @@ class RequestLoggingFilter extends OncePerRequestFilter {
             return true;
         }
         return !uriFilterPattern.matcher(uri).matches();
-    }
-
-    private static String method(ServletServerHttpRequest request) {
-        return request.getMethod() == null ? UNKNOWN_METHOD : request.getMethod().toString();
     }
 }

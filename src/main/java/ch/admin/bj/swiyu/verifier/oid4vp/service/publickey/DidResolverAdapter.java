@@ -31,6 +31,9 @@ public class DidResolverAdapter {
      * @return the DID Document for the given DID
      */
     public DidDoc resolveDid(String didTdw) throws DidResolverException {
+        if (didTdw == null) {
+            throw new IllegalArgumentException("didTdw must not be null");
+        }
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
             String didLog = retrieveDidLog(didUrl);

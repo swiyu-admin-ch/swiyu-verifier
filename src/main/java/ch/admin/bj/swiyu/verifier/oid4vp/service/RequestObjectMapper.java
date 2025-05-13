@@ -40,7 +40,7 @@ public class RequestObjectMapper {
         if (isEmpty(source)) {
             return emptyList();
         }
-        return source.stream().map(RequestObjectMapper::toInputDescriptorDto).collect(Collectors.toList());
+        return source.stream().map(RequestObjectMapper::toInputDescriptorDto).toList();
     }
 
     private static InputDescriptorDto toInputDescriptorDto(InputDescriptor source) {
@@ -74,7 +74,7 @@ public class RequestObjectMapper {
         if (isEmpty(source)) {
             return emptyList();
         }
-        return source.stream().map(RequestObjectMapper::toFieldDto).collect(Collectors.toList());
+        return source.stream().map(RequestObjectMapper::toFieldDto).toList();
     }
 
     private static FieldDto toFieldDto(Field source) {

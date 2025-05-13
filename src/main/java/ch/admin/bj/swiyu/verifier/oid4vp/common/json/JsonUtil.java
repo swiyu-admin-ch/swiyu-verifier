@@ -7,6 +7,9 @@ import java.util.stream.Collectors;
  * Collection of Utils helping with handling of JSONs in simple data formats
  */
 public class JsonUtil {
+    private JsonUtil() {
+    }
+
     /**
      * Transforms type-safe transformation of an undefined JSON claim to a Map representing a JSON Object
      *

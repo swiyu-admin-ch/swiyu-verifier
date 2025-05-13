@@ -21,9 +21,12 @@ public class JsonUtilTest {
                     }
                 }
                 """).getClaims();
-        Assertions.assertDoesNotThrow(() -> JsonUtil.getJsonObject(claims.get("status_list")));
-        Assertions.assertThrows(IllegalArgumentException.class, () -> JsonUtil.getJsonObject(claims.get("version")));
-        Assertions.assertThrows(IllegalArgumentException.class, () -> JsonUtil.getJsonObject(claims.get("list")));
+        var statusListClaim = claims.get("status_list");
+        Assertions.assertDoesNotThrow(() -> JsonUtil.getJsonObject(statusListClaim));
+        var versionClaim = claims.get("version");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> JsonUtil.getJsonObject(versionClaim));
+        var listClaim = claims.get("list");
+        Assertions.assertThrows(IllegalArgumentException.class, () -> JsonUtil.getJsonObject(listClaim));
 
     }
 }

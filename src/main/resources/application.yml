@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: org.postgresql.Driver
+    url: "${POSTGRES_JDBC}"
+    username: "${secret.db.username:${POSTGRES_USER}}"
+    password: "${secret.db.password:${POSTGRES_PASSWORD}}"
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/common
+  jpa:
+    open-in-view: false
+
+springdoc:
+  swagger-ui:
+    path: swagger-ui.html
+    csrf:
+      enabled: true
+  show-actuator: true
+
+management:
+  endpoint:
+    health:
+      enabled: true
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+
+application:
+  # TTL is set to 900 seconds -> 15 minutes
+  verification-ttl: ${VERIFICATION_TTL_SEC:900}
+  # Clearing interval is set to 60k * 7 = 420k -> 7minutes
+  # to make sure the data is cleared before the TTL expires
+  # which is more than twice as long
+  data-clear-interval: ${DATA_CLEAR_PROCESS_INTERVAL_MS:420000}
+  oid4vp-url: "${OID4VP_URL}"
+
+logging:
+  level:
+    ch.admin.bj.swiyu: INFO
+    ch.admin.bj.swiyu.verifier.management.infrastructure.web.config.RequestLoggingFilter: DEBUG
+
+monitoring:
+  basic-auth:
+    enabled: ${MONITORING_BASIC_AUTH_ENABLED:false}
+    username: "${MONITORING_BASIC_AUTH_USERNAME:}"
+    password: "${MONITORING_BASIC_AUTH_PASSWORD:}"

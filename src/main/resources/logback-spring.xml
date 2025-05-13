@@ -1,0 +1,21 @@
+<!--
+  ~ SPDX-FileCopyrightText: 2025 Swiss Confederation
+  ~
+  ~ SPDX-License-Identifier: MIT
+  -->
+
+<configuration>
+    <springProperty scope="context" name="app" source="spring.application.name"/>
+
+    <springProfile name="!cloud">
+        <include resource="logging/logback-text.xml"/>
+    </springProfile>
+
+    <springProfile name="cloud">
+        <include resource="logging/logback-json.xml"/>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="MAIN_APPENDER"/>
+    </root>
+</configuration>

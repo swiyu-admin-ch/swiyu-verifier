@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
+spring:
+  docker:
+    compose:
+      enabled: true
+      file: compose.yaml
+  datasource:
+    url: "jdbc:postgresql://localhost:5434/verifier_db"
+    username: "verifier_mgmt_user"
+    password: "secret"
+    driver-class-name: org.postgresql.Driver
+
+springdoc:
+  show-actuator: true

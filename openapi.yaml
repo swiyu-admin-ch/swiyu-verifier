@@ -1,0 +1,552 @@
+openapi: 3.0.1
+info:
+  title: Verifier management API
+  description: Generic Verifier management service
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+tags:
+- name: Actuator
+  description: Monitor and interact
+  externalDocs:
+    description: Spring Boot Actuator Web API Documentation
+    url: https://docs.spring.io/spring-boot/docs/current/actuator-api/html/
+paths:
+  /api/v1/verifications:
+    post:
+      tags:
+      - OID4VP Management API
+      summary: Creates a new verification process with the given attributes
+      operationId: createVerification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVerificationManagement"
+        required: true
+      responses:
+        "200":
+          description: Verification created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ManagementResponse"
+        "400":
+          description: Bad Request. The request body is not valid
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/verifications/{verificationId}:
+    get:
+      tags:
+      - OID4VP Management API
+      summary: Get verification by id
+      operationId: getVerification
+      parameters:
+      - name: verificationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Verification found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ManagementResponse"
+        "404":
+          description: Verification not found or already expired
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /actuator:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator root web endpoint
+      operationId: links
+      responses:
+        "200":
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: "#/components/schemas/Link"
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: "#/components/schemas/Link"
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: "#/components/schemas/Link"
+  /actuator/prometheus:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator web endpoint 'prometheus'
+      operationId: scrape
+      parameters:
+      - name: format
+        in: query
+        schema:
+          type: string
+          enum:
+          - CONTENT_TYPE_004
+          - CONTENT_TYPE_OPENMETRICS_100
+          - CONTENT_TYPE_PROTOBUF
+      - name: includedNames
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain;version=0.0.4;charset=utf-8:
+              schema:
+                type: object
+            application/openmetrics-text;version=1.0.0;charset=utf-8:
+              schema:
+                type: object
+            application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited:
+              schema:
+                type: object
+  /actuator/info:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator web endpoint 'info'
+      operationId: info
+      responses:
+        "200":
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+  /actuator/health:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator web endpoint 'health'
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    Constraint:
+      required:
+      - fields
+      type: object
+      properties:
+        id:
+          type: string
+          description: (Optional) unique string with no conflict with another id in
+            the Presentation Definition
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the data is requested
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format
+        fields:
+          type: array
+          description: Selection which properties are requested of the holder
+          example:
+          - path:
+            - $.vct
+            filter:
+              type: string
+              const: test-sdjwt
+          - path:
+            - $.dateOfBirth
+          items:
+            $ref: "#/components/schemas/Field"
+        limit_disclosure:
+          type: string
+          description: (Optional) If present has to be required or preferred.
+          example: required
+    Field:
+      required:
+      - path
+      type: object
+      properties:
+        path:
+          type: array
+          description: (Mandatory) Array of one or more JSONPath string expressions
+          items:
+            type: string
+            description: (Mandatory) Array of one or more JSONPath string expressions
+        id:
+          type: string
+          description: (Optional) If present value MUST be a string that is unique
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+        purpose:
+          type: string
+          description: (Optional) If present describes purpose for which the field
+            is requested
+        filter:
+          $ref: "#/components/schemas/Filter"
+      description: Selection which properties are requested of the holder
+      example:
+      - path:
+        - $.vct
+        filter:
+          type: string
+          const: test-sdjwt
+      - path:
+        - $.dateOfBirth
+    Filter:
+      type: object
+      properties:
+        type:
+          pattern: string
+          type: string
+          description: (Optional) If present value MUST be 'string'
+          example: string
+          default: string
+        const:
+          type: string
+          description: (Optional) If present value MUST be a string / no pattern
+          example: vct-as-in-issuer-metadata
+      description: (Optional) If present object with one or more properties matching
+        the registered Claim Format
+    FormatAlgorithm:
+      required:
+      - kb-jwt_alg_values
+      - sd-jwt_alg_values
+      type: object
+      properties:
+        sd-jwt_alg_values:
+          type: array
+          description: (Required) algorithms string from the SDJWT family
+          items:
+            type: string
+            description: (Required) algorithms string from the SDJWT family
+        kb-jwt_alg_values:
+          type: array
+          description: (Required) algorithms defining the keybinding algorithm for
+            SDJWT family
+          items:
+            type: string
+            description: (Required) algorithms defining the keybinding algorithm for
+              SDJWT family
+      description: (Optional) If present object with one or more properties matching
+        the registered Claim Format
+    InputDescriptor:
+      required:
+      - constraints
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+          description: (Mandatory) unique string with no conflict with another id
+            in the Presentation Definition
+          example: 11111111-1111-1111-1111-111111111111
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+          example: Example Data Request
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the data is requested
+          example: We collect this data to test our verifier
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format
+          example:
+            vc+sd-jwt:
+              sd-jwt_alg_values:
+              - ES256
+              kb-jwt_alg_values:
+              - ES256
+        constraints:
+          $ref: "#/components/schemas/Constraint"
+      description: Input Descriptors are objects used to describe the information
+        a Verifier requires of a Holder
+    ManagementResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        request_nonce:
+          type: string
+        state:
+          $ref: "#/components/schemas/VerificationStatus"
+        presentation_definition:
+          $ref: "#/components/schemas/PresentationDefinition"
+        wallet_response:
+          $ref: "#/components/schemas/ResponseData"
+        verification_url:
+          type: string
+    PresentationDefinition:
+      required:
+      - input_descriptors
+      type: object
+      properties:
+        id:
+          type: string
+          description: "A unique ID for the desired context. Can be any String, but\
+            \ using a UUID is recommended."
+          example: 00000000-0000-0000-0000-000000000000
+        name:
+          type: string
+          description: (Optional) If present human-friendly string intended to constitute
+            a distinctive designation of the Presentation Definition
+          example: Test Verification
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the presentation definition is
+            requested and used for
+          example: We want to test a new Verifier
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format.
+          example:
+            vc+sd-jwt:
+              sd-jwt_alg_values:
+              - ES256
+              kb-jwt_alg_values:
+              - ES256
+        input_descriptors:
+          type: array
+          description: Input Descriptors are objects used to describe the information
+            a Verifier requires of a Holder
+          items:
+            $ref: "#/components/schemas/InputDescriptor"
+    ResponseData:
+      type: object
+      properties:
+        error_code:
+          $ref: "#/components/schemas/VerificationErrorResponseCode"
+        error_description:
+          type: string
+        credential_subject_data:
+          type: object
+          additionalProperties:
+            type: object
+    VerificationErrorResponseCode:
+      type: string
+      description: |
+        | Value                                       | Description                                                                                                                                                                                                                                          |
+        |---------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+        | credential_invalid                          | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.                                                                                                                   |
+        | jwt_expired                                 | During the verification process an expired jwt was used.                                                                                                                                                                                             |
+        | missing_nonce                               | During the verification process a nonce was missing.                                                                                                                                                                                                 |
+        | invalid_format                              | The data send in the verification process used an invalid format.                                                                                                                                                                                    |
+        | credential_expired                          | The credential presented during validation was expired.                                                                                                                                                                                              |
+        | unsupported_format                          | The credential presented during validation was in an unsupported format.                                                                                                                                                                             |
+        | credential_revoked                          | The credential presented during validation was revoked.                                                                                                                                                                                              |
+        | credential_suspended                        | The credential presented during validation was suspended.                                                                                                                                                                                            |
+        | credential_missing_data                     | The credential presented during validation does not contain the required fields.                                                                                                                                                                     |
+        | unresolvable_status_list                    | The credential presented during validation contains a status list which cannot be reached during validation.                                                                                                                                         |
+        | public_key_of_issuer_unresolvable           | The credential presented during validation was issued by an entity that does not provide the public key at the time of verification.                                                                                                                 |
+        | issuer_not_accepted                         | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                                                                                                                                       |
+        | holder_binding_mismatch                     | The holder has provided invalid proof that the credential is under their control.                                                                                                                                                                    |
+        | client_rejected                             | The holder rejected the verification request.                                                                                                                                                                                                        |
+        | issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                                                                                                                                    |
+        | authorization_request_missing_error_param   | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.                                                                                                                                  |
+        | authorization_request_object_not_found      | The requested verification process cannot be found.                                                                                                                                                                                                  |
+        | verification_process_closed                 | The requested verification process is already closed.                                                                                                                                                                                                |
+        | invalid_presentation_definition             | The provided credential presentation was invalid.                                                                                                                                                                                                    |
+        | presentation_submission_constraint_violated | The presentation submission provided violated at least one constraint defined in the presentation definition                                                                                                                                         |
+        | invalid_presentation_submission             | The presentation submission couldn't be deserialized and is therefore invalid                                                                                                                                                                        |
+        | invalid_scope                               | Requested scope value is invalid, unknown or malformed                                                                                                                                                                                               |
+        | invalid_request                             | Various issues with the request                                                                                                                                                                                                                      |
+        | invalid_client                              | client_metadata parameter exists, but the Wallet recognizes Client Identifier and knows metadata associated with it, Verifier's pre-registered metadata has been found based on the Client Identifier, but client_metadata parameter is also present |
+        | vp_formats_not_supported                    | The Wallet doesn't support any of the formats requested by the Verifier                                                                                                                                                                              |
+        | invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
+        | invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |
+      enum:
+      - CREDENTIAL_INVALID
+      - JWT_EXPIRED
+      - INVALID_FORMAT
+      - CREDENTIAL_EXPIRED
+      - MISSING_NONCE
+      - UNSUPPORTED_FORMAT
+      - CREDENTIAL_REVOKED
+      - CREDENTIAL_SUSPENDED
+      - HOLDER_BINDING_MISMATCH
+      - CREDENTIAL_MISSING_DATA
+      - UNRESOLVABLE_STATUS_LIST
+      - PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE
+      - ISSUER_NOT_ACCEPTED
+      - AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND
+      - AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM
+      - VERIFICATION_PROCESS_CLOSED
+      - INVALID_PRESENTATION_DEFINITION
+      - MALFORMED_CREDENTIAL
+      - PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED
+      - INVALID_PRESENTATION_SUBMISSION
+      - INVALID_SCOPE
+      - INVALID_REQUEST
+      - INVALID_CLIENT
+      - VP_FORMATS_NOT_SUPPORTED
+      - INVALID_PRESENTATION_DEFINITION_URI
+      - INVALID_PRESENTATION_DEFINITION_REFERENCE
+      - CLIENT_REJECTED
+    VerificationStatus:
+      type: string
+      enum:
+      - PENDING
+      - SUCCESS
+      - FAILED
+    ApiError:
+      required:
+      - detail
+      - status
+      type: object
+      properties:
+        status:
+          type: string
+          description: HTTP status code of the error
+          enum:
+          - 100 CONTINUE
+          - 101 SWITCHING_PROTOCOLS
+          - 102 PROCESSING
+          - 103 EARLY_HINTS
+          - 103 CHECKPOINT
+          - 200 OK
+          - 201 CREATED
+          - 202 ACCEPTED
+          - 203 NON_AUTHORITATIVE_INFORMATION
+          - 204 NO_CONTENT
+          - 205 RESET_CONTENT
+          - 206 PARTIAL_CONTENT
+          - 207 MULTI_STATUS
+          - 208 ALREADY_REPORTED
+          - 226 IM_USED
+          - 300 MULTIPLE_CHOICES
+          - 301 MOVED_PERMANENTLY
+          - 302 FOUND
+          - 302 MOVED_TEMPORARILY
+          - 303 SEE_OTHER
+          - 304 NOT_MODIFIED
+          - 305 USE_PROXY
+          - 307 TEMPORARY_REDIRECT
+          - 308 PERMANENT_REDIRECT
+          - 400 BAD_REQUEST
+          - 401 UNAUTHORIZED
+          - 402 PAYMENT_REQUIRED
+          - 403 FORBIDDEN
+          - 404 NOT_FOUND
+          - 405 METHOD_NOT_ALLOWED
+          - 406 NOT_ACCEPTABLE
+          - 407 PROXY_AUTHENTICATION_REQUIRED
+          - 408 REQUEST_TIMEOUT
+          - 409 CONFLICT
+          - 410 GONE
+          - 411 LENGTH_REQUIRED
+          - 412 PRECONDITION_FAILED
+          - 413 PAYLOAD_TOO_LARGE
+          - 413 REQUEST_ENTITY_TOO_LARGE
+          - 414 URI_TOO_LONG
+          - 414 REQUEST_URI_TOO_LONG
+          - 415 UNSUPPORTED_MEDIA_TYPE
+          - 416 REQUESTED_RANGE_NOT_SATISFIABLE
+          - 417 EXPECTATION_FAILED
+          - 418 I_AM_A_TEAPOT
+          - 419 INSUFFICIENT_SPACE_ON_RESOURCE
+          - 420 METHOD_FAILURE
+          - 421 DESTINATION_LOCKED
+          - 422 UNPROCESSABLE_ENTITY
+          - 423 LOCKED
+          - 424 FAILED_DEPENDENCY
+          - 425 TOO_EARLY
+          - 426 UPGRADE_REQUIRED
+          - 428 PRECONDITION_REQUIRED
+          - 429 TOO_MANY_REQUESTS
+          - 431 REQUEST_HEADER_FIELDS_TOO_LARGE
+          - 451 UNAVAILABLE_FOR_LEGAL_REASONS
+          - 500 INTERNAL_SERVER_ERROR
+          - 501 NOT_IMPLEMENTED
+          - 502 BAD_GATEWAY
+          - 503 SERVICE_UNAVAILABLE
+          - 504 GATEWAY_TIMEOUT
+          - 505 HTTP_VERSION_NOT_SUPPORTED
+          - 506 VARIANT_ALSO_NEGOTIATES
+          - 507 INSUFFICIENT_STORAGE
+          - 508 LOOP_DETECTED
+          - 509 BANDWIDTH_LIMIT_EXCEEDED
+          - 510 NOT_EXTENDED
+          - 511 NETWORK_AUTHENTICATION_REQUIRED
+        detail:
+          type: string
+          description: Error message
+    CreateVerificationManagement:
+      required:
+      - presentation_definition
+      type: object
+      properties:
+        accepted_issuer_dids:
+          type: array
+          description: List of did from issuer whose credentials are accepted for
+            this verification
+          items:
+            type: string
+            description: List of did from issuer whose credentials are accepted for
+              this verification
+        jwt_secured_authorization_request:
+          type: boolean
+          description: Toggle whether the request-object is available as plain object
+            oras jwt object signed by the verifier as additional security measure
+        presentation_definition:
+          $ref: "#/components/schemas/PresentationDefinition"
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+        templated:
+          type: boolean

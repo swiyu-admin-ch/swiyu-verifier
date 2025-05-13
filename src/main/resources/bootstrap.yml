@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
+server:
+  port: 8080
+spring:
+  docker:
+    compose:
+      enabled: false
+  application:
+    name: verifier-agent-management
+  cloud:
+    kubernetes:
+      config:
+        enabled: false
+      secrets:
+        enabled: true
+        paths: /data/secrets

@@ -3,6 +3,9 @@ package ch.admin.bj.swiyu.verifier.oid4vp.common.json;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Collection of Utils helping with handling of JSONs in simple data formats
+ */
 public class JsonUtil {
     /**
      * Transforms type-safe transformation of an undefined JSON claim to a Map representing a JSON Object

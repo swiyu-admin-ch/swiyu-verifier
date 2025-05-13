@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test;
 
 import java.text.ParseException;
 
-public class JsonUtilTest {
+class JsonUtilTest {
 
     @Test
-    public void testGetJsonObject() throws ParseException {
+    void testGetJsonObject() throws ParseException {
         var claims = JWTClaimsSet.parse("""
                 {
                 "iss": "https://example.com",

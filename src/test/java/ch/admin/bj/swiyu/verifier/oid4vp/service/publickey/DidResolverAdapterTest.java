@@ -8,21 +8,17 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")
 @SpringBootTest
-public class DidResolverAdapterTest {
+class DidResolverAdapterTest {
     @Autowired
     DidResolverAdapter didResolverAdapter;
 
     @Test
-    public void testResolveNullDid() {
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            didResolverAdapter.resolveDid(null);
-        });
+    void testResolveNullDid() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> didResolverAdapter.resolveDid(null));
     }
 
     @Test
-    public void testEmptyDid() {
-        Assertions.assertThrows(DidResolverException.class, () -> {
-            didResolverAdapter.resolveDid("");
-        });
+    void testEmptyDid() {
+        Assertions.assertThrows(DidResolverException.class, () -> didResolverAdapter.resolveDid(""));
     }
 }

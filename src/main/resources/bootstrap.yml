@@ -9,7 +9,7 @@ spring:
     compose:
       enabled: false
   application:
-    name: verifier-agent-management
+    name: verifier-agent
   cloud:
     kubernetes:
       config:

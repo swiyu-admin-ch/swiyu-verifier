@@ -2,7 +2,55 @@
 #
 # SPDX-License-Identifier: MIT
 
+application:
+  external-url: "${EXTERNAL_URL:}"
+  client_id: "${VERIFIER_DID:}"
+  client_id_scheme: "did"
+  signing_key: "${secret.signing_key:${SIGNING_KEY:}}"
+  signing-key-verification-method: "${DID_VERIFICATION_METHOD:}"
+  client-metadata-file: "${OPENID_CLIENT_METADATA_FILE:}"
+
+  key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
+  # Pin to unlock the hsm
+  hsm:
+    user-pin: "${secret.key.hsm.pin.user:${HSM_USER_PIN:}}"
+    # Key identifier or alias, or label when using pkcs11-tool
+    key-id: "${secret.key.hsm.id:${HSM_KEY_ID:}}"
+    # Optional pin to unlock the key
+    key-pin: "${secret.key.hsm.pin.key:${HSM_KEY_PIN:}}"
+    # File Path to the HSM config file. For settings see https://docs.oracle.com/en/java/javase/21/security/pkcs11-reference-guide1.html
+    pkcs11-config: "${HSM_CONFIG_PATH:}"
+
+    # For Cloud HSM like eg. securosys
+    # User for logging in on the host
+    user: "${HSM_USER:}"
+    # URI of the HSM Host or Proxy to be connected to
+    host: "${HSM_HOST:}"
+    # Password for the Host
+    password: "${HSM_PASSWORD:}"
+    # Port for either the proxy or host
+    port: "${HSM_PORT:}"
+    # When using a proxy with username / password authentication
+    proxy-user: "${HSM_PROXY_USER:}"
+    proxy-password: "${HSM_PROXY_PASSWORD:}"
+
+  url-rewrite:
+    mapping: "${URL_REWRITE_MAPPING:{}}"
+
+  accepted-status-list-hosts:
+    - "status-reg.trust-infra.swiyu-int.admin.ch"
+    - "status-reg.trust-infra.swiyu.admin.ch"
+verification:
+  # the acceptable window of the issued at claim for verification - used for determining if the holder key binding proof jwt is valid
+  acceptable-proof-time-window-seconds: ${VERIFICATION_PROOF_TIME_WINDOW_MS:120}
+  object-size-limit: 204800 # 200 Kibibyte
+
+
 spring:
+  http:
+    client:
+      read-timeout: 10s # 10 seconds for reading the response
+      connect-timeout: 5s # 5 seconds until tcp handshake is done
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: org.postgresql.Driver
@@ -14,6 +62,8 @@ spring:
     locations: classpath:db/migration/common
   jpa:
     open-in-view: false
+    hibernate:
+      ddl-auto: validate # verifier-agent-management is owner of schema, so we just validate if it matches
 
 springdoc:
   swagger-ui:
@@ -50,7 +100,7 @@ application:
 logging:
   level:
     ch.admin.bj.swiyu: INFO
-    ch.admin.bj.swiyu.verifier.management.infrastructure.web.config.RequestLoggingFilter: DEBUG
+    ch.admin.bj.swiyu.verifier.infrastructure.web.config.RequestLoggingFilter: DEBUG
 
 monitoring:
   basic-auth:

@@ -6,17 +6,12 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPresentationDefinitionDto;
-
 import ch.admin.bj.swiyu.verifier.oid4vp.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.ProcessClosedException;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -29,6 +24,12 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper.toPresentationDefinitionDto;
 
 
 @Slf4j
@@ -105,7 +106,7 @@ public class RequestObjectService {
         builder.issuer(applicationProperties.getClientId());
 
         // get all properties of the request object
-        Map<String, Object> requestObjectProperties = objectMapper.convertValue(requestObject, Map.class);
+        Map<String, Object> requestObjectProperties = JsonUtil.getJsonObject(objectMapper.convertValue(requestObject, Map.class));
         requestObjectProperties.keySet().stream()
                 // filter out null values
                 .filter(key -> requestObjectProperties.get(key) != null)

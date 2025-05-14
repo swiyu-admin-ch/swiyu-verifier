@@ -14,6 +14,9 @@ import java.util.regex.Pattern;
 
 public class JsonPathValidator {
 
+    private JsonPathValidator() {
+    }
+
     public static boolean isValidJsonPath(String value, ConstraintValidatorContext context) {
         // null values are considered valid
         if (value == null) {

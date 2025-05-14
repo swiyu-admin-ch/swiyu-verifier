@@ -6,19 +6,20 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.statuslist;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-
 import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.oid4vp.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntity;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListResolverAdapter;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 @Component
 @AllArgsConstructor
@@ -67,7 +68,7 @@ public class StatusListReferenceFactory {
      *     "employeeId": "A-123456"
      *   }</code></pre>
      *
-     * @param vcClaims
+     * @param vcClaims The JSON claims of the verifiable credential as a Map
      * @return a List of References, if no StatusListReference found in the claims, an empty list is returned
      */
     public List<StatusListReference> createStatusListReferences(Map<String, Object> vcClaims, ManagementEntity presentationManagementEntity) {
@@ -77,7 +78,7 @@ public class StatusListReferenceFactory {
                 .map(Object::toString)
                 .orElseThrow();
         Optional.ofNullable(vcClaims.get("status"))
-                .map(o -> (Map<String, Object>) o)
+                .map(JsonUtil::getJsonObject)
                 .map(createTokenStatusListReferences(referencedTokenIssuer))
                 .ifPresent(referenceList::addAll);
         log.trace("Built {} StatusListReferences for fetching status lists for id {}", referenceList.size(), presentationManagementEntity.getId());
@@ -87,7 +88,7 @@ public class StatusListReferenceFactory {
 
     private Function<Map<String, Object>, List<TokenStatusListReference>> createTokenStatusListReferences(String referencedTokenIssuer) {
         return tokenStatusListReferenceTokenEntry -> List.of(
-                new TokenStatusListReference(statusListResolverAdapter, (Map<String, Object>) tokenStatusListReferenceTokenEntry.get("status_list"),
+                new TokenStatusListReference(statusListResolverAdapter, JsonUtil.getJsonObject(tokenStatusListReferenceTokenEntry.get("status_list")),
                         issuerPublicKeyLoader, referencedTokenIssuer, verificationProperties.getObjectSizeLimit())
         );
     }

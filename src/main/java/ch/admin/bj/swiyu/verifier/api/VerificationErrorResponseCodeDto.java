@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.api;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -41,9 +42,15 @@ import lombok.Getter;
 | invalid_presentation_definition             | The provided credential presentation was invalid.                                                                                    |
 | presentation_submission_constraint_violated | The presentation submission provided violated at least one constraint defined in the presentation definition                         |
 | invalid_presentation_submission             | The presentation submission couldn't be deserialized and is therefore invalid                                                        |
+| invalid_scope                               | Requested scope value is invalid, unknown or malformed                                                                                                                                                                                               |
+| invalid_request                             | Various issues with the request                                                                                                                                                                                                                      |
+| invalid_client                              | client_metadata parameter exists, but the Wallet recognizes Client Identifier and knows metadata associated with it, Verifier's pre-registered metadata has been found based on the Client Identifier, but client_metadata parameter is also present |
+| vp_formats_not_supported                    | The Wallet doesn't support any of the formats requested by the Verifier                                                                                                                                                                              |
+| invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
+| invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |        
         """)
 public enum VerificationErrorResponseCodeDto {
-
+    CREDENTIAL_INVALID("credential_invalid"),
     JWT_EXPIRED("jwt_expired"),
     INVALID_FORMAT("invalid_format"),
     CREDENTIAL_EXPIRED("credential_expired"),
@@ -63,7 +70,13 @@ public enum VerificationErrorResponseCodeDto {
     INVALID_PRESENTATION_DEFINITION("invalid_presentation_definition"),
     MALFORMED_CREDENTIAL("malformed_credential"),
     PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED("presentation_submission_constraint_violated"),
-    INVALID_PRESENTATION_SUBMISSION("invalid_presentation_submission");
+    INVALID_PRESENTATION_SUBMISSION("invalid_presentation_submission"),
+    INVALID_SCOPE("invalid_scope"),
+    INVALID_REQUEST("invalid_request"),
+    INVALID_CLIENT("invalid_client"),
+    VP_FORMATS_NOT_SUPPORTED("vp_formats_not_supported"),
+    INVALID_PRESENTATION_DEFINITION_URI("invalid_presentation_definition_uri"),
+    INVALID_PRESENTATION_DEFINITION_REFERENCE("invalid_presentation_definition_reference");
 
     private final String displayName;
 
@@ -71,5 +84,10 @@ public enum VerificationErrorResponseCodeDto {
     @Override
     public String toString() {
         return this.displayName;
+    }
+
+    @JsonCreator
+    public static VerificationErrorResponseCodeDto fromString(String key) {
+        return key == null ? null : VerificationErrorResponseCodeDto.valueOf(key.toUpperCase());
     }
 }

@@ -6,10 +6,11 @@
 
 package ch.admin.bj.swiyu.verifier.service.management;
 
+import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.api.definition.*;
 import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.api.management.ResponseDataDto;
-import ch.admin.bj.swiyu.verifier.api.management.VerificationErrorResponseCodeDto;
+
 import ch.admin.bj.swiyu.verifier.api.management.VerificationStatusDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;

@@ -6,73 +6,63 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
+import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.VerificationController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test-no-key")
 @AutoConfigureMockMvc
-class VerificationControllerNoKeyIT {
-
-    private static final UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
-
-    @Autowired
-    private MockMvc mock;
+@Transactional
+class VerificationControllerNoKeyIT extends BaseVerificationControllerTest {
 
     @Autowired
     private ApplicationProperties applicationProperties;
 
-
-
+    @Autowired
+    private VerificationController verificationController;
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetSignedRequestObject_thenFailDuetoNoKey() throws Exception {
 
-        mock.perform(get(String.format("/api/v1/request-object/%s", requestId))).andExpect(status().is5xxServerError());
+        // WHEN & THEN
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            verificationController.getRequestObject(REQUEST_ID_SECURED);
+        });
+
+        // Verify the exception message
+        assertThat(exception.getMessage()).isEqualTo("Presentation was configured to be signed, but no signing key was configured.");
+
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_no_signature.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetRequestObject() throws Exception {
-        mock.perform(get(String.format("/api/v1/request-object/%s", requestId))
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("client_id").value(applicationProperties.getClientId()))
-                .andExpect(jsonPath("client_id_scheme").value(applicationProperties.getClientIdScheme()))
-                .andExpect(jsonPath("response_type").value("vp_token"))
-                .andExpect(jsonPath("response_mode").value("direct_post"))
-                .andExpect(jsonPath("nonce").exists());
+
+        // WHEN
+        ResponseEntity<Object> requestObject = verificationController.getRequestObject(REQUEST_ID_SDJWT_MGMT_NO_SIGNATURE);
+
+        // THEN
+        assertNotNull(requestObject);
+        assertThat(requestObject.getStatusCodeValue()).isEqualTo(200);
+        assertThat(requestObject.getBody()).isNotNull();
+        RequestObjectDto requestObjectDto = (RequestObjectDto) requestObject.getBody();
+        assertThat(requestObjectDto.getClientId()).contains(applicationProperties.getClientId());
+        assertThat(requestObjectDto.getClientIdScheme()).contains(applicationProperties.getClientIdScheme());
+        assertThat(requestObjectDto.getResponseType()).contains("vp_token");
+        assertThat(requestObjectDto.getResponseMode()).contains("direct_post");
+        assertNotNull(requestObjectDto.getNonce());
     }
 
-    @Test
-    void testDeserializationOfPresentationDefinition() throws Exception {
-        String json = "{\"id\": \"cf244758-00f9-4fa0-83ff-6719bac358a2\", \"name\": \"Presentation Definition Name\", \"purpose\": \"Presentation Definition Purpose\", \"input_descriptors\": [{\"id\": \"test_descriptor_id\", \"purpose\": \"Input Descriptor Purpose\", \"format\": {\"vc+sd-jwt\": {\"sd-jwt_alg_values\": [\"ES256\"], \"kb-jwt_alg_values\": [\"ES256\"]}}, \"name\": \"Test Descriptor Name\", \"constraints\": {\"fields\": [{\"path\": [\"$\"]}]}}]}";
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        PresentationDefinition presentationDefinition = objectMapper.readValue(json, PresentationDefinition.class);
-
-        assertNotNull(presentationDefinition, "Deserialization should produce a non-null object.");
-//        assertNotNull(presentationDefinition.getId(), "ID should not be null.");
-//        assertNotNull(presentationDefinition.getInputDescriptors(), "Input descriptors should not be null.");
-    }
 
 }

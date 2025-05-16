@@ -6,7 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.management.service;
 
-import ch.admin.bj.swiyu.verifier.api.management.VerificationErrorResponseCodeDto;
+
+import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;

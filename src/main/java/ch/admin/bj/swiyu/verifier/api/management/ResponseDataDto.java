@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.api.management;
 
+import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 

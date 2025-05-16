@@ -78,12 +78,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-class VerificationControllerIT {
+class VerificationControllerIT extends BaseVerificationControllerTest{
 
-    private static final UUID requestId_expired = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee1");
-    private static final UUID requestId_no_accepted_issuers = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee2");
-    private static final UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
-    private static final String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
     private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -101,60 +97,9 @@ class VerificationControllerIT {
     @MockitoBean
     private StatusListResolverAdapter mockedStatusListResolverAdapter;
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    private UrlRewriteProperties urlRewriteProperties;
-
-    @BeforeTestClass
-    void setUp() throws JsonProcessingException {
-        Management management1 = Management.builder()
-                .id(requestId_expired)
-                .jwtSecuredAuthorizationRequest(true)
-                .requestNonce(NONCE_SD_JWT_SQL)
-                .state(PENDING)
-                .requestedPresentation(presentationDefinition())
-                .walletResponse(null)
-                .expirationInSeconds(86400)
-                .expiresAt(0)
-                .acceptedIssuerDids("TEST_ISSUER_ID")
-                .build();
-        managementEntityRepository.save(management1);
-
-        Management management2 = Management.builder()
-                .id(requestId_no_accepted_issuers)
-                .jwtSecuredAuthorizationRequest(true)
-                .requestNonce(NONCE_SD_JWT_SQL)
-                .state(PENDING)
-                .requestedPresentation(presentationDefinition())
-                .walletResponse(null)
-                .expirationInSeconds(86400)
-                .expiresAt(4070908800000L)
-                .build();
-        managementEntityRepository.save(management2);
-
-        Management management3 = Management.builder()
-                .id(requestId)
-                .jwtSecuredAuthorizationRequest(true)
-                .requestNonce(NONCE_SD_JWT_SQL)
-                .state(PENDING)
-                .requestedPresentation(presentationDefinition())
-                .walletResponse(null)
-                .expirationInSeconds(86400)
-                .expiresAt(4070908800000L)
-                .acceptedIssuerDids("TEST_ISSUER_ID")
-                .build();
-
-        entityManager.persist(management3);
-        entityManager.flush();
-
-    }
 
     @Test
-//    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_expired.sql")
-//    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnExpiredManagementObject() throws Exception {
-
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
@@ -165,7 +110,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId_expired))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_EXPIRED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -173,8 +118,6 @@ class VerificationControllerIT {
     }
 
     @Test
-//    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-//    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnNotAcceptedIssuer() throws Exception {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock("suspicious_issuer_id", "suspicious_issuer_id#key-1");
         var sdJWT = emulator.createSDJWTMock();
@@ -185,7 +128,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -194,8 +137,6 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_mgmt_without_accepted_issuers.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedOnNoAcceptedIssuers() throws Exception {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock("some_issuer_id", "some_issuer_id#key-1");
         var sdJWT = emulator.createSDJWTMock();
@@ -206,7 +147,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_WITHOUT_ACCEPTED_ISSUER))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -214,10 +155,8 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldGetRequestObject() throws Exception {
-        mock.perform(get(String.format("/api/v1/request-object/%s", requestId))
+        mock.perform(get(String.format("/api/v1/request-object/%s", REQUEST_ID_SECURED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
@@ -233,7 +172,7 @@ class VerificationControllerIT {
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
-                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/api/v1/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId));
+                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/api/v1/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
 
                     var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
                     assertThat(presentationDefinition.get("id")).isNotNull();
@@ -265,34 +204,28 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldAcceptRefusalIWithValidErrorType() throws Exception {
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isOk());
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
 
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailWhenRefusalWithInvalidErrorTypeIs() throws Exception {
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .formField("error", "non_existing_Type")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isBadRequest());
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
 
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldRespond404onGetRequestObject() throws Exception {
         UUID notExistingRequestId = UUID.fromString("00000000-0000-0000-0000-000000000000");
         mock.perform(get(String.format("/request-object/%s", notExistingRequestId)))
@@ -300,8 +233,6 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -313,20 +244,18 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "2"})
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess(String input) throws Exception {
         Integer statusListIndex = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
@@ -351,20 +280,18 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isOk()).andReturn();
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
     @ParameterizedTest
     @CsvSource(value = {"0:credential_revoked", "1:credential_suspended", "3:credential_revoked"}, delimiter = ':')
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenFail(String input, String errorCodeName) throws Exception {
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
@@ -389,21 +316,19 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest()).andReturn();
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         var errorCode = managementEntity.getWalletResponse().errorCode().getJsonValue();
         assertThat(errorCode).isEqualTo(errorCodeName);
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void twoTimesSameDisclosures_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -420,7 +345,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -428,13 +353,11 @@ class VerificationControllerIT {
                 .andExpect(jsonPath("$.error").value("invalid_credential"))
                 .andExpect(jsonPath("$.error_description").value("Request contains non-distinct disclosures"));
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_different_algs.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void wrongAlgorithm_thenError() throws Exception {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -445,14 +368,14 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        var response = mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        var response = mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_DIFFERENT_ALGS))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_DIFFERENT_ALGS).orElseThrow();
 
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
 
@@ -464,8 +387,6 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_different_kb_algs.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void wrongKeyBindingAlgorithm_thenError() throws Exception {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -475,14 +396,14 @@ class VerificationControllerIT {
         String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
         mockDidResolverResponse(emulator);
 
-        var response = mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        var response = mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_DIFFERENT_KB_ALGS))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_DIFFERENT_KB_ALGS).orElseThrow();
 
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
 
@@ -494,8 +415,6 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void notYetValid_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -508,7 +427,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -516,13 +435,11 @@ class VerificationControllerIT {
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT credential is not yet valid"));
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void sdJWTExpired_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -536,7 +453,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -544,13 +461,11 @@ class VerificationControllerIT {
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT credential is expired"));
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void sdJWTAdditionalDisclosure_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -565,7 +480,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -573,13 +488,11 @@ class VerificationControllerIT {
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT problem with disclosures and _sd field"));
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_proof.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldSucceedVerifyingNestedSDJWTCredentialSD_thenSuccess() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -592,19 +505,17 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailVerifyingCredentialOnInvalidStatuslistSignature_thenError() throws Exception {
         Integer statusListIndex = Integer.parseInt("2");
         // GIVEN
@@ -631,7 +542,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -642,8 +553,6 @@ class VerificationControllerIT {
 
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldVerifyingSDJWTCredentialSDWithDifferentPrivKey_thenException() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock(new ECKeyGenerator(Curve.P_256).generate());
@@ -655,7 +564,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -665,8 +574,6 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void wrongPresentationSubmission_emptyList_thenException() throws Exception {
 
         ObjectMapper mapper = new ObjectMapper();
@@ -679,7 +586,7 @@ class VerificationControllerIT {
 
         String presentationSubmission = mapper.writeValueAsString(submission);
 
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -689,8 +596,6 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void wrongPresentationSubmission_emptyObject_thenException() throws Exception {
 
         ObjectMapper mapper = new ObjectMapper();
@@ -703,7 +608,7 @@ class VerificationControllerIT {
 
         String presentationSubmission = mapper.writeValueAsString(submission).replace("[]", "[{}]");
 
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -713,8 +618,6 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void sendIdxOutOfStatusListBounds_thenException() throws Exception {
 
         // GIVEN
@@ -733,7 +636,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -742,13 +645,11 @@ class VerificationControllerIT {
                 .andExpect(jsonPath("error_description", containsString("The VC cannot be validated as the remote list does not contain this VC!")))
                 .andReturn();
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void statusListResponseBodyTooBig_thenException() throws Exception {
 
         // GIVEN
@@ -765,7 +666,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -774,15 +675,13 @@ class VerificationControllerIT {
                 .andExpect(jsonPath("error_description", containsString(expectedErrorMesssage)))
                 .andReturn();
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertThat(managementEntity.getWalletResponse().errorCode()).isEqualTo(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST);
     }
 
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void expiredProof_thenException() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -794,13 +693,13 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest());
 
-        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
@@ -822,40 +721,6 @@ class VerificationControllerIT {
             throw new AssertionError(e);
         }
 
-    }
-
-    private PresentationDefinition presentationDefinition() throws JsonProcessingException {
-        return objectMapper.readValue(presentationDefinitionJson(), PresentationDefinition.class);
-    }
-
-    private static String presentationDefinitionJson() {
-        return """
-                {
-                  "id": "cf244758-00f9-4fa0-83ff-6719bac358a2",
-                  "name": "Presentation Definition Name",
-                  "purpose": "Presentation Definition Purpose",
-                  "input_descriptors": [
-                    {
-                      "id": "test_descriptor_id",
-                      "purpose": "Input Descriptor Purpose",
-                      "format": {
-                        "vc+sd-jwt": {
-                          "sd-jwt_alg_values": ["ES256"],
-                          "kb-jwt_alg_values": ["ES256"]
-                        }
-                      },
-                      "name": "Test Descriptor Name",
-                      "constraints": {
-                        "fields": [
-                          {
-                            "path": ["$"]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-                """;
     }
 
 }

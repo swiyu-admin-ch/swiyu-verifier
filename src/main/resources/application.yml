@@ -36,10 +36,20 @@ application:
 
   url-rewrite:
     mapping: "${URL_REWRITE_MAPPING:{}}"
-
   accepted-status-list-hosts:
     - "status-reg.trust-infra.swiyu-int.admin.ch"
     - "status-reg.trust-infra.swiyu.admin.ch"
+
+  # ---- OpenID4VP Part ----
+
+  # TTL is set to 900 seconds -> 15 minutes
+  verification-ttl: ${VERIFICATION_TTL_SEC:900}
+  # Clearing interval is set to 60k * 7 = 420k -> 7minutes
+  # to make sure the data is cleared before the TTL expires
+  # which is more than twice as long
+  data-clear-interval: ${DATA_CLEAR_PROCESS_INTERVAL_MS:420000}
+  oid4vp-url: "${OID4VP_URL}"
+
 verification:
   # the acceptable window of the issued at claim for verification - used for determining if the holder key binding proof jwt is valid
   acceptable-proof-time-window-seconds: ${VERIFICATION_PROOF_TIME_WINDOW_MS:120}
@@ -87,15 +97,6 @@ management:
     web:
       exposure:
         include: health, info, prometheus
-
-application:
-  # TTL is set to 900 seconds -> 15 minutes
-  verification-ttl: ${VERIFICATION_TTL_SEC:900}
-  # Clearing interval is set to 60k * 7 = 420k -> 7minutes
-  # to make sure the data is cleared before the TTL expires
-  # which is more than twice as long
-  data-clear-interval: ${DATA_CLEAR_PROCESS_INTERVAL_MS:420000}
-  oid4vp-url: "${OID4VP_URL}"
 
 logging:
   level:

@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.management.test.fixtures;
 
-import ch.admin.bj.swiyu.verifier.management.api.definition.*;
-import ch.admin.bj.swiyu.verifier.management.api.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.api.definition.*;
+import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
 import lombok.experimental.UtilityClass;
 
 import java.util.*;

@@ -12,9 +12,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import ch.admin.bj.swiyu.verifier.management.api.definition.FieldDto;
-import ch.admin.bj.swiyu.verifier.management.api.definition.FormatAlgorithmDto;
-import ch.admin.bj.swiyu.verifier.management.domain.management.VerificationStatus;
+import ch.admin.bj.swiyu.verifier.api.definition.FieldDto;
+import ch.admin.bj.swiyu.verifier.api.definition.FormatAlgorithmDto;
+import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,6 @@ import org.springframework.test.web.servlet.MvcResult;
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-@AutoConfigureTestDatabase(connection = EmbeddedDatabaseConnection.H2)
 class VerifierManagementControllerIT {
 
     private static final String BASE_URL = "/api/v1/verifications";

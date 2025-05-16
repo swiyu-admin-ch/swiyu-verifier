@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.eid.didresolver.DidResolveException;

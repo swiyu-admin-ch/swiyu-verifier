@@ -6,17 +6,20 @@
 
 package ch.admin.bj.swiyu.verifier.management.service;
 
-import ch.admin.bj.swiyu.verifier.management.api.management.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.management.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.management.domain.exception.VerificationNotFoundException;
-import ch.admin.bj.swiyu.verifier.management.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.management.domain.management.ResponseData;
-import ch.admin.bj.swiyu.verifier.management.domain.management.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.management.domain.management.VerificationStatus;
+import ch.admin.bj.swiyu.verifier.api.management.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseData;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.test.context.ActiveProfiles;
@@ -32,10 +35,11 @@ import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ManagementFixt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-@Import({ManagementService.class, ApplicationProperties.class})
-@DataJpaTest
-@EnableJpaAuditing
+
 @ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@AutoConfigureMockMvc
+@Import({ManagementService.class, ApplicationProperties.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED) // we don't want the tests to start in a transaction by default
 class ManagementServiceIT {
 

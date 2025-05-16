@@ -6,19 +6,21 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationError;
-import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
+
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.service.VerifiableCredentialExtractor.getPathToSupportedCredential;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.VerifiableCredentialExtractor.getPathToSupportedCredential;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.CredentialSubmissionFixtures.*;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementEntityFixtures.managementEntity;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementFixtures.managementEntity;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

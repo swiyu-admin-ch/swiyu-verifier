@@ -6,8 +6,10 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.common.json;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.RequestObjectMapper;
+import ch.admin.bj.swiyu.verifier.common.json.ValidJsonPathValidator;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintValidatorContext;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
@@ -20,8 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.presentationDefinitionWithFields;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class ValidJsonPathValidatorTest {
@@ -122,6 +123,7 @@ public class ValidJsonPathValidatorTest {
             assertFalse(violations.isEmpty(), "Validation should fail with errors.");
         }
     }
+
 
     private PresentationDefinition createPresentationDefinition() {
         HashMap<String, PresentationDefinition.FormatAlgorithm> formats = new HashMap<>();

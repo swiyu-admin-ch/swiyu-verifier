@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.management.test.fixtures;
 
-import ch.admin.bj.swiyu.verifier.management.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.management.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 
 import java.util.HashMap;
 import java.util.List;

@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.common.config;
 
+import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

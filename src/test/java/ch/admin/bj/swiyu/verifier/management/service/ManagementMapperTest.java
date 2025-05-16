@@ -6,15 +6,15 @@
 
 package ch.admin.bj.swiyu.verifier.management.service;
 
-import ch.admin.bj.swiyu.verifier.management.api.definition.*;
-import ch.admin.bj.swiyu.verifier.management.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.api.definition.*;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.verifier.management.service.ManagementMapper.toManagementResponseDto;
-import static ch.admin.bj.swiyu.verifier.management.service.ManagementMapper.toPresentationDefinition;
+import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toManagementResponseDto;
+import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toPresentationDefinition;
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.presentationDefinitionDto;
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ManagementFixtures.management;
 import static org.assertj.core.api.Assertions.assertThat;

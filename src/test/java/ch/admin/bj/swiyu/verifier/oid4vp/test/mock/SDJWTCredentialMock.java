@@ -14,9 +14,9 @@ import java.util.*;
 
 import static java.util.Objects.nonNull;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.DescriptorDto;
-import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.SdjwtCredentialVerifier;
+import ch.admin.bj.swiyu.verifier.api.submission.DescriptorDto;
+import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;

@@ -6,7 +6,7 @@ services:
   postgres:
     image: postgres:15.8
     environment:
-      POSTGRES_USER: "verifier_validator_user"
+      POSTGRES_USER: "verifier_user"
       POSTGRES_PASSWORD: "secret"
       POSTGRES_DB: "verifier_db"
     ports:

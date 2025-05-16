@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import lombok.experimental.UtilityClass;
 
@@ -14,15 +14,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.domain.management.PresentationDefinition.*;
+import static ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
 
 @UtilityClass
 public class PresentationDefinitionFixtures {
 
     public static PresentationDefinition sdwjtPresentationDefinition(UUID requestId) {
-        var formats = Map.of("vc+sd-jwt", FormatAlgorithm.builder()
-                .keyBindingAlg(List.of("ES256"))
-                .alg(List.of("ES256")).build());
+        var formats = Map.of("vc+sd-jwt", new FormatAlgorithm(
+                List.of("ES256"),
+                List.of("ES256")));
 
         return presentationDefinitionWithFields(
                 requestId,
@@ -37,9 +37,9 @@ public class PresentationDefinitionFixtures {
     }
 
     public static PresentationDefinition sdwjtPresentationDefinition(UUID requestId, List<String> requiredFields) {
-        var formats = Map.of("vc+sd-jwt", FormatAlgorithm.builder()
-                .keyBindingAlg(List.of("ES256"))
-                .alg(List.of("ES256")).build());
+        var formats = Map.of("vc+sd-jwt", new FormatAlgorithm(
+                List.of("ES256"),
+                List.of("ES256")));
 
         return presentationDefinition(requestId, requiredFields, null, formats);
     }

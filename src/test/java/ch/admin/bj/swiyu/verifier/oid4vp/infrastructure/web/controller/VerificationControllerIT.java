@@ -6,6 +6,51 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
+import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
+import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import com.authlete.sd.Disclosure;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
+import com.nimbusds.jwt.SignedJWT;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.annotation.BeforeTestClass;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -13,7 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.api.VerificationErrorDto.INVALID_CREDENTIAL;
+import static ch.admin.bj.swiyu.verifier.api.VerificationErrorDto.INVALID_CREDENTIAL;
+import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.getMultiplePresentationSubmissionString;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.getPresentationSubmissionString;
@@ -28,55 +74,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.api.submission.PresentationSubmissionDto;
-import ch.admin.bj.swiyu.verifier.oid4vp.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.DidResolverException;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListMaxSizeExceededException;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.ManagementEntityRepository;
-import ch.admin.bj.swiyu.verifier.oid4vp.domain.management.VerificationStatus;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.statuslist.StatusListResolverAdapter;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
-import com.authlete.sd.Disclosure;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
-import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
-import com.nimbusds.jwt.SignedJWT;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.web.servlet.MockMvc;
-
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
+@Transactional
 class VerificationControllerIT {
 
+    private static final UUID requestId_expired = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee1");
+    private static final UUID requestId_no_accepted_issuers = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee2");
     private static final UUID requestId = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
     private static final String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
     private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Autowired
     private MockMvc mock;
     @Autowired
-    private ManagementEntityRepository managementEntityRepository;
+    private ManagementRepository managementEntityRepository;
     @Autowired
     private ApplicationProperties applicationProperties;
     @Autowired
@@ -86,13 +101,61 @@ class VerificationControllerIT {
     @MockitoBean
     private StatusListResolverAdapter mockedStatusListResolverAdapter;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private UrlRewriteProperties urlRewriteProperties;
 
+    @BeforeTestClass
+    void setUp() throws JsonProcessingException {
+        Management management1 = Management.builder()
+                .id(requestId_expired)
+                .jwtSecuredAuthorizationRequest(true)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .requestedPresentation(presentationDefinition())
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(0)
+                .acceptedIssuerDids("TEST_ISSUER_ID")
+                .build();
+        managementEntityRepository.save(management1);
+
+        Management management2 = Management.builder()
+                .id(requestId_no_accepted_issuers)
+                .jwtSecuredAuthorizationRequest(true)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .requestedPresentation(presentationDefinition())
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .build();
+        managementEntityRepository.save(management2);
+
+        Management management3 = Management.builder()
+                .id(requestId)
+                .jwtSecuredAuthorizationRequest(true)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .requestedPresentation(presentationDefinition())
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .acceptedIssuerDids("TEST_ISSUER_ID")
+                .build();
+
+        entityManager.persist(management3);
+        entityManager.flush();
+
+    }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_expired.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+//    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt_expired.sql")
+//    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnExpiredManagementObject() throws Exception {
+
+
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
@@ -102,7 +165,7 @@ class VerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId))
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", requestId_expired))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -110,8 +173,8 @@ class VerificationControllerIT {
     }
 
     @Test
-    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
-    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
+//    @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = "/insert_sdjwt_mgmt.sql")
+//    @Sql(executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD, scripts = "/delete_mgmt.sql")
     void shouldFailOnNotAcceptedIssuer() throws Exception {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock("suspicious_issuer_id", "suspicious_issuer_id#key-1");
         var sdJWT = emulator.createSDJWTMock();
@@ -223,7 +286,7 @@ class VerificationControllerIT {
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isBadRequest());
         var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.PENDING);
+        assertThat(managementEntity.getState()).isEqualTo(PENDING);
 
     }
 
@@ -760,4 +823,39 @@ class VerificationControllerIT {
         }
 
     }
+
+    private PresentationDefinition presentationDefinition() throws JsonProcessingException {
+        return objectMapper.readValue(presentationDefinitionJson(), PresentationDefinition.class);
+    }
+
+    private static String presentationDefinitionJson() {
+        return """
+                {
+                  "id": "cf244758-00f9-4fa0-83ff-6719bac358a2",
+                  "name": "Presentation Definition Name",
+                  "purpose": "Presentation Definition Purpose",
+                  "input_descriptors": [
+                    {
+                      "id": "test_descriptor_id",
+                      "purpose": "Input Descriptor Purpose",
+                      "format": {
+                        "vc+sd-jwt": {
+                          "sd-jwt_alg_values": ["ES256"],
+                          "kb-jwt_alg_values": ["ES256"]
+                        }
+                      },
+                      "name": "Test Descriptor Name",
+                      "constraints": {
+                        "fields": [
+                          {
+                            "path": ["$"]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                """;
+    }
+
 }

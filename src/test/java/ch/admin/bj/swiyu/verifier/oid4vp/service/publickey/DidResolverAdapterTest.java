@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service.publickey;
 
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

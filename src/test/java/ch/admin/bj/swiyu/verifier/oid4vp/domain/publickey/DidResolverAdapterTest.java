@@ -10,9 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-import ch.admin.bj.swiyu.verifier.oid4vp.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.DidResolverException;
-import ch.admin.bj.swiyu.verifier.oid4vp.service.publickey.DidResolverAdapter;
+import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

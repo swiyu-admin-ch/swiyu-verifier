@@ -34,12 +34,12 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 @UtilityClass
 public class ManagementMapper {
 
-    public static ManagementResponseDto toManagementResponseDto(final Management management, final String oid4vpUrl) {
+    public static ManagementResponseDto toManagementResponseDto(final Management management, final String extUrl) {
         if (management == null) {
             throw new IllegalArgumentException("Management must not be null");
         }
 
-        var verificationUrl = String.format("%s/api/v1/request-object/%s", oid4vpUrl, management.getId());
+        var verificationUrl = String.format("%s/api/v1/request-object/%s", extUrl, management.getId());
         return new ManagementResponseDto(
                 management.getId(),
                 management.getRequestNonce(),

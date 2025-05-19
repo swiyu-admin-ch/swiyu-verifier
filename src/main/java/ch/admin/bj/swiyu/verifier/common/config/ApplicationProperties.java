@@ -24,9 +24,6 @@ public class ApplicationProperties {
     private Integer verificationTTL;
 
     @NotNull
-    private String oid4vpUrl;
-
-    @NotNull
     private String externalUrl;
 
     @NotNull

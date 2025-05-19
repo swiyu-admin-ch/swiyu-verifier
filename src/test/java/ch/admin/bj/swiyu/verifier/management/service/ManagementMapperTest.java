@@ -23,14 +23,14 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 
 class ManagementMapperTest {
 
-    private static final String OID4VP_URL = "https://example.com";
+    private static final String EXTERNAL_URL = "https://example.com";
 
     @Test
     void toManagementResponseDtoTest() {
         // GIVEN
         var mgmt = management();
         // WHEN
-        var dto = toManagementResponseDto(mgmt, OID4VP_URL);
+        var dto = toManagementResponseDto(mgmt, EXTERNAL_URL);
         // THEN
         assertNotNull(dto);
         assertEquals(mgmt.getId(), dto.id());
@@ -43,7 +43,7 @@ class ManagementMapperTest {
         assertEqualFormat(mgmt.getRequestedPresentation().format(), dto.presentationDefinition().format());
         assertEqualInputDescriptors(mgmt.getRequestedPresentation().inputDescriptors(), dto.presentationDefinition().inputDescriptors());
         assertNull(dto.walletResponse());
-        String expectedVerificationUrl = "%s/api/v1/request-object/%s".formatted(OID4VP_URL, mgmt.getId());
+        String expectedVerificationUrl = "%s/api/v1/request-object/%s".formatted(EXTERNAL_URL, mgmt.getId());
         assertEquals(expectedVerificationUrl, dto.verificationUrl());
     }
 

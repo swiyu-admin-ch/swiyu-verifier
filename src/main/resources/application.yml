@@ -48,7 +48,6 @@ application:
   # to make sure the data is cleared before the TTL expires
   # which is more than twice as long
   data-clear-interval: ${DATA_CLEAR_PROCESS_INTERVAL_MS:420000}
-  oid4vp-url: "${OID4VP_URL}"
 
 verification:
   # the acceptable window of the issued at claim for verification - used for determining if the holder key binding proof jwt is valid

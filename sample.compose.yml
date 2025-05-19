@@ -16,21 +16,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  verifier-agent-management:
-    image: ghcr.io/swiyu-admin-ch/eidch-verifier-agent-management:latest
-    environment:
-      OID4VP_URL: ${OID4VP_URL}
-      # Persistence
-      POSTGRES_USER: "verifier_user"
-      POSTGRES_PASSWORD: "secret"
-      POSTGRES_DB: "verifier_db"
-      POSTGRES_JDBC: "jdbc:postgresql://verifier_postgres:5432/verifier_db"
-    ports:
-      - "8082:8080"
-    depends_on:
-      - verifier_postgres
-  verifier-agent-oid4vp:
-    image: ghcr.io/swiyu-admin-ch/eidch-verifier-agent-oid4vp:latest
+  verifier-service:
+    image: ghcr.io/swiyu-admin-ch/swiyu-verifier-service:latest
     configs:
       - source: verifier_metadata
         target: /verifier_metadata.json

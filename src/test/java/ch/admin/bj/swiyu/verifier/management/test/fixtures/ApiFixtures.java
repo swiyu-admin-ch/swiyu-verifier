@@ -40,8 +40,7 @@ public class ApiFixtures {
                         null,
                         null,
                         null,
-                        new ArrayList<>(List.of(new FieldDto(List.of("string"), null, null, null, null))),
-                        null
+                        new ArrayList<>(List.of(new FieldDto(List.of("string"), null, null, null, null)))
                 )
         );
         return new CreateVerificationManagementDto(
@@ -113,8 +112,7 @@ public class ApiFixtures {
                 null,
                 null,
                 format,
-                new ArrayList<>(List.of(fieldDto(List.of()))),
-                null
+                new ArrayList<>(List.of(fieldDto(List.of())))
         );
     }
 

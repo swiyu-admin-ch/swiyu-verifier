@@ -9,7 +9,7 @@ spring:
     compose:
       enabled: false
   application:
-    name: verifier-agent
+    name: swiyu-verifier-service
   cloud:
     kubernetes:
       config:

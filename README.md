@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 
 ![github-banner](https://github.com/swiyu-admin-ch/swiyu-admin-ch.github.io/blob/main/assets/images/github-banner.jpg)
 
-// TODO gaga: merge the readme files into one, and remove the duplicated content
+// TODO gapa: merge the readme files into one, and remove the duplicated content
 
 # Generic Verifier Management & Validator Services
 

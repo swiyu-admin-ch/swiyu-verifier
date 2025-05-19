@@ -36,12 +36,7 @@ public record ConstraintDto(
         @Schema(description = "Selection which properties are requested of the holder", example = """
                 [{"path": ["$.vct"],"filter":{"type": "string","const":"test-sdjwt"}},{"path":["$.dateOfBirth"]}]
                 """)
-        List<@Valid FieldDto> fields,
-
-        @NullOrValues(values = {"required", "preferred"}, message = "must be null or preferred or required")
-        @JsonProperty("limit_disclosure")
-        @Schema(description = "(Optional) If present has to be required or preferred.", example = "required")
-        String limitDisclosure
+        List<@Valid FieldDto> fields
 ) {
 
 }

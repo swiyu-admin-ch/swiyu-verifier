@@ -27,7 +27,6 @@ import java.util.Map;
  * <p>
  * See <a href="https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition">presentation-definition</a>
  */
-// TODO gapa: remove builder and use constructor instead?
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Builder
 public record PresentationDefinition(

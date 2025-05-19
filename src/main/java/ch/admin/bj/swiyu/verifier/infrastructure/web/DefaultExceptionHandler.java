@@ -46,13 +46,6 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 @Slf4j
 public class DefaultExceptionHandler extends ResponseEntityExceptionHandler {
 
-    // TODO gapa: remove if not needed
-//    @ExceptionHandler(Exception.class)
-//    protected ResponseEntity<ApiErrorDto> handleGeneralException(final Exception exception, final HttpServletRequest request) {
-//        log.error("Unkown exception for URL {}", request.getRequestURL(), exception);
-//        return new ResponseEntity<>(new ApiErrorDto(INTERNAL_SERVER_ERROR, "Internal Server Error. Please check again later"), INTERNAL_SERVER_ERROR);
-//    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleException(Exception e, HttpServletRequest r) {
         if (e instanceof HttpRequestMethodNotSupportedException) {

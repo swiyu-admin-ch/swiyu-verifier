@@ -75,7 +75,6 @@ public class Management {
     @Column(name = "accepted_issuer_dids")
     private String acceptedIssuerDids;
 
-//    // TODO gapa: delete?
     public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids) {
         this.id = id;
         this.state = VerificationStatus.PENDING;

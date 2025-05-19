@@ -127,8 +127,7 @@ public class ManagementMapper {
                 source.name(),
                 source.purpose(),
                 toFormatAlgorithmDtoMap(source.format()),
-                toFieldDto(source.fields()),
-                /* needs clarification: what is limitDisclosure for and how should it be mapped */ null);
+                toFieldDto(source.fields()));
     }
 
     private static List<FieldDto> toFieldDto(List<Field> source) {

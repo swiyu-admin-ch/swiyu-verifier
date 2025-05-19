@@ -19,8 +19,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties
 @ConfigurationPropertiesScan
 @Slf4j
-@EnableScheduling // TODO gapa do we need?
-@EnableSchedulerLock(defaultLockAtMostFor = "5m") // TODO gapa do we need?
+@EnableScheduling
+@EnableSchedulerLock(defaultLockAtMostFor = "5m")
 public class Application {
 
     public static void main(String[] args) {

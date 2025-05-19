@@ -66,8 +66,7 @@ public class RequestObjectMapper {
                 source.name(),
                 source.purpose(),
                 toFormatAlgorithmDto(source.format()),
-                toFieldDto(source.fields()),
-                /* TODO: gapa needs clarification: what is limitDisclosure for and how should it be mapped */ null
+                toFieldDto(source.fields())
         );
     }
 

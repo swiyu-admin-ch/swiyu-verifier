@@ -144,30 +144,9 @@
             <version>${jna.version}</version>
         </dependency>
         <dependency>
-            <groupId>ch.admin.eid</groupId>
+            <groupId>io.github.swiyu-admin-ch</groupId>
             <artifactId>didresolver</artifactId>
             <version>${didresolver.version}</version>
-            <!--
-                Attention (scope system):
-
-                We provide this external lib via resource folder. This is an anti pattern, but any other
-                possibility to install multiple (!) jars to local repo do not work. E.g.
-
-                - Approach 1: mvn install:install-file
-                  -> https://stackoverflow.com/questions/31508421/maven-install-lifecycle-does-not-execute-validate
-                  -> reason: during validate phase one can not install dependencies since maven3. Solution would be
-            to
-                             run "mvn validate" before running "mvn install" but this won't work in BIT internal
-                             Pipeline
-                - Approach 2: local repo within pom.xml
-                    -> https://stackoverflow.com/a/28762617
-                    -> reason: doesn't work in BIT context with corporate maven settings. install always
-                       fails since corporate remote repository is first in order
-
-                ! TODO EID-1771: This is needs to be fixed by providing those libs via repository. !
-            -->
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/didresolver-${didresolver.version}.jar</systemPath>
         </dependency>
 
         <!-- SD-JWT -->

@@ -13,10 +13,6 @@ import java.util.Map;
 
 public class NullOrValidFormatAlgorithmValidator implements ConstraintValidator<NullOrValidFormatAlgorithm, Map<String, FormatAlgorithmDto>> {
 
-    // Public no-argument constructor
-    public NullOrValidFormatAlgorithmValidator() {
-    }
-
     @Override
     public boolean isValid(Map<String, FormatAlgorithmDto> format, ConstraintValidatorContext constraintValidatorContext) {
         if (format == null) {

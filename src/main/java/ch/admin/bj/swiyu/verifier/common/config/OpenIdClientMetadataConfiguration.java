@@ -38,7 +38,7 @@ public class OpenIdClientMetadataConfiguration {
     public void initOpenIdClientMetadata() throws IOException {
         var template = clientMetadataResource.getContentAsString(Charset.defaultCharset());
         Properties prop = new Properties();
-        prop.setProperty("CLIENT_ID", applicationProperties.getClientId());
+        prop.setProperty("VERIFIER_DID", applicationProperties.getClientId());
         PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
         var loadedTemplate = helper.replacePlaceholders(template, prop);
         openIdClientMetadata = objectMapper.readValue(loadedTemplate, Map.class);

@@ -9,7 +9,6 @@ application:
   client_id: "did:example:12345"
   client_id_scheme: "did"
   client-metadata-file: "classpath:client_metadata.json"
-  client-id: "did:example:running-local"
 
 spring:
   docker:

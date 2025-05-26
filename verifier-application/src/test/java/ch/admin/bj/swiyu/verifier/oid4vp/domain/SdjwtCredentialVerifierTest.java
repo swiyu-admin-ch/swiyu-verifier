@@ -6,26 +6,14 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain;
 
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
-import java.util.*;
-
-import static ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures.issuerDidDoc;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementFixtures.managementEntity;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.presentationDefinitionWithFields;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.sdwjtPresentationDefinition;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
-
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.eid.didresolver.DidResolveException;
 import ch.admin.eid.didtoolbox.TrustDidWebException;
 import com.authlete.sd.Disclosure;
@@ -43,6 +31,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
+import java.util.*;
+
+import static ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures.issuerDidDoc;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementFixtures.managementEntity;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.presentationDefinitionWithFields;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.sdwjtPresentationDefinition;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @ActiveProfiles("test")
 @SpringBootTest

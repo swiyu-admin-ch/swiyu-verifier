@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.common.exception;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -15,6 +16,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
+@Schema(name = "VerificationErrorResponseCode")
 public enum VerificationErrorResponseCode {
     CREDENTIAL_INVALID("credential_invalid"),
     JWT_EXPIRED("jwt_expired"),

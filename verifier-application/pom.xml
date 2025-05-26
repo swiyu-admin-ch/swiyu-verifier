@@ -12,12 +12,11 @@
     <parent>
         <groupId>ch.admin.bj.swiyu</groupId>
         <artifactId>swiyu-verifier-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>swiyu-verifier-application</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <name>swiyu-verifier-application</name>
+    <name>Swiyu verifier-application - Spring-Boot-Application </name>
     <description>Generic verifier for public beta</description>
     <dependencies>
         <dependency>
@@ -249,8 +248,14 @@
             <groupId>ch.admin.bj.swiyu</groupId>
             <artifactId>swiyu-verifier-service</artifactId>
             <version>1.0.0-SNAPSHOT</version>
-
-
+        </dependency>
+        <!-- this is a test dependency, it is used to test the verifier service with the mocks defined in verifer-service-->
+        <dependency>
+            <groupId>ch.admin.bj.swiyu</groupId>
+            <artifactId>swiyu-verifier-service</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <!-- End Testing Tools -->
@@ -399,16 +404,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.2</version>
-                <configuration>
-                    <includes>
-                        <include>ch/admin/bj/swiyu/verifier/**/*.java</include>
-                    </includes>
-                </configuration>
             </plugin>
         </plugins>
 

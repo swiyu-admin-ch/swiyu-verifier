@@ -12,12 +12,11 @@
     <parent>
         <groupId>ch.admin.bj.swiyu</groupId>
         <artifactId>swiyu-verifier-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>swiyu-verifier-service</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <name>swiyu-verifier-service</name>
+    <name>Swiyu verifier-service business logic</name>
     <description>Generic verifier for public beta</description>
     <dependencies>
         <dependency>
@@ -25,49 +24,12 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
             <version>1.14.3</version>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- Tracing -->
+
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-brave</artifactId>
-        </dependency>
-        <!-- Flyway dependencies -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-        </dependency>
-        <!-- End Flyway dependencies -->
 
-
-        <!-- Database end -->
 
         <!-- JWT Library -->
         <dependency>
@@ -133,56 +95,6 @@
         </dependency>
         <!-- End SD-JWT -->
 
-        <!-- Cloud Kubernetes config -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-kubernetes-fabric8-config</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-bootstrap</artifactId>
-        </dependency>
-        <!-- End  Spring Cloud -->
-
-        <dependency>
-            <groupId>com.securosys.primus</groupId>
-            <artifactId>jce</artifactId>
-            <version>${primus-jce.version}</version>
-        </dependency>
-
-        <!-- Logging -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>${logstash-logback-encoder.version}</version>
-        </dependency>
-        <!-- End Logging -->
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-docker-compose</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -223,6 +135,17 @@
             <version>${archunit-junit5.verion}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <version>2.1.1</version> <!-- Use the latest version -->
+        </dependency>
+
 
         <!-- Shedlock dependencies -->
         <dependency>
@@ -246,36 +169,6 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
     </dependencies>
-    <!-- End Testing Tools -->
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud-dependencies.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <!-- fix CVE-2023-3635, delete once fabric8 is updated -->
-            <dependency>
-                <groupId>com.squareup.okio</groupId>
-                <artifactId>okio</artifactId>
-                <version>1.17.6</version>
-            </dependency>
-            <!-- end fix -->
-
-        </dependencies>
-    </dependencyManagement>
-
-    <profiles>
-        <profile>
-            <id>generate-doc</id>
-            <properties>
-                <skip.doc-generate>false</skip.doc-generate>
-            </properties>
-        </profile>
-    </profiles>
 
     <build>
         <plugins>
@@ -329,33 +222,6 @@
                         <id>repackage</id>
                         <phase>none</phase>
                     </execution>
-                    <execution>
-                        <goals>
-                            <goal>build-info</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <!-- Starting the Server to fetch OpenAPI Documentation -->
-                        <id>pre-documentation</id>
-                        <goals>
-                            <goal>start</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${skip.doc-generate}</skip>
-                            <profiles>
-                                <profile>local</profile>
-                            </profiles>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>post-documentation</id>
-                        <goals>
-                            <goal>stop</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${skip.doc-generate}</skip>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -372,51 +238,24 @@
                     </execution>
                 </executions>
             </plugin>
-<!--            <plugin>-->
-<!--&lt;!&ndash;                <groupId>org.apache.maven.plugins</groupId>&ndash;&gt;-->
-<!--&lt;!&ndash;                <artifactId>maven-failsafe-plugin</artifactId>&ndash;&gt;-->
-<!--            </plugin>-->
-            <!-- Requires the Server to be started to work, thus requires the pre- & post-documentation of spring-boot-maven-plugin-->
+
             <plugin>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-maven-plugin</artifactId>
-                <version>1.4</version>
-                <configuration>
-                    <attachArtifact>true</attachArtifact>
-                    <outputDir></outputDir>
-                    <outputFileName>openapi.yaml</outputFileName>
-                    <apiDocsUrl>http://localhost:8080/v3/api-docs.yaml</apiDocsUrl>
-                    <skip>${skip.doc-generate}</skip>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
-                        <id>documentation</id>
                         <goals>
-                            <goal>generate</goal>
+                            <goal>test-jar</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-surefire-plugin</artifactId>-->
-<!--                <version>3.5.2</version>-->
-<!--&lt;!&ndash;                <configuration>&ndash;&gt;-->
-<!--&lt;!&ndash;                    <includes>&ndash;&gt;-->
-<!--&lt;!&ndash;                        <include>ch/admin/bj/swiyu/verifier/**/*.java</include>&ndash;&gt;-->
-<!--&lt;!&ndash;                    </includes>&ndash;&gt;-->
-<!--&lt;!&ndash;                </configuration>&ndash;&gt;-->
-<!--            </plugin>-->
-<!--            <plugin>-->
-<!--                <groupId>org.springframework.boot</groupId>-->
-<!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>repackage</id>-->
-<!--                        <phase>none</phase>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
         </plugins>
 
     </build>

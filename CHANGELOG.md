@@ -8,4 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 1.0.0
 
 -   Initial Release
+-   All values for VerificationErrorResponseCode are now in lowercase (previously uppercase).
+    If you generate your classes from the API, it is recommended to regenerate them again.
+    Otherwise, you can ignore case sensitivity (uppercase/lowercase) in your mapping for VerificationErrorResponseCode.
   

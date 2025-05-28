@@ -38,6 +38,7 @@ services:
 
 configs:
   verifier_metadata:
+    # Verifier logo configuration guide: https://swiyu-admin-ch.github.io/cookbooks/vc-visual-presentation/#verifier-logo
     content: |
       {
         "client_id": "${VERIFIER_DID}",

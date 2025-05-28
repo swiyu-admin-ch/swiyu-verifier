@@ -75,8 +75,7 @@ public class RequestObjectDto {
                         "vp_formats": {
                             "jwt_vp": {
                                 "alg": [
-                                    "EdDSA",
-                                    "ES256K"
+                                    "ES256"
                                 ],
                             }
                         }

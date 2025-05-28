@@ -8,12 +8,9 @@ package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
@@ -38,20 +35,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.api.VerificationErrorDto.INVALID_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
@@ -61,7 +58,6 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.ge
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -73,14 +69,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-class VerificationControllerIT extends BaseVerificationControllerTest{
+class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @Value("${application.client-metadata-file}")
-    private Resource clientMetadataResource;
 
     @Autowired
     private MockMvc mock;
@@ -258,7 +251,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
         Integer statusListIndex = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT)))
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
                 .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
                         StatusListGenerator.SPEC_STATUS_LIST,
                         emulator.getKey(),
@@ -294,7 +287,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT)))
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
                 .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
                         StatusListGenerator.SPEC_STATUS_LIST,
                         emulator.getKey(),
@@ -380,8 +373,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
         var responseBody = response.getResponse().getContentAsString();
         assertThat(response.getResponse().getContentAsString())
                 .withFailMessage("Should have response body").isNotBlank();
-        assertThat(responseBody).contains(INVALID_CREDENTIAL.toString());
-        assertThat(responseBody).contains("Invalid algorithm");
+        assertThat(responseBody).contains(INVALID_CREDENTIAL.toString(), "Invalid algorithm");
     }
 
     @Test
@@ -408,8 +400,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
         var responseBody = response.getResponse().getContentAsString();
         assertThat(response.getResponse().getContentAsString())
                 .withFailMessage("Should have response body").isNotBlank();
-        assertThat(responseBody).contains(INVALID_CREDENTIAL.toString());
-        assertThat(responseBody).contains("holder_binding_mismatch");
+        assertThat(responseBody).contains(INVALID_CREDENTIAL.toString(), "holder_binding_mismatch");
     }
 
     @Test
@@ -518,7 +509,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
         Integer statusListIndex = Integer.parseInt("2");
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenAnswer(invocation -> {
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenAnswer(invocation -> {
             // holder key is not the one that should have signed the statuslist
             return createTokenStatusListTokenVerifiableCredential(
                     StatusListGenerator.SPEC_STATUS_LIST,
@@ -574,7 +565,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
     @Test
     void wrongPresentationSubmission_emptyList_thenException() throws Exception {
 
-        ObjectMapper mapper = new ObjectMapper();
         PresentationSubmissionDto submission = PresentationSubmissionDto.builder()
                 .id(UUID.randomUUID().toString())
                 .descriptorMap(List.of())
@@ -582,7 +572,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
 
         var vpToken = createVpToken();
 
-        String presentationSubmission = mapper.writeValueAsString(submission);
+        String presentationSubmission = objectMapper.writeValueAsString(submission);
 
         mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
@@ -596,7 +586,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
     @Test
     void wrongPresentationSubmission_emptyObject_thenException() throws Exception {
 
-        ObjectMapper mapper = new ObjectMapper();
         PresentationSubmissionDto submission = PresentationSubmissionDto.builder()
                 .id(UUID.randomUUID().toString())
                 .descriptorMap(List.of())
@@ -604,7 +593,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
 
         var vpToken = createVpToken();
 
-        String presentationSubmission = mapper.writeValueAsString(submission).replace("[]", "[{}]");
+        String presentationSubmission = objectMapper.writeValueAsString(submission).replace("[]", "[{}]");
 
         mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
@@ -620,7 +609,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
 
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT)))
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
                 .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
                         StatusListGenerator.SPEC_STATUS_LIST,
                         emulator.getKey(),
@@ -655,7 +644,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
         // ContetLengthInterceptor throws invalid argument exception if status list is too big
-        when(mockedStatusListResolverAdapter.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT)))
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
                 .thenThrow(new StatusListMaxSizeExceededException(expectedErrorMesssage));
 
         var sdJWT = emulator.createSDJWTMock(100);
@@ -720,7 +709,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest{
         return emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
     }
 
-    private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) throws Exception {
+    private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
             when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithMultikey(
                     sdjwt.getIssuerId(),

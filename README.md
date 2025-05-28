@@ -13,36 +13,19 @@ the [Swiss e-ID and trust infrastructure: Initial implementation](https://swiyu-
 Together with the other generic components provided, this software forms a collection of APIs allowing issuance and
 verification of verifiable credentials without the need of reimplementing the standards.
 
-The generic verifier service provides in its management interface the possibility to initiate a verification process and 
-in the oid4vp interface the necessary tools to verifiy a verifiable presentation.
+The generic verifier service provides in its management interface the possibility to initiate a verification process and
+in the oid4vp interface the necessary tools to verify a verifiable presentation.
 
-The management interface should be only accessible from inside the organization. Whereas the oid4vp interface needs to be accessible by the wallet.
+The management interface should be only accessible from inside the organization. Whereas the oid4vp interface needs to
+be accessible by the wallet.
 
 ## Table of Contents
 
-- [Overview](#Overview)
 - [Deployment](#deployment)
 - [Development](#development)
 - [Usage](#usage)
 - [Contributions and feedback](#contributions-and-feedback)
 - [License](#license)
-
-## Overview
-
-
-// TODO 
-```mermaid
-flowchart TD
-    issint[\Verifier Business System\]
-    isam(Verifier Management Service)
-    isdb[(Postgres)]
-    isoi(Verifier Validator Service)
-    wallet[Wallet]
-    issint ---> isam
-    isam ---> isdb
-    isoi ---> isdb
-    wallet ---> isoi
-```
 
 # Deployment
 
@@ -140,7 +123,7 @@ provided to the holder in order to submit a response to the verification request
 
 ```json
 {
-  "verification_url": "https://<EXTERNAL_URL verifieri agent oid4vp>/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
+    "verification_url": "https://<EXTERNAL_URL verifieri agent oid4vp>/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
 }
 ```
 
@@ -232,7 +215,6 @@ Note that for creating the keys it is expected that the public key is provided a
 | HSM_CONFIG_PATH               | File Path to the HSM config file when using [Sun PKCS11 provider](https://docs.oracle.com/en/java/javase/22/security/pkcs11-reference-guide1.html)                                         |
 | HSM_USER_PIN                  | PIN for getting keys from the HSM                                                                                                                                                          |
 
-
 ## Usage
 
 ### Perform a verification
@@ -254,21 +236,29 @@ In the following example we request to have the dateOfBirth revealed to us from 
             "name": "Example Data Request",
             "format": {
                 "vc+sd-jwt": {
-                    "sd-jwt_alg_values": ["ES256"],
-                    "kb-jwt_alg_values": ["ES256"]
+                    "sd-jwt_alg_values": [
+                        "ES256"
+                    ],
+                    "kb-jwt_alg_values": [
+                        "ES256"
+                    ]
                 }
             },
             "constraints": {
                 "fields": [
                     {
-                        "path": ["$.vct"],
+                        "path": [
+                            "$.vct"
+                        ],
                         "filter": {
                             "type": "string",
                             "const": "test-sdjwt"
                         }
                     },
                     {
-                        "path": ["$.dateOfBirth"]
+                        "path": [
+                            "$.dateOfBirth"
+                        ]
                     }
                 ]
             }

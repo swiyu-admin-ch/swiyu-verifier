@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.OpenIdClientMetadataConfiguration;
+import ch.admin.bj.swiyu.verifier.common.config.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationService;
 import io.micrometer.core.annotation.Timed;
@@ -28,7 +29,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -75,7 +75,7 @@ public class VerificationController {
                                     }
                             )
                     )})
-    public Map<String, Object> getOpenIdClientMetadata() {
+    public OpenidClientMetadataDto getOpenIdClientMetadata() {
         return openIdClientMetadataConfiguration.getOpenIdClientMetadata();
     }
 

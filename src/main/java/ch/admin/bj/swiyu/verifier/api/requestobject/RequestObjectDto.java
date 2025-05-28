@@ -7,13 +7,12 @@
 package ch.admin.bj.swiyu.verifier.api.requestobject;
 
 import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
+import ch.admin.bj.swiyu.verifier.common.config.OpenidClientMetadataDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
-
-import java.util.Map;
 
 /**
  * OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
@@ -72,9 +71,17 @@ public class RequestObjectDto {
                         "client_name#de": "German name (fallback)",
                         "client_name": "Fallback name",
                         "client_logo": "www.example.com/logo.png",
-                        "client_logo#fr": "www.example.com/logo_fr.png"
+                        "client_logo#fr": "www.example.com/logo_fr.png",
+                        "vp_formats": {
+                            "jwt_vp": {
+                                "alg": [
+                                    "EdDSA",
+                                    "ES256K"
+                                ],
+                            }
+                        }
                     }""")
-    private Map<String, Object> clientMetadata;
+    private OpenidClientMetadataDto clientMetadata;
 
     @JsonProperty("state")
     private String state;

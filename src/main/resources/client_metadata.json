@@ -7,5 +7,12 @@
   "client_name#de": "German name (fallback)",
   "client_name": "Fallback name",
   "logo_uri": "www.example.com/logo.png",
-  "logo_uri#fr": "www.example.com/logo_fr.png"
+  "logo_uri#fr": "www.example.com/logo_fr.png",
+  "vp_formats": {
+    "jwt_vp": {
+      "alg": [
+        "ES256"
+      ]
+    }
+  }
 }

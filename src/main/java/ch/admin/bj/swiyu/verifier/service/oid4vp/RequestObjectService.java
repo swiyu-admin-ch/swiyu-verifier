@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -41,6 +42,8 @@ public class RequestObjectService {
     private final ManagementRepository managementRepository;
     private final ObjectMapper objectMapper;
     private final SignerProvider signerProvider;
+
+    public static final JWSAlgorithm USED_JWS_ALGORITHM = JWSAlgorithm.ES256;
 
     @Transactional(readOnly = true)
     public Object assembleRequestObject(UUID managementEntityId) {
@@ -86,7 +89,7 @@ public class RequestObjectService {
         }
 
         var jwsHeader = new JWSHeader
-                .Builder(JWSAlgorithm.ES256)
+                .Builder(USED_JWS_ALGORITHM)
                 .keyID(applicationProperties.getSigningKeyVerificationMethod())
                 .type(new JOSEObjectType("oauth-authz-req+jwt")) //as specified in https://www.rfc-editor.org/rfc/rfc9101.html#section-10.8
                 .build();

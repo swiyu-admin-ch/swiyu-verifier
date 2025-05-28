@@ -48,5 +48,12 @@ configs:
         "client_name#de": "Entwicklungs-Demo-Verifizierer (Fallback DE)",
         "client_name": "DEV Demo Verifier (Base)",
         "logo_uri": "www.example.com/logo.png",
-        "logo_uri#fr": "www.example.com/logo_fr.png"
+        "logo_uri#fr": "www.example.com/logo_fr.png",
+        "vp_formats": {
+          "jwt_vp": {
+            "alg": [
+              "ES256"
+            ]
+          }
+        }
       }

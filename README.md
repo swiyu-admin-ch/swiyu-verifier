@@ -13,14 +13,10 @@ the [Swiss e-ID and trust infrastructure: Initial implementation](https://swiyu-
 Together with the other generic components provided, this software forms a collection of APIs allowing issuance and
 verification of verifiable credentials without the need of reimplementing the standards.
 
-The Generic Verifier Management Service is the interface to start a verification process. The service itself is and
-should be only accessible from inside the organization.
+The generic verifier service provides in its management interface the possibility to initiate a verification process and 
+in the oid4vp interface the necessary tools to verifiy a verifiable presentation.
 
-As with all the generic issuance & verification services it is expected that every issuer and verifier hosts their own
-instance of the service.
-
-The verification management service is linked to the verification validator services through a database, allowing to
-scale the validator service independently of the management service.
+The management interface should be only accessible from inside the organization. Whereas the oid4vp interface needs to be accessible by the wallet.
 
 ## Table of Contents
 
@@ -33,6 +29,8 @@ scale the validator service independently of the management service.
 
 ## Overview
 
+
+// TODO 
 ```mermaid
 flowchart TD
     issint[\Verifier Business System\]
@@ -55,8 +53,6 @@ flowchart TD
 > - Registered yourself on the swiyuprobeta portal
 > - Registered yourself on the api self service portal
 
-> Are you a third-party user? Then you're right here! Otherwhise go to [gov internal usage](gov.README)
-
 ## 1. Set the environment variables
 
 A sample compose file for an entire setup of both components and a database can be found
@@ -66,9 +62,8 @@ the [verifier metadata](sample.compose.yml#L35) to your use case.
 Those information will be provided to the holder on a dedicated endpoint serving as metadata information of your
 verifier.
 
-Please be aware that both the verifier-agent-management and the verifier-agent-oid4vci need to be publicly accessible
-over a domain configured in `EXTERNAL_URL` so that
-a wallet can communicate with them.
+Please be aware that the **oid4vp** endpoints need to be publicly accessible and set in the environment variable
+`EXTERNAL_OID4VP_URL`.
 
 ## 2. Creating a verification
 
@@ -141,8 +136,7 @@ curl -X 'POST' \
 **Response**
 
 The response contains a verification_url which points to verification request just created. This link needs to be
-provided to the holder
-in order to submit an response to the verification request.
+provided to the holder in order to submit a response to the verification request.
 
 ```json
 {
@@ -166,19 +160,6 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java ap
 ```
 
 After the start api definitions can be found [here](http://localhost:8080/swagger-ui/index.html)
-
-## Integrated service development
-
-The integrated service development describes how to devolp this service together with its component.
-
-Run the following commands to start this service. This will also spin up a local postgres database from
-the docker compose.yml:
-
-```shell
-mvn spring-boot:run -Dspring-boot.run.profiles=local,local-shared # start spring boot java application
-```
-
-After the start api definitions can be found [here](http://localhost:8002/swagger-ui/index.html).
 
 ### Updating Openapi Spec
 

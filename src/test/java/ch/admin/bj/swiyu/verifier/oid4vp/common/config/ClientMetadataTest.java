@@ -6,14 +6,14 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.common.config;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import ch.admin.bj.swiyu.verifier.common.config.OpenIdClientMetadataConfiguration;
-import ch.admin.bj.swiyu.verifier.common.config.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ActiveProfiles("test")
 @SpringBootTest

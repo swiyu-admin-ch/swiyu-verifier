@@ -8,11 +8,11 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
@@ -25,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -37,13 +36,12 @@ import static ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectMapper.toPr
 @Service
 @AllArgsConstructor
 public class RequestObjectService {
+    public static final JWSAlgorithm USED_JWS_ALGORITHM = JWSAlgorithm.ES256;
     private final ApplicationProperties applicationProperties;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementRepository managementRepository;
     private final ObjectMapper objectMapper;
     private final SignerProvider signerProvider;
-
-    public static final JWSAlgorithm USED_JWS_ALGORITHM = JWSAlgorithm.ES256;
 
     @Transactional(readOnly = true)
     public Object assembleRequestObject(UUID managementEntityId) {

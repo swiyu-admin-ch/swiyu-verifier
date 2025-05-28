@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.common.config;
+package ch.admin.bj.swiyu.verifier.service;
 
+import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.ConstraintViolation;
@@ -20,7 +22,8 @@ import org.springframework.util.PropertyPlaceholderHelper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Properties;
+import java.util.Set;
 
 @Configuration
 @Data

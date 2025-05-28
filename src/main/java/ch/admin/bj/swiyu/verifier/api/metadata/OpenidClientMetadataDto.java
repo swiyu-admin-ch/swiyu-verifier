@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.verifier.common.config;
+package ch.admin.bj.swiyu.verifier.api.metadata;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;

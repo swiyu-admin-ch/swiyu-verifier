@@ -1,0 +1,15 @@
+<!--
+  ~ SPDX-FileCopyrightText: 2025 Swiss Confederation
+  ~
+  ~ SPDX-License-Identifier: MIT
+  -->
+
+<included>
+    <appender name="MAIN_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>UTF-8</charset>
+            <Pattern>%d %highlight(%-5level) [${app},%X{traceId:-},%X{spanId:-}] %cyan(%logger{35}) - %msg%n
+            </Pattern>
+        </encoder>
+    </appender>
+</included>

@@ -65,7 +65,6 @@ in [sample.compose.yml](sample.compose.yml) file.
 the [verifier metadata](sample.compose.yml#L35) to your use case.
 Those information will be provided to the holder on a dedicated endpoint serving as metadata information of your
 verifier.
-The placeholder `${CLIENT_ID}` in your metadata file will be replaced on the fly by the value set for `VERIFIER_DID`.
 
 Please be aware that both the verifier-agent-management and the verifier-agent-oid4vci need to be publicly accessible
 over a domain configured in `EXTERNAL_URL` so that

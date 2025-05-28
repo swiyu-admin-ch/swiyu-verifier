@@ -7,9 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 1.1.0
 
+### Changed
+
 -    Splitting a POM into a parent POM with two submodules: one for the business service logic and the other for the 
      infrastructure for the API. The module for the business logic now generates a JAR that can also be used for tests 
      or implementations in other projects.
+
+## 1.0.1
+
+### Changed
+
+- Removed incorrect sentence from the README file with mentions of a non-existing env variable CLIENT_ID.
+- Now only the env variable VERIFIER_DID is used to set the Verifier DID.
 
 ## 1.0.0
 

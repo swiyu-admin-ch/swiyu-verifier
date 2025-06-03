@@ -123,7 +123,7 @@ provided to the holder in order to submit a response to the verification request
 
 ```json
 {
-    "verification_url": "https://<EXTERNAL_URL verifieri agent oid4vp>/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
+    "verification_url": "https://<EXTERNAL_URL verifier agent oid4vp>/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
 }
 ```
 

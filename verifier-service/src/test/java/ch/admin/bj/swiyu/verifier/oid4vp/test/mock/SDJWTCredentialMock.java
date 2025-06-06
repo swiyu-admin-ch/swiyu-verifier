@@ -6,14 +6,6 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.test.mock;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
-import java.time.Instant;
-import java.util.*;
-
-import static java.util.Objects.nonNull;
-
 import ch.admin.bj.swiyu.verifier.api.submission.DescriptorDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
@@ -29,6 +21,14 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
+import java.time.Instant;
+import java.util.*;
+
+import static java.util.Objects.nonNull;
 
 @Getter
 public class SDJWTCredentialMock {
@@ -136,6 +136,11 @@ public class SDJWTCredentialMock {
         return createSDJWTMock(validFrom, validUntil, null, DEFAULT_VCT, getSDClaims());
     }
 
+    public String createSDJWTMock(boolean useLegacyCnfFormat) {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat);
+    }
+
+
     /**
      * Creates a VC which has a selective disclosure overriding the issuer claim of the jwt
      */
@@ -175,7 +180,7 @@ public class SDJWTCredentialMock {
         return sdjwt + jwt.serialize();
     }
 
-    private static HashMap<String, String> getSDClaims() {
+    private HashMap<String, String> getSDClaims() {
         HashMap<String, String> claims = new HashMap<>();
 
         claims.put("first_name", "TestFirstname");
@@ -186,6 +191,11 @@ public class SDJWTCredentialMock {
     }
 
     private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims) {
+        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false);
+    }
+
+    // Refactor this as soon as issuer and wallet deliver the correct cnf structure
+    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims, boolean useLegacyCnfFormat) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -219,7 +229,14 @@ public class SDJWTCredentialMock {
             builder.putClaim("status", statusListReference);
         }
 
-        builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
+        // Refactor this as soon as issuer and wallet deliver the correct cnf structure
+        if (useLegacyCnfFormat) {
+            builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
+        } else {
+            Map<String, Object> correctCNFClaim = new HashMap<>();
+            correctCNFClaim.put("jwk", holderKey.toPublicJWK().toJSONObject());
+            builder.putClaim("cnf", correctCNFClaim);
+        }
 
         try {
             Map<String, Object> claims = builder.build();

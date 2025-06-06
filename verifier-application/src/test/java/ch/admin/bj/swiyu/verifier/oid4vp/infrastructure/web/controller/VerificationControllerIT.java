@@ -505,6 +505,26 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
+    void shouldSucceedVerifyingCredentialWithLegacyCNFFormat_thenSuccess() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSDJWTMock(true);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
+        vpToken = SDJWTCredentialMock.createMultipleVPTokenMock(vpToken);
+        String presentationSubmission = getMultiplePresentationSubmissionString(UUID.randomUUID());
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("presentation_submission", presentationSubmission)
+                        .formField("vp_token", vpToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void shouldFailVerifyingCredentialOnInvalidStatuslistSignature_thenError() throws Exception {
         Integer statusListIndex = Integer.parseInt("2");
         // GIVEN

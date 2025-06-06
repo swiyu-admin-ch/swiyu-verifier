@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
-
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
@@ -44,10 +43,10 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
 import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.getRequestedFormat;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
 
 /**
  * Verifies the presentation of a SD-JWT Credential.
@@ -337,10 +336,18 @@ public class SdjwtCredentialVerifier {
         if (!payload.containsKey("cnf")) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "No cnf claim found. Only supporting JWK holder bindings");
         }
+
         Object keyBindingClaim = payload.get("cnf");
         if (!(keyBindingClaim instanceof Map)) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding is not a JWK");
         }
+
+        // Refactor this as soon as issuer and wallet deliver the correct cnf structure
+        var jwk = ((Map<?, ?>) keyBindingClaim).get("jwk");
+        if (jwk != null) {
+            keyBindingClaim = jwk;
+        }
+
         JWK keyBinding;
         try {
             keyBinding = JWK.parse(JsonUtil.getJsonObject(keyBindingClaim));

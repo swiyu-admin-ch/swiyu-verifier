@@ -10,15 +10,14 @@ import ch.admin.bj.swiyu.verifier.api.VerificationErrorDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
-
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class VerificationMapper {
 
-    public static VerificationErrorResponseDto toVerficationErrorResponseDto(VerificationException e) {
+    public static VerificationErrorResponseDto toVerificationErrorResponseDto(VerificationException e) {
         return new VerificationErrorResponseDto(
                 toVerificationErrorTypeDto(e.getErrorType()),
                 toVerificationErrorResponseCode(e.getErrorResponseCode()),

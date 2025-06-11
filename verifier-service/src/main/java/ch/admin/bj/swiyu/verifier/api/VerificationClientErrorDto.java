@@ -23,7 +23,8 @@ public enum VerificationClientErrorDto {
     // TODO This is a custom legacy code which is still used on the wallet and
     //  should be replaced in the future by access_denied from a newer specification
     //  https://openid.net/specs/openid-4-verifiable-presentations-1_0-24.html#section-8.5-8
-    CLIENT_REJECTED("client_rejected");
+    CLIENT_REJECTED("client_rejected"),
+    ACCESS_DENIED("access_denied");
 
     private final String jsonValue;
 

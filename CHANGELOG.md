@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Expanded the verificationClientErrorDto to allow `access_denied` code (the `client_rejected` code is still supported)
 - Splitting a POM into a parent POM with two submodules: one for the business service logic and the other for the
   infrastructure for the API. The module for the business logic now generates a JAR that can also be used for tests
   or implementations in other projects.

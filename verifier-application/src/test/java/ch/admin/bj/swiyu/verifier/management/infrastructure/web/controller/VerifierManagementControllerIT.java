@@ -8,6 +8,7 @@ package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.api.definition.FieldDto;
 import ch.admin.bj.swiyu.verifier.api.definition.FormatAlgorithmDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
@@ -20,7 +21,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -34,6 +39,9 @@ class VerifierManagementControllerIT {
     private static final String BASE_URL = "/api/v1/verifications";
     @Autowired
     protected MockMvc mvc;
+
+    @Autowired
+    private ApplicationProperties applicationProperties;
 
     @Test
     void testCreateOffer_thenSuccess() throws Exception {
@@ -56,6 +64,10 @@ class VerifierManagementControllerIT {
                 .andExpect(jsonPath("$.request_nonce").isNotEmpty())
                 .andExpect(jsonPath("$.state").value(VerificationStatus.PENDING.toString()))
                 .andExpect(jsonPath("$.verification_url").isNotEmpty())
+                // must contain deeplink schema
+                .andExpect(jsonPath("$.verification_deeplink", containsString(applicationProperties.getDeeplinkSchema())))
+                // must contain did as client id in deeplink url
+                .andExpect(jsonPath("$.verification_deeplink", containsString(URLEncoder.encode(applicationProperties.getClientId(), StandardCharsets.UTF_8))))
 
                 .andExpect(jsonPath("$.presentation_definition.id").isNotEmpty())
                 .andExpect(jsonPath("$.presentation_definition.input_descriptors").isArray())

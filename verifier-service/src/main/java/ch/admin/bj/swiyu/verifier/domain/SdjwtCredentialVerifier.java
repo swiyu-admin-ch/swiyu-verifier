@@ -19,7 +19,6 @@ import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectDecoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.jsonpath.PathNotFoundException;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -168,17 +167,20 @@ public class SdjwtCredentialVerifier {
 
         // Step 8 (SD-JWT spec 8.1 / 3 ): Process the Disclosures and embedded digests
         // in the Issuer-signed JWT (section 3 in 8.1)
-        List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, disclosureLength))
-                .map(Disclosure::parse).toList();
-        List<String> digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
+        List<Disclosure> disclosures;
+        List<String> digestsFromDisclosures;
+
+        // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
+        try {
+            disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, disclosureLength))
+                    .map(Disclosure::parse).toList();
+            digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
+        } catch (IllegalArgumentException e) {
+            throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
+        }
         log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntity.getId());
 
         var disclosedClaimNames = disclosures.stream().map(Disclosure::getClaimName).collect(Collectors.toSet());
-
-        // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
-        if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("_sd", "..."))) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
-        }
 
         // SD-JWT VC 3.2.2
         if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("iss", "nbf", "exp", "cnf", "vct", "status"))) {
@@ -226,8 +228,6 @@ public class SdjwtCredentialVerifier {
             Map<String, Object> decodedSDJWT = decoder.decode(expectedMap, disclosures);
             log.trace("Decoded SD-JWT to clear data for id {}", managementEntity.getId());
             sdJWTString = objectMapper.writeValueAsString(decodedSDJWT);
-        } catch (PathNotFoundException e) {
-            throw credentialError(e, e.getMessage());
         } catch (JsonProcessingException e) {
             throw credentialError(e, "An error occurred while parsing SDJWT");
         }
@@ -372,11 +372,11 @@ public class SdjwtCredentialVerifier {
             SignedJWT nimbusJwt = SignedJWT.parse(jwtToken);
             var issuer = nimbusJwt.getJWTClaimsSet().getIssuer();
             if (StringUtils.isBlank(issuer)) {
-                throw new IllegalArgumentException("Missing issuer in the JWT token");
+                throw credentialError(MALFORMED_CREDENTIAL, "Missing issuer in the JWT token");
             }
             return issuer;
         } catch (ParseException e) {
-            throw new IllegalArgumentException("Invalid issuer in the JWT token");
+            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract issuer from JWT token");
         }
     }
 
@@ -385,11 +385,11 @@ public class SdjwtCredentialVerifier {
             var nimbusJwt = SignedJWT.parse(jwtToken);
             var keyId = nimbusJwt.getHeader().getKeyID();
             if (StringUtils.isBlank(keyId)) {
-                throw new IllegalArgumentException("Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
+                throw credentialError(MALFORMED_CREDENTIAL, "Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
             }
             return keyId;
         } catch (ParseException e) {
-            throw new IllegalArgumentException("failed to parse json", e);
+            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract key id from JWT token");
         }
     }
 }

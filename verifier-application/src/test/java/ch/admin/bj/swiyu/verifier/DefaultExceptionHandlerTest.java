@@ -90,8 +90,5 @@ class DefaultExceptionHandlerTest {
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-//        ApiErrorDto body = (ApiErrorDto) response.getBody();
-//        assertNotNull(response.getBody());
-//        assertEquals("Internal Server Error. Please check again later", body.detail());
     }
 }

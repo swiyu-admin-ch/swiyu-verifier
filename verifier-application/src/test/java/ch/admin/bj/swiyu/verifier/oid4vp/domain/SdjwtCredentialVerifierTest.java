@@ -24,7 +24,6 @@ import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +35,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.Arrays;
@@ -48,8 +48,7 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures.iss
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementFixtures.managementEntity;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.presentationDefinitionWithFields;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.sdwjtPresentationDefinition;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_KID_HEADER_VALUE;
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
@@ -70,10 +69,10 @@ class SdjwtCredentialVerifierTest {
     private UUID id;
     private String sdJWTCredential;
     private List<Disclosure> disclosures;
-    private Jws<Claims> claims;
     private Management managementEntity;
     private PresentationDefinition presentationDefinition;
     private SDJWTCredentialMock emulator;
+    private PublicKey publicKey;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -91,57 +90,34 @@ class SdjwtCredentialVerifierTest {
         // lookup issuers public key
         var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
-        var publicKey = issuerPublicKeyLoader.loadPublicKey(emulator.getIssuerId(), emulator.getKidHeaderValue());
-
-        try {
-            claims = Jwts.parser()
-                    .verifyWith(publicKey)
-                    .build()
-                    .parseSignedClaims(parts[0]);
-        } catch (Exception e) {
-            throw new Exception(e);
-        }
+        publicKey = issuerPublicKeyLoader.loadPublicKey(emulator.getIssuerId(), emulator.getKidHeaderValue());
     }
 
     @Test
-    void testCompletenessOfSDJWTWithPresentationDefinition_thenSuccess() {
+    void testSdjwtCredentialVerifier_thenSuccess() throws Exception {
         var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
 
-        assertFalse(cred.checkPresentationDefinitionCriteria(claims.getPayload(), disclosures).isEmpty());
+        assertFalse(cred.checkPresentationDefinitionCriteria(getClaimsPayload(), disclosures).isEmpty());
     }
 
     @Test
-    void testCompletenessOfSDJWTWithPresentationDefinitionWithAdditionalDef_thenError() {
+    void testSdjwtCredentialVerifierWithMissingFields_thenFailure() throws Exception {
 
-        presentationDefinition = sdwjtPresentationDefinition(id, List.of("$.first_name", "$.last_name", "$.birthdate", "$.definitely_not_there"));
-        managementEntity = managementEntity(id, presentationDefinition);
+        var extendenPresentationDefinition = sdwjtPresentationDefinition(id, List.of("$.first_name", "$.last_name", "$.birthdate", "$.definitely_not_there"));
+        managementEntity = managementEntity(id, extendenPresentationDefinition);
+
         var cred = new SdjwtCredentialVerifier(sdJWTCredential, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
-        var payload = claims.getPayload();
+        var payload = getClaimsPayload();
 
         assertThrows(VerificationException.class, () -> cred.checkPresentationDefinitionCriteria(payload, disclosures));
     }
 
     @Test
-    void testCompletenessOfSDJWTWithPresentationDefinitionWithFilter_thenSuccess() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithFilter_thenSuccess() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
         // Form Credential Request
-        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
-        formats.put("vc+sd-jwt", FormatAlgorithm.builder()
-                .keyBindingAlg(List.of("ES256"))
-                .alg(List.of("ES256"))
-                .build());
+        var presentationDefinitionWithVCT = createPresentationDefinitionWithVCT(DEFAULT_VCT);
 
-        presentationDefinition = presentationDefinitionWithFields(
-                id,
-                List.of(
-                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().type("string").constDescriptor(SDJWTCredentialMock.DEFAULT_VCT).build()).build(),
-                        Field.builder().path(List.of("$.last_name")).build(),
-                        Field.builder().path(List.of("$.birthdate")).build()
-                ),
-                null,
-                formats
-        );
-
-        managementEntity = managementEntity(id, presentationDefinition);
+        managementEntity = managementEntity(id, presentationDefinitionWithVCT);
 
         sdJWTCredential = emulator.createSDJWTMock();
 
@@ -158,26 +134,11 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
-    void testCompletenessOfSDJWTWithPresentationDefinitionWithFilterWrongVC_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithWrongVCT_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
         // Form Credential Request
-        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
-        formats.put("vc+sd-jwt", FormatAlgorithm.builder()
-                .keyBindingAlg(List.of("ES256"))
-                .alg(List.of("ES256"))
-                .build());
+        var presentationDefinitionWithVCT = createPresentationDefinitionWithVCT("SomeOtherVCTWeDontHave");
 
-        presentationDefinition = presentationDefinitionWithFields(
-                id,
-                List.of(
-                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().type("string").constDescriptor("SomeOtherVCTWeDontHave").build()).build(),
-                        Field.builder().path(List.of("$.last_name")).build(),
-                        Field.builder().path(List.of("$.birthdate")).build()
-                ),
-                null,
-                formats
-        );
-
-        managementEntity = managementEntity(id, presentationDefinition);
+        managementEntity = managementEntity(id, presentationDefinitionWithVCT);
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
 
@@ -193,43 +154,7 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
-    void testMultipleVCT_thenSuccess() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
-        // Form Credential Request
-        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
-        formats.put("vc+sd-jwt", FormatAlgorithm.builder()
-                .keyBindingAlg(List.of("ES256"))
-                .alg(List.of("ES256"))
-                .build());
-
-        presentationDefinition = presentationDefinitionWithFields(
-                id,
-                List.of(
-                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().type("string").constDescriptor("SomeOtherVCTWeDontHave").build()).build(),
-                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().type("string").constDescriptor("defaultTestVCT").build()).build(),
-                        Field.builder().path(List.of("$.last_name")).build(),
-                        Field.builder().path(List.of("$.birthdate")).build()
-                ),
-                null,
-                formats
-        );
-
-        managementEntity = managementEntity(id, presentationDefinition);
-
-        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
-
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
-
-        assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
-        assertThrows(VerificationException.class, cred::verifyPresentation);
-        // We will not have the failed state here, as this is set in th exception handling
-    }
-
-    @Test
-    void testSDJWTIllegalSDClaim_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithIllegalSDClaim_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         sdJWTCredential = emulator.createIssuerAttackSDJWTMock();
 
@@ -247,14 +172,13 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
-    void testSDJWTIllegalDisclosure_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithIllegalDisclosure_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         sdJWTCredential = emulator.createIllegalSDJWTMock();
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
-
-        // lookup issuers public key
         var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
+
         // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
@@ -263,9 +187,9 @@ class SdjwtCredentialVerifierTest {
         assertThrows(VerificationException.class, cred::verifyPresentation);
         // We will not have the failed state here, as this is set in th exception handling
     }
-    
+
     @Test
-    void shouldVerifyWithInvalidIssuer_thenFail() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithInvalidIssuer_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
         managementEntity = managementEntity(id, presentationDefinition, "did:example:invalid-issuer");
 
         sdJWTCredential = emulator.createSDJWTMock();
@@ -285,7 +209,7 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
-    void shouldVerifyWithUnresolvableIssuer_thenFail() throws NoSuchAlgorithmException, ParseException, JOSEException {
+    void testSdjwtCredentialVerifierWithUnresolvableIssuer_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException {
 
         sdJWTCredential = emulator.createSDJWTMock();
 
@@ -301,7 +225,7 @@ class SdjwtCredentialVerifierTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"_sd", "..."})
-    void shouldVerifyWithUnsupportedFormat_thenFail(String input) throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithUnsupportedFormat_thenFailure(String input) throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         HashMap<String, String> sdClaims = new HashMap<>();
 
@@ -324,10 +248,9 @@ class SdjwtCredentialVerifierTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"iss", "nbf", "exp", "cnf", "vct", "status", "iat"})
-    void shouldVerifyWithUnsupportedClaims_thenFail(String input) throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithUnsupportedClaims_thenFailure(String input) throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         HashMap<String, String> sdClaims = new HashMap<>();
-
         sdClaims.put(input, "Test forbidden claim");
 
         sdJWTCredential = emulator.createSDJWTMockWithClaims(sdClaims);
@@ -346,10 +269,9 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
-    void noKeyBinding() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithNoKeyBinding_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
@@ -365,7 +287,7 @@ class SdjwtCredentialVerifierTest {
 
 
     @Test
-    void wrongKeyBindingFormat_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithWrongKeyBindingFormat_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test", Instant.now().getEpochSecond(), "not-kb+jwt");
 
@@ -383,7 +305,7 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
-    void wrongKeyBindingNonce_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithWrongKeyBindingNonce_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, UUID.randomUUID().toString(), "test-test");
 
@@ -401,7 +323,7 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
-    void invalidSDJwtIssuer_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithInvalidSDJwtIssuer_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         emulator = new SDJWTCredentialMock("", DEFAULT_KID_HEADER_VALUE);
 
@@ -423,7 +345,7 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
-    void invalidSDJwtKeyId_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithInvalidSDJwtKeyId_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, "");
 
@@ -442,5 +364,37 @@ class SdjwtCredentialVerifierTest {
         VerificationException exception = assertThrows(VerificationException.class, cred::verifyPresentation);
         assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
         assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, exception.getErrorResponseCode());
+    }
+
+    private PresentationDefinition createPresentationDefinitionWithVCT(String vct) {
+        HashMap<String, FormatAlgorithm> formats = new HashMap<>();
+        formats.put("vc+sd-jwt", FormatAlgorithm.builder()
+                .keyBindingAlg(List.of("ES256"))
+                .alg(List.of("ES256"))
+                .build());
+
+        return presentationDefinitionWithFields(
+                id,
+                List.of(
+                        Field.builder().path(List.of("$.vct")).filter(Filter.builder().type("string").constDescriptor(vct).build()).build(),
+                        Field.builder().path(List.of("$.last_name")).build(),
+                        Field.builder().path(List.of("$.birthdate")).build()
+                ),
+                null,
+                formats
+        );
+    }
+
+    private Claims getClaimsPayload() throws Exception {
+        var parts = sdJWTCredential.split("~");
+
+        try {
+            return Jwts.parser()
+                    .verifyWith(publicKey)
+                    .build()
+                    .parseSignedClaims(parts[0]).getPayload();
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
     }
 }

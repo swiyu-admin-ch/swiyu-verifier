@@ -32,7 +32,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @AllArgsConstructor
 @Slf4j
 @Tag(   name = "OID4VP Management API",
-        description = "This API allows the creation and retrieval of a verfication process for OID4VP. " +
+        description = "This API allows the creation of a verfication process and retrieval of its status." +
         "It is used by the business verifier to manage verifications. (IF-100)")
 @RequestMapping(value="/api/v1/verifications")
 public class VerifierManagementController {

@@ -25,6 +25,8 @@ public record ManagementResponseDto(
         @JsonProperty("wallet_response")
         ResponseDataDto walletResponse,
         @JsonProperty("verification_url")
-        String verificationUrl
+        String verificationUrl,
+        @JsonProperty("verification_deeplink")
+        String verificationDeeplink
 ) {
 }

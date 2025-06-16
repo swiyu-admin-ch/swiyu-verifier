@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Expanded `ManagementResponseDto` with an additional field `verification_deeplink` with a standard conform
+  Authorization Request that can be presented to the wallet as qr-code. The default value for the deeplink schema is set
+  to `swiyu-verify` but can be changed in the app-config.
 - Splitting a POM into a parent POM with two submodules: one for the business service logic and the other for the
   infrastructure for the API. The module for the business logic now generates a JAR that can also be used for tests
   or implementations in other projects.

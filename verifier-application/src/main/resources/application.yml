@@ -9,6 +9,12 @@ application:
   signing_key: "${secret.signing_key:${SIGNING_KEY:}}"
   signing-key-verification-method: "${DID_VERIFICATION_METHOD:}"
   client-metadata-file: "${OPENID_CLIENT_METADATA_FILE:}"
+  # Schema of the generated deeplink. Keep in mind that the wallet must support this.
+  # iOS is not capable of letting the user choose between the apps being opened by the schema.
+  # the standard is openid-credential-offer
+  # default for swiss ecosystem is swiyu://
+  # It is not recommended to change this value unless you want to use this issuer in a different ecosystem.
+  deeplink-schema: ${DEEPLINK_SCHEMA:swiyu-verify}
 
   key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
   # Pin to unlock the hsm

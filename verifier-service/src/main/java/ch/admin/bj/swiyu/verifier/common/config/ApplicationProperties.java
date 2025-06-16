@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.common.config;
 
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -31,6 +32,9 @@ public class ApplicationProperties {
 
     @NotNull
     private String clientIdScheme;
+
+    @NotEmpty
+    private String deeplinkSchema;
 
     @NotNull
     private String signingKey;

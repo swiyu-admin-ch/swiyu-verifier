@@ -10,14 +10,18 @@ import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.api.definition.*;
 import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.api.management.ResponseDataDto;
-
 import ch.admin.bj.swiyu.verifier.api.management.VerificationStatusDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.domain.management.*;
+import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseData;
+import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,20 +38,31 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 @UtilityClass
 public class ManagementMapper {
 
-    public static ManagementResponseDto toManagementResponseDto(final Management management, final String extUrl) {
+    public static ManagementResponseDto toManagementResponseDto(final Management management, final ApplicationProperties props) {
         if (management == null) {
             throw new IllegalArgumentException("Management must not be null");
         }
 
-        var verificationUrl = String.format("%s/api/v1/request-object/%s", extUrl, management.getId());
+        var verificationUrl = String.format("%s/api/v1/request-object/%s", props.getExternalUrl(), management.getId());
         return new ManagementResponseDto(
                 management.getId(),
                 management.getRequestNonce(),
                 toVerifcationStatusDto(management.getState()),
                 toPresentationDefinitionDto(management.getRequestedPresentation()),
                 toResponseDataDto(management.getWalletResponse()),
-                verificationUrl
+                verificationUrl,
+                buildVerificationDeeplink(verificationUrl, props.getClientId(), props.getDeeplinkSchema())
         );
+    }
+
+    private static String buildVerificationDeeplink(String requestUri, String clientId, String deeplinkSchema) {
+        return UriComponentsBuilder.newInstance()
+                .scheme(deeplinkSchema)
+                .host("")
+                .queryParam("client_id", "{p}")
+                .queryParam("request_uri", "{q}")
+                .build(clientId, requestUri)
+                .toString();
     }
 
     public static PresentationDefinition toPresentationDefinition(PresentationDefinitionDto source) {

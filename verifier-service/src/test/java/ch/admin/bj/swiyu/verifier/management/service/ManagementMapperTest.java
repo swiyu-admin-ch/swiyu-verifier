@@ -7,30 +7,52 @@
 package ch.admin.bj.swiyu.verifier.management.service;
 
 import ch.admin.bj.swiyu.verifier.api.definition.*;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toManagementResponseDto;
-import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toPresentationDefinition;
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.presentationDefinitionDto;
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ManagementFixtures.management;
+import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toManagementResponseDto;
+import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toPresentationDefinition;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
 class ManagementMapperTest {
 
     private static final String EXTERNAL_URL = "https://example.com";
+    private static final String CLIENT_ID = "client_id";
+    private static final String SWIYU_VERIFIER = "openid4vp";
+
+    @Mock
+    ApplicationProperties applicationProperties;
+
+    @BeforeEach
+    void setUp() {
+        applicationProperties = mock(ApplicationProperties.class);
+        when(applicationProperties.getExternalUrl()).thenReturn(EXTERNAL_URL);
+        when(applicationProperties.getClientId()).thenReturn(CLIENT_ID);
+        when(applicationProperties.getDeeplinkSchema()).thenReturn(SWIYU_VERIFIER);
+    }
 
     @Test
     void toManagementResponseDtoTest() {
         // GIVEN
         var mgmt = management();
+        var expectedVerificationUrl = "%s/api/v1/request-object/%s".formatted(EXTERNAL_URL, mgmt.getId());
+        var expectedDeeplink = getExpectedVerificationDeeplink(SWIYU_VERIFIER, CLIENT_ID, expectedVerificationUrl);
         // WHEN
-        var dto = toManagementResponseDto(mgmt, EXTERNAL_URL);
+        var dto = toManagementResponseDto(mgmt, applicationProperties);
         // THEN
         assertNotNull(dto);
         assertEquals(mgmt.getId(), dto.id());
@@ -43,14 +65,16 @@ class ManagementMapperTest {
         assertEqualFormat(mgmt.getRequestedPresentation().format(), dto.presentationDefinition().format());
         assertEqualInputDescriptors(mgmt.getRequestedPresentation().inputDescriptors(), dto.presentationDefinition().inputDescriptors());
         assertNull(dto.walletResponse());
-        String expectedVerificationUrl = "%s/api/v1/request-object/%s".formatted(EXTERNAL_URL, mgmt.getId());
         assertEquals(expectedVerificationUrl, dto.verificationUrl());
+        assertEquals(expectedDeeplink, dto.verificationDeeplink());
+        // check if correct deeplink schema
+        assertTrue(expectedDeeplink.startsWith("%s://?client_id".formatted(SWIYU_VERIFIER)));
     }
 
     @Test
     void toManagementResponseDtoTest_NullManagement() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            toManagementResponseDto(null, "http://example.com");
+            toManagementResponseDto(null, applicationProperties);
         });
 
         assertEquals("Management must not be null", exception.getMessage());
@@ -69,9 +93,7 @@ class ManagementMapperTest {
         assertEquals(dto.purpose(), result.purpose());
         assertEqualFormat(result.format(), dto.format());
         assertEqualInputDescriptors(result.inputDescriptors(), dto.inputDescriptors());
-
     }
-
 
     @Test
     void toPresentationDefinition_NullDto() {
@@ -79,6 +101,12 @@ class ManagementMapperTest {
             toPresentationDefinition(null);
         });
         assertEquals("PresentationDefinitionDto must not be null", exception.getMessage());
+    }
+
+    private String getExpectedVerificationDeeplink(String deeplinkSchema, String clientId, String requestUri) {
+        var urlEncodedClientId = URLEncoder.encode(clientId, StandardCharsets.UTF_8);
+        var urlEncodedRequestUri = URLEncoder.encode(requestUri, StandardCharsets.UTF_8);
+        return "%s://?client_id=%s&request_uri=%s".formatted(deeplinkSchema, urlEncodedClientId, urlEncodedRequestUri);
     }
 
     private void assertEqualInputDescriptors(List<PresentationDefinition.InputDescriptor> left, List<InputDescriptorDto> right) {

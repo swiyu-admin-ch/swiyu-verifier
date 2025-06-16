@@ -40,7 +40,7 @@ public class ManagementService {
             repository.deleteById(id);
             log.info("Deleted management for id since it is expired: {}", management.getId());
         }
-        return toManagementResponseDto(management, applicationProperties.getExternalUrl());
+        return toManagementResponseDto(management, applicationProperties);
     }
 
     @Transactional
@@ -62,7 +62,7 @@ public class ManagementService {
 
         log.info("Created pending verification for id: {}", management.getId());
 
-        return toManagementResponseDto(management, applicationProperties.getExternalUrl());
+        return toManagementResponseDto(management, applicationProperties);
     }
 
     @Transactional

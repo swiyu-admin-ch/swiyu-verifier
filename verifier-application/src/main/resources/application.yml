@@ -97,6 +97,12 @@ management:
       exposure:
         include: health, info, prometheus
 
+webhook:
+  callback-uri: "${WEBHOOK_CALLBACK_URI:}"
+  api-key-header: "${WEBHOOK_API_KEY_HEADER:}"
+  api-key-value: "${WEBHOOK_API_KEY_VALUE:}"
+  callback-interval: ${WEBHOOK_INTERVAL:}
+
 logging:
   level:
     ch.admin.bj.swiyu: INFO

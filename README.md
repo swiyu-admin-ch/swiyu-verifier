@@ -215,6 +215,34 @@ Note that for creating the keys it is expected that the public key is provided a
 | HSM_CONFIG_PATH               | File Path to the HSM config file when using [Sun PKCS11 provider](https://docs.oracle.com/en/java/javase/22/security/pkcs11-reference-guide1.html)                                         |
 | HSM_USER_PIN                  | PIN for getting keys from the HSM                                                                                                                                                          |
 
+
+### Webhook Callbacks
+For verifiers, it can be useful to receive a webhook callback from this service 
+instead of performing active polling to check if a verification has been done.
+It is possible to configure a Webhook Callback endpoint, optionally secured by API Key. Please note that delivery of
+callback events will be retried until successful, to guarantee an at-least-once delivery.
+Failed deliveries will create error logs and be retried in the next interval.
+
+
+| Variable                      | Description                                                                                                                                                                           |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| WEBHOOK_CALLBACK_URI | Full URI of the REST endpoint where webhooks shall be sent to. No Callback events will be created if not set.                                                                         |
+| WEBHOOK_API_KEY_HEADER | (Optional) API key header, if the callback uri has a api key for protection. Will be used as HTTP header key.                                                                         |
+| WEBHOOK_API_KEY_VALUE | (Optional, Required if WEBHOOK_API_KEY_HEADER is set) The API key used.                                                                                                               |
+| WEBHOOK_INTERVAL | How often the collected events are sent. Value interpreted as millisends if given a plain integer or an [ISO 8601 duration format](https://en.wikipedia.org/wiki/ISO_8601#Durations). | 
+
+Callbacks will be sent on change of verification state. This means the verification can be fetched by the business verifier.
+
+
+Callback Object Structure
+
+| Field             | Description                                                                                                            |
+|-------------------|------------------------------------------------------------------------------------------------------------------------|
+| verification_id              | ID of the element the callback is about. For now the management id of the verification  |
+| timestamp         | timestamp the event occured. Can differ from the time it is sent.                                                      |
+
+
+
 ## Usage
 
 ### Perform a verification

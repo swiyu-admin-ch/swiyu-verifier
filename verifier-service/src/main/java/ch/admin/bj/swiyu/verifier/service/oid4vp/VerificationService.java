@@ -26,6 +26,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.service.callback.WebhookService;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import com.fasterxml.jackson.core.JsonParser;
@@ -50,6 +51,7 @@ public class VerificationService {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
+    private final WebhookService webhookService;
 
     /**
      * Validates the presentation request. If it fails, it will
@@ -83,6 +85,9 @@ public class VerificationService {
             managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
             log.trace("Saved failed verification result for {}", managementEntityId);
             throw e; // rethrow since client get notified of the error
+        } finally {
+            // Notify Business Verifier that this verification is done
+            webhookService.produceEvent(managementEntityId);
         }
     }
 

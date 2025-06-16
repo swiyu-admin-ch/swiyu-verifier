@@ -502,9 +502,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .formField("vp_token", vpToken))
                 .andExpect(status().isOk());
 
-        getCachedPK(emulator.getIssuerId());
-        getCachedStatusList(emulator.getIssuerId());
-
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }

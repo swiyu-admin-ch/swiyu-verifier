@@ -40,7 +40,11 @@ import java.util.UUID;
 @RestController
 @AllArgsConstructor
 @Slf4j
-@Tag(name = "OID4VP Verfifier API")
+@Tag(name = "Verfifier OID4VP API",
+     description = "Handles OpenID for Verifiable Presentations (OID4VP) endpoints, enabling verifiers to retrieve " +
+             "request objects, receive verification presentations, and access OpenID client metadata as specified " +
+             "by the OID4VP protocol. This API is intended for wallets to fetch credentials " +
+             "in compliance with OpenID standards. (IF-101)")
 @RequestMapping({"/api/v1/"})
 public class VerificationController {
 

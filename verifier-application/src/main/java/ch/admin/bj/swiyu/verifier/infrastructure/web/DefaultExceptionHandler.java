@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationMapper.toVerficationErrorResponseDto;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationMapper.toVerificationErrorResponseDto;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -45,6 +45,13 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 @AllArgsConstructor
 @Slf4j
 public class DefaultExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @NotNull
+    private static ResponseEntity<Object> createBadRequestResponse(Exception e) {
+        String responseMessage = nonNull(e.getMessage()) ? e.getMessage() : "Bad request";
+        log.debug("invalid request", e);
+        return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleException(Exception e, HttpServletRequest r) {
@@ -112,15 +119,8 @@ public class DefaultExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(VerificationException.class)
     ResponseEntity<VerificationErrorResponseDto> handleVerificationException(VerificationException e) {
-        var error = toVerficationErrorResponseDto(e);
+        var error = toVerificationErrorResponseDto(e);
         log.warn("The received verification presentation could not be verified - caused by {}-{}:{}", error.error(), error.errorCode(), error.errorDescription(), e);
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-    }
-
-    @NotNull
-    private static ResponseEntity<Object> createBadRequestResponse(Exception e) {
-        String responseMessage = nonNull(e.getMessage()) ? e.getMessage() : "Bad request";
-        log.debug("invalid request", e);
-        return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
     }
 }

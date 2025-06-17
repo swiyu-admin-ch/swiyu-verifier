@@ -13,11 +13,13 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.Field;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.Filter;
+import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.FormatAlgorithm;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.eid.didtoolbox.TrustDidWebException;
 import com.authlete.sd.Disclosure;
@@ -43,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures.issuerDidDoc;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.ManagementFixtures.managementEntity;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.presentationDefinitionWithFields;
@@ -87,9 +88,8 @@ class SdjwtCredentialVerifierTest {
         var parts = sdJWTCredential.split("~");
         disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, parts.length)).map(Disclosure::parse).toList();
 
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+        mockDidResolving();
+
         publicKey = issuerPublicKeyLoader.loadPublicKey(emulator.getIssuerId(), emulator.getKidHeaderValue());
     }
 
@@ -119,18 +119,19 @@ class SdjwtCredentialVerifierTest {
 
         managementEntity = managementEntity(id, presentationDefinitionWithVCT);
 
-        sdJWTCredential = emulator.createSDJWTMock();
+        var vpToken = getVpTokenWithKeyBinding();
 
-        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
-
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+        mockDidResolving();
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
         var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
         cred.verifyPresentation();
+    }
+
+    private String getVpTokenWithKeyBinding() throws NoSuchAlgorithmException, ParseException, JOSEException {
+        sdJWTCredential = emulator.createSDJWTMock();
+
+        return emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
     }
 
     @Test
@@ -140,7 +141,7 @@ class SdjwtCredentialVerifierTest {
 
         managementEntity = managementEntity(id, presentationDefinitionWithVCT);
 
-        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
+        var vpToken = getVpTokenWithKeyBinding();
 
         // lookup issuers public key
         var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
@@ -160,10 +161,7 @@ class SdjwtCredentialVerifierTest {
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
 
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+        mockDidResolving();
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
         var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
@@ -179,30 +177,18 @@ class SdjwtCredentialVerifierTest {
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
         var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
 
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
         var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
         assertThrows(VerificationException.class, cred::verifyPresentation);
-        // We will not have the failed state here, as this is set in th exception handling
     }
 
     @Test
-    void testSdjwtCredentialVerifierWithInvalidIssuer_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
+    void testSdjwtCredentialVerifierWithInvalidIssuer_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException {
         managementEntity = managementEntity(id, presentationDefinition, "did:example:invalid-issuer");
 
-        sdJWTCredential = emulator.createSDJWTMock();
-
-        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
-
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
-
-        assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
+        var cred = new SdjwtCredentialVerifier(getVpTokenWithKeyBinding(), managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
         VerificationException exception = assertThrows(VerificationException.class, cred::verifyPresentation);
         assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
         assertEquals(VerificationErrorResponseCode.ISSUER_NOT_ACCEPTED, exception.getErrorResponseCode());
@@ -211,12 +197,7 @@ class SdjwtCredentialVerifierTest {
     @Test
     void testSdjwtCredentialVerifierWithUnresolvableIssuer_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException {
 
-        sdJWTCredential = emulator.createSDJWTMock();
-
-        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenThrow(new DidResolverException("Could not resolve DID Document for issuer"));
-
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
+        var cred = new SdjwtCredentialVerifier(getVpTokenWithKeyBinding(), managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
 
         VerificationException exception = assertThrows(VerificationException.class, cred::verifyPresentation);
         assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
@@ -228,7 +209,6 @@ class SdjwtCredentialVerifierTest {
     void testSdjwtCredentialVerifierWithUnsupportedFormat_thenFailure(String input) throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
         HashMap<String, String> sdClaims = new HashMap<>();
-
         sdClaims.put(input, "Test forbidden claim");
 
         sdJWTCredential = emulator.createSDJWTMockWithClaims(sdClaims);
@@ -238,7 +218,6 @@ class SdjwtCredentialVerifierTest {
         when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
-
         var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
 
         VerificationException exception = assertThrows(VerificationException.class, cred::verifyPresentation);
@@ -271,12 +250,10 @@ class SdjwtCredentialVerifierTest {
     @Test
     void testSdjwtCredentialVerifierWithNoKeyBinding_thenFailure() throws NoSuchAlgorithmException, ParseException, JOSEException, TrustDidWebException {
 
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
-
-        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test");
-
+        var vpToken = getVpTokenWithKeyBinding();
         vpToken = vpToken.substring(0, vpToken.lastIndexOf("~"));
+
+        mockDidResolving();
 
         var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
 
@@ -291,10 +268,7 @@ class SdjwtCredentialVerifierTest {
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, managementEntity.getRequestNonce(), "test-test", Instant.now().getEpochSecond(), "not-kb+jwt");
 
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+        mockDidResolving();
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
         var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
@@ -309,10 +283,7 @@ class SdjwtCredentialVerifierTest {
 
         var vpToken = emulator.addKeyBindingProof(sdJWTCredential, UUID.randomUUID().toString(), "test-test");
 
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+        mockDidResolving();
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
         var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
@@ -327,17 +298,10 @@ class SdjwtCredentialVerifierTest {
 
         emulator = new SDJWTCredentialMock("", DEFAULT_KID_HEADER_VALUE);
 
-        sdJWTCredential = emulator.createSDJWTMock();
-
-        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, UUID.randomUUID().toString(), "test-test");
-
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+        mockDidResolving();
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
+        var cred = new SdjwtCredentialVerifier(getVpTokenWithKeyBinding(), managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
 
         VerificationException exception = assertThrows(VerificationException.class, cred::verifyPresentation);
         assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
@@ -349,21 +313,20 @@ class SdjwtCredentialVerifierTest {
 
         emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, "");
 
-        sdJWTCredential = emulator.createSDJWTMock();
-
-        var vpToken = emulator.addKeyBindingProof(sdJWTCredential, UUID.randomUUID().toString(), "test-test");
-
-        // lookup issuers public key
-        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
-        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
+        mockDidResolving();
 
         assertEquals(VerificationStatus.PENDING, managementEntity.getState());
-        var cred = new SdjwtCredentialVerifier(vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
+        var cred = new SdjwtCredentialVerifier(getVpTokenWithKeyBinding(), managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties);
 
         VerificationException exception = assertThrows(VerificationException.class, cred::verifyPresentation);
         assertEquals(VerificationError.INVALID_CREDENTIAL, exception.getErrorType());
         assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, exception.getErrorResponseCode());
+    }
+
+    private void mockDidResolving() throws TrustDidWebException {
+        var issuerDidDoc = issuerDidDoc(emulator.getIssuerId(), emulator.getKidHeaderValue());
+        // For some reason we need to reapply the mockito override again, or else there is an error in the didtoolbox
+        when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenReturn(issuerDidDoc);
     }
 
     private PresentationDefinition createPresentationDefinitionWithVCT(String vct) {

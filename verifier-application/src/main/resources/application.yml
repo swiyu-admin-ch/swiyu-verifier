@@ -119,3 +119,7 @@ monitoring:
     enabled: ${MONITORING_BASIC_AUTH_ENABLED:false}
     username: "${MONITORING_BASIC_AUTH_USERNAME:}"
     password: "${MONITORING_BASIC_AUTH_PASSWORD:}"
+
+caching:
+  statusListCacheTTL: ${STATUS_LIST_CACHE_TTL_MILLI:900000} # 15 min
+  issuerPublicKeyCacheTTL: ${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000} # 1 hour

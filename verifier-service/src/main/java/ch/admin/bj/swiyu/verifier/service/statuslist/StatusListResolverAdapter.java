@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -17,6 +18,7 @@ import org.springframework.web.client.RestClient;
 import java.net.MalformedURLException;
 import java.net.URI;
 
+import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.STATUS_LIST_CACHE;
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
 @Service
@@ -28,6 +30,7 @@ public class StatusListResolverAdapter {
     private final RestClient statusListRestClient;
     private final ApplicationProperties applicationProperties;
 
+    @Cacheable(STATUS_LIST_CACHE)
     public String resolveStatusList(String uri) {
 
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);

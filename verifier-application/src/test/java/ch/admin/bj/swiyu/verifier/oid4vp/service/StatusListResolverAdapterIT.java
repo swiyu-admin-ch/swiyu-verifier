@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.domain.statuslist;
+package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.CachingConfig;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.infrastructure.config.RestClientConfig;
@@ -17,14 +18,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 
 import java.util.List;
 
+import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.STATUS_LIST_CACHE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
@@ -33,7 +37,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-@RestClientTest({StatusListResolverAdapter.class})
+@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class})
 @Import({RestClientConfig.class})
 class StatusListResolverAdapterIT {
 
@@ -42,10 +46,11 @@ class StatusListResolverAdapterIT {
     MockRestServiceServer mockServer;
     @Autowired
     StatusListResolverAdapter statusListResolverAdapter;
+    @Autowired
+    CacheManager cacheManager;
 
     @MockitoBean
     private UrlRewriteProperties urlRewriteProperties;
-
     @MockitoBean
     private ApplicationProperties applicationProperties;
     @MockitoBean
@@ -54,6 +59,7 @@ class StatusListResolverAdapterIT {
     @BeforeEach
     void setUp() {
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+        cacheManager.getCache(STATUS_LIST_CACHE).clear();
     }
 
     @Test
@@ -96,6 +102,37 @@ class StatusListResolverAdapterIT {
         this.mockServer.expect(requestTo(differentUrl)).andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess("statuslist", MediaType.TEXT_PLAIN));
         statusListResolverAdapter.resolveStatusList(url);
+        this.mockServer.verify();
+    }
+
+
+    @Test
+    void testStatusListCaching_thenSuccess() {
+
+        var expectedCacheValue = "statusList";
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+
+        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(expectedCacheValue, MediaType.TEXT_PLAIN));
+        statusListResolverAdapter.resolveStatusList(url);
+
+        assertEquals(expectedCacheValue, cacheManager.getCache(STATUS_LIST_CACHE).get(url).get());
+
+        this.mockServer.verify();
+    }
+
+    @Test
+    void testStatusIfCachingUsed_thenSuccess() {
+
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+
+        this.mockServer.expect(ExpectedCount.once(), requestTo(url)).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("statusList", MediaType.TEXT_PLAIN));
+
+        statusListResolverAdapter.resolveStatusList(url);
+
+        statusListResolverAdapter.resolveStatusList(url);
+
         this.mockServer.verify();
     }
 }

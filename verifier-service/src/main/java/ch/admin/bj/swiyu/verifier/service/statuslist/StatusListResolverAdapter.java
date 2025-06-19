@@ -30,7 +30,7 @@ public class StatusListResolverAdapter {
     private final RestClient statusListRestClient;
     private final ApplicationProperties applicationProperties;
 
-    @Cacheable(value = STATUS_LIST_CACHE, key = "#uri")
+    @Cacheable(STATUS_LIST_CACHE)
     public String resolveStatusList(String uri) {
 
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);

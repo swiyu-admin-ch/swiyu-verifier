@@ -34,7 +34,7 @@ public class DidResolverAdapter {
      * @param didTdw - the id of the DID Document
      * @return the DID Document for the given DID
      */
-    @Cacheable(value = ISSUER_PUBLIC_KEY_CACHE, key = "#didTdw")
+    @Cacheable(ISSUER_PUBLIC_KEY_CACHE)
     public DidDoc resolveDid(String didTdw) throws DidResolverException {
         if (didTdw == null) {
             throw new IllegalArgumentException("didTdw must not be null");

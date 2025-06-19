@@ -72,7 +72,7 @@ public class RequestObjectService {
                 .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType("vp_token")
                 .responseMode("direct_post")
-                .responseUri(String.format("%s/api/v1/request-object/%s/response-data",
+                .responseUri(String.format("%s/oid4vp/api/v1/request-object/%s/response-data",
                         applicationProperties.getExternalUrl(),
                         managementEntityId))
                 .build();

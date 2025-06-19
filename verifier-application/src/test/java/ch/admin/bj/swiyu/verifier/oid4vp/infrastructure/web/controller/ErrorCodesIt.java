@@ -28,7 +28,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class ErrorCodesIt extends BaseVerificationControllerTest {
 
-    private static final String BASE_URL = "/api/v1/verifications";
+    private static final String BASE_URL = "/management/api/v1/verifications";
+    private final String responseDataUriFormat = "/oid4vp/api/v1/request-object/%s/response-data";
+
     @Autowired
     private MockMvc mock;
     @MockitoBean
@@ -37,7 +39,7 @@ class ErrorCodesIt extends BaseVerificationControllerTest {
 
     @Test
     void testExistingErrorCodesFromClientToManagement_thenSuccess() throws Exception {
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("error", "access_denied"))
                 .andExpect(status().isOk());
@@ -49,7 +51,7 @@ class ErrorCodesIt extends BaseVerificationControllerTest {
     @ParameterizedTest
     @EnumSource(VerificationClientErrorDto.class)
     void testExistingErrorCodesFromClientToManagement_thenSuccess(VerificationClientErrorDto verificationClientErrorCode) throws Exception {
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("error", verificationClientErrorCode.toString()))
                 .andExpect(status().isOk());

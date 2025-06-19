@@ -74,6 +74,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final String responseDataUriFormat = "/oid4vp/api/v1/request-object/%s/response-data";
 
     @Autowired
     private MockMvc mock;
@@ -101,7 +102,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_EXPIRED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_EXPIRED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -119,7 +120,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -138,7 +139,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_WITHOUT_ACCEPTED_ISSUER))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITHOUT_ACCEPTED_ISSUER))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -147,7 +148,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldGetRequestObject() throws Exception {
-        mock.perform(get(String.format("/api/v1/request-object/%s", REQUEST_ID_SECURED))
+        mock.perform(get(String.format("/oid4vp/api/v1/request-object/%s", REQUEST_ID_SECURED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
@@ -163,7 +164,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
-                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/api/v1/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
+                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/v1/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
 
                     var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
                     assertThat(presentationDefinition.get("id")).isNotNull();
@@ -196,7 +197,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldAcceptRefusalIWithValidErrorType() throws Exception {
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isOk());
@@ -207,7 +208,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldFailWhenRefusalWithInvalidErrorTypeIs() throws Exception {
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .formField("error", "non_existing_Type")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isBadRequest());
@@ -235,7 +236,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -271,7 +272,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -307,7 +308,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -336,7 +337,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format("/oid4vp/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -359,7 +360,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        var response = mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_DIFFERENT_ALGS))
+        var response = mock.perform(post(String.format(responseDataUriFormat, REQUEST_DIFFERENT_ALGS))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -386,7 +387,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
         mockDidResolverResponse(emulator);
 
-        var response = mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_DIFFERENT_KB_ALGS))
+        var response = mock.perform(post(String.format(responseDataUriFormat, REQUEST_DIFFERENT_KB_ALGS))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -416,7 +417,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -442,7 +443,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -469,7 +470,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -494,7 +495,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -517,7 +518,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -551,7 +552,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -573,7 +574,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -594,7 +595,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         String presentationSubmission = objectMapper.writeValueAsString(submission);
 
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -615,7 +616,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         String presentationSubmission = objectMapper.writeValueAsString(submission).replace("[]", "[{}]");
 
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -643,7 +644,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -673,7 +674,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -700,7 +701,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -713,7 +714,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldGetCorrectMandatoryMetadata_thenSuccess() throws Exception {
 
-        mock.perform(get("/api/v1/openid-client-metadata.json")
+        mock.perform(get("/oid4vp/api/v1/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))

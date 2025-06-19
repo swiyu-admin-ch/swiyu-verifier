@@ -46,7 +46,7 @@ public class RequestObjectService {
     @Transactional(readOnly = true)
     public Object assembleRequestObject(UUID managementEntityId) {
 
-        log.info("Prepare request object for mgmt-id {}", managementEntityId);
+        log.debug("Prepare request object for mgmt-id {}", managementEntityId);
 
         var managementEntity = managementRepository.findById(managementEntityId)
                 .orElseThrow();
@@ -57,7 +57,7 @@ public class RequestObjectService {
         }
 
         if (managementEntity.isExpired()) {
-            log.debug("Management with id {} is expired", managementEntityId);
+            log.info("Management with id {} was requested but is expired", managementEntityId);
             throw new NoSuchElementException("Verification Request with id " + managementEntityId + " is expired");
         }
 
@@ -78,7 +78,7 @@ public class RequestObjectService {
                 .build();
 
         // if signing is not desired return request object
-        if (!managementEntity.getJwtSecuredAuthorizationRequest()) {
+        if (Boolean.FALSE.equals(managementEntity.getJwtSecuredAuthorizationRequest())) {
             return requestObject;
         }
         if (!signerProvider.canProvideSigner()) {

@@ -63,6 +63,7 @@ public class VerificationService {
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
     public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
+        log.debug("Received verification presentation for management id {}", managementEntityId);
         var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
         try {
             // 1. Check if the process is still pending and not expired
@@ -76,14 +77,14 @@ public class VerificationService {
             }
 
             // 3. verifiy the presentation submission
-            log.trace("Starting submission verification for {}", managementEntityId);
+            log.debug("Starting submission verification for {}", managementEntityId);
             var credentialSubjectData = verifyPresentation(managementEntity, request);
             log.trace("Submission verification completed for {}", managementEntityId);
             managementEntity.verificationSucceeded(credentialSubjectData);
-            log.trace("Saved successful verification result for {}", managementEntityId);
+            log.debug("Saved successful verification result for {}", managementEntityId);
         } catch (VerificationException e) {
             managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
-            log.trace("Saved failed verification result for {}", managementEntityId);
+            log.debug("Saved failed verification result for {}", managementEntityId);
             throw e; // rethrow since client get notified of the error
         } finally {
             // Notify Business Verifier that this verification is done
@@ -155,7 +156,7 @@ public class VerificationService {
         switch (format) {
             case SdjwtCredentialVerifier.CREDENTIAL_FORMAT -> {
                 var credentialToBeProcessed = extractVerifiableCredential(vpToken, managementEntity, presentationSubmission);
-                log.trace("Prepared VC for verification for id {}", managementEntity.getId());
+                log.trace("Prepared VC for SD-JWT verification for id {}", managementEntity.getId());
                 var verifier = new SdjwtCredentialVerifier(
                         credentialToBeProcessed,
                         managementEntity,

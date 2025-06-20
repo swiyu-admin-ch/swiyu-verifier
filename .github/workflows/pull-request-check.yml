@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
+# Inspired by https://thomasthornton.cloud/2025/03/18/setting-up-trivy-in-your-github-actions/
+name: Pull Request Check
+run-name: ${{ github.repository }} is evaluating pull request
+on: [pull_request]
+
+permissions:
+    actions: read
+    security-events: write
+    contents: read
+    packages: write
+    attestations: write
+    id-token: write
+
+jobs:
+  docker-security-scan:
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+          
+        - name: Set up Java
+          uses: actions/setup-java@v4
+          with:
+            distribution: 'temurin'
+            java-version: '21'
+            cache: 'maven'
+        # Install Securosys JCE provider locally
+        - name: Install Securosys JCE locally
+          run: mvn install:install-file -Dfile=lib/primusX-java11-2.4.4.jar -DgroupId=com.securosys.primus -DartifactId=jce -Dversion=2.4.4 -Dpackaging=jar
+        - name: Build with Maven
+          run: mvn --batch-mode clean generate-resources install
+        - name: Build Docker image
+          run: |
+            docker build -t ${{ github.repository }}:latest .
+        
+        - name: Run Trivy vulnerability scan
+          uses: aquasecurity/trivy-action@0.30.0
+          with:
+            image-ref: '${{ github.repository }}:latest'
+            severity: 'CRITICAL,HIGH'
+            # exit-code: 1
+            # TODO: Publish report once it's public
+            # format: 'sarif'
+            # output: 'trivy-results.sarif'
+
+        # - name: Upload Trivy scan results to GitHub Security tab
+        #   uses: github/codeql-action/upload-sarif@v3
+        #   with:
+        #     sarif_file: 'trivy-results.sarif'

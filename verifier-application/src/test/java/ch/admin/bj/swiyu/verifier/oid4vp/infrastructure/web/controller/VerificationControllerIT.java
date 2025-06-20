@@ -37,6 +37,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -76,6 +77,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String responseDataUriFormat = "/oid4vp/api/v1/request-object/%s/response-data";
 
+    @Autowired
+    CacheManager cacheManager;
     @Autowired
     private MockMvc mock;
     @Autowired

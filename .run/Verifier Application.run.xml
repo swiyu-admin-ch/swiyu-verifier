@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Verifier Application" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <option name="ACTIVE_PROFILES" value="local" />
+    <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+    <module name="swiyu-verifier-application" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="ch.admin.bj.swiyu.verifier.Application" />
+    <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$/verifier-application" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

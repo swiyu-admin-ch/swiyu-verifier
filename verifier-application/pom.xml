@@ -16,7 +16,7 @@
     </parent>
 
     <artifactId>swiyu-verifier-application</artifactId>
-    <name>Swiyu verifier-application - Spring-Boot-Application </name>
+    <name>Swiyu verifier-application - Spring-Boot-Application</name>
     <description>Generic verifier for public beta</description>
     <dependencies>
         <dependency>
@@ -391,7 +391,7 @@
                 <version>1.4</version>
                 <configuration>
                     <attachArtifact>true</attachArtifact>
-                    <outputDir></outputDir>
+                    <outputDir>${project.parent.basedir}</outputDir>
                     <outputFileName>openapi.yaml</outputFileName>
                     <apiDocsUrl>http://localhost:8080/v3/api-docs.yaml</apiDocsUrl>
                     <skip>${skip.doc-generate}</skip>

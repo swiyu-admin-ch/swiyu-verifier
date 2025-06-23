@@ -37,6 +37,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -74,7 +75,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-
+    @Autowired
+    CacheManager cacheManager;
     @Autowired
     private MockMvc mock;
     @Autowired
@@ -693,7 +695,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost", Instant.now().minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()).getEpochSecond());
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost", Instant.now().minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()).getEpochSecond(), "kb+jwt");
         String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
         // mock did resolver response so we get a valid public key for the issuer

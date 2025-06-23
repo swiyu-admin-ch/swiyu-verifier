@@ -67,7 +67,7 @@ verifier-agent-management>**/swagger-ui/index.html**
 
 ```bash
 curl -X 'POST' \
-  'https://<EXTERNAL_URL verification agent management>/management/verifications' \
+  'https://<EXTERNAL_URL verification agent management>/api/v1/private/verifications' \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -123,7 +123,7 @@ provided to the holder in order to submit a response to the verification request
 
 ```json
 {
-    "verification_url": "https://<EXTERNAL_URL verifier agent oid4vp>/oid4vp/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
+    "verification_url": "https://<EXTERNAL_URL verifier agent oid4vp>/api/v1/public/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
 }
 ```
 
@@ -247,7 +247,7 @@ Callback Object Structure
 ### Perform a verification
 
 To perform a verification, it is required to first create the request. This is done with
-the `POST /management/verifications`
+the `POST /api/v1/private/verifications`
 endpoint.
 What data is requested can be selected by adding in additional fields only containing "path".
 Filters are currently only supported for `$.vct` - the Verifiable Credential Type.

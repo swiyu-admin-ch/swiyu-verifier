@@ -45,7 +45,7 @@ import java.util.UUID;
                 "request objects, receive verification presentations, and access OpenID client metadata as specified " +
                 "by the OID4VP protocol. This API is intended for wallets to fetch credentials " +
                 "in compliance with OpenID standards. (IF-101)")
-@RequestMapping({"/oid4vp/api/v1/"})
+@RequestMapping({"/api/v1/public/"})
 public class VerificationController {
 
     private final RequestObjectService requestObjectService;

@@ -137,7 +137,15 @@ public class SDJWTCredentialMock {
     }
 
     public String createSDJWTMock(boolean useLegacyCnfFormat) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, "vc+sd-jwt");
+    }
+
+    public String createSDJWTMock(String credentialFormat) {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, credentialFormat);
+    }
+
+    public String createSDJWTMockWithClaims(HashMap<String, String> sdClaims) {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims, false, "vc+sd-jwt");
     }
 
 
@@ -163,10 +171,10 @@ public class SDJWTCredentialMock {
      * @return complete sdjwt with key binding as a string {jwt}~{disclosure-1}~...{disclosure-n}~{keyBindingProof}
      */
     public String addKeyBindingProof(String sdjwt, String nonce, String aud) throws NoSuchAlgorithmException, ParseException, JOSEException {
-        return addKeyBindingProof(sdjwt, nonce, aud, Instant.now().getEpochSecond());
+        return addKeyBindingProof(sdjwt, nonce, aud, Instant.now().getEpochSecond(), "kb+jwt");
     }
 
-    public String addKeyBindingProof(String sdjwt, String nonce, String aud, long iat) throws NoSuchAlgorithmException, ParseException, JOSEException {
+    public String addKeyBindingProof(String sdjwt, String nonce, String aud, long iat, String format) throws NoSuchAlgorithmException, ParseException, JOSEException {
         // Create hash, hope not to have any indigestion
         var hash = new String(Base64.getUrlEncoder().withoutPadding().encode(MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes())));
         HashMap<String, Object> proofData = new HashMap<>();
@@ -174,7 +182,7 @@ public class SDJWTCredentialMock {
         proofData.put("iat", iat);
         proofData.put("aud", aud);
         proofData.put("nonce", nonce);
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("kb+jwt")).build();
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType(format)).build();
         var jwt = new SignedJWT(header, JWTClaimsSet.parse(proofData));
         jwt.sign(new ECDSASigner(holderKey));
         return sdjwt + jwt.serialize();
@@ -191,11 +199,11 @@ public class SDJWTCredentialMock {
     }
 
     private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims) {
-        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false);
+        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, "vc+sd-jwt");
     }
 
     // Refactor this as soon as issuer and wallet deliver the correct cnf structure
-    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims, boolean useLegacyCnfFormat) {
+    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims, boolean useLegacyCnfFormat, String credentialFormat) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -241,7 +249,7 @@ public class SDJWTCredentialMock {
         try {
             Map<String, Object> claims = builder.build();
             var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("vc+sd-jwt"))
+                    .type(new JOSEObjectType(credentialFormat))
                     .keyID(kidHeaderValue)
                     .build();
             JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);

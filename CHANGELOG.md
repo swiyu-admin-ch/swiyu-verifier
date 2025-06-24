@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Latest
 
-
 ### Added
 
--  Optional callback as alternative for active polling for verification status.
+- Optional callback as alternative for active polling for verification status.
 
 ### Changed
 
+- Breaking! updated url path to distinguish management (with `/management`) and oid4vp (with `/oid4vp`) urls
 - Expanded the verificationClientErrorDto to allow `access_denied` code (the `client_rejected` code is still supported)
 - Expanded `ManagementResponseDto` with an additional field `verification_deeplink` with a standard conform
   Authorization Request that can be presented to the wallet as qr-code. The default value for the deeplink schema is set

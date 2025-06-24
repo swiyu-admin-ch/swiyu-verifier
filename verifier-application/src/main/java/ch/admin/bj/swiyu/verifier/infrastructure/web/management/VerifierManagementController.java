@@ -33,8 +33,8 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @Slf4j
 @Tag(name = "Verifier Management API",
         description = "This API allows the creation of a verfication process and retrieval of its status." +
-        "It is used by the business verifier to manage verifications. (IF-100)")
-@RequestMapping(value="/api/v1/verifications")
+                "It is used by the business verifier to manage verifications. (IF-100)")
+@RequestMapping(value = "/management/api/verifications")
 public class VerifierManagementController {
 
     private final ManagementService presentationService;
@@ -42,7 +42,7 @@ public class VerifierManagementController {
     private final ApplicationProperties applicationProperties;
 
     @Timed
-    @PostMapping(value = { ""})
+    @PostMapping(value = {""})
     @Operation(
             summary = "Creates a new verification process with the given attributes",
             responses = {
@@ -63,7 +63,7 @@ public class VerifierManagementController {
     }
 
     @Timed
-    @GetMapping(value= {"/{verificationId}"})
+    @GetMapping(value = {"/{verificationId}"})
     @Operation(
             summary = "Get verification by id",
             responses = {

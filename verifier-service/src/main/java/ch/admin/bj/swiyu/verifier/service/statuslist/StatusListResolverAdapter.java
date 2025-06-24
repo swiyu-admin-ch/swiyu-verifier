@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
 @Service
 @Data
+@Slf4j
 @AllArgsConstructor
 public class StatusListResolverAdapter {
 
@@ -34,7 +36,7 @@ public class StatusListResolverAdapter {
     public String resolveStatusList(String uri) {
 
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
-
+        log.debug("HTTP Request after url rewrite to status list from {}", rewrittenUrl);
         try {
             if (!containsValidHost(rewrittenUrl)) {
                 throw new IllegalArgumentException("StatusList %s does not contain a valid host from %s"

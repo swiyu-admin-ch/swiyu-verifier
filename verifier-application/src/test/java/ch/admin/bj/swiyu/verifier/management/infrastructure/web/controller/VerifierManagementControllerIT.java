@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class VerifierManagementControllerIT {
 
-    private static final String BASE_URL = "/api/v1/verifications";
+    private static final String BASE_URL = "/management/api/verifications";
     @Autowired
     protected MockMvc mvc;
 
@@ -54,7 +54,7 @@ class VerifierManagementControllerIT {
         var reqField0 = reqDescriptor0.constraints().fields().getFirst();
         var sdJwtFormat = reqDescriptor0.format().get(sdJWTFormatType);
 
-        MvcResult result = mvc.perform(post("/api/v1/verifications")
+        MvcResult result = mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -117,7 +117,7 @@ class VerifierManagementControllerIT {
         request.presentationDefinition().inputDescriptors().clear();
         request.presentationDefinition().inputDescriptors().add(inputDescriptorDto(null));
 
-        mvc.perform(post("/api/v1/verifications")
+        mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -132,7 +132,7 @@ class VerifierManagementControllerIT {
         request.presentationDefinition().inputDescriptors().clear();
         request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_WithoutConstraints());
 
-        mvc.perform(post("/api/v1/verifications")
+        mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -149,7 +149,7 @@ class VerifierManagementControllerIT {
         constraints.fields().clear();
         constraints.fields().add(new FieldDto(null, null, null, null, null));
         // WHEN / THEN
-        mvc.perform(post("/api/v1/verifications")
+        mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -166,7 +166,7 @@ class VerifierManagementControllerIT {
         constraints.fields().clear();
 
         // WHEN / THEN
-        mvc.perform(post("/api/v1/verifications")
+        mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -188,7 +188,7 @@ class VerifierManagementControllerIT {
         var expectedPresentationFormatError = "presentationDefinition.format: Invalid format";
         var expectedInputDescriptorFormatError = "presentationDefinition.inputDescriptors[0].format: Invalid format";
 
-        mvc.perform(post("/api/v1/verifications")
+        mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())

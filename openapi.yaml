@@ -21,32 +21,7 @@ tags:
     description: Spring Boot Actuator Web API Documentation
     url: https://docs.spring.io/spring-boot/docs/current/actuator-api/html/
 paths:
-  /api/v1/verifications:
-    post:
-      tags:
-      - Verifier Management API
-      summary: Creates a new verification process with the given attributes
-      operationId: createVerification
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateVerificationManagement"
-        required: true
-      responses:
-        "400":
-          description: Bad Request. The request body is not valid
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ApiError"
-        "200":
-          description: Verification created
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ManagementResponse"
-  /api/v1/request-object/{request_id}/response-data:
+  /oid4vp/api/request-object/{request_id}/response-data:
     post:
       tags:
       - Verfifier OID4VP API
@@ -76,39 +51,32 @@ paths:
                 $ref: "#/components/schemas/VerificationErrorResponse"
         "200":
           description: Verification Presentation received
-  /api/v1/verifications/{verificationId}:
-    get:
+  /management/api/verifications:
+    post:
       tags:
       - Verifier Management API
-      summary: Get verification by id
-      operationId: getVerification
-      parameters:
-      - name: verificationId
-        in: path
+      summary: Creates a new verification process with the given attributes
+      operationId: createVerification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVerificationManagement"
         required: true
-        schema:
-          type: string
-          format: uuid
       responses:
         "400":
-          description: Bad Request
-          content:
-            '*/*':
-              schema:
-                type: object
-        "200":
-          description: Verification found
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ManagementResponse"
-        "404":
-          description: Verification not found or already expired
+          description: Bad Request. The request body is not valid
           content:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ApiError"
-  /api/v1/request-object/{request_id}:
+        "200":
+          description: Verification created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ManagementResponse"
+  /oid4vp/api/request-object/{request_id}:
     get:
       tags:
       - Verfifier OID4VP API
@@ -148,7 +116,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VerificationErrorResponse"
-  /api/v1/openid-client-metadata.json:
+  /oid4vp/api/openid-client-metadata.json:
     get:
       tags:
       - Verfifier OID4VP API
@@ -180,6 +148,38 @@ paths:
                     client_name: Fallback name
                     client_logo: www.example.com/logo.png
                     client_logo#fr: www.example.com/logo_fr.png
+  /management/api/verifications/{verificationId}:
+    get:
+      tags:
+      - Verifier Management API
+      summary: Get verification by id
+      operationId: getVerification
+      parameters:
+      - name: verificationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                type: object
+        "200":
+          description: Verification found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ManagementResponse"
+        "404":
+          description: Verification not found or already expired
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /actuator:
     get:
       tags:
@@ -307,6 +307,116 @@ paths:
                 type: object
 components:
   schemas:
+    VerificationError:
+      type: string
+      description: |
+        | Value                                                   | Description                                                                                  |
+        |---------------------------------------------------------|----------------------------------------------------------------------------------------------|
+        | invalid_request                                         | The request was invalid.<br>This is a general purpose code if none of the other codes apply. |
+        | server_error                                            | The authorization server encountered an unexpected                                           |
+        | invalid_credential                                      | The credential presented during validation was deemed invalid.                               |
+      enum:
+      - invalid_request
+      - server_error
+      - invalid_credential
+    VerificationErrorResponse:
+      required:
+      - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/VerificationError"
+        error_code:
+          $ref: "#/components/schemas/VerificationErrorResponseCode"
+        error_description:
+          type: string
+    VerificationErrorResponseCode:
+      type: string
+      description: |
+        | Value                                       | Description                                                                                                                          |
+        |---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+        | credential_invalid                          | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |
+        | jwt_expired                                 | During the verification process an expired jwt was used.                                                                             |
+        | missing_nonce                               | During the verification process a nonce was missing.                                                                                 |
+        | invalid_format                              | The data send in the verification process used an invalid format.                                                                    |
+        | credential_expired                          | The credential presented during validation was expired.                                                                              |
+        | unsupported_format                          | The credential presented during validation was in an unsupported format.                                                             |
+        | credential_revoked                          | The credential presented during validation was revoked.                                                                              |
+        | credential_suspended                        | The credential presented during validation was suspended.                                                                            |
+        | credential_missing_data                     | The credential presented during validation does not contain the required fields.                                                     |
+        | unresolvable_status_list                    | The credential presented during validation contains a status list which cannot be reached during validation.                         |
+        | public_key_of_issuer_unresolvable           | The credential presented during validation was issued by an entity that does not provide the public key at the time of verification. |
+        | issuer_not_accepted                         | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                       |
+        | malformed_credential                        | The credential presented during validation isnt valid according to the format specification in question                              |
+        | holder_binding_mismatch                     | The holder has provided invalid proof that the credential is under their control.                                                    |
+        | client_rejected                             | The holder rejected the verification request.                                                                                        |
+        | issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                    |
+        | authorization_request_missing_error_param   | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.                  |
+        | authorization_request_object_not_found      | The requested verification process cannot be found.                                                                                  |
+        | verification_process_closed                 | The requested verification process is already closed.                                                                                |
+        | invalid_presentation_definition             | The provided credential presentation was invalid.                                                                                    |
+        | presentation_submission_constraint_violated | The presentation submission provided violated at least one constraint defined in the presentation definition                         |
+        | invalid_presentation_submission             | The presentation submission couldn't be deserialized and is therefore invalid                                                        |
+        | invalid_scope                               | Requested scope value is invalid, unknown or malformed                                                                                                                                                                                               |
+        | invalid_request                             | Various issues with the request                                                                                                                                                                                                                      |
+        | invalid_client                              | client_metadata parameter exists, but the Wallet recognizes Client Identifier and knows metadata associated with it, Verifier's pre-registered metadata has been found based on the Client Identifier, but client_metadata parameter is also present |
+        | vp_formats_not_supported                    | The Wallet doesn't support any of the formats requested by the Verifier                                                                                                                                                                              |
+        | invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
+        | invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |
+      enum:
+      - credential_invalid
+      - jwt_expired
+      - invalid_format
+      - credential_expired
+      - missing_nonce
+      - unsupported_format
+      - credential_revoked
+      - credential_suspended
+      - holder_binding_mismatch
+      - credential_missing_data
+      - unresolvable_status_list
+      - public_key_of_issuer_unresolvable
+      - client_rejected
+      - issuer_not_accepted
+      - authorization_request_object_not_found
+      - authorization_request_missing_error_param
+      - verification_process_closed
+      - invalid_presentation_definition
+      - malformed_credential
+      - presentation_submission_constraint_violated
+      - invalid_presentation_submission
+      - invalid_scope
+      - invalid_request
+      - invalid_client
+      - vp_formats_not_supported
+      - invalid_presentation_definition_uri
+      - invalid_presentation_definition_reference
+    VerificationPresentationRequest:
+      type: object
+      properties:
+        vp_token:
+          type: string
+          description: "Submitted token (e.g. of the wallet) according to [OpenID4VP\
+            \ specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1)"
+        presentation_submission:
+          type: string
+          description: "The presentation submission as defined in [DIF presentation\
+            \ submission](https://identity.foundation/presentation-exchange/#presentation-submission)"
+        error:
+          type: string
+          description: "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#name-error-response)"
+          enum:
+          - invalid_scope
+          - invalid_request
+          - invalid_client
+          - vp_formats_not_supported
+          - invalid_presentation_definition_uri
+          - invalid_presentation_definition_reference
+          - client_rejected
+          - access_denied
+        error_description:
+          type: string
+          description: Error description as seems fit
     Constraint:
       required:
       - fields
@@ -515,67 +625,6 @@ components:
           type: object
           additionalProperties:
             type: object
-    VerificationErrorResponseCode:
-      type: string
-      description: |
-        | Value                                       | Description                                                                                                                          |
-        |---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-        | credential_invalid                          | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |
-        | jwt_expired                                 | During the verification process an expired jwt was used.                                                                             |
-        | missing_nonce                               | During the verification process a nonce was missing.                                                                                 |
-        | invalid_format                              | The data send in the verification process used an invalid format.                                                                    |
-        | credential_expired                          | The credential presented during validation was expired.                                                                              |
-        | unsupported_format                          | The credential presented during validation was in an unsupported format.                                                             |
-        | credential_revoked                          | The credential presented during validation was revoked.                                                                              |
-        | credential_suspended                        | The credential presented during validation was suspended.                                                                            |
-        | credential_missing_data                     | The credential presented during validation does not contain the required fields.                                                     |
-        | unresolvable_status_list                    | The credential presented during validation contains a status list which cannot be reached during validation.                         |
-        | public_key_of_issuer_unresolvable           | The credential presented during validation was issued by an entity that does not provide the public key at the time of verification. |
-        | issuer_not_accepted                         | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                       |
-        | malformed_credential                        | The credential presented during validation isnt valid according to the format specification in question                              |
-        | holder_binding_mismatch                     | The holder has provided invalid proof that the credential is under their control.                                                    |
-        | client_rejected                             | The holder rejected the verification request.                                                                                        |
-        | issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                    |
-        | authorization_request_missing_error_param   | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.                  |
-        | authorization_request_object_not_found      | The requested verification process cannot be found.                                                                                  |
-        | verification_process_closed                 | The requested verification process is already closed.                                                                                |
-        | invalid_presentation_definition             | The provided credential presentation was invalid.                                                                                    |
-        | presentation_submission_constraint_violated | The presentation submission provided violated at least one constraint defined in the presentation definition                         |
-        | invalid_presentation_submission             | The presentation submission couldn't be deserialized and is therefore invalid                                                        |
-        | invalid_scope                               | Requested scope value is invalid, unknown or malformed                                                                                                                                                                                               |
-        | invalid_request                             | Various issues with the request                                                                                                                                                                                                                      |
-        | invalid_client                              | client_metadata parameter exists, but the Wallet recognizes Client Identifier and knows metadata associated with it, Verifier's pre-registered metadata has been found based on the Client Identifier, but client_metadata parameter is also present |
-        | vp_formats_not_supported                    | The Wallet doesn't support any of the formats requested by the Verifier                                                                                                                                                                              |
-        | invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
-        | invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |
-      enum:
-      - credential_invalid
-      - jwt_expired
-      - invalid_format
-      - credential_expired
-      - missing_nonce
-      - unsupported_format
-      - credential_revoked
-      - credential_suspended
-      - holder_binding_mismatch
-      - credential_missing_data
-      - unresolvable_status_list
-      - public_key_of_issuer_unresolvable
-      - client_rejected
-      - issuer_not_accepted
-      - authorization_request_object_not_found
-      - authorization_request_missing_error_param
-      - verification_process_closed
-      - invalid_presentation_definition
-      - malformed_credential
-      - presentation_submission_constraint_violated
-      - invalid_presentation_submission
-      - invalid_scope
-      - invalid_request
-      - invalid_client
-      - vp_formats_not_supported
-      - invalid_presentation_definition_uri
-      - invalid_presentation_definition_reference
     VerificationStatus:
       type: string
       enum:
@@ -683,55 +732,6 @@ components:
             oras jwt object signed by the verifier as additional security measure
         presentation_definition:
           $ref: "#/components/schemas/PresentationDefinition"
-    VerificationError:
-      type: string
-      description: |
-        | Value                                                   | Description                                                                                  |
-        |---------------------------------------------------------|----------------------------------------------------------------------------------------------|
-        | invalid_request                                         | The request was invalid.<br>This is a general purpose code if none of the other codes apply. |
-        | server_error                                            | The authorization server encountered an unexpected                                           |
-        | invalid_credential                                      | The credential presented during validation was deemed invalid.                               |
-      enum:
-      - invalid_request
-      - server_error
-      - invalid_credential
-    VerificationErrorResponse:
-      required:
-      - error
-      type: object
-      properties:
-        error:
-          $ref: "#/components/schemas/VerificationError"
-        error_code:
-          $ref: "#/components/schemas/VerificationErrorResponseCode"
-        error_description:
-          type: string
-    VerificationPresentationRequest:
-      type: object
-      properties:
-        vp_token:
-          type: string
-          description: "Submitted token (e.g. of the wallet) according to [OpenID4VP\
-            \ specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1)"
-        presentation_submission:
-          type: string
-          description: "The presentation submission as defined in [DIF presentation\
-            \ submission](https://identity.foundation/presentation-exchange/#presentation-submission)"
-        error:
-          type: string
-          description: "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#name-error-response)"
-          enum:
-          - invalid_scope
-          - invalid_request
-          - invalid_client
-          - vp_formats_not_supported
-          - invalid_presentation_definition_uri
-          - invalid_presentation_definition_reference
-          - client_rejected
-          - access_denied
-        error_description:
-          type: string
-          description: Error description as seems fit
     OpenIdClientMetadataVpFormat:
       required:
       - jwt_vp

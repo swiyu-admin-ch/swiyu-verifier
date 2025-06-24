@@ -49,7 +49,7 @@ class ManagementMapperTest {
     void toManagementResponseDtoTest() {
         // GIVEN
         var mgmt = management();
-        var expectedVerificationUrl = "%s/api/v1/public/request-object/%s".formatted(EXTERNAL_URL, mgmt.getId());
+        var expectedVerificationUrl = "%s/oid4vp/api/v1/request-object/%s".formatted(EXTERNAL_URL, mgmt.getId());
         var expectedDeeplink = getExpectedVerificationDeeplink(SWIYU_VERIFIER, CLIENT_ID, expectedVerificationUrl);
         // WHEN
         var dto = toManagementResponseDto(mgmt, applicationProperties);

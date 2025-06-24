@@ -75,7 +75,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String responseDataUriFormat = "/api/v1/public/request-object/%s/response-data";
+    private final String responseDataUriFormat = "/oid4vp/api/v1/request-object/%s/response-data";
 
     @Autowired
     CacheManager cacheManager;
@@ -151,7 +151,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldGetRequestObject() throws Exception {
-        mock.perform(get(String.format("/api/v1/public/request-object/%s", REQUEST_ID_SECURED))
+        mock.perform(get(String.format("/oid4vp/api/v1/request-object/%s", REQUEST_ID_SECURED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
@@ -167,7 +167,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
-                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/api/v1/public/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
+                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/v1/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
 
                     var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
                     assertThat(presentationDefinition.get("id")).isNotNull();
@@ -340,7 +340,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format("/api/v1/public/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format("/oid4vp/api/v1/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
@@ -717,7 +717,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldGetCorrectMandatoryMetadata_thenSuccess() throws Exception {
 
-        mock.perform(get("/api/v1/public/openid-client-metadata.json")
+        mock.perform(get("/oid4vp/api/v1/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))

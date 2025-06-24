@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class VerifierManagementControllerIT {
 
-    private static final String BASE_URL = "/api/v1/private/verifications";
+    private static final String BASE_URL = "/management/api/v1/verifications";
     @Autowired
     protected MockMvc mvc;
 

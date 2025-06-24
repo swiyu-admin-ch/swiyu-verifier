@@ -43,7 +43,7 @@ public class ManagementMapper {
             throw new IllegalArgumentException("Management must not be null");
         }
 
-        var verificationUrl = String.format("%s/api/v1/public/request-object/%s", props.getExternalUrl(), management.getId());
+        var verificationUrl = String.format("%s/oid4vp/api/v1/request-object/%s", props.getExternalUrl(), management.getId());
         return new ManagementResponseDto(
                 management.getId(),
                 management.getRequestNonce(),

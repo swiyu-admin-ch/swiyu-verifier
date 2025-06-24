@@ -28,8 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class ErrorCodesIt extends BaseVerificationControllerTest {
 
-    private static final String BASE_URL = "/management/api/v1/verifications";
-    private final String responseDataUriFormat = "/oid4vp/api/v1/request-object/%s/response-data";
+    private static final String BASE_URL = "/management/api/verifications";
+    private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";
 
     @Autowired
     private MockMvc mock;

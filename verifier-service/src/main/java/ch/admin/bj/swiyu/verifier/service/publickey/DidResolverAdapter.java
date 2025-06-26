@@ -6,13 +6,12 @@
 
 package ch.admin.bj.swiyu.verifier.service.publickey;
 
-import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.eid.didresolver.Did;
 import ch.admin.eid.didtoolbox.DidDoc;
 import ch.admin.eid.didtoolbox.TrustDidWeb;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 
 /**
@@ -22,8 +21,8 @@ import org.springframework.web.client.RestClient;
 @AllArgsConstructor
 public class DidResolverAdapter {
 
-    private final UrlRewriteProperties urlRewriteProperties;
-    private final RestClient restClient;
+    @Autowired
+    private DidResolverRestClient didResolverRestClient;
 
     /**
      * Returns the DID Document for the given DID.
@@ -37,7 +36,7 @@ public class DidResolverAdapter {
         }
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
-            String didLog = retrieveDidLog(didUrl);
+            String didLog = didResolverRestClient.retrieveDidLog(didUrl);
             try (TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog)) {
                 String rawDidDoc = tdw.getDidDoc();
                 return DidDoc.Companion.fromJson(rawDidDoc);
@@ -47,7 +46,4 @@ public class DidResolverAdapter {
         }
     }
 
-    private String retrieveDidLog(String uri) {
-        return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
-    }
 }

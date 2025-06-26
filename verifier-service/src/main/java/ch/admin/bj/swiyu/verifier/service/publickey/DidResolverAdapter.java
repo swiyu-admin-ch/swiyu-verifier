@@ -34,7 +34,6 @@ public class DidResolverAdapter {
      * @param didTdw - the id of the DID Document
      * @return the DID Document for the given DID
      */
-    @Cacheable(ISSUER_PUBLIC_KEY_CACHE)
     public DidDoc resolveDid(String didTdw) throws DidResolverException {
         if (didTdw == null) {
             throw new IllegalArgumentException("didTdw must not be null");
@@ -51,7 +50,8 @@ public class DidResolverAdapter {
         }
     }
 
-    private String retrieveDidLog(String uri) {
+    @Cacheable(ISSUER_PUBLIC_KEY_CACHE)
+    public String retrieveDidLog(String uri) {
         return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
     }
 }

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.mock;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverRestClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -24,6 +25,8 @@ class DidResolverAdapterTest {
 
     private final DidResolverAdapter didResolverAdapter;
 
+    private final DidResolverRestClient didResolverRestClient;
+
     DidResolverAdapterTest() throws JsonProcessingException {
         restClient = mock(RestClient.class, Mockito.RETURNS_DEEP_STUBS);
         var urlRewriteProperties = new UrlRewriteProperties();
@@ -31,7 +34,9 @@ class DidResolverAdapterTest {
                 {"https://identifier-reg.trust-infra.swiyu-int.admin.ch":"https://test.replacement"}
                 """);
         urlRewriteProperties.init();
-        didResolverAdapter = new DidResolverAdapter(urlRewriteProperties, restClient);
+
+        didResolverRestClient = new DidResolverRestClient(urlRewriteProperties, restClient);
+        didResolverAdapter = new DidResolverAdapter(didResolverRestClient);
     }
 
     @Test

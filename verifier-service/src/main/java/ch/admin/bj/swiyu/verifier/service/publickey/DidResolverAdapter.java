@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class DidResolverAdapter {
 
-    @Autowired
     private DidResolverRestClient didResolverRestClient;
 
     /**

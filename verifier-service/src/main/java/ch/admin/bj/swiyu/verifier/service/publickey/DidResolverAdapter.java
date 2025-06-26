@@ -11,11 +11,8 @@ import ch.admin.eid.didresolver.Did;
 import ch.admin.eid.didtoolbox.DidDoc;
 import ch.admin.eid.didtoolbox.TrustDidWeb;
 import lombok.AllArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-
-import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.ISSUER_PUBLIC_KEY_CACHE;
 
 
 /**
@@ -50,8 +47,7 @@ public class DidResolverAdapter {
         }
     }
 
-    @Cacheable(ISSUER_PUBLIC_KEY_CACHE)
-    public String retrieveDidLog(String uri) {
+    private String retrieveDidLog(String uri) {
         return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
     }
 }

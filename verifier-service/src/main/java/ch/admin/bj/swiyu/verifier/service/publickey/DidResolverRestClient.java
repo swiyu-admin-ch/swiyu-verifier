@@ -28,6 +28,7 @@ public class DidResolverRestClient {
 
     /**
      * Returns the DID Document as string for the given didUrl.
+     * This method is cached to avoid multiple calls to the DID resolver service for the same DID URL.
      *
      * @return the DID Document as string for the given didUrl
      */

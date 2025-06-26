@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class DidResolverAdapter {
 
-    private DidResolverRestClient didResolverRestClient;
+    private final DidResolverRestClient didResolverRestClient;
 
     /**
      * Returns the DID Document for the given DID.

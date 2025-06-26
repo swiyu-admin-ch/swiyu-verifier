@@ -6,16 +6,12 @@
 
 package ch.admin.bj.swiyu.verifier.service.publickey;
 
-import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.eid.didresolver.Did;
 import ch.admin.eid.didtoolbox.DidDoc;
 import ch.admin.eid.didtoolbox.TrustDidWeb;
 import lombok.AllArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-
-import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.ISSUER_PUBLIC_KEY_CACHE;
 
 
 /**
@@ -25,8 +21,7 @@ import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.ISSUER_PUBL
 @AllArgsConstructor
 public class DidResolverAdapter {
 
-    private final UrlRewriteProperties urlRewriteProperties;
-    private final RestClient restClient;
+    private final DidResolverRestClient didResolverRestClient;
 
     /**
      * Returns the DID Document for the given DID.
@@ -34,14 +29,13 @@ public class DidResolverAdapter {
      * @param didTdw - the id of the DID Document
      * @return the DID Document for the given DID
      */
-    @Cacheable(ISSUER_PUBLIC_KEY_CACHE)
     public DidDoc resolveDid(String didTdw) throws DidResolverException {
         if (didTdw == null) {
             throw new IllegalArgumentException("didTdw must not be null");
         }
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
-            String didLog = retrieveDidLog(didUrl);
+            String didLog = didResolverRestClient.retrieveDidLog(didUrl);
             try (TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog)) {
                 String rawDidDoc = tdw.getDidDoc();
                 return DidDoc.Companion.fromJson(rawDidDoc);
@@ -51,7 +45,4 @@ public class DidResolverAdapter {
         }
     }
 
-    private String retrieveDidLog(String uri) {
-        return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(uri)).retrieve().body(String.class);
-    }
 }

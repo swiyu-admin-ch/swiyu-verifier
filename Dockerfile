@@ -11,7 +11,7 @@ EXPOSE 8080
 
 COPY scripts/entrypoint.sh /app/
 
-ARG JAR_FILE=verfication-application/target/*.jar
+ARG JAR_FILE=verifier-application/target/*.jar
 ADD ${JAR_FILE} /app/app.jar
 
 RUN set -uxe && \

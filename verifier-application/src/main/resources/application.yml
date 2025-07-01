@@ -107,7 +107,7 @@ webhook:
   callback-uri: "${WEBHOOK_CALLBACK_URI:}"
   api-key-header: "${WEBHOOK_API_KEY_HEADER:}"
   api-key-value: "${WEBHOOK_API_KEY_VALUE:}"
-  callback-interval: ${WEBHOOK_INTERVAL:}
+  callback-interval: ${WEBHOOK_INTERVAL:2000} # Every 2 seconds
 
 logging:
   level:

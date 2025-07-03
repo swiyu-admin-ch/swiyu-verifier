@@ -167,7 +167,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
-                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
+                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
 
                     var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
                     assertThat(presentationDefinition.get("id")).isNotNull();

@@ -30,7 +30,7 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 
 class ManagementMapperTest {
 
-    private static final String EXTERNAL_URL = "https://example.com";
+    private static final String EXTERNAL_URL = "https://example.com/oid4vp";
     private static final String CLIENT_ID = "client_id";
     private static final String SWIYU_VERIFIER = "openid4vp";
 
@@ -49,7 +49,7 @@ class ManagementMapperTest {
     void toManagementResponseDtoTest() {
         // GIVEN
         var mgmt = management();
-        var expectedVerificationUrl = "%s/oid4vp/api/request-object/%s".formatted(EXTERNAL_URL, mgmt.getId());
+        var expectedVerificationUrl = "%s/api/request-object/%s".formatted(EXTERNAL_URL, mgmt.getId());
         var expectedDeeplink = getExpectedVerificationDeeplink(SWIYU_VERIFIER, CLIENT_ID, expectedVerificationUrl);
         // WHEN
         var dto = toManagementResponseDto(mgmt, applicationProperties);

@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- client_metadata must now contain a vp_formats field otherwise the app will not start. A valid metadata example is:
+```json
+{
+    "client_id": "your verifier did",
+    "version": "1.0.0",
+    ...
+    "vp_formats": {
+        "jwt_vp": {
+            "alg": [
+                "ES256"
+            ]
+        }
+    }
+}
+```
 - Breaking! updated url path to distinguish management (with `/management`) and oid4vp (with `/oid4vp`) urls
 - Expanded the verificationClientErrorDto to allow `access_denied` code (the `client_rejected` code is still supported)
 - Expanded `ManagementResponseDto` with an additional field `verification_deeplink` with a standard conform

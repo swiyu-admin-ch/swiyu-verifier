@@ -7,7 +7,6 @@ import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.Const
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.Field;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.Filter;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.FormatAlgorithm;
-import com.jayway.jsonpath.ReadContext;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -105,15 +104,5 @@ class CredentialVerifierSupportTest {
         when(management.getRequestedPresentation()).thenReturn(pd);
 
         assertNull(CredentialVerifierSupport.getRequestedFormat("ldp", management));
-    }
-
-    @Test
-    void testCheckField_thenSuccess() {
-        Field field = new Field(List.of("$.vct"), "id", "name", "purpose",new Filter("string", "test-vct"));
-
-        ReadContext ctx = mock(ReadContext.class);
-        when(ctx.read("$.vct")).thenReturn("test-vct");
-
-        // CredentialVerifierSupport.check
     }
 }

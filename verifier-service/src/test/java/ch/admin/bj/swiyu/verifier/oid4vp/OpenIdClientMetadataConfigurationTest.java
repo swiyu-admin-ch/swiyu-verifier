@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class OpenIdClientMetadataConfigurationIT {
+class OpenIdClientMetadataConfigurationTest {
 
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
     private final String clientId = "test-client-id";
@@ -101,10 +101,25 @@ class OpenIdClientMetadataConfigurationIT {
 
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
 
+
         var exception = assertThrows(IllegalStateException.class, () -> {
             config.initOpenIdClientMetadata();
         });
 
         assertTrue(exception.getMessage().contains("vpFormats.jwtVerifiablePresentation.algorithms must not be empty"));
+    }
+
+    @Test
+    void testInitOpenIdClientMetadataWithIncorrectAlgs_throwsException() throws Exception {
+        String template = "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES384\"]}}}";
+
+        when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
+
+
+        var exception = assertThrows(IllegalStateException.class, () -> {
+            config.initOpenIdClientMetadata();
+        });
+
+        assertTrue(exception.getMessage().contains("algorithms Invalid jwt values provided. Only ES256 is supported"));
     }
 }

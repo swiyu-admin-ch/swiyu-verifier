@@ -10,6 +10,7 @@ public record OpenIdClientMetadataVpFormatAlg(
         @JsonProperty("alg")
         @NotEmpty
         @Valid
+        @ValidJwtValues
         List<String> algorithms
 ) {
 }

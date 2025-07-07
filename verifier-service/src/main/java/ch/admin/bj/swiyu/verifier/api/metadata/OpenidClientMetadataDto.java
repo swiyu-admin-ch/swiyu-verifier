@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.api.metadata;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -13,12 +14,12 @@ import java.util.Map;
 @Data
 public class OpenidClientMetadataDto {
 
-    @NotNull
     @NotBlank
     @JsonProperty("client_id")
     private String clientId;
 
     @NotNull
+    @Valid
     @JsonProperty("vp_formats")
     private OpenIdClientMetadataVpFormat vpFormats;
 

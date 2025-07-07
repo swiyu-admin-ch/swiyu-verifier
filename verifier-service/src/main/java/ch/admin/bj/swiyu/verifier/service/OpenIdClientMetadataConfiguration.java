@@ -56,9 +56,10 @@ public class OpenIdClientMetadataConfiguration {
 
         if (!violations.isEmpty()) {
             StringBuilder sb = new StringBuilder("Invalid OpenID client metadata: ");
-            for (ConstraintViolation<OpenidClientMetadataDto> violation : violations) {
-                sb.append(violation.getMessage()).append(", ");
-            }
+            sb.append(violations.stream()
+                    .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                    .collect(java.util.stream.Collectors.joining(", ")));
+
             throw new IllegalStateException(sb.toString());
         }
     }

@@ -137,15 +137,15 @@ public class SDJWTCredentialMock {
     }
 
     public String createSDJWTMock(boolean useLegacyCnfFormat) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, "vc+sd-jwt");
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, "vc+sd-jwt", JWSAlgorithm.ES256);
     }
 
     public String createSDJWTMock(String credentialFormat) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, credentialFormat);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, credentialFormat, JWSAlgorithm.ES256);
     }
 
-    public String createSDJWTMockWithClaims(HashMap<String, String> sdClaims) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims, false, "vc+sd-jwt");
+    public String createSDJWTMockWithClaims(Map<String, String> sdClaims) {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims, false, "vc+sd-jwt", JWSAlgorithm.ES256);
     }
 
 
@@ -199,11 +199,11 @@ public class SDJWTCredentialMock {
     }
 
     private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims) {
-        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, "vc+sd-jwt");
+        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, "vc+sd-jwt", JWSAlgorithm.ES256);
     }
 
     // Refactor this as soon as issuer and wallet deliver the correct cnf structure
-    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims, boolean useLegacyCnfFormat, String credentialFormat) {
+    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, Map<String, String> sdClaims, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -248,7 +248,7 @@ public class SDJWTCredentialMock {
 
         try {
             Map<String, Object> claims = builder.build();
-            var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+            var header = new JWSHeader.Builder(jwsAlgorithm)
                     .type(new JOSEObjectType(credentialFormat))
                     .keyID(kidHeaderValue)
                     .build();

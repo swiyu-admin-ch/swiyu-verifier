@@ -188,6 +188,7 @@ public class SdjwtCredentialVerifier {
         }
 
         // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.
+        // TODO check this is a duplicate without status
         if (CollectionUtils.containsAny(disclosedClaimNames, claims.getPayload().keySet())) { // If there is any result of the set intersection
             throw credentialError(MALFORMED_CREDENTIAL, "Can not resolve disclosures. Existing Claim would be overridden.");
         }
@@ -198,6 +199,8 @@ public class SdjwtCredentialVerifier {
             throw credentialError(MALFORMED_CREDENTIAL,
                     "Request contains non-distinct disclosures");
         }
+
+        // If any digest is missing or appears more than once in _sd, the check fails. This enforces that all disclosed digests are uniquely present in the _sd claim, as required by the SD-JWT specification.
         if (!digestsFromDisclosures.stream()
                 .allMatch(dig -> Collections.frequency(payload.get("_sd", List.class), dig) == 1)) {
             throw credentialError(MALFORMED_CREDENTIAL,
@@ -362,7 +365,7 @@ public class SdjwtCredentialVerifier {
         var actualNonce = keyBindingClaims.getClaim("nonce");
         if (!expectedNonce.equals(actualNonce)) {
             throw credentialError(MISSING_NONCE,
-                    String.format("Holder Binding lacks correct nonce expected '%s' but was '%s' ", expectedNonce,
+                    String.format("Holder Binding lacks correct nonce expected '%s' but was '%s'", expectedNonce,
                             actualNonce));
         }
     }

@@ -11,6 +11,10 @@ public class ValidJwtValuesValidator implements ConstraintValidator<ValidJwtValu
     @Override
     public boolean isValid(List<String> jwtAlgorithms, ConstraintValidatorContext constraintValidatorContext) {
 
+        if (jwtAlgorithms == null || jwtAlgorithms.isEmpty()) {
+            return false;
+        }
+
         // Could be more in the future, but for now we only support ES256
         var validAlgsList = List.of(JWSAlgorithm.ES256);
 

@@ -77,7 +77,7 @@ class CredentialVerifierSupportTest {
         VerificationException ex = assertThrows(VerificationException.class, () ->
                 CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria(credential, management)
         );
-        assertTrue(ex.getMessage().contains("Validation criteria not matched"));
+        assertTrue(ex.getErrorDescription().contains("Validation criteria not matched"));
     }
 
     @Test

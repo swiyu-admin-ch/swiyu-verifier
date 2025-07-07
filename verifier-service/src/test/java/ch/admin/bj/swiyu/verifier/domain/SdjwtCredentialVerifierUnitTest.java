@@ -269,6 +269,30 @@ class SdjwtCredentialVerifierUnitTest {
         assertEquals("Holder Binding lacks correct nonce expected 'test-nonce' but was 'incorrect-test-nonce'", exception.getErrorDescription());
     }
 
+    @Test
+    void verifyPresentationWithLoadingPublicKeyOfIssuerFailedException_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException {
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdjwt = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdjwt, "incorrect-test-nonce", "http://localhost");
+
+        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
+
+        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
+
+        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
+        when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
+
+        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
+                .thenThrow(new LoadingPublicKeyOfIssuerFailedException("Failed to load public key for issuer", new Exception("Loading failed")));
+
+        SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+        );
+        var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
+
+        assertEquals(PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, exception.getErrorResponseCode());
+    }
+
     // TODO: validateSDHash
 
     @ParameterizedTest

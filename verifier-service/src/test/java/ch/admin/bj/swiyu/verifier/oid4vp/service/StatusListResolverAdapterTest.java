@@ -46,7 +46,7 @@ class StatusListResolverAdapterTest {
     }
 
     @Test
-    void resolveStatusList_invalidHost_throws() {
+    void resolveStatusListWithInvalidHost_throwsException() {
         String uri = "https://example.com/statuslist";
         when(urlRewriteProperties.getRewrittenUrl(uri)).thenReturn(uri);
         when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(List.of("other.com"));
@@ -56,7 +56,7 @@ class StatusListResolverAdapterTest {
     }
 
     @Test
-    void resolveStatusList_malformedUrl_throws() {
+    void resolveStatusListWithMalformedUrl_throwsException() {
         String uri = "htt://bad_url";
         when(urlRewriteProperties.getRewrittenUrl(uri)).thenReturn(uri);
         when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(List.of());
@@ -66,7 +66,7 @@ class StatusListResolverAdapterTest {
     }
 
     @Test
-    void resolveStatusList_nonOkStatus_throws() {
+    void resolveStatusListWithNonOkStatus_throwsException() {
         String uri = "https://example.com/statuslist";
         when(urlRewriteProperties.getRewrittenUrl(uri)).thenReturn(uri);
         when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(List.of("example.com"));

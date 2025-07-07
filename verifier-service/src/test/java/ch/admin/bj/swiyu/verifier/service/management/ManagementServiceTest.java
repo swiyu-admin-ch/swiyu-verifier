@@ -34,7 +34,7 @@ class ManagementServiceTest {
     }
 
     @Test
-    void createVerificationManagement_thenSucces() {
+    void createVerificationManagement_thenSuccess() {
         var presentationDefinitionDto = mock(PresentationDefinitionDto.class);
         var presentationDefinition = mock(PresentationDefinition.class);
         CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
@@ -89,13 +89,13 @@ class ManagementServiceTest {
     }
 
     @Test
-    void getManagement_throwsNotFound() {
+    void getManagement_throwsException() {
         when(repository.findById(id)).thenReturn(Optional.empty());
         assertThrows(VerificationNotFoundException.class, () -> service.getManagement(id));
     }
 
     @Test
-    void getManagementWithExpired_shouldCallDelete_thenSuccess() {
+    void getManagementWithExpired_shouldDelete() {
         var management = mock(Management.class);
         when(management.isExpired()).thenReturn(true);
         when(management.getId()).thenReturn(id);
@@ -106,7 +106,7 @@ class ManagementServiceTest {
     }
 
     @Test
-    void removeExpiredManagements_shouldCallDelete() {
+    void removeExpiredManagements_shouldDelete() {
         service.removeExpiredManagements();
         verify(repository).deleteByExpiresAtIsBefore(anyLong());
     }

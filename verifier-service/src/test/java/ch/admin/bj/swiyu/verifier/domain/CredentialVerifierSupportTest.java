@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 class CredentialVerifierSupportTest {
 
     @Test
-    void testCheckCommonPresentationDefinitionCriteria_valid() {
+    void testCheckCommonPresentationDefinitionCriteria_thenSuccess() {
         // Mock a credential JSON with vct field
         String credential = "{\"vct\":\"test-value\"}";
 
@@ -50,7 +50,7 @@ class CredentialVerifierSupportTest {
     }
 
     @Test
-    void testCheckCommonPresentationDefinitionCriteria_invalidConst() {
+    void testCheckCommonPresentationDefinitionCriteriaWithInvalidConst_throwsException() {
         String credential = "{\"vct\":\"wrong-value\"}";
 
         Filter filter = mock(Filter.class);
@@ -80,7 +80,7 @@ class CredentialVerifierSupportTest {
     }
 
     @Test
-    void testGetRequestedFormat_returnsFormatAlgorithm() {
+    void testGetRequestedFormat_thenSuccess() {
         FormatAlgorithm formatAlgorithm = mock(FormatAlgorithm.class);
 
         PresentationDefinition pd = mock(PresentationDefinition.class);

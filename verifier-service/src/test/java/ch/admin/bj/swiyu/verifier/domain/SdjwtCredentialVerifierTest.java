@@ -9,8 +9,13 @@ import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -20,10 +25,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
@@ -32,25 +34,36 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class SdjwtCredentialVerifierUnitTest {
+class SdjwtCredentialVerifierTest {
 
+    private final String testNonce = "test-nonce";
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
     private StatusListReferenceFactory statusListReferenceFactory;
     private ObjectMapper objectMapper;
     private VerificationProperties verificationProperties;
     private Management managementEntity;
+    private PresentationDefinition presentationDefinition;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
         issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
         statusListReferenceFactory = mock(StatusListReferenceFactory.class);
         objectMapper = new ObjectMapper();
         verificationProperties = mock(VerificationProperties.class);
         managementEntity = mock(Management.class);
+        presentationDefinition = getMockedPresentationDefinition("ES256", "ES256", List.of("$.first_name", "$.last_name"));
+
+        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
 
         when(managementEntity.getId()).thenReturn(UUID.randomUUID());
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(Collections.emptyList());
-        when(managementEntity.getRequestNonce()).thenReturn("test-nonce");
+        when(managementEntity.getRequestNonce()).thenReturn(testNonce);
+
+        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
+        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
+
     }
 
     @Test
@@ -81,13 +94,10 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationWithPrematureJwt_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
+    void verifyPresentationWithPrematureJwt_throwsException() {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var prematureSdJWT = emulator.createSDJWTMock(Instant.now().plus(1, ChronoUnit.HOURS).getEpochSecond());
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -98,14 +108,11 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationWithExpiredJwt_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
+    void verifyPresentationWithExpiredJwt_throwsException() {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var expiredSdJWT = emulator.createSDJWTMock(Instant.now().minus(24, ChronoUnit.HOURS).getEpochSecond(),
                 Instant.now().minusSeconds(10).getEpochSecond());
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 expiredSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -116,20 +123,14 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationWithIncorrectClaims_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
+    void verifyPresentationWithIncorrectClaims_throwsException() {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var prematureSdJWT = emulator.createSDJWTMock();
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES384", "ES256");
+        presentationDefinition = getMockedPresentationDefinition("ES384", "ES256", List.of("$.first_name", "$.last_name"));
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -140,20 +141,13 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationWithMissingKeyBinding_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
+    void verifyPresentationWithMissingKeyBinding_throwsException() {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var prematureSdJWT = emulator.createSDJWTMock();
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -164,22 +158,15 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationWithWrongKeyBindingFormat_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException {
+    void verifyPresentationWithWrongKeyBindingFormat_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
         var incorrectKeyBindingFormat = "not-kb+jwt";
-        var vpToken = emulator.addKeyBindingProof(sdjwt, "test-nonce", "http://localhost", Instant.now().getEpochSecond(), incorrectKeyBindingFormat);
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), incorrectKeyBindingFormat);
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -190,22 +177,16 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationWithKeyBinding_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException {
+    void verifyPresentationWithKeyBinding_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
         var expectedKeyBindingAlg = "ES384";
-        var vpToken = emulator.addKeyBindingProof(sdjwt, "test-nonce", "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES384");
+        presentationDefinition = getMockedPresentationDefinition("ES256", "ES384", List.of("$.first_name", "$.last_name"));
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -216,23 +197,16 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationWithInvalidKbTime_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException {
+    void verifyPresentationWithInvalidKbTime_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdjwt, "test-nonce", "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(0);
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -243,23 +217,14 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationWithIncorrectNonce_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException {
+    void verifyPresentationWithIncorrectNonce_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdjwt, "incorrect-test-nonce", "http://localhost");
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
 
-        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -275,11 +240,6 @@ class SdjwtCredentialVerifierUnitTest {
         var sdjwt = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdjwt, "incorrect-test-nonce", "http://localhost");
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
-
-        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
@@ -297,23 +257,11 @@ class SdjwtCredentialVerifierUnitTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"_sd", "..."})
-    void verifyPresentationWithForbiddenSdJWTClaims_throwsException(String input) throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException {
+    void verifyPresentationWithForbiddenSdJWTClaims_throwsException(String input) throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMockWithClaims(Map.of("test-key", "test-value", input, "this is forbidden"));
-        var vpToken = emulator.addKeyBindingProof(sdjwt, "test-nonce", "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
-
-        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
-        when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
-
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -325,23 +273,11 @@ class SdjwtCredentialVerifierUnitTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"iss", "nbf", "exp", "cnf", "vct", "status"})
-    void verifyPresentationWithForbiddenClaims_throwsException(String input) throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException {
+    void verifyPresentationWithForbiddenClaims_throwsException(String input) throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMockWithClaims(Map.of("test-key", "test-value", input, "this is forbidden"));
-        var vpToken = emulator.addKeyBindingProof(sdjwt, "test-nonce", "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
-
-        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
-        when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
-
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -352,7 +288,7 @@ class SdjwtCredentialVerifierUnitTest {
     }
 
     @Test
-    void verifyPresentationDuplicates_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException {
+    void verifyPresentationDuplicates_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
 
@@ -360,20 +296,8 @@ class SdjwtCredentialVerifierUnitTest {
         var parts = sdjwt.split("~");
         sdjwt = parts[0] + "~" + parts[1] + "~" + parts[1] + "~";
 
-        var vpToken = emulator.addKeyBindingProof(sdjwt, "test-nonce", "http://localhost");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
 
-        PresentationDefinition presentationDefinition = getMockedPresentationDefinition("ES256", "ES256");
-
-        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
-        when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
-
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
@@ -383,19 +307,63 @@ class SdjwtCredentialVerifierUnitTest {
         assertEquals("Request contains non-distinct disclosures", exception.getErrorDescription());
     }
 
-    private PresentationDefinition getMockedPresentationDefinition(String alg, String keyBindingAlg) {
+    @Test
+    void testCheckPresentationDefinitionCriteriaWithNull() throws NoSuchAlgorithmException, ParseException, JOSEException {
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdjwt = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+        var vpTokenParts = vpToken.split("~");
+
+        Jws<Claims> claims;
+        try {
+            claims = Jwts.parser()
+                    .verifyWith(KeyFixtures.issuerKey().toPublicKey())
+                    .build()
+                    .parseSignedClaims(vpTokenParts[0]);
+        } catch (JwtException e) {
+            throw new RuntimeException(e);
+        }
+
+        var payload = claims.getPayload();
+
+        List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(vpTokenParts, 1, vpTokenParts.length - 1))
+                .map(Disclosure::parse).toList();
+
+        SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+        );
+
+        presentationDefinition = getMockedPresentationDefinition("ES384", "ES256", List.of("$.first_name", "$.last_name", "$.not_existing"));
+
+        when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
+
+        assertThrows(VerificationException.class, () ->
+            verifier.checkPresentationDefinitionCriteria(payload, disclosures)
+        );
+    }
+
+    // createField("$.first_name"), createField("$.last_name"), createField("$.not_existing")
+    private PresentationDefinition getMockedPresentationDefinition(String alg, String keyBindingAlg, List<String> requiredFieldPaths) {
         Map<String, PresentationDefinition.FormatAlgorithm> formatAlgorithms = Map.of(
                 "vc+sd-jwt", new PresentationDefinition.FormatAlgorithm(List.of(alg), List.of(keyBindingAlg))
         );
 
+        var fields = requiredFieldPaths.stream()
+                .map(this::createField)
+                .toList();
+
         PresentationDefinition.Constraint constraint = new PresentationDefinition.Constraint(
-                UUID.randomUUID().toString(), "test-constraint", "Test Constraint", formatAlgorithms, List.of()
-        );
+                UUID.randomUUID().toString(), "test-constraint", "Test Constraint", formatAlgorithms, fields);
 
         PresentationDefinition.InputDescriptor inputDescriptor = new PresentationDefinition.InputDescriptor(UUID.randomUUID().toString(), "test-input-descriptor", "Test Input Descriptor", formatAlgorithms, constraint);
 
         return new PresentationDefinition(
                 "test-pd", "Test Presentation Definition", "Test Purpose", formatAlgorithms, List.of(inputDescriptor)
         );
+    }
+
+    private PresentationDefinition.Field createField(String fieldPath) {
+        return new PresentationDefinition.Field(
+                List.of(fieldPath), "test-field", "Test Field", "purpose", null);
     }
 }

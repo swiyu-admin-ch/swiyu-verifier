@@ -34,7 +34,7 @@ class VerificationControllerNoKeyIT extends BaseVerificationControllerTest {
     private VerificationController verificationController;
 
     @Test
-    void shouldGetSignedRequestObject_thenFailDuetoNoKey() throws Exception {
+    void shouldGetSignedRequestObject_thenFailDuetoNoKey() {
 
         // WHEN & THEN
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
@@ -43,11 +43,10 @@ class VerificationControllerNoKeyIT extends BaseVerificationControllerTest {
 
         // Verify the exception message
         assertThat(exception.getMessage()).isEqualTo("Presentation was configured to be signed, but no signing key was configured.");
-
     }
 
     @Test
-    void shouldGetRequestObject() throws Exception {
+    void shouldGetRequestObject() {
 
         // WHEN
         ResponseEntity<Object> requestObject = verificationController.getRequestObject(REQUEST_ID_SDJWT_MGMT_NO_SIGNATURE);
@@ -63,6 +62,4 @@ class VerificationControllerNoKeyIT extends BaseVerificationControllerTest {
         assertThat(requestObjectDto.getResponseMode()).contains("direct_post");
         assertNotNull(requestObjectDto.getNonce());
     }
-
-
 }

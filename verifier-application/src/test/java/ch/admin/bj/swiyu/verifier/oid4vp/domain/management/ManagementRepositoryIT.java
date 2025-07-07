@@ -14,7 +14,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -23,8 +22,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
+@SpringBootTest()
 class ManagementRepositoryIT {
 
     @Autowired
@@ -32,48 +30,6 @@ class ManagementRepositoryIT {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    /**
-     * Checks whether the JSON serialization and deserialization within the {@link Management} works as expected.
-     */
-    @Test
-    void jsonReadWriteTest() throws JsonProcessingException {
-        // GIVEN
-        var entityBeforeSave = Management.builder()
-                .id(UUID.randomUUID())
-                .jwtSecuredAuthorizationRequest(true)
-                .requestedPresentation(presentationDefinition())
-                .walletResponse(walletResponse())
-                .requestNonce("HelloNonce")
-                .build();
-
-        // WHEN
-        managementEntityRepository.save(entityBeforeSave);
-        var entityAfterSave = managementEntityRepository.findById(entityBeforeSave.getId()).orElseThrow();
-
-        // THEN
-        assertThat(entityAfterSave.getRequestedPresentation()).isEqualTo(entityBeforeSave.getRequestedPresentation());
-        assertThat(entityAfterSave.getWalletResponse()).isEqualTo(entityBeforeSave.getWalletResponse());
-        assertThat(entityAfterSave.getRequestedPresentation().inputDescriptors().getFirst().format().get("vc+sd-jwt").alg()).contains("ES256");
-    }
-
-    private ResponseData walletResponse() throws JsonProcessingException {
-        return objectMapper.readValue(walletResponseJson(), ResponseData.class);
-    }
-
-    private PresentationDefinition presentationDefinition() throws JsonProcessingException {
-        return objectMapper.readValue(presentationDefinitionJson(), PresentationDefinition.class);
-    }
-
-    private String walletResponseJson() {
-        return """
-                {
-                  "errorCode": "client_rejected",
-                  "errorDescription": "bla",
-                  "credentialSubjectData": null
-                }
-                """;
-    }
 
     private static String presentationDefinitionJson() {
         return """
@@ -138,4 +94,45 @@ class ManagementRepositoryIT {
                 """;
     }
 
+    /**
+     * Checks whether the JSON serialization and deserialization within the {@link Management} works as expected.
+     */
+    @Test
+    void jsonReadWriteTest() throws JsonProcessingException {
+        // GIVEN
+        var entityBeforeSave = Management.builder()
+                .id(UUID.randomUUID())
+                .jwtSecuredAuthorizationRequest(true)
+                .requestedPresentation(presentationDefinition())
+                .walletResponse(walletResponse())
+                .requestNonce("HelloNonce")
+                .build();
+
+        // WHEN
+        managementEntityRepository.save(entityBeforeSave);
+        var entityAfterSave = managementEntityRepository.findById(entityBeforeSave.getId()).orElseThrow();
+
+        // THEN
+        assertThat(entityAfterSave.getRequestedPresentation()).isEqualTo(entityBeforeSave.getRequestedPresentation());
+        assertThat(entityAfterSave.getWalletResponse()).isEqualTo(entityBeforeSave.getWalletResponse());
+        assertThat(entityAfterSave.getRequestedPresentation().inputDescriptors().getFirst().format().get("vc+sd-jwt").alg()).contains("ES256");
+    }
+
+    private ResponseData walletResponse() throws JsonProcessingException {
+        return objectMapper.readValue(walletResponseJson(), ResponseData.class);
+    }
+
+    private PresentationDefinition presentationDefinition() throws JsonProcessingException {
+        return objectMapper.readValue(presentationDefinitionJson(), PresentationDefinition.class);
+    }
+
+    private String walletResponseJson() {
+        return """
+                {
+                  "errorCode": "client_rejected",
+                  "errorDescription": "bla",
+                  "credentialSubjectData": null
+                }
+                """;
+    }
 }

@@ -44,6 +44,6 @@ public class HSMProperties {
         if (value == null || value.isBlank()) {
             return "";
         }
-        return String.format("com.securosys.primus.jce.%s=%s\n", propertyName, value);
+        return String.format("com.securosys.primus.jce.%s=%s%n", propertyName, value);
     }
 }

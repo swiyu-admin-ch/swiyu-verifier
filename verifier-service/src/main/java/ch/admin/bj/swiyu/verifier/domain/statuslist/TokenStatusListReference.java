@@ -124,8 +124,8 @@ class TokenStatusListReference extends StatusListReference {
     }
 
     private static JWSVerifier toJwsVerifier(PublicKey publicKey) throws JOSEException {
-        if (publicKey instanceof ECPublicKey) {
-            return new ECDSAVerifier((ECPublicKey) publicKey);
+        if (publicKey instanceof ECPublicKey ecPublicKey) {
+            return new ECDSAVerifier(ecPublicKey);
         }
         throw new IllegalArgumentException("Unsupported public key type: " + publicKey.getClass().getName());
     }

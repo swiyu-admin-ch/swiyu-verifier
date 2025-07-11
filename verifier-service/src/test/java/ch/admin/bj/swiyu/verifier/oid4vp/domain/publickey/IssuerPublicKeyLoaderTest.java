@@ -6,12 +6,11 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.domain.publickey;
 
+import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
-import ch.admin.eid.didresolver.DidResolveException;
 import ch.admin.eid.didtoolbox.TrustDidWebException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -33,7 +32,7 @@ class IssuerPublicKeyLoaderTest {
     }
 
     @Test
-    void loadPublicKey_MultibaseKey() throws LoadingPublicKeyOfIssuerFailedException, DidResolveException, TrustDidWebException, JOSEException {
+    void loadPublicKey_MultibaseKey() throws LoadingPublicKeyOfIssuerFailedException, TrustDidWebException, JOSEException {
         // GIVEN (an issuer registered in the DID registry and an issuer signed SD-JWT)
         var issuerDidDocument = DidDocFixtures.issuerDidDocWithMultikey(
                 "did:example:123",
@@ -53,7 +52,7 @@ class IssuerPublicKeyLoaderTest {
     }
 
     @Test
-    void loadPublicKey_JsonWebKey() throws LoadingPublicKeyOfIssuerFailedException, DidResolveException, TrustDidWebException, JOSEException {
+    void loadPublicKey_JsonWebKey() throws LoadingPublicKeyOfIssuerFailedException, TrustDidWebException, JOSEException {
         // GIVEN (an issuer registered in the DID registry and an issuer signed SD-JWT)
         var issuerDidDocument = DidDocFixtures.issuerDidDocWithJsonWebKey(
                 "did:example:123",

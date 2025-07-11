@@ -52,8 +52,7 @@ public class KeyFixtures {
      * Returns the JSON Web Key (JWK) of the issuers public key (as json, not encoded).
      */
     public static String issuerPublicKeyAsJsonWebKey() {
-        var json = issuerKey().toPublicJWK().toJSONString();
-        return json;
+        return issuerKey().toPublicJWK().toJSONString();
     }
 
     private static ECKey toEcKey(String pemEncodedObjects) {

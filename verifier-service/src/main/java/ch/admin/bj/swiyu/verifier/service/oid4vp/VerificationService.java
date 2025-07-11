@@ -153,20 +153,18 @@ public class VerificationService {
             throw new IllegalArgumentException("No format " + format);
         }
 
-        switch (format) {
-            case SdjwtCredentialVerifier.CREDENTIAL_FORMAT -> {
-                var credentialToBeProcessed = extractVerifiableCredential(vpToken, managementEntity, presentationSubmission);
-                log.trace("Prepared VC for SD-JWT verification for id {}", managementEntity.getId());
-                var verifier = new SdjwtCredentialVerifier(
-                        credentialToBeProcessed,
-                        managementEntity,
-                        issuerPublicKeyLoader,
-                        statusListReferenceFactory,
-                        objectMapper,
-                        verificationProperties);
-                return verifier.verifyPresentation();
-            }
-            default -> throw new IllegalArgumentException("Unknown format: " + format);
+        if (format.equals(SdjwtCredentialVerifier.CREDENTIAL_FORMAT)) {
+            var credentialToBeProcessed = extractVerifiableCredential(vpToken, managementEntity, presentationSubmission);
+            log.trace("Prepared VC for SD-JWT verification for id {}", managementEntity.getId());
+            var verifier = new SdjwtCredentialVerifier(
+                    credentialToBeProcessed,
+                    managementEntity,
+                    issuerPublicKeyLoader,
+                    statusListReferenceFactory,
+                    objectMapper,
+                    verificationProperties);
+            return verifier.verifyPresentation();
         }
+        throw new IllegalArgumentException("Unknown format: " + format);
     }
 }

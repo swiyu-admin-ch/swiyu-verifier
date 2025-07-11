@@ -29,7 +29,7 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "monitoring.basic-auth.enabled")
 public class MonitoringSecurityConfig {
 
-    private final static String BASIC_AUTH_ROLE_NAME = UUID.randomUUID().toString();
+    private static final String BASIC_AUTH_ROLE_NAME = UUID.randomUUID().toString();
     private final MonitoringBasicAuthProperties basicAuthProperties;
 
     @Bean

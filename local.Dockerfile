@@ -13,7 +13,7 @@ COPY scripts/entrypoint.sh /app/entrypoint.sh
 RUN chmod 766 $JAVA_HOME/lib/security/cacerts
 
 ARG JAR_FILE=verfication-application/target/*.jar
-ADD ${JAR_FILE} /app/app.jar
+COPY ${JAR_FILE} /app/app.jar
 
 RUN set -uxe && \
     chmod g=u /app/entrypoint.sh &&\

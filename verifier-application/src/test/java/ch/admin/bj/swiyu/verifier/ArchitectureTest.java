@@ -6,7 +6,6 @@
 
 package ch.admin.bj.swiyu.verifier;
 
-import ch.admin.bj.swiyu.verifier.Application;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -24,8 +23,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Arrays;
 
 import static com.tngtech.archunit.core.domain.properties.CanBeAnnotated.Predicates.annotatedWith;
 import static com.tngtech.archunit.lang.conditions.ArchConditions.beAnnotatedWith;
@@ -54,12 +51,6 @@ public class ArchitectureTest {
                 .definedBy(Layer.INFRASTRUCTURE.packageIdentifiers)
                 .whereLayer(Layer.INFRASTRUCTURE.layerName)
                 .mayNotBeAccessedByAnyLayer();
-    }
-
-    private static String[] concat(String[]... arrays) {
-        return Arrays.stream(arrays)
-                .flatMap(Arrays::stream)
-                .toArray(String[]::new);
     }
 
     @Getter

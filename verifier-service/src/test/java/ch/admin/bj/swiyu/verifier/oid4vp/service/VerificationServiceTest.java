@@ -122,7 +122,7 @@ class VerificationServiceTest {
         return getMockRequest("", presentationSubmission);
     }
 
-    private VerificationPresentationRequestDto getMockRequest(String vpToken, String presentationSubmission) {;
+    private VerificationPresentationRequestDto getMockRequest(String vpToken, String presentationSubmission) {
         return new VerificationPresentationRequestDto(vpToken, presentationSubmission, null, null);
     }
 

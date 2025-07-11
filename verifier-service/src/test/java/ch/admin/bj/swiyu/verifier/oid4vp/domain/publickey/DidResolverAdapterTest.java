@@ -40,7 +40,7 @@ class DidResolverAdapterTest {
     }
 
     @Test
-    public void validDidResolving() {
+    void validDidResolving() {
         // GIVEN
         var did = "did:tdw:QmWrXWFEDenvoYWFXxSQGFCa6Pi22Cdsg2r6weGhY2ChiQ:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:2e246676-209a-4c21-aceb-721f8a90b212";
         Mockito.when(restClient.get().uri(Mockito.anyString()).retrieve().body(String.class)).thenReturn("""
@@ -54,7 +54,7 @@ class DidResolverAdapterTest {
     }
 
     @Test
-    public void validDidResolvingWithMapping() {
+    void validDidResolvingWithMapping() {
         // GIVEN
         var did = "did:tdw:QmWrXWFEDenvoYWFXxSQGFCa6Pi22Cdsg2r6weGhY2ChiQ:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:2e246676-209a-4c21-aceb-721f8a90b212";
         Mockito.when(restClient.get().uri("https://test.replacement/api/v1/did/2e246676-209a-4c21-aceb-721f8a90b212/did.jsonl").retrieve().body(String.class)).thenReturn("""
@@ -68,7 +68,7 @@ class DidResolverAdapterTest {
     }
 
     @Test
-    public void testInvalidScidMismatchDidResolving() {
+    void testInvalidScidMismatchDidResolving() {
         // GIVEN
         // did contains invalid scid
         var did = "did:tdw:QmWrXWFEDenvoYWFXxSQTFCa6Pi22Cdsg2r6weGhY2ChiQ:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:2e246676-209a-4c21-aceb-721f8a90b212";

@@ -14,6 +14,10 @@ import java.nio.charset.Charset;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.Arguments;
+import java.util.stream.Stream;
 
 class OpenIdClientMetadataConfigurationTest {
 
@@ -69,57 +73,36 @@ class OpenIdClientMetadataConfigurationTest {
         assertTrue(exception.getMessage().contains("vpFormats must not be null"));
     }
 
-    @Test
-    void testInitOpenIdClientMetadataInvalidVpFormats_throwsException() throws Exception {
-        String template = "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{}}";
-
+    @ParameterizedTest
+    @MethodSource("invalidMetadataProvider")
+    void testInitOpenIdClientMetadataInvalidCases_throwsException(String template, String expectedMessage) throws Exception {
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
 
         var exception = assertThrows(IllegalStateException.class, () -> {
             config.initOpenIdClientMetadata();
         });
 
-        assertTrue(exception.getMessage().contains("jwtVerifiablePresentation must not be null"));
+        assertTrue(exception.getMessage().contains(expectedMessage));
     }
 
-    @Test
-    void testInitOpenIdClientMetadataInvalidJwtVp_throwsException() throws Exception {
-        String template = "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{}}}";
-
-        when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
-
-        var exception = assertThrows(IllegalStateException.class, () -> {
-            config.initOpenIdClientMetadata();
-        });
-
-        assertTrue(exception.getMessage().contains("vpFormats.jwtVerifiablePresentation.algorithms must not be empty"));
-    }
-
-    @Test
-    void testInitOpenIdClientMetadataEmptyAlgs_throwsException() throws Exception {
-        String template = "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[]}}}";
-
-        when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
-
-
-        var exception = assertThrows(IllegalStateException.class, () -> {
-            config.initOpenIdClientMetadata();
-        });
-
-        assertTrue(exception.getMessage().contains("vpFormats.jwtVerifiablePresentation.algorithms must not be empty"));
-    }
-
-    @Test
-    void testInitOpenIdClientMetadataWithIncorrectAlgs_throwsException() throws Exception {
-        String template = "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES384\"]}}}";
-
-        when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
-
-
-        var exception = assertThrows(IllegalStateException.class, () -> {
-            config.initOpenIdClientMetadata();
-        });
-
-        assertTrue(exception.getMessage().contains("algorithms Invalid jwt values provided. Only ES256 is supported"));
+    private static Stream<Arguments> invalidMetadataProvider() {
+        return Stream.of(
+            Arguments.of(
+                "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{}}",
+                "jwtVerifiablePresentation must not be null"
+            ),
+            Arguments.of(
+                "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{}}}",
+                "vpFormats.jwtVerifiablePresentation.algorithms must not be empty"
+            ),
+            Arguments.of(
+                "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[]}}}",
+                "vpFormats.jwtVerifiablePresentation.algorithms must not be empty"
+            ),
+            Arguments.of(
+                "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES384\"]}}}",
+                "algorithms Invalid jwt values provided. Only ES256 is supported"
+            )
+        );
     }
 }

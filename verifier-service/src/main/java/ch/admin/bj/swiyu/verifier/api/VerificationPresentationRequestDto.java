@@ -13,8 +13,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import static org.springframework.util.StringUtils.hasText;
-
 @Builder
 @Data
 @NoArgsConstructor

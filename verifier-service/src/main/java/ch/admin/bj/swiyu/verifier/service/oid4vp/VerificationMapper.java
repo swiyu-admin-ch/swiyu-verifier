@@ -59,7 +59,7 @@ public class VerificationMapper {
 
     private static VerificationErrorDto toVerificationErrorTypeDto(VerificationError source) {
         if (source == null) {
-            return null;
+            return VerificationErrorDto.SERVER_ERROR;
         }
         return switch (source) {
             case INVALID_REQUEST -> VerificationErrorDto.INVALID_REQUEST;

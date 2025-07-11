@@ -24,8 +24,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
-
 import static com.tngtech.archunit.core.domain.properties.CanBeAnnotated.Predicates.annotatedWith;
 import static com.tngtech.archunit.lang.conditions.ArchConditions.beAnnotatedWith;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.*;
@@ -61,12 +59,6 @@ public class ArchitectureTest {
                 .definedBy(Layer.COMMON.packageIdentifiers)
                 .whereLayer(Layer.WEB.layerName)
                 .mayNotBeAccessedByAnyLayer();
-    }
-
-    private static String[] concat(String[]... arrays) {
-        return Arrays.stream(arrays)
-                .flatMap(Arrays::stream)
-                .toArray(String[]::new);
     }
 
     @Getter

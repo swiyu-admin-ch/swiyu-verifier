@@ -34,7 +34,7 @@ public class OpenIdClientMetadataConfiguration {
     private final Validator validator;
 
     @NotNull
-    @Value("${application.client-metadata-file}")
+    @Value("${application.client-metadata-file:#{null}}")
     private Resource clientMetadataResource;
 
     private OpenidClientMetadataDto openIdClientMetadata;

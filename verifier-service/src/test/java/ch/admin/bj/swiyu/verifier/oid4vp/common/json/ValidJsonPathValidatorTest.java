@@ -9,7 +9,6 @@ package ch.admin.bj.swiyu.verifier.oid4vp.common.json;
 import ch.admin.bj.swiyu.verifier.common.json.ValidJsonPathValidator;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectMapper;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintValidatorContext;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
@@ -22,10 +21,11 @@ import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.PresentationDefinitionFixtures.presentationDefinitionWithFields;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
-public class ValidJsonPathValidatorTest {
+class ValidJsonPathValidatorTest {
 
     private ValidJsonPathValidator validator;
     private ConstraintValidatorContext context;
@@ -99,9 +99,9 @@ public class ValidJsonPathValidatorTest {
     @Test
     void testPresentationDefinitionValidation_violationExpected() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
-            var validator = factory.getValidator();
+            var myvalidator = factory.getValidator();
             var presentationDefinition = createPresentationDefinition();
-            var violations = validator.validate(presentationDefinition);
+            var violations = myvalidator.validate(presentationDefinition);
             // uncomment to see the exact violation errors
             // violations.forEach(violation ->
             // System.out.println(violation.getPropertyPath() + "': " + violation.getMessage())
@@ -113,9 +113,9 @@ public class ValidJsonPathValidatorTest {
     @Test
     void testPresentationDefinitionDtoValidation_violationExpected() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
-            var validator = factory.getValidator();
+            var myvalidator = factory.getValidator();
             var presentationDefinitionDto = RequestObjectMapper.toPresentationDefinitionDto(createPresentationDefinition());
-            var violations = validator.validate(presentationDefinitionDto);
+            var violations = myvalidator.validate(presentationDefinitionDto);
             // uncomment to see the exact violation errors
             // violations.forEach(violation ->
             // System.out.println(violation.getPropertyPath() + "': " + violation.getMessage())

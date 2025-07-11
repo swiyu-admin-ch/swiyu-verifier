@@ -71,7 +71,9 @@ class RequestLoggingFilter extends OncePerRequestFilter {
     }
 
     private void logRequest(HttpServletRequest request) {
-        var servletRequest = request instanceof ServletServerHttpRequest ? (ServletServerHttpRequest) request
+
+        var servletRequest = request instanceof ServletServerHttpRequest servletServerHttpRequest
+                ? servletServerHttpRequest
                 : new ServletServerHttpRequest(request);
         var method = method(servletRequest);
         if (shouldTraceUri(request.getRequestURI())) {
@@ -85,8 +87,10 @@ class RequestLoggingFilter extends OncePerRequestFilter {
     private void logResponse(HttpServletRequest request, HttpServletResponse response, ZonedDateTime incomingTime) {
         var responseHeaders = response.getHeaderNames().stream().distinct()
                 .collect(Collectors.toMap(Function.identity(), name -> new ArrayList<>(response.getHeaders(name))));
-        var servletServerHttpRequest = request instanceof ServletServerHttpRequest ? (ServletServerHttpRequest) request
+        var servletServerHttpRequest = request instanceof ServletServerHttpRequest servletServer
+                ? servletServer
                 : new ServletServerHttpRequest(request);
+
         var method = method(servletServerHttpRequest);
         var durationTime = ChronoUnit.MILLIS.between(incomingTime, ZonedDateTime.now());
         var remoteAddress = servletServerHttpRequest.getRemoteAddress();
@@ -111,6 +115,6 @@ class RequestLoggingFilter extends OncePerRequestFilter {
     }
 
     private static String method(ServletServerHttpRequest request) {
-        return request.getMethod() == null ? UNKNOWN_METHOD : request.getMethod().toString();
+        return request.getMethod().name();
     }
 }

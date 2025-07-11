@@ -103,8 +103,7 @@ public class RequestObjectMapper {
         }
         return source.entrySet().stream()
                 .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        (entry) -> toFormatAlgorithmDto(entry.getValue())
+                        Map.Entry::getKey,entry -> toFormatAlgorithmDto(entry.getValue())
                 ));
     }
 

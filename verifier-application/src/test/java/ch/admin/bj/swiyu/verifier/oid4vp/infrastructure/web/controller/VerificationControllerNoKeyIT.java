@@ -53,7 +53,7 @@ class VerificationControllerNoKeyIT extends BaseVerificationControllerTest {
 
         // THEN
         assertNotNull(requestObject);
-        assertThat(requestObject.getStatusCodeValue()).isEqualTo(200);
+        assertThat(requestObject.getStatusCode().value()).isEqualTo(200);
         assertThat(requestObject.getBody()).isNotNull();
         RequestObjectDto requestObjectDto = (RequestObjectDto) requestObject.getBody();
         assertThat(requestObjectDto.getClientId()).contains(applicationProperties.getClientId());

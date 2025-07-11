@@ -12,7 +12,7 @@ EXPOSE 8080
 COPY scripts/entrypoint.sh /app/
 
 ARG JAR_FILE=verifier-application/target/*.jar
-ADD ${JAR_FILE} /app/app.jar
+COPY ${JAR_FILE} /app/app.jar
 
 RUN set -uxe && \
     chmod g=u /app/entrypoint.sh &&\

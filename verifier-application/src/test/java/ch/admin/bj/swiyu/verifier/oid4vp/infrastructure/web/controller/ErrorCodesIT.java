@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-class ErrorCodesIt extends BaseVerificationControllerTest {
+class ErrorCodesIT extends BaseVerificationControllerTest {
 
     private static final String BASE_URL = "/management/api/verifications";
     private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";

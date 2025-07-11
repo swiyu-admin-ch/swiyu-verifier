@@ -1,19 +1,11 @@
 package ch.admin.bj.swiyu.verifier.domain.statuslist;
 
-import java.util.Map;
-
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
-
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import com.nimbusds.jose.JOSEException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,8 +13,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Map;
+
+import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
-public class TokenStatusListReferenceTest {
+class TokenStatusListReferenceTest {
     private final String issuerOfReferencedToken = "TEST_ISSUER_ID";
     @Mock
     private StatusListResolverAdapter statusListResolverAdapter;
@@ -31,7 +30,7 @@ public class TokenStatusListReferenceTest {
     private SDJWTCredentialMock emulator;
 
     @BeforeEach
-    public void beforeEac() throws JOSEException, LoadingPublicKeyOfIssuerFailedException {
+    void beforeEac() throws JOSEException {
         emulator = new SDJWTCredentialMock();
         String tokenStatusList = createTokenStatusListTokenVerifiableCredential(
                 StatusListGenerator.SPEC_STATUS_LIST,
@@ -39,12 +38,12 @@ public class TokenStatusListReferenceTest {
                 emulator.getIssuerId(),
                 emulator.getKidHeaderValue()
         );
-        when(statusListResolverAdapter.resolveStatusList(eq("https://example.com/statuslists/1"))).thenReturn(tokenStatusList);
+        when(statusListResolverAdapter.resolveStatusList("https://example.com/statuslists/1")).thenReturn(tokenStatusList);
     }
 
 
     @Test
-    public void givenMatchingTokenStatusReference_whenVerified_thenSuccess() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
+    void givenMatchingTokenStatusReference_whenVerified_thenSuccess() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
         when(issuerPublicKeyLoader.loadPublicKey(issuerOfReferencedToken, "TEST_ISSUER_ID#key-1")).thenReturn(
                 emulator.getKey().toECPublicKey()
         );
@@ -61,7 +60,7 @@ public class TokenStatusListReferenceTest {
     }
 
     @Test
-    public void givenDifferentTokenStatusReference_whenVerified_thenFails() {
+    void givenDifferentTokenStatusReference_whenVerified_thenFails() {
         var tokenStatusListReference = new TokenStatusListReference(
                 statusListResolverAdapter,
                 Map.of(

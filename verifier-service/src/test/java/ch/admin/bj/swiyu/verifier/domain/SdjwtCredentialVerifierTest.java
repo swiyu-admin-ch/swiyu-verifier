@@ -103,7 +103,7 @@ class SdjwtCredentialVerifierTest {
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
-        assertEquals(MALFORMED_CREDENTIAL, exception.getErrorResponseCode());
+        assertEquals(JWT_PREMATURE, exception.getErrorResponseCode());
         assertEquals("Could not verify JWT credential is not yet valid", exception.getErrorDescription());
     }
 

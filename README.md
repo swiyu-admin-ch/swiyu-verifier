@@ -305,6 +305,7 @@ The response of this post call contains the URI which has to be provided to the 
 |-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | credential_invalid                | The credential presented during validation was deemed invalid.<br>This is a general purpose code if none of the other codes apply.   |
 | jwt_expired                       | During the verification process an expired jwt was used.                                                                             |
+| jwt_premature                     | During the verification process a not yet valid jwt was used.                                                                        |
 | missing_nonce                     | During the verification process a nonce was missing.                                                                                 |
 | invalid_format                    | The data send in the verification process used an invalid format.                                                                    |
 | credential_expired                | The credential presented during validation was expired.                                                                              |

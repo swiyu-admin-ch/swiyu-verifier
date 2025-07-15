@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Optional callback as alternative for active polling for verification status.
-
+- Optional OAuth security with bearer tokens on `/management` endpoints.
+  It can be activated and configured via spring environment variables.
+- 
 ### Changed
 
 - client_metadata must now contain a vp_formats field otherwise the app will not start. A valid metadata example is:

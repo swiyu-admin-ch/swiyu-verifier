@@ -289,6 +289,7 @@ public class ManagementMapper {
         return switch (source) {
             case CREDENTIAL_INVALID -> VerificationErrorResponseCodeDto.CREDENTIAL_INVALID;
             case JWT_EXPIRED -> VerificationErrorResponseCodeDto.JWT_EXPIRED;
+            case JWT_PREMATURE -> VerificationErrorResponseCodeDto.JWT_PREMATURE;
             case INVALID_FORMAT -> VerificationErrorResponseCodeDto.INVALID_FORMAT;
             case CREDENTIAL_EXPIRED -> VerificationErrorResponseCodeDto.CREDENTIAL_EXPIRED;
             case MISSING_NONCE -> VerificationErrorResponseCodeDto.MISSING_NONCE;

@@ -133,7 +133,7 @@ public class SdjwtCredentialVerifier {
                     .build()
                     .parseSignedClaims(issuerSignedJWTToken);
         } catch (PrematureJwtException e) {
-            throw credentialError(e, MALFORMED_CREDENTIAL, "Could not verify JWT credential is not yet valid");
+            throw credentialError(e, JWT_PREMATURE, "Could not verify JWT credential is not yet valid");
         } catch (ExpiredJwtException e) {
             throw credentialError(e, JWT_EXPIRED, "Could not verify JWT credential is expired");
         } catch (JwtException e) {

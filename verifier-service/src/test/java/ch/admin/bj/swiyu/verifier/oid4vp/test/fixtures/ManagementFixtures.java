@@ -11,6 +11,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import lombok.experimental.UtilityClass;
 
+import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
@@ -19,10 +20,10 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DE
 public class ManagementFixtures {
 
     public static Management managementEntity(UUID requestId, PresentationDefinition definition) {
-        return managementEntity(requestId, definition, DEFAULT_ISSUER_ID);
+        return managementEntity(requestId, definition, List.of(DEFAULT_ISSUER_ID));
     }
 
-    public static Management managementEntity(UUID requestId, PresentationDefinition definition, String acceptedIssuerDids) {
+    public static Management managementEntity(UUID requestId, PresentationDefinition definition, List<String> acceptedIssuerDids) {
         return Management.builder()
                 .id(requestId)
                 .requestedPresentation(definition)

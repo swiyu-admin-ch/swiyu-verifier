@@ -14,6 +14,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
@@ -49,7 +50,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids("TEST_ISSUER_ID")
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .jwtSecuredAuthorizationRequest(false)
                 .build());
 
@@ -61,7 +62,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids("TEST_ISSUER_ID")
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .jwtSecuredAuthorizationRequest(true)
                 .build());
 
@@ -74,7 +75,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(0)
-                .acceptedIssuerDids("TEST_ISSUER_ID")
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -97,7 +98,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids("TEST_ISSUER_ID")
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -109,7 +110,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids("TEST_ISSUER_ID")
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .build());
     }
 

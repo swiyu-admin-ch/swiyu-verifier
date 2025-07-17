@@ -7,6 +7,9 @@ run-name: ${{ github.repository }} is building and publishing a docker image
 on:
   release:
     types: [ published ]
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
@@ -31,15 +34,12 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
-          java-version: "21"
-          cache: "maven"
-      # Install Securosys JCE provider locally
-      - name: Install Securosys JCE locally
-        run: mvn install:install-file -Dfile=lib/primusX-java11-2.4.4.jar -DgroupId=com.securosys.primus -DartifactId=jce -Dversion=2.4.4 -Dpackaging=jar
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
       - name: Build with Maven
-        run: mvn versions:set -DnewVersion=${{ github.ref_name }} && mvn --batch-mode clean generate-resources package
-      # https://docs.github.com/de/actions/use-cases-and-examples/publishing-packages/publishing-docker-images#publishing-images-to-github-packages
+        run: mvn --batch-mode clean generate-resources install
+
       - name: Login to Container Registry
         uses: docker/login-action@v3
         with:
@@ -59,4 +59,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile

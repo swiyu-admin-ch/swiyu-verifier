@@ -47,11 +47,6 @@
         <sonar.coverage.exclusions>
             **/*Dto.java,**/config/*,**/generated/*,**/*Exception.java,**/*Constants.java,**/*Registry.java,**/*Config.java,**/*Mock*,**/*Application.java
         </sonar.coverage.exclusions>
-        <!-- TODO should be removed with EID-1771: external jars bbscryptosuite and didresolver must
-        be removed from classpaths -->
-        <sonar.issue.ignore.multicriteria>e1</sonar.issue.ignore.multicriteria>
-        <sonar.issue.ignore.multicriteria.e1.ruleKey>xml:S3422</sonar.issue.ignore.multicriteria.e1.ruleKey>
-        <sonar.issue.ignore.multicriteria.e1.resourceKey>**/pom.xml</sonar.issue.ignore.multicriteria.e1.resourceKey>
 
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <editorconfig-maven-plugin.version>0.1.3</editorconfig-maven-plugin.version>
@@ -63,7 +58,6 @@
         <jjwt-api.version>0.12.6</jjwt-api.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
-        <primus-jce.version>2.4.4</primus-jce.version>
         <skip.doc-generate>true</skip.doc-generate>
     </properties>
 

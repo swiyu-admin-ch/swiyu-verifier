@@ -143,12 +143,6 @@
         </dependency>
         <!-- End  Spring Cloud -->
 
-        <dependency>
-            <groupId>com.securosys.primus</groupId>
-            <artifactId>jce</artifactId>
-            <version>${primus-jce.version}</version>
-        </dependency>
-
         <!-- Logging -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -326,9 +320,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- TODO EID-1771 remove includeSystemScope once we have included system scoped
-                    jars properly -->
-                    <includeSystemScope>true</includeSystemScope>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

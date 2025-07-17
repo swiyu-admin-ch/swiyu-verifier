@@ -20,7 +20,10 @@ else
 fi
 
 
-# If the directory provided through environment variable $JAVA_BOOTCLASSPATH exists, we gather up all .jar files in it and append them to the classpath
+# If the directory provided through environment variable $JAVA_BOOTCLASSPATH exists, we gather up all .jar files in it and append them to the classpath.
+# This is done by concatenating all filenames with a colon
+# Resulting line looks something like
+# -Xbootclasspath/a:my-jce-provider1.jar:my-classpath-lib.jar
 # On java bootclasspath:
 # https://docs.oracle.com/en/java/javase/24/docs/specs/man/java.html#extra-options-for-java:
 #

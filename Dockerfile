@@ -22,7 +22,7 @@ WORKDIR /app
 
 # All image-specific envvars can easiliy be printed out by simply running:
 #     podman inspect <IMAGE_NAME> --format='{{json .Config.Env}}' | jq -r '.[]|select(startswith("ISSUER_"))'
-ENV JAVA_BOOTCLASSPATH "./lib"
+ENV JAVA_BOOTCLASSPATH="./lib"
 VOLUME ${JAVA_BOOTCLASSPATH}
 
 USER 1001

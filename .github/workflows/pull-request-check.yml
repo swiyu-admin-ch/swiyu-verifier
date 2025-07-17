@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
+# Inspired by https://thomasthornton.cloud/2025/03/18/setting-up-trivy-in-your-github-actions/
+name: Pull Request Check
+run-name: ${{ github.repository }} is evaluating pull request
+on: [pull_request]
+
+permissions:
+    actions: read
+    security-events: write
+    contents: read
+    packages: write
+    attestations: write
+    id-token: write
+
+jobs:
+  docker-security-scan:
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+#        - name: Initialize CodeQL
+#          uses: github/codeql-action/init@v3
+#          with:
+#            languages: java
+        - name: Set up Java
+          uses: actions/setup-java@v4
+          with:
+            distribution: 'temurin'
+            java-version: '21'
+            cache: 'maven'
+        - name: Build with Maven
+          run: mvn --batch-mode clean generate-resources install
+          # Note: codeQL MUST be after the compile step
+#        - name: Perform CodeQL Analysis
+#          uses: github/codeql-action/analyze@v3
+        - name: Build and push docker image
+          id: push
+          uses: docker/build-push-action@v6
+          with:
+            context: .
+            load: true
+            tags: pull_request_check:latest
+            build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
+            file: Dockerfile
+        
+        - name: Run Trivy vulnerability scan
+          uses: aquasecurity/trivy-action@0.30.0
+          with:
+            image-ref: pull_request_check:latest
+            severity: 'CRITICAL,HIGH'
+            exit-code: 1
+            format: table

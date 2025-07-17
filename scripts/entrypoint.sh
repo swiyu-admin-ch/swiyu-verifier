@@ -19,7 +19,9 @@ else
     echo " => No certificates found, skipping"
 fi
 
-#
+
+# If the directory provided through environment variable $JAVA_BOOTCLASSPATH exists, we gather up all .jar files in it and append them to the classpath
+# On java bootclasspath:
 # https://docs.oracle.com/en/java/javase/24/docs/specs/man/java.html#extra-options-for-java:
 #
 # -Xbootclasspath/a:directories|zip|JAR-files

@@ -202,6 +202,10 @@ the [Sun PKCS11 provider](https://docs.oracle.com/en/java/javase/22/security/pkc
 specific option.
 Note that for creating the keys it is expected that the public key is provided as self-signed certificated.
 
+For vendor specific options it is necessary to provide the library in the java classpath. For this mount or add the necessary jars to the docker container.
+Provide the environment variable `JAVA_BOOTCLASSPATH` to the directory which should be added to the classpath.
+
+
 | Variable                      | Description                                                                                                                                                                                |
 |-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | SIGNING_KEY_MANAGEMENT_METHOD | This variable serves as selector. `key` is used for a mounted key. `pkcs11` for the sun pkcs11 selector. For vendor specific libraries the project must be compiled with these configured. |

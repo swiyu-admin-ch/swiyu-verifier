@@ -3,15 +3,9 @@
 # SPDX-License-Identifier: MIT
 
 spring:
-  datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:test_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;database_to_upper=FALSE;
-    username: sa
-    password: secret
 
   flyway:
     enabled: true
-    locations: classpath:db/migration,classpath:db/h2
   jpa:
     show-sql: true
     hibernate:

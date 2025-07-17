@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 
+import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.api.definition.FieldDto;
 import ch.admin.bj.swiyu.verifier.api.definition.FormatAlgorithmDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
@@ -18,8 +19,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -31,9 +35,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
+@Testcontainers
+@ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
+@Transactional
 class VerifierManagementControllerIT {
 
     private static final String BASE_URL = "/management/api/verifications";
@@ -45,9 +53,7 @@ class VerifierManagementControllerIT {
 
     @Test
     void testCreateOffer_thenSuccess() throws Exception {
-
         var request = createVerificationManagementDto();
-
         var sdJWTFormatType = "vc+sd-jwt";
 
         var reqDescriptor0 = request.presentationDefinition().inputDescriptors().getFirst();

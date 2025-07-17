@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
+import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
@@ -7,11 +8,22 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+@Testcontainers
+@ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
+@Transactional
 public abstract class BaseVerificationControllerTest {
 
     protected static final UUID REQUEST_ID_SECURED = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");

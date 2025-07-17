@@ -39,6 +39,7 @@ class ManagementServiceTest {
         var presentationDefinition = mock(PresentationDefinition.class);
         CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
                 List.of("did:example:123"),
+                null,
                 false,
                 presentationDefinitionDto
         );

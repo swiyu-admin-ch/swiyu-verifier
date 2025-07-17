@@ -20,9 +20,23 @@ import java.util.List;
 public record CreateVerificationManagementDto(
 
         @Valid
-        @Schema(description = "List of did from issuer whose credentials are accepted for this verification")
+        @Schema(description = """
+                List of dids from issuers whose credentials are accepted for this verification.
+                If not specified
+                """)
         @JsonProperty("accepted_issuer_dids")
         List<String> acceptedIssuerDids,
+
+        @Valid
+        @Schema(description = """
+                List of trust anchor dids from the trust registry.
+                This is an alternative to specifying accepted issuer dids,
+                if these dids have a trust statement.
+                All dids trusted by the trust anchor are accepted.
+                If not specified, trust statements will not be used for this verification.
+                """)
+        @JsonProperty("trust_anchor_dids")
+        List<String> trustAnchorDids,
 
         @Schema(description = "Toggle whether the request-object is available as plain object or" +
                 "as jwt object signed by the verifier as additional security measure")

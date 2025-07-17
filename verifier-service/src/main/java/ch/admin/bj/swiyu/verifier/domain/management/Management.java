@@ -68,13 +68,13 @@ public class Management {
     @Column(name = "expires_at")
     private long expiresAt;
 
-    // Comma-separated list of accepted issuer DIDs.
-    // Supports both Postgres and H2. Since H2 lacks text[] type support, we choose simplicity
-    // over external libraries (e.g., vladmihalcea) and use a comma-separated list instead.
     @Column(name = "accepted_issuer_dids")
     private List<String> acceptedIssuerDids;
 
-    public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids) {
+    @Column(name = "trust_anchor_dids")
+    private List<String> trustAnchorDids;
+
+    public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids, List<String> trustAnchorDids) {
         this.id = id;
         this.state = VerificationStatus.PENDING;
         this.requestNonce = createNonce();
@@ -83,6 +83,7 @@ public class Management {
         this.requestedPresentation = requestedPresentation;
         this.jwtSecuredAuthorizationRequest = jwtSecuredAuthorizationRequest;
         this.acceptedIssuerDids = acceptedIssuerDids;
+        this.trustAnchorDids = trustAnchorDids;
     }
 
     public boolean isVerificationPending() {

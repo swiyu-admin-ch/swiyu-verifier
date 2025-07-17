@@ -26,7 +26,7 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids, PresentationDefinitionDto presentationDefinitionDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, false, presentationDefinitionDto);
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, presentationDefinitionDto);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
@@ -44,7 +44,7 @@ public class ApiFixtures {
                 )
         );
         return new CreateVerificationManagementDto(
-                List.of("did:example:123"),
+                List.of("did:example:123"), null,
                 isJWTSecured, new PresentationDefinitionDto(
                 UUID.randomUUID().toString(),
                 null,

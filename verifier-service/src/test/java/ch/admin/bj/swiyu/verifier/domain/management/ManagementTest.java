@@ -86,7 +86,7 @@ class ManagementTest {
                 .requestedPresentation(definition)
                 .state(VerificationStatus.PENDING)
                 .jwtSecuredAuthorizationRequest(false)
-                .acceptedIssuerDids(List.of("did:example:123,did:example:456".split(",")))
+                .acceptedIssuerDids(List.of("did:example:123","did:example:456"))
                 .build();
 
         // Act

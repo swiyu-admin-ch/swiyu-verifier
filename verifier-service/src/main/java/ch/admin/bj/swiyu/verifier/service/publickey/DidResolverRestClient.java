@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.ISSUER_PUBLIC_KEY_CACHE;
+import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.TRUST_STATEMENT_CACHE;
 
 
 /**
@@ -35,5 +36,13 @@ public class DidResolverRestClient {
     @Cacheable(ISSUER_PUBLIC_KEY_CACHE)
     public String retrieveDidLog(String didUrl) {
         return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(didUrl)).retrieve().body(String.class);
+    }
+
+    /**
+     * Returns the Trust Statement VC for the given did from the trust registry
+     */
+    @Cacheable(TRUST_STATEMENT_CACHE)
+    public String retrieveDidTrustStatement(String trustRegistryUrl, String did) {
+        return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(trustRegistryUrl + "/" + did )).retrieve().body(String.class);
     }
 }

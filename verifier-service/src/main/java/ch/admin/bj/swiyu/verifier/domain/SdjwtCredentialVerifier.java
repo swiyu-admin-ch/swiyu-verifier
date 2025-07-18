@@ -99,14 +99,9 @@ public class SdjwtCredentialVerifier {
         String[] parts = vpToken.split("~");
         var issuerSignedJWTToken = parts[0];
 
-        // Step 2: Check if issuer is in list of accepted issuers
-        // -> if accepted issuers are not set or empty, all issuers are allowed
+        // Step 2: Check if issuer is accepted or trusted
         var issuerDidTdw = extractIssuer(issuerSignedJWTToken);
-        if (managementEntity.getAcceptedIssuerDids() != null
-                && !managementEntity.getAcceptedIssuerDids().isEmpty()
-                && !managementEntity.getAcceptedIssuerDids().contains(issuerDidTdw)) {
-            throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers");
-        }
+        validateTrust(issuerDidTdw);
 
         // Step 3 (SD-JWT spec 8.1 / 2.3): validate that the signing key belongs to the
         // Issuer ...
@@ -216,6 +211,33 @@ public class SdjwtCredentialVerifier {
 
         log.trace("Successfully verified the presented VC for id {}", managementEntity.getId());
         return sdjwt;
+    }
+
+    private void validateTrust(String issuerDidTdw) {
+
+        var acceptedIssuerDids = managementEntity.getAcceptedIssuerDids();
+        var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
+        var trustAnchorDids = managementEntity.getTrustAnchors();
+        var trustAnchorsEmpty = trustAnchorDids == null || trustAnchorDids.isEmpty();
+        if(acceptedIssuersEmpty && trustAnchorsEmpty) {
+            // -> if both, accepted issuers and trust anchors, are not set or empty, all issuers are allowed
+            return;
+        }
+
+
+        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDidTdw)) {
+            // Issuer trusted because it is in the accepted issuer dids
+            return;
+        }
+
+        if (!trustAnchorsEmpty) {
+            // Navigate Trust Statements to try to find the trust statements
+
+        }
+
+
+
+        throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
     }
 
     // Note: this method is package-private because this method is used in unit

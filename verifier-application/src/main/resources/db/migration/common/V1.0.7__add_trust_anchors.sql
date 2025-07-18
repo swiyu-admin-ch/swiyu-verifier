@@ -1,1 +1,1 @@
-ALTER TABLE management ADD COLUMN trust_anchor_dids TEXT ARRAY;
+ALTER TABLE management ADD COLUMN trust_anchors JSON;

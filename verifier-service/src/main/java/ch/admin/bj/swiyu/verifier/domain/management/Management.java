@@ -71,10 +71,11 @@ public class Management {
     @Column(name = "accepted_issuer_dids")
     private List<String> acceptedIssuerDids;
 
-    @Column(name = "trust_anchor_dids")
-    private List<String> trustAnchorDids;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "trust_anchors")
+    private List<TrustAnchor> trustAnchors;
 
-    public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids, List<String> trustAnchorDids) {
+    public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids, List<TrustAnchor> trustAnchors) {
         this.id = id;
         this.state = VerificationStatus.PENDING;
         this.requestNonce = createNonce();
@@ -83,7 +84,7 @@ public class Management {
         this.requestedPresentation = requestedPresentation;
         this.jwtSecuredAuthorizationRequest = jwtSecuredAuthorizationRequest;
         this.acceptedIssuerDids = acceptedIssuerDids;
-        this.trustAnchorDids = trustAnchorDids;
+        this.trustAnchors = trustAnchors;
     }
 
     public boolean isVerificationPending() {

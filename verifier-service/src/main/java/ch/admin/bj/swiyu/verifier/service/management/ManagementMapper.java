@@ -10,14 +10,12 @@ import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.api.definition.*;
 import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.api.management.ResponseDataDto;
+import ch.admin.bj.swiyu.verifier.api.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.api.management.VerificationStatusDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseData;
-import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
@@ -52,6 +50,12 @@ public class ManagementMapper {
                 toResponseDataDto(management.getWalletResponse()),
                 verificationUrl,
                 buildVerificationDeeplink(verificationUrl, props.getClientId(), props.getDeeplinkSchema())
+        );
+    }
+    public static TrustAnchor toTrustAnchor(final TrustAnchorDto trustAnchor)  {
+        return new TrustAnchor(
+                trustAnchor.did(),
+                trustAnchor.trustRegistryUri()
         );
     }
 

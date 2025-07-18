@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.FAILED;
-import static java.util.Collections.emptyList;
 
 @Entity
 @Table(
@@ -73,7 +72,7 @@ public class Management {
     // Supports both Postgres and H2. Since H2 lacks text[] type support, we choose simplicity
     // over external libraries (e.g., vladmihalcea) and use a comma-separated list instead.
     @Column(name = "accepted_issuer_dids")
-    private String acceptedIssuerDids;
+    private List<String> acceptedIssuerDids;
 
     public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids) {
         this.id = id;
@@ -83,7 +82,7 @@ public class Management {
         this.expiresAt = calculateExpiresAt(expirationInSeconds);
         this.requestedPresentation = requestedPresentation;
         this.jwtSecuredAuthorizationRequest = jwtSecuredAuthorizationRequest;
-        this.acceptedIssuerDids = convertToComaSeperatedList(acceptedIssuerDids);
+        this.acceptedIssuerDids = acceptedIssuerDids;
     }
 
     public boolean isVerificationPending() {
@@ -121,14 +120,6 @@ public class Management {
         return System.currentTimeMillis() + (expirationInSeconds * 1000L);
     }
 
-    public List<String> getAcceptedIssuerDids() {
-        if (this.acceptedIssuerDids != null && !this.acceptedIssuerDids.isBlank()) {
-            return List.of(this.acceptedIssuerDids.split(","));
-        } else {
-            return emptyList();
-        }
-    }
-
     public void verificationSucceeded(String credentialSubjectData) {
         this.state = VerificationStatus.SUCCESS;
         this.walletResponse = ResponseData.builder()
@@ -138,12 +129,5 @@ public class Management {
 
     public boolean isExpired() {
         return System.currentTimeMillis() > expiresAt;
-    }
-
-    private String convertToComaSeperatedList(List<String> allowedIssuerDids) {
-        if (allowedIssuerDids == null || allowedIssuerDids.isEmpty()) {
-            return "";
-        }
-        return String.join(",", allowedIssuerDids);
     }
 }

@@ -3,10 +3,10 @@ package ch.admin.bj.swiyu.verifier.domain.management;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ManagementTest {
 
@@ -73,8 +73,7 @@ class ManagementTest {
 
         // Act
         var acceptedIssuerDids = management.getAcceptedIssuerDids();
-
-        assertEquals(0, acceptedIssuerDids.size());
+        assertNull(acceptedIssuerDids);
     }
 
     @Test
@@ -87,7 +86,7 @@ class ManagementTest {
                 .requestedPresentation(definition)
                 .state(VerificationStatus.PENDING)
                 .jwtSecuredAuthorizationRequest(false)
-                .acceptedIssuerDids("did:example:123,did:example:456")
+                .acceptedIssuerDids(List.of("did:example:123","did:example:456"))
                 .build();
 
         // Act

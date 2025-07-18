@@ -5,3 +5,5 @@ ALTER TABLE management ADD COLUMN accepted_issuer_dids TEXT ARRAY;
 -- Migrate old data
 UPDATE management
 SET accepted_issuer_dids = regexp_split_to_array(accepted_issuer_dids_old, E',');
+-- Remove old column
+ALTER TABLE management DROP COLUMN accepted_issuer_dids_old;

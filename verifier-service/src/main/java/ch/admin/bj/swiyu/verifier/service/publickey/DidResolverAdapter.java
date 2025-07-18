@@ -10,7 +10,9 @@ import ch.admin.eid.didresolver.Did;
 import ch.admin.eid.didtoolbox.DidDoc;
 import ch.admin.eid.didtoolbox.TrustDidWeb;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 
 
 /**
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @AllArgsConstructor
+@Slf4j
 public class DidResolverAdapter {
 
     private final DidResolverRestClient didResolverRestClient;
@@ -41,6 +44,15 @@ public class DidResolverAdapter {
             }
         } catch (Exception e) {
             throw new DidResolverException(e);
+        }
+    }
+
+    public String resolveTrustStatement(String trustRegistryUrl, String issuerDidTdw) {
+        try {
+            return didResolverRestClient.retrieveDidTrustStatement(trustRegistryUrl, issuerDidTdw);
+        } catch (HttpStatusCodeException e) {
+            log.info("Failed retrieving trust statement for {} {}", trustRegistryUrl, issuerDidTdw);
+            return null;
         }
     }
 

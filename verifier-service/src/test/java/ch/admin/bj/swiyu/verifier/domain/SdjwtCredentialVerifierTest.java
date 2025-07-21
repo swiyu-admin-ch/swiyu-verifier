@@ -68,6 +68,36 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
+    void verifyPresentationWithTrustStatement_whenNotCanIssue_thenVerificationException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException, JsonProcessingException {
+        // Issuer not in Accepted Issuer dids
+        var vcIssuerDid = "did:example:third";
+        var vcIssuerKid = vcIssuerDid+"#key-1";
+        when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
+        var sdjwt = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+
+        // Trust Statement for default vc type
+        var trustRegistryUrl = "https://trust-registry.example.com";
+        var trustIssuerDid = "did:example:other";
+        var trustIssuerKid = trustIssuerDid+"#key-1";
+        when(issuerPublicKeyLoader.loadPublicKey(trustIssuerDid, trustIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, DEFAULT_ISSUER_ID);
+        when(managementEntity.getTrustAnchors())
+                .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
+        when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
+                .thenReturn((List.of(trustStatement)));
+        SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+        );
+        var ex = assertThrows(VerificationException.class, verifier::verifyPresentation);
+        assertEquals(ISSUER_NOT_ACCEPTED, ex.getErrorResponseCode());
+        assertEquals("Issuer not in list of accepted issuers or connected to trust anchor", ex.getErrorDescription());
+    }
+    
+    @Test
     void verifyPresentationWithTrustStatement_thenSuccess() throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
         // Issuer not in Accepted Issuer dids
         var vcIssuerDid = "did:example:third";
@@ -92,8 +122,7 @@ class SdjwtCredentialVerifierTest {
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
                 vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
-        var claims = verifier.verifyPresentation();
-        assertNotNull(claims);
+        assertDoesNotThrow(verifier::verifyPresentation);
     }
 
     @Test

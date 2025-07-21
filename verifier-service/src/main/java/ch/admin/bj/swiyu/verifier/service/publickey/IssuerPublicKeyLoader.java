@@ -157,9 +157,16 @@ public class IssuerPublicKeyLoader {
         }
     }
 
-    public List<String> loadTrustStatement(String trustRegistryUri, String issuerDidTdw) throws JsonProcessingException {
-        log.debug("Resolving trust statement at registry {} for {}", trustRegistryUri, issuerDidTdw);
-        var rawTrustStatements = didResolverAdapter.resolveTrustStatement("%s/api/v1/truststatements/", issuerDidTdw);
+    /**
+     *
+     * @param trustRegistryUri URI of the trust registry to be used
+     * @param vct The VCT for which the TrustStatementIssuance is to be loaded
+     * @return A list of TrustStatementIssuance as raw JWTs
+     * @throws JsonProcessingException if something is wrong with the format of the response
+     */
+    public List<String> loadTrustStatement(String trustRegistryUri, String vct) throws JsonProcessingException {
+        log.debug("Resolving trust statement at registry {} for {}", trustRegistryUri, vct);
+        var rawTrustStatements = didResolverAdapter.resolveTrustStatement("%s/api/v1/truststatements/issuance", vct);
         return objectMapper.readValue(rawTrustStatements, List.class);
     }
 }

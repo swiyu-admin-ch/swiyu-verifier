@@ -44,7 +44,13 @@ public class DidResolverRestClient {
      * Returns the Trust Statement VC for the given did from the trust registry
      */
     @Cacheable(TRUST_STATEMENT_CACHE)
-    public String retrieveDidTrustStatement(String trustRegistryUrl, String did) throws HttpClientErrorException, HttpServerErrorException {
-        return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(trustRegistryUrl + "/" + did)).retrieve().body(String.class);
+    public String retrieveDidTrustStatement(String trustRegistryIssuanceUrl, String vct) throws HttpClientErrorException, HttpServerErrorException {
+        return restClient.get()
+                .uri(uriBuilder ->
+                        uriBuilder.path(urlRewriteProperties.getRewrittenUrl(trustRegistryIssuanceUrl))
+                            .queryParam("vcSchemaId", vct)
+                            .build())
+                .retrieve()
+                .body(String.class);
     }
 }

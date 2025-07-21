@@ -47,11 +47,11 @@ public class DidResolverAdapter {
         }
     }
 
-    public String resolveTrustStatement(String trustRegistryUrl, String issuerDidTdw) {
+    public String resolveTrustStatement(String trustRegistryUrl, String vct) {
         try {
-            return didResolverRestClient.retrieveDidTrustStatement(trustRegistryUrl, issuerDidTdw);
+            return didResolverRestClient.retrieveDidTrustStatement(trustRegistryUrl, vct);
         } catch (HttpStatusCodeException e) {
-            log.info("Failed retrieving trust statement for {} {}", trustRegistryUrl, issuerDidTdw);
+            log.info("Failed retrieving trust statement for {} {}", trustRegistryUrl, vct);
             return null;
         }
     }

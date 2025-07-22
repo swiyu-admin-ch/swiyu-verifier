@@ -21,6 +21,7 @@ public class OpenApiConfig {
         return new OpenAPI().info(new io.swagger.v3.oas.models.info.Info()
                 .title("Verifier API")
                 .description("Generic Verifier service")
+                .version("0.1")
         );
 
     }

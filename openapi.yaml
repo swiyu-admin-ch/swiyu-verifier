@@ -2,6 +2,7 @@ openapi: 3.0.1
 info:
   title: Verifier API
   description: Generic Verifier service
+  version: "0.1"
 servers:
 - url: http://localhost:8080
   description: Generated server url
@@ -722,18 +723,57 @@ components:
       properties:
         accepted_issuer_dids:
           type: array
-          description: List of did from issuer whose credentials are accepted for
-            this verification
+          description: |
+            List of dids from issuers whose credentials are accepted for this verification.
+            Will be evaluated before trust anchor.
+            If not specified and no trust anchor specified all dids are trusted.
+          example:
+          - did:example:12345
           items:
             type: string
-            description: List of did from issuer whose credentials are accepted for
-              this verification
+            description: |
+              List of dids from issuers whose credentials are accepted for this verification.
+              Will be evaluated before trust anchor.
+              If not specified and no trust anchor specified all dids are trusted.
+            example: "[\"did:example:12345\"]"
+        trust_anchors:
+          type: array
+          description: |
+            List of trust anchor dids from the trust registry.
+            This is an alternative to specifying accepted issuer dids,
+            if these dids have a trust statement.
+            All dids trusted by the trust anchor are accepted.
+            If not specified, trust statements will not be used for this verification.
+          items:
+            $ref: "#/components/schemas/TrustAnchor"
         jwt_secured_authorization_request:
           type: boolean
           description: Toggle whether the request-object is available as plain object
             oras jwt object signed by the verifier as additional security measure
         presentation_definition:
           $ref: "#/components/schemas/PresentationDefinition"
+    TrustAnchor:
+      required:
+      - did
+      - trust_registry_uri
+      type: object
+      properties:
+        did:
+          type: string
+          example: did:example:12345
+        trust_registry_uri:
+          type: string
+          description: |
+            URI of the trust registry to be used for finding the trust anchor.
+            For the example value the trust anchor would be searched at
+            https://trust-reg.trust-infra.swiyu-int.admin.ch/api/v1/truststatements/{trust_anchor_did}
+          example: https://trust-reg.trust-infra.swiyu-int.admin.ch
+      description: |
+        List of trust anchor dids from the trust registry.
+        This is an alternative to specifying accepted issuer dids,
+        if these dids have a trust statement.
+        All dids trusted by the trust anchor are accepted.
+        If not specified, trust statements will not be used for this verification.
     OpenIdClientMetadataVpFormat:
       required:
       - jwt_vp

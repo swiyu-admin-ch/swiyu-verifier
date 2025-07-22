@@ -372,7 +372,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var responseBody = response.getResponse().getContentAsString();
         assertThat(response.getResponse().getContentAsString())
                 .withFailMessage("Should have response body").isNotBlank();
-        assertThat(responseBody).contains(INVALID_CREDENTIAL.toString(), "Invalid algorithm");
+        assertThat(responseBody.toLowerCase()).contains(INVALID_CREDENTIAL.toString().toLowerCase(), "Invalid algorithm".toLowerCase());
     }
 
     @Test

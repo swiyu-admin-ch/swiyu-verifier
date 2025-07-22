@@ -47,7 +47,7 @@ Those information will be provided to the holder on a dedicated endpoint serving
 verifier.
 
 Please be aware that the **oid4vp** endpoints need to be publicly accessible and set in the environment variable
-`EXTERNAL_OID4VP_URL`.
+`EXTERNAL_URL`.
 
 ## 2. Creating a verification
 

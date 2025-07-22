@@ -23,6 +23,7 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
+import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.common.base64.Base64Utils.decodeMultibaseKey;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -49,6 +50,30 @@ public class IssuerPublicKeyLoader {
     private final ObjectMapper objectMapper;
 
     /**
+     * Generates a public key from the given multibase key. The public key is encoded
+     * according to the X.509 standard.
+     *
+     * @param multibaseKey a <a href="https://github.com/multiformats/multibase?tab=readme-ov-file#multibase-table">multibase key</a>
+     * @return the public key encoded according to the X.509 standard
+     * @throws IllegalArgumentException if the key generation fails due to an invalid key specification or missing algorithm
+     */
+    private static PublicKey parsePublicKeyOfTypeMultibaseKey(String multibaseKey) {
+        if (!hasText(multibaseKey)) {
+            throw new IllegalArgumentException("Failed to parse multibase key from verification method since no multibase key was provided");
+        }
+        try {
+            var decodedKey = decodeMultibaseKey(multibaseKey);
+            var keyFactory = KeyFactory.getInstance("EC");
+            var keySpec = new X509EncodedKeySpec(decodedKey);
+            return keyFactory.generatePublic(keySpec);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException("Failed to generate public key from specification due to missing algorithm", e);
+        } catch (InvalidKeySpecException e) {
+            throw new IllegalArgumentException("Failed to generate public key from specification due to invalid key spec", e);
+        }
+    }
+
+    /**
      * Loads the public key of the issuer with the given <code>issuer</code> and <code>kid</code>.
      *
      * @return The public key of the issuer.
@@ -72,7 +97,7 @@ public class IssuerPublicKeyLoader {
      * @param issuerDidTdw the decentralized identifier of the issuer
      * @param issuerKeyId  the key id (in jwt token header provided as 'kid' attribute) indicating which verification method to use
      * @return The VerificationMethod The base64 encoded public key of the issuer as it is mentioned in the <code>verificationMethod</code> for the given issuerKeyId.
-     * @throws DidResolverException   if the DID document could not be resolved
+     * @throws DidResolverException  if the DID document could not be resolved
      * @throws IllegalStateException if the DID document does not contain any matching verification method for the given issuerKeyId
      */
     private VerificationMethod loadVerificationMethod(String issuerDidTdw, String issuerKeyId) throws DidResolverException, IllegalStateException {
@@ -133,26 +158,15 @@ public class IssuerPublicKeyLoader {
     }
 
     /**
-     * Generates a public key from the given multibase key. The public key is encoded
-     * according to the X.509 standard.
      *
-     * @param multibaseKey a <a href="https://github.com/multiformats/multibase?tab=readme-ov-file#multibase-table">multibase key</a>
-     * @return the public key encoded according to the X.509 standard
-     * @throws IllegalArgumentException if the key generation fails due to an invalid key specification or missing algorithm
+     * @param trustRegistryUri URI of the trust registry to be used
+     * @param vct The VCT for which the TrustStatementIssuance is to be loaded
+     * @return A list of TrustStatementIssuance as raw JWTs
+     * @throws JsonProcessingException if something is wrong with the format of the response
      */
-    private static PublicKey parsePublicKeyOfTypeMultibaseKey(String multibaseKey) {
-        if (!hasText(multibaseKey)) {
-            throw new IllegalArgumentException("Failed to parse multibase key from verification method since no multibase key was provided");
-        }
-        try {
-            var decodedKey = decodeMultibaseKey(multibaseKey);
-            var keyFactory = KeyFactory.getInstance("EC");
-            var keySpec = new X509EncodedKeySpec(decodedKey);
-            return keyFactory.generatePublic(keySpec);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Failed to generate public key from specification due to missing algorithm", e);
-        } catch (InvalidKeySpecException e) {
-            throw new IllegalArgumentException("Failed to generate public key from specification due to invalid key spec", e);
-        }
+    public List<String> loadTrustStatement(String trustRegistryUri, String vct) throws JsonProcessingException {
+        log.debug("Resolving trust statement at registry {} for {}", trustRegistryUri, vct);
+        var rawTrustStatements = didResolverAdapter.resolveTrustStatement("%s/api/v1/truststatements/issuance", vct);
+        return objectMapper.readValue(rawTrustStatements, List.class);
     }
 }

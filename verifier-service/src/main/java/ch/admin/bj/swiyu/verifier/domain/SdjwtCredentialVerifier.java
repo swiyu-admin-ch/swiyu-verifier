@@ -11,6 +11,7 @@ import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
@@ -32,6 +33,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.util.CollectionUtils;
 
 import java.security.MessageDigest;
@@ -94,25 +96,43 @@ public class SdjwtCredentialVerifier {
      */
     public String verifyPresentation() {
 
+        SdJwtData result = verifySdJwt(vpToken);
+
+        // Confirm that the returned Credential(s) meet all criteria sent in the
+        // Presentation Definition in the Authorization Request.
+        var sdjwt = checkPresentationDefinitionCriteria(result.payload(), result.disclosures());
+
+        // The data submission is valid, we can now begin to check the status of the VC
+        verifyStatus(result.payload());
+
+        log.trace("Successfully verified the presented VC for id {}", managementEntity.getId());
+        return sdjwt;
+    }
+
+    @NotNull
+    private SdJwtData verifySdJwt(String fullSdJwt) {
         // Step 1 (SD-JWT spec 8.1 / 1): Separate the SD-JWT into the Issuer-signed JWT
         // and the Disclosures (if any).
-        String[] parts = vpToken.split("~");
+        String[] parts = fullSdJwt.split("~");
         var issuerSignedJWTToken = parts[0];
 
-        // Step 2: Check if issuer is in list of accepted issuers
-        // -> if accepted issuers are not set or empty, all issuers are allowed
-        var issuerDidTdw = extractIssuer(issuerSignedJWTToken);
-        if (managementEntity.getAcceptedIssuerDids() != null
-                && !managementEntity.getAcceptedIssuerDids().isEmpty()
-                && !managementEntity.getAcceptedIssuerDids().contains(issuerDidTdw)) {
-            throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers");
+        // Step 2: Check if issuer is accepted or trusted
+        SignedJWT nimbusJwt = null;
+        try {
+            nimbusJwt = SignedJWT.parse(issuerSignedJWTToken);
+        } catch (ParseException e) {
+            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
         }
+        var issuerDidTdw = extractIssuer(nimbusJwt);
+        var vct = extractVcType(nimbusJwt);
+
+        validateTrust(issuerDidTdw, vct);
 
         // Step 3 (SD-JWT spec 8.1 / 2.3): validate that the signing key belongs to the
         // Issuer ...
         PublicKey publicKey;
         try {
-            publicKey = issuerPublicKeyLoader.loadPublicKey(issuerDidTdw, extractKeyId(issuerSignedJWTToken));
+            publicKey = issuerPublicKeyLoader.loadPublicKey(issuerDidTdw, extractKeyId(nimbusJwt));
         } catch (LoadingPublicKeyOfIssuerFailedException e) {
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
         }
@@ -158,7 +178,7 @@ public class SdjwtCredentialVerifier {
         // Step 7 (SD-JWT spec 8.3): Key Binding Verification
         Claims payload = claims.getPayload();
         int disclosureLength = parts.length;
-        if (hasKeyBinding(payload)) {
+        if (hasKeyBinding(fullSdJwt, payload)) {
             disclosureLength -= 1;
             log.trace("Verifying holder keybinding of id {}", managementEntity.getId());
             validateKeyBinding(payload, parts[parts.length - 1]);
@@ -206,16 +226,73 @@ public class SdjwtCredentialVerifier {
                     "Could not verify JWT problem with disclosures and _sd field");
         }
         log.trace("Successfully verified disclosure digests of id {}", managementEntity.getId());
+        return new SdJwtData(payload, disclosures);
+    }
 
-        // Confirm that the returned Credential(s) meet all criteria sent in the
-        // Presentation Definition in the Authorization Request.
-        var sdjwt = checkPresentationDefinitionCriteria(payload, disclosures);
+    private void validateTrust(String issuerDidTdw, String vct) {
 
-        // The data submission is valid, we can now begin to check the status of the VC
-        verifyStatus(payload);
+        var acceptedIssuerDids = managementEntity.getAcceptedIssuerDids();
+        var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
+        var trustAnchors = managementEntity.getTrustAnchors();
+        var trustAnchorsEmpty = trustAnchors == null || trustAnchors.isEmpty();
+        if (acceptedIssuersEmpty && trustAnchorsEmpty) {
+            // -> if both, accepted issuers and trust anchors, are not set or empty, all issuers are allowed
+            return;
+        }
 
-        log.trace("Successfully verified the presented VC for id {}", managementEntity.getId());
-        return sdjwt;
+
+        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDidTdw)) {
+            // Issuer trusted because it is in the accepted issuer dids
+            return;
+        }
+
+        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDidTdw, vct, trustAnchors)) return; // We have a valid trust statement for the vct!
+
+
+        throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
+    }
+
+    private boolean hasMatchingTrustStatement(String issuerDidTdw, String vct, List<TrustAnchor> trustAnchors) {
+        if (trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDidTdw))) {
+            return true;
+        }
+
+        for (var trustAnchor : trustAnchors) {
+            List<String> rawTrustStatementIssuance = fetchTrustStatementIssuance(vct, trustAnchor);
+            if (rawTrustStatementIssuance == null || rawTrustStatementIssuance.isEmpty()) {
+                // Abort if no trust statement
+                log.debug("Failed to get a response for vct {} from {}", vct, trustAnchor.trustRegistryUri());
+                continue;
+            }
+
+            for (var rawTrustStatement : rawTrustStatementIssuance) {
+                try {
+                    if (isProvidingTrust(issuerDidTdw, vct, trustAnchor, rawTrustStatement))
+                        return true;
+                } catch (VerificationException e) {
+                    log.debug("Failed to verify trust statement for vct {} from {} with code {} due to {}", vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isProvidingTrust(String issuerDidTdw, String vct, TrustAnchor trustAnchor, String rawTrustStatement) {
+        var trustStatementIssuance = verifySdJwt(rawTrustStatement);
+        return issuerDidTdw.equals(trustStatementIssuance.payload.getSubject())
+                && trustAnchor.did().equals(trustStatementIssuance.payload.getIssuer())
+                && vct.equals(trustStatementIssuance.payload.get("canIssue", String.class));
+    }
+
+    @Nullable
+    private List<String> fetchTrustStatementIssuance(String vct, TrustAnchor trustAnchor) {
+        List<String> rawTrustStatementIssuance = null;
+        try {
+            rawTrustStatementIssuance = issuerPublicKeyLoader.loadTrustStatement(trustAnchor.trustRegistryUri(), vct);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+        return rawTrustStatementIssuance;
     }
 
     // Note: this method is package-private because this method is used in unit
@@ -243,8 +320,8 @@ public class SdjwtCredentialVerifier {
         statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
     }
 
-    private boolean hasKeyBinding(Claims payload) {
-        boolean keyBindingProofPresent = !vpToken.endsWith("~");
+    private boolean hasKeyBinding(String fullSdJwt, Claims payload) {
+        boolean keyBindingProofPresent = !fullSdJwt.endsWith("~");
         if (payload.containsKey("cnf") && !keyBindingProofPresent) {
             // There is a Holder Key Binding, but we did not receive a proof for it!
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
@@ -369,9 +446,8 @@ public class SdjwtCredentialVerifier {
         }
     }
 
-    private String extractIssuer(String jwtToken) {
+    private String extractIssuer(SignedJWT nimbusJwt) {
         try {
-            SignedJWT nimbusJwt = SignedJWT.parse(jwtToken);
             var issuer = nimbusJwt.getJWTClaimsSet().getIssuer();
             if (StringUtils.isBlank(issuer)) {
                 throw credentialError(MALFORMED_CREDENTIAL, "Missing issuer in the JWT token");
@@ -382,16 +458,26 @@ public class SdjwtCredentialVerifier {
         }
     }
 
-    private String extractKeyId(String jwtToken) {
+    private String extractVcType(SignedJWT nimbusJwt) {
         try {
-            var nimbusJwt = SignedJWT.parse(jwtToken);
-            var keyId = nimbusJwt.getHeader().getKeyID();
-            if (StringUtils.isBlank(keyId)) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
+            var vct = nimbusJwt.getJWTClaimsSet().getClaim("vct");
+            if (vct == null || StringUtils.isBlank(vct.toString())) {
+                throw credentialError(MALFORMED_CREDENTIAL, "Missing vct in the JWT token");
             }
-            return keyId;
+            return vct.toString();
         } catch (ParseException e) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract key id from JWT token");
+            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract vct from SD-JWT token");
         }
+    }
+
+    private String extractKeyId(SignedJWT nimbusJwt) {
+        var keyId = nimbusJwt.getHeader().getKeyID();
+        if (StringUtils.isBlank(keyId)) {
+            throw credentialError(MALFORMED_CREDENTIAL, "Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
+        }
+        return keyId;
+    }
+
+    private record SdJwtData(Claims payload, List<Disclosure> disclosures) {
     }
 }

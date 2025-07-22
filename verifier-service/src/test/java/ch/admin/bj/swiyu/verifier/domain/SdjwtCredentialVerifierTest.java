@@ -4,12 +4,14 @@ import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.authlete.sd.Disclosure;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import io.jsonwebtoken.Claims;
@@ -63,7 +65,64 @@ class SdjwtCredentialVerifierTest {
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
+    }
 
+    @Test
+    void verifyPresentationWithTrustStatement_whenNotCanIssue_thenVerificationException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException, JsonProcessingException {
+        // Issuer not in Accepted Issuer dids
+        var vcIssuerDid = "did:example:third";
+        var vcIssuerKid = vcIssuerDid+"#key-1";
+        when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
+        var sdjwt = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+
+        // Trust Statement for default vc type
+        var trustRegistryUrl = "https://trust-registry.example.com";
+        var trustIssuerDid = "did:example:other";
+        var trustIssuerKid = trustIssuerDid+"#key-1";
+        when(issuerPublicKeyLoader.loadPublicKey(trustIssuerDid, trustIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, DEFAULT_ISSUER_ID);
+        when(managementEntity.getTrustAnchors())
+                .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
+        when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
+                .thenReturn((List.of(trustStatement)));
+        SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+        );
+        var ex = assertThrows(VerificationException.class, verifier::verifyPresentation);
+        assertEquals(ISSUER_NOT_ACCEPTED, ex.getErrorResponseCode());
+        assertEquals("Issuer not in list of accepted issuers or connected to trust anchor", ex.getErrorDescription());
+    }
+    
+    @Test
+    void verifyPresentationWithTrustStatement_thenSuccess() throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+        // Issuer not in Accepted Issuer dids
+        var vcIssuerDid = "did:example:third";
+        var vcIssuerKid = vcIssuerDid+"#key-1";
+        when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
+        var sdjwt = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+
+        // Trust Statement for default vc type
+        var trustRegistryUrl = "https://trust-registry.example.com";
+        var trustIssuerDid = "did:example:other";
+        var trustIssuerKid = trustIssuerDid+"#key-1";
+        when(issuerPublicKeyLoader.loadPublicKey(trustIssuerDid, trustIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid);
+        when(managementEntity.getTrustAnchors())
+                .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
+        when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
+                .thenReturn((List.of(trustStatement)));
+        SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+        );
+        assertDoesNotThrow(verifier::verifyPresentation);
     }
 
     @Test
@@ -90,7 +149,7 @@ class SdjwtCredentialVerifierTest {
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
         assertEquals(ISSUER_NOT_ACCEPTED, exception.getErrorResponseCode());
-        assertEquals("Issuer not in list of accepted issuers", exception.getErrorDescription());
+        assertEquals("Issuer not in list of accepted issuers or connected to trust anchor", exception.getErrorDescription());
     }
 
     @Test

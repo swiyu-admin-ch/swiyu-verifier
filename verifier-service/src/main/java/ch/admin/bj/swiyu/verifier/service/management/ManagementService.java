@@ -12,11 +12,13 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toManagementResponseDto;
@@ -53,12 +55,17 @@ public class ManagementService {
         }
 
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
+        List<TrustAnchor> trustAnchors = null;
+        if ( request.trustAnchors() != null ) {
+            trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();}
         var management = repository.save(new Management(
                 UUID.randomUUID(),
                 applicationProperties.getVerificationTTL(),
                 presentationDefinition,
                 requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true),
-                request.acceptedIssuerDids()));
+                request.acceptedIssuerDids(),
+                trustAnchors)
+                );
 
         log.info("Created pending verification for id: {}", management.getId());
 

@@ -6,6 +6,8 @@ SPDX-License-Identifier: MIT
 
 ![github-banner](https://github.com/swiyu-admin-ch/swiyu-admin-ch.github.io/blob/main/assets/images/github-banner.jpg)
 
+# Warning - This Version is work in progress and NOT PEN-TESTED
+
 # SWIYU generic verifier service
 
 This software is a web server implementing the technical standards as specified in

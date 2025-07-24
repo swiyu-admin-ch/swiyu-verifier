@@ -55,7 +55,6 @@
         <jna.version>5.14.0</jna.version>
         <didresolver.version>2.0.1</didresolver.version>
         <sd-jwt.version>1.4</sd-jwt.version>
-        <jjwt-api.version>0.12.6</jjwt-api.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>

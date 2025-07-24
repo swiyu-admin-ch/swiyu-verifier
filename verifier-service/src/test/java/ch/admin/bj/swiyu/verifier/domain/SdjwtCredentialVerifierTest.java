@@ -14,10 +14,8 @@ import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -135,8 +133,10 @@ class SdjwtCredentialVerifierTest {
                 sdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
-        assertEquals(MALFORMED_CREDENTIAL, exception.getErrorResponseCode());
-        assertEquals("Missing issuer in the JWT token", exception.getErrorDescription());
+        // No issuer is a trusted issuer ==> VC is refused
+        // Note: There are other ways to provide an issuer than only the iss claim; namely the x5c header
+        assertEquals(ISSUER_NOT_ACCEPTED, exception.getErrorResponseCode());
+        assertEquals("Issuer not in list of accepted issuers or connected to trust anchor", exception.getErrorDescription());
     }
 
     @Test
@@ -196,7 +196,7 @@ class SdjwtCredentialVerifierTest {
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
         assertEquals(INVALID_FORMAT, exception.getErrorResponseCode());
-        assertEquals("Invalid algorithm: %s requested %s".formatted("ES256", List.of("ES384")), exception.getErrorDescription());
+        assertEquals("Invalid Algorithm: alg must be one of %s, but was %s".formatted(List.of("ES384"), "ES256"), exception.getErrorDescription());
     }
 
     @Test
@@ -373,17 +373,11 @@ class SdjwtCredentialVerifierTest {
         var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
         var vpTokenParts = vpToken.split("~");
 
-        Jws<Claims> claims;
-        try {
-            claims = Jwts.parser()
-                    .verifyWith(KeyFixtures.issuerKey().toPublicKey())
-                    .build()
-                    .parseSignedClaims(vpTokenParts[0]);
-        } catch (JwtException e) {
-            throw new RuntimeException(e);
-        }
+        var jwt = SignedJWT.parse(vpTokenParts[0]);
+        assertTrue(jwt.verify(new ECDSAVerifier(KeyFixtures.issuerKey())), "Should be able to verify JWT");
 
-        var payload = claims.getPayload();
+
+        var payload = jwt.getJWTClaimsSet();
 
         List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(vpTokenParts, 1, vpTokenParts.length - 1))
                 .map(Disclosure::parse).toList();
@@ -397,7 +391,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         assertThrows(VerificationException.class, () ->
-            verifier.checkPresentationDefinitionCriteria(payload, disclosures)
+            verifier.checkPresentationDefinitionCriteria(payload.getClaims(), disclosures)
         );
     }
 

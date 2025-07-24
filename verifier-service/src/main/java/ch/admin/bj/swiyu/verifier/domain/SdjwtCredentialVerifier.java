@@ -23,22 +23,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
-import io.jsonwebtoken.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.util.CollectionUtils;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
@@ -71,19 +69,19 @@ public class SdjwtCredentialVerifier {
      * Verifies the presentation of a SD-JWT Credential as described in
      * <p>
      * <a href=
-     * "https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-10.html">Selective
+     * "https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html">Selective
      * Disclosure for JWTs (SD-JWT)</a>
      * <ul>
      * <li>
      * <a href=
-     * "https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-10.html#name-verification-of-the-sd-jwt">
-     * 8.1 Verification of the SD-JWT
+     * "https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#name-verification-of-the-sd-jwt">
+     * 7.1 Verification of the SD-JWT
      * </a>
      * </li>
      * <li>
      * <a href=
-     * "https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-10.html#section-8.3">
-     * 8.3 Verification by the Verifier
+     * "https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-7.3">
+     * 7.3 Verification by the Verifier
      * </a>
      * </li>
      * <li>
@@ -100,91 +98,46 @@ public class SdjwtCredentialVerifier {
 
         // Confirm that the returned Credential(s) meet all criteria sent in the
         // Presentation Definition in the Authorization Request.
-        var sdjwt = checkPresentationDefinitionCriteria(result.payload(), result.disclosures());
+        var sdjwt = checkPresentationDefinitionCriteria(result.payload.getClaims(), result.disclosures());
 
         // The data submission is valid, we can now begin to check the status of the VC
-        verifyStatus(result.payload());
+        verifyStatus(result.payload().getClaims());
 
         log.trace("Successfully verified the presented VC for id {}", managementEntity.getId());
         return sdjwt;
     }
 
+    /**
+     * Verifies a SD-JWT Credential as described in
+     * <p>
+     * <a href=
+     * "https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html">Selective
+     * Disclosure for JWTs (SD-JWT)</a>
+     * <ul>
+     * <li>
+     * <a href=
+     * "https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#name-verification-of-the-sd-jwt">
+     * 7.1 Verification of the SD-JWT
+     * </a>
+     * </li>
+     * </ul>
+     */
     @NotNull
     private SdJwtData verifySdJwt(String fullSdJwt) {
-        // Step 1 (SD-JWT spec 8.1 / 1): Separate the SD-JWT into the Issuer-signed JWT
-        // and the Disclosures (if any).
+
         String[] parts = fullSdJwt.split("~");
-        var issuerSignedJWTToken = parts[0];
-
-        // Step 2: Check if issuer is accepted or trusted
-        SignedJWT nimbusJwt = null;
-        try {
-            nimbusJwt = SignedJWT.parse(issuerSignedJWTToken);
-        } catch (ParseException e) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
-        }
-        var issuerDidTdw = extractIssuer(nimbusJwt);
-        var vct = extractVcType(nimbusJwt);
-
-        validateTrust(issuerDidTdw, vct);
-
-        // Step 3 (SD-JWT spec 8.1 / 2.3): validate that the signing key belongs to the
-        // Issuer ...
-        PublicKey publicKey;
-        try {
-            publicKey = issuerPublicKeyLoader.loadPublicKey(issuerDidTdw, extractKeyId(nimbusJwt));
-        } catch (LoadingPublicKeyOfIssuerFailedException e) {
-            throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
-        }
-        log.trace("Loaded issuer public key for id {}", managementEntity.getId());
-
-        // Step 4 (SD-JWT spec 8.1 / 2.3): validate the Issuer (that it is in trust
-        // registry)
-        // -> validating against trust registry is not in scope of public beta (only
-        // holder validates against trust)
-        // -> so for now validation against base registry
-
-        // Step 5 (SD-JWT spec 8.1 / 2.2): Validate the signature over the Issuer-signed
-        // JWT
-        Jws<Claims> claims;
-        try {
-            claims = Jwts.parser()
-                    .verifyWith(publicKey)
-                    .build()
-                    .parseSignedClaims(issuerSignedJWTToken);
-        } catch (PrematureJwtException e) {
-            throw credentialError(e, JWT_PREMATURE, "Could not verify JWT credential is not yet valid");
-        } catch (ExpiredJwtException e) {
-            throw credentialError(e, JWT_EXPIRED, "Could not verify JWT credential is expired");
-        } catch (JwtException e) {
-            throw credentialError(e, MALFORMED_CREDENTIAL, "Signature mismatch");
-        }
-
-        log.trace("Successfully verified signature of id {}", managementEntity.getId());
-        // Step 6 (SD-JWT spec 8.1 / 2.4): Check that alg header is supported (currently
-        // only alg="ES256" with type="vc+sd-jwt")
-        var header = claims.getHeader();
-
-        var requestedAlg = getRequestedFormat(CREDENTIAL_FORMAT, managementEntity).alg();
-        if (!supportedAlgorithms.contains(header.getAlgorithm())
-                || !Objects.equals(header.getType(), CREDENTIAL_FORMAT)) {
-            throw credentialError(UNSUPPORTED_FORMAT, "Unsupported algorithm: " + header.getAlgorithm());
-        }
-
-        if (!requestedAlg.contains(header.getAlgorithm())) {
-            throw credentialError(INVALID_FORMAT, "Invalid algorithm: %s requested %s".formatted(header.getAlgorithm(), requestedAlg));
-        }
+        var claims = validateJwtClaims(parts[0]);
 
         // Step 7 (SD-JWT spec 8.3): Key Binding Verification
-        Claims payload = claims.getPayload();
-        int disclosureLength = parts.length;
-        if (hasKeyBinding(fullSdJwt, payload)) {
-            disclosureLength -= 1;
-            log.trace("Verifying holder keybinding of id {}", managementEntity.getId());
-            validateKeyBinding(payload, parts[parts.length - 1]);
-            log.trace("Successfully verified holder keybinding of id {}", managementEntity.getId());
-        }
+        int disclosureLength = validateHolderBinding(fullSdJwt, claims, parts);
 
+        List<Disclosure> disclosures = getValidatedDisclosures(parts, disclosureLength, claims);
+
+        return new SdJwtData(claims, disclosures);
+    }
+
+    @NotNull
+    private List<Disclosure> getValidatedDisclosures(String[] parts, int disclosureLength, JWTClaimsSet claims) {
         // Step 8 (SD-JWT spec 8.1 / 3 ): Process the Disclosures and embedded digests
         // in the Issuer-signed JWT (section 3 in 8.1)
         List<Disclosure> disclosures;
@@ -208,7 +161,7 @@ public class SdjwtCredentialVerifier {
         }
 
         // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.
-        if (CollectionUtils.containsAny(disclosedClaimNames, claims.getPayload().keySet())) { // If there is any result of the set intersection
+        if (CollectionUtils.containsAny(disclosedClaimNames, claims.getClaims().keySet())) { // If there is any result of the set intersection
             throw credentialError(MALFORMED_CREDENTIAL, "Can not resolve disclosures. Existing Claim would be overridden.");
         }
 
@@ -221,16 +174,96 @@ public class SdjwtCredentialVerifier {
 
         // If any digest is missing or appears more than once in _sd, the check fails. This enforces that all disclosed digests are uniquely present in the _sd claim, as required by the SD-JWT specification.
         if (!digestsFromDisclosures.stream()
-                .allMatch(dig -> Collections.frequency(payload.get("_sd", List.class), dig) == 1)) {
+                .allMatch(dig -> {
+                    try {
+                        return Collections.frequency(claims.getListClaim("_sd"), dig) == 1;
+                    } catch (ParseException e) {
+                        throw credentialError(MALFORMED_CREDENTIAL,
+                                "Could not verify JWT. _sd field was not a list of disclosures.");
+                    }
+                })) {
             throw credentialError(MALFORMED_CREDENTIAL,
                     "Could not verify JWT problem with disclosures and _sd field");
         }
         log.trace("Successfully verified disclosure digests of id {}", managementEntity.getId());
-        return new SdJwtData(payload, disclosures);
+        return disclosures;
+    }
+
+    /**
+     * Validates the holder binding. From this we will also know how many disclosures there are.
+     */
+    private int validateHolderBinding(String fullSdJwt, JWTClaimsSet claims, String[] parts) {
+        var payload = claims.getClaims();
+        int disclosureLength = parts.length;
+        if (hasKeyBinding(fullSdJwt, payload)) {
+            disclosureLength -= 1;
+            log.trace("Verifying holder keybinding of id {}", managementEntity.getId());
+            validateKeyBinding(payload, parts[parts.length - 1]);
+            log.trace("Successfully verified holder keybinding of id {}", managementEntity.getId());
+        }
+        return disclosureLength;
+    }
+
+    private JWTClaimsSet validateJwtClaims(String jwt) {
+        try {
+            SignedJWT nimbusJwt = SignedJWT.parse(jwt);
+            var header = nimbusJwt.getHeader();
+            validateHeader(header);
+            var claims = nimbusJwt.getJWTClaimsSet();
+            // SWIYU injection ==> We want to ensure we trust the issuer
+            validateTrust(claims.getIssuer(), claims.getStringClaim("vct"));
+            // We trust the issuer (or everybody)
+            var publicKey = issuerPublicKeyLoader.loadPublicKey(claims.getIssuer(), header.getKeyID());
+            log.trace("Loaded issuer public key for id {}", managementEntity.getId());
+            // Verify the JWS signature of the JWT
+            if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey))) {
+                throw credentialError(MALFORMED_CREDENTIAL, "Signature mismatch");
+            }
+            log.trace("Successfully verified signature of id {}", managementEntity.getId());
+            validateJwtTimes(claims);
+            return claims;
+        } catch (ParseException e) {
+            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
+        } catch (LoadingPublicKeyOfIssuerFailedException | JOSEException e) {
+            throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
+        }
+    }
+
+    private void validateJwtTimes(JWTClaimsSet claims) {
+        var exp = claims.getExpirationTime();
+        if (exp != null && new Date().after(exp)) {
+            throw credentialError(JWT_EXPIRED, "Could not verify JWT credential is expired");
+        }
+        var nbf = claims.getNotBeforeTime();
+        if (nbf != null && new Date().before(nbf)) {
+            throw credentialError(JWT_PREMATURE, "Could not verify JWT credential is not yet valid");
+        }
+    }
+
+    /**
+     * Validates the Header and returns the used encryption Algorithm
+     *
+     * @param header A header to be validated
+     */
+    private void validateHeader(JWSHeader header) {
+        var requestedAlg = getRequestedFormat(CREDENTIAL_FORMAT, managementEntity).alg();
+        if (header.getAlgorithm() == null || !requestedAlg.contains(header.getAlgorithm().getName())) {
+            throw credentialError(INVALID_FORMAT, "Invalid Algorithm: alg must be one of %s, but was %s"
+                    .formatted(requestedAlg, header.getAlgorithm().getName()));
+        }
+        if (!CREDENTIAL_FORMAT.equals(header.getType().getType())) {
+            throw credentialError(INVALID_FORMAT, String.format("Type header must be %s", CREDENTIAL_FORMAT));
+        }
+        // TODO Move the supported algorithm check to creation of the verification request
+        if (!supportedAlgorithms.contains(header.getAlgorithm().getName())) {
+            throw credentialError(UNSUPPORTED_FORMAT, "Unsupported algorithm: " + header.getAlgorithm());
+        }
+        if (StringUtils.isBlank(header.getKeyID())) {
+            throw credentialError(MALFORMED_CREDENTIAL, "Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
+        }
     }
 
     private void validateTrust(String issuerDidTdw, String vct) {
-
         var acceptedIssuerDids = managementEntity.getAcceptedIssuerDids();
         var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
         var trustAnchors = managementEntity.getTrustAnchors();
@@ -246,7 +279,8 @@ public class SdjwtCredentialVerifier {
             return;
         }
 
-        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDidTdw, vct, trustAnchors)) return; // We have a valid trust statement for the vct!
+        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDidTdw, vct, trustAnchors))
+            return; // We have a valid trust statement for the vct!
 
 
         throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
@@ -259,7 +293,7 @@ public class SdjwtCredentialVerifier {
 
         for (var trustAnchor : trustAnchors) {
             List<String> rawTrustStatementIssuance = fetchTrustStatementIssuance(vct, trustAnchor);
-            if (rawTrustStatementIssuance == null || rawTrustStatementIssuance.isEmpty()) {
+            if (rawTrustStatementIssuance.isEmpty()) {
                 // Abort if no trust statement
                 log.debug("Failed to get a response for vct {} from {}", vct, trustAnchor.trustRegistryUri());
                 continue;
@@ -270,34 +304,40 @@ public class SdjwtCredentialVerifier {
                     if (isProvidingTrust(issuerDidTdw, vct, trustAnchor, rawTrustStatement))
                         return true;
                 } catch (VerificationException e) {
+                    // This exception will occur if the trust statement can not be verified fully
                     log.debug("Failed to verify trust statement for vct {} from {} with code {} due to {}", vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
+                } catch (ParseException e) {
+                    log.info("Trust Statement of %s is malformed - missing CanIssue claim");
                 }
             }
         }
         return false;
     }
 
-    private boolean isProvidingTrust(String issuerDidTdw, String vct, TrustAnchor trustAnchor, String rawTrustStatement) {
+    private boolean isProvidingTrust(String issuerDidTdw, String vct, TrustAnchor trustAnchor, String rawTrustStatement) throws ParseException {
         var trustStatementIssuance = verifySdJwt(rawTrustStatement);
         return issuerDidTdw.equals(trustStatementIssuance.payload.getSubject())
                 && trustAnchor.did().equals(trustStatementIssuance.payload.getIssuer())
-                && vct.equals(trustStatementIssuance.payload.get("canIssue", String.class));
+                && vct.equals(trustStatementIssuance.payload.getStringClaim("canIssue"));
     }
 
-    @Nullable
+    @NotNull
     private List<String> fetchTrustStatementIssuance(String vct, TrustAnchor trustAnchor) {
-        List<String> rawTrustStatementIssuance = null;
+        if (StringUtils.isBlank(vct)) {
+            return List.of();
+        }
+        List<String> rawTrustStatementIssuance;
         try {
             rawTrustStatementIssuance = issuerPublicKeyLoader.loadTrustStatement(trustAnchor.trustRegistryUri(), vct);
         } catch (JsonProcessingException e) {
-            return null;
+            return List.of();
         }
         return rawTrustStatementIssuance;
     }
 
     // Note: this method is package-private because this method is used in unit
     // tests, otherwise it could be private
-    public String checkPresentationDefinitionCriteria(Claims claims, List<Disclosure> disclosures)
+    public String checkPresentationDefinitionCriteria(Map<String, Object> claims, List<Disclosure> disclosures)
             throws VerificationException {
         Map<String, Object> expectedMap = new HashMap<>(claims);
         SDObjectDecoder decoder = new SDObjectDecoder();
@@ -320,7 +360,7 @@ public class SdjwtCredentialVerifier {
         statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
     }
 
-    private boolean hasKeyBinding(String fullSdJwt, Claims payload) {
+    private boolean hasKeyBinding(String fullSdJwt, Map<String, Object> payload) {
         boolean keyBindingProofPresent = !fullSdJwt.endsWith("~");
         if (payload.containsKey("cnf") && !keyBindingProofPresent) {
             // There is a Holder Key Binding, but we did not receive a proof for it!
@@ -329,7 +369,7 @@ public class SdjwtCredentialVerifier {
         return keyBindingProofPresent;
     }
 
-    private void validateKeyBinding(Claims payload, String keyBindingProof) {
+    private void validateKeyBinding(Map<String, Object> payload, String keyBindingProof) {
         JWK keyBinding = getHolderKeyBinding(payload);
         // Validate Holder Binding Proof JWT
 
@@ -411,7 +451,7 @@ public class SdjwtCredentialVerifier {
     }
 
     @NotNull
-    private JWK getHolderKeyBinding(Claims payload) {
+    private JWK getHolderKeyBinding(Map<String, Object> payload) {
         if (!payload.containsKey("cnf")) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "No cnf claim found. Only supporting JWK holder bindings");
         }
@@ -446,38 +486,6 @@ public class SdjwtCredentialVerifier {
         }
     }
 
-    private String extractIssuer(SignedJWT nimbusJwt) {
-        try {
-            var issuer = nimbusJwt.getJWTClaimsSet().getIssuer();
-            if (StringUtils.isBlank(issuer)) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Missing issuer in the JWT token");
-            }
-            return issuer;
-        } catch (ParseException e) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract issuer from JWT token");
-        }
-    }
-
-    private String extractVcType(SignedJWT nimbusJwt) {
-        try {
-            var vct = nimbusJwt.getJWTClaimsSet().getClaim("vct");
-            if (vct == null || StringUtils.isBlank(vct.toString())) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Missing vct in the JWT token");
-            }
-            return vct.toString();
-        } catch (ParseException e) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract vct from SD-JWT token");
-        }
-    }
-
-    private String extractKeyId(SignedJWT nimbusJwt) {
-        var keyId = nimbusJwt.getHeader().getKeyID();
-        if (StringUtils.isBlank(keyId)) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
-        }
-        return keyId;
-    }
-
-    private record SdJwtData(Claims payload, List<Disclosure> disclosures) {
+    private record SdJwtData(JWTClaimsSet payload, List<Disclosure> disclosures) {
     }
 }

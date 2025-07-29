@@ -33,7 +33,7 @@ import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
         packagesOf = {Application.class},
         importOptions = {ImportOption.DoNotIncludeTests.class, ImportOption.DoNotIncludeJars.class}
 )
-public class ArchitectureTest {
+public class ArchitectureIT {
 
     @ArchTest
     public static final ArchTests codingRules = ArchTests.in(CodingRules.class);

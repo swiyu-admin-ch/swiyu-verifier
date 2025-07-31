@@ -26,7 +26,7 @@ public class SignatureService {
 
     /**
      * Mapping allowing to use same logic as issuer service in most parts
-     * @return
+     * @return SignatureConfiguration built from the given application properties
      */
     public static SignatureConfiguration toSignatureConfiguration(ApplicationProperties applicationProperties) {
         return SignatureConfiguration.builder()

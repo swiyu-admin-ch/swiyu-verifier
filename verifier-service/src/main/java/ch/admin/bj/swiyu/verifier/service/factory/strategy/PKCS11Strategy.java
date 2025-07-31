@@ -17,10 +17,7 @@ public class PKCS11Strategy implements IKeyManagementStrategy{
         try {
         Provider provider = Security.getProvider("SunPKCS11").configure(configuration.getHsm().getPkcs11Config());
         Security.addProvider(provider);
-        KeyStore hsmKeyStore = null;
-
-            hsmKeyStore = KeyStore.getInstance("PKCS11", provider);
-
+        KeyStore hsmKeyStore = KeyStore.getInstance("PKCS11", provider);
         hsmKeyStore.load(null, configuration.getHsm().getUserPin().toCharArray());
         var privateKey = ECKey.load(hsmKeyStore, configuration.getHsm().getKeyId(), configuration.getHsm().getUserPin().toCharArray());
 

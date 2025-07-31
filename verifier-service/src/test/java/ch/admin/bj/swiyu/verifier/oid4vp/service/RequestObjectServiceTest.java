@@ -36,7 +36,6 @@ class RequestObjectServiceTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OpenidClientMetadataDto openidClientMetadataDto = new OpenidClientMetadataDto();
     private final String clientId = "client-id";
-    private SignatureService signatureService;
     private ManagementRepository managementRepository;
     private SignerProvider signerProvider;
     private RequestObjectService service;
@@ -47,7 +46,7 @@ class RequestObjectServiceTest {
         var openIdClientMetadataConfiguration = mock(OpenIdClientMetadataConfiguration.class);
 
         managementRepository = mock(ManagementRepository.class);
-        signatureService = mock(SignatureService.class);
+        SignatureService signatureService = mock(SignatureService.class);
         signerProvider = mock(SignerProvider.class);
 
         service = new RequestObjectService(

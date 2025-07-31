@@ -13,6 +13,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
+import ch.admin.bj.swiyu.verifier.service.SignatureService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
@@ -41,7 +42,7 @@ public class RequestObjectService {
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementRepository managementRepository;
     private final ObjectMapper objectMapper;
-    private final SignerProvider signerProvider;
+    private final SignatureService signatureService;
 
     @Transactional(readOnly = true)
     public Object assembleRequestObject(UUID managementEntityId) {
@@ -81,6 +82,13 @@ public class RequestObjectService {
         if (Boolean.FALSE.equals(managementEntity.getJwtSecuredAuthorizationRequest())) {
             return requestObject;
         }
+        SignerProvider signerProvider;
+        try {
+            signerProvider = signatureService.createDefaultSignerProvider();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to initialize signature provider. This is probably because the key could not be loaded.", e);
+        }
+
         if (!signerProvider.canProvideSigner()) {
             log.error("Upstream system error. Upstream system requested presentation to be signed despite the verifier not being configured for it");
             throw new IllegalStateException("Presentation was configured to be signed, but no signing key was configured.");

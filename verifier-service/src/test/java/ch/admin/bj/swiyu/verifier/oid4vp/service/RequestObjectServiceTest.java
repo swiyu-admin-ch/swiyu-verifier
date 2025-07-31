@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
+import ch.admin.bj.swiyu.verifier.service.SignatureService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSSigner;
@@ -35,16 +36,18 @@ class RequestObjectServiceTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OpenidClientMetadataDto openidClientMetadataDto = new OpenidClientMetadataDto();
     private final String clientId = "client-id";
+    private SignatureService signatureService;
     private ManagementRepository managementRepository;
     private SignerProvider signerProvider;
     private RequestObjectService service;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         var applicationProperties = mock(ApplicationProperties.class);
         var openIdClientMetadataConfiguration = mock(OpenIdClientMetadataConfiguration.class);
 
         managementRepository = mock(ManagementRepository.class);
+        signatureService = mock(SignatureService.class);
         signerProvider = mock(SignerProvider.class);
 
         service = new RequestObjectService(
@@ -52,7 +55,7 @@ class RequestObjectServiceTest {
                 openIdClientMetadataConfiguration,
                 managementRepository,
                 objectMapper,
-                signerProvider
+                signatureService
         );
 
         // Mock application configurations
@@ -62,6 +65,7 @@ class RequestObjectServiceTest {
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("did:example:123#key1");
         when(openIdClientMetadataConfiguration.getOpenIdClientMetadata()).thenReturn(openidClientMetadataDto);
+        when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
     }
 
     @Test

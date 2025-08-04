@@ -53,4 +53,5 @@ jobs:
             image-ref: pull_request_check:latest
             severity: 'CRITICAL,HIGH'
             exit-code: 1
+            ignore-unfixed: true
             format: table

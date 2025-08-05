@@ -64,7 +64,8 @@ public class ManagementService {
                 presentationDefinition,
                 requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true),
                 request.acceptedIssuerDids(),
-                trustAnchors)
+                trustAnchors,
+                ManagementMapper.toSigningOverride(request.configuration_override()))
                 );
 
         log.info("Created pending verification for id: {}", management.getId());

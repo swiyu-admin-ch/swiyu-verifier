@@ -41,7 +41,8 @@ class ManagementServiceTest {
                 List.of("did:example:123"),
                 null,
                 false,
-                presentationDefinitionDto
+                presentationDefinitionDto,
+                null
         );
         var management = mock(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);

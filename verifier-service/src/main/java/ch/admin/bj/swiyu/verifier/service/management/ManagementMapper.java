@@ -8,17 +8,16 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.api.definition.*;
-import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseDataDto;
-import ch.admin.bj.swiyu.verifier.api.management.TrustAnchorDto;
-import ch.admin.bj.swiyu.verifier.api.management.VerificationStatusDto;
+import ch.admin.bj.swiyu.verifier.api.management.*;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
@@ -41,7 +40,10 @@ public class ManagementMapper {
             throw new IllegalArgumentException("Management must not be null");
         }
 
-        var verificationUrl = String.format("%s/oid4vp/api/request-object/%s", props.getExternalUrl(), management.getId());
+        var override = management.getConfigurationOverride();
+        String externalUrl = StringUtils.isNotEmpty(override.externalUrl()) ? override.externalUrl() : props.getExternalUrl();
+        String clientId = StringUtils.isNotEmpty(override.verifierDid()) ? override.verifierDid() : props.getClientId();
+        var verificationUrl = String.format("%s/oid4vp/api/request-object/%s", externalUrl, management.getId());
         return new ManagementResponseDto(
                 management.getId(),
                 management.getRequestNonce(),
@@ -49,10 +51,11 @@ public class ManagementMapper {
                 toPresentationDefinitionDto(management.getRequestedPresentation()),
                 toResponseDataDto(management.getWalletResponse()),
                 verificationUrl,
-                buildVerificationDeeplink(verificationUrl, props.getClientId(), props.getDeeplinkSchema())
+                buildVerificationDeeplink(verificationUrl, clientId, props.getDeeplinkSchema())
         );
     }
-    public static TrustAnchor toTrustAnchor(final TrustAnchorDto trustAnchor)  {
+
+    public static TrustAnchor toTrustAnchor(final TrustAnchorDto trustAnchor) {
         return new TrustAnchor(
                 trustAnchor.did(),
                 trustAnchor.trustRegistryUri()
@@ -326,5 +329,18 @@ public class ManagementMapper {
                     VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION_REFERENCE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
         };
+    }
+
+    public static ConfigurationOverride toSigningOverride(@Nullable ConfigurationOverrideDto overrideSigningDto) {
+        if (overrideSigningDto == null) {
+            return null;
+        }
+        return new ConfigurationOverride(
+                overrideSigningDto.externalUrl(),
+                overrideSigningDto.verifierDid(),
+                overrideSigningDto.verificationMethod(),
+                overrideSigningDto.keyId(),
+                overrideSigningDto.keyPin()
+        );
     }
 }

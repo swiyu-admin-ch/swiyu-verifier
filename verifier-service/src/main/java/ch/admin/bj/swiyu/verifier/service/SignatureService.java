@@ -19,6 +19,16 @@ public class SignatureService {
         return createSignerProvider(defaultSignatureConfiguration);
     }
 
+    /**
+     * Use default Signing Provider settings, but override keyId and keyPin
+     */
+    public SignerProvider createSignerProvider(String keyId, String keyPin) throws Exception {
+        var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);
+        defaultSignatureConfiguration.getHsm().setKeyId(keyId);
+        defaultSignatureConfiguration.getHsm().setKeyPin(keyPin);
+        return createSignerProvider(defaultSignatureConfiguration);
+    }
+
     public SignerProvider createSignerProvider(SignatureConfiguration signatureConfiguration) throws Exception {
         return new SignerProvider(keyManagementStrategyFactory.getStrategy(signatureConfiguration.getKeyManagementMethod())
                 .createSigner(signatureConfiguration));

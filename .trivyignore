@@ -1,0 +1,2 @@
+# Using java executed in JVM in a pod we should not be affected
+CVE-2025-7425

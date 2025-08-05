@@ -57,6 +57,7 @@ jobs:
         with:
           context: .
           push: true
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal

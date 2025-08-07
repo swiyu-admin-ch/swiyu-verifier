@@ -13,15 +13,14 @@ import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
+import ch.admin.bj.swiyu.verifier.service.SignatureService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.*;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +40,7 @@ public class RequestObjectService {
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementRepository managementRepository;
     private final ObjectMapper objectMapper;
-    private final SignerProvider signerProvider;
+    private final SignatureService signatureService;
 
     @Transactional(readOnly = true)
     public Object assembleRequestObject(UUID managementEntityId) {
@@ -63,17 +62,23 @@ public class RequestObjectService {
 
         var presentation = managementEntity.getRequestedPresentation();
 
+
+        // Override Params
+        var override = managementEntity.getConfigurationOverride();
+        var externalUrl = StringUtils.isNotEmpty(override.externalUrl()) ? override.externalUrl() : applicationProperties.getExternalUrl();
+        var clientId = StringUtils.isNotEmpty(override.verifierDid()) ? override.verifierDid() : applicationProperties.getClientId();
+        var verificationMethod = StringUtils.isNotEmpty(override.verificationMethod()) ? override.verificationMethod() : applicationProperties.getSigningKeyVerificationMethod();
         var requestObject = RequestObjectDto.builder()
                 .nonce(managementEntity.getRequestNonce())
                 .version(applicationProperties.getRequestObjectVersion())
                 .presentationDefinition(toPresentationDefinitionDto(presentation))
-                .clientId(applicationProperties.getClientId())
+                .clientId(clientId)
                 .clientMetadata(openIdClientMetadataConfiguration.getOpenIdClientMetadata())
                 .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType("vp_token")
                 .responseMode("direct_post")
                 .responseUri(String.format("%s/oid4vp/api/request-object/%s/response-data",
-                        applicationProperties.getExternalUrl(),
+                        externalUrl,
                         managementEntityId))
                 .build();
 
@@ -81,6 +86,18 @@ public class RequestObjectService {
         if (Boolean.FALSE.equals(managementEntity.getJwtSecuredAuthorizationRequest())) {
             return requestObject;
         }
+        SignerProvider signerProvider;
+        try {
+            if (override.keyId() != null) {
+                signerProvider = signatureService.createSignerProvider(override.keyId(), override.keyPin());
+            } else {
+                signerProvider = signatureService.createDefaultSignerProvider();
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to initialize signature provider. This is probably because the key could not be loaded.", e);
+        }
+        JWSSigner signer = signerProvider.getSigner();
+
         if (!signerProvider.canProvideSigner()) {
             log.error("Upstream system error. Upstream system requested presentation to be signed despite the verifier not being configured for it");
             throw new IllegalStateException("Presentation was configured to be signed, but no signing key was configured.");
@@ -88,13 +105,14 @@ public class RequestObjectService {
 
         var jwsHeader = new JWSHeader
                 .Builder(USED_JWS_ALGORITHM)
-                .keyID(applicationProperties.getSigningKeyVerificationMethod())
+                .keyID(verificationMethod)
                 .type(new JOSEObjectType("oauth-authz-req+jwt")) //as specified in https://www.rfc-editor.org/rfc/rfc9101.html#section-10.8
                 .build();
-        var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(requestObject));
+        var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(clientId, requestObject));
 
         try {
-            signedJwt.sign(signerProvider.getSigner());
+
+            signedJwt.sign(signer);
         } catch (JOSEException e) {
             throw new IllegalStateException("Error signing JWT", e);
         }
@@ -102,9 +120,9 @@ public class RequestObjectService {
         return signedJwt.serialize();
     }
 
-    private JWTClaimsSet createJWTClaimsSet(RequestObjectDto requestObject) {
+    private JWTClaimsSet createJWTClaimsSet(String issuer, RequestObjectDto requestObject) {
         JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder();
-        builder.issuer(applicationProperties.getClientId());
+        builder.issuer(issuer);
 
         // get all properties of the request object
         Map<String, Object> requestObjectProperties = JsonUtil.getJsonObject(objectMapper.convertValue(requestObject, Map.class));

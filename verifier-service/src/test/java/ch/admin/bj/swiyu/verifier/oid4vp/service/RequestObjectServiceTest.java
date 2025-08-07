@@ -5,9 +5,11 @@ import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
+import ch.admin.bj.swiyu.verifier.service.SignatureService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSSigner;
@@ -40,11 +42,12 @@ class RequestObjectServiceTest {
     private RequestObjectService service;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         var applicationProperties = mock(ApplicationProperties.class);
         var openIdClientMetadataConfiguration = mock(OpenIdClientMetadataConfiguration.class);
 
         managementRepository = mock(ManagementRepository.class);
+        SignatureService signatureService = mock(SignatureService.class);
         signerProvider = mock(SignerProvider.class);
 
         service = new RequestObjectService(
@@ -52,7 +55,7 @@ class RequestObjectServiceTest {
                 openIdClientMetadataConfiguration,
                 managementRepository,
                 objectMapper,
-                signerProvider
+                signatureService
         );
 
         // Mock application configurations
@@ -62,6 +65,7 @@ class RequestObjectServiceTest {
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("did:example:123#key1");
         when(openIdClientMetadataConfiguration.getOpenIdClientMetadata()).thenReturn(openidClientMetadataDto);
+        when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
     }
 
     @Test
@@ -82,6 +86,30 @@ class RequestObjectServiceTest {
     }
 
     @Test
+    void assembleRequestObjectWithSignedJWT_whenOverridden_thenSuccess() throws Exception {
+        var externalUrl = "https://overriden.example.com";
+        var overrideDid = "did:override";
+        var verificationMethod = "did:override#key1";
+        var management = mockManagement(true);
+        var override = new ConfigurationOverride(externalUrl, overrideDid, verificationMethod, null, null);
+        when(management.getConfigurationOverride()).thenReturn(override);
+        when(signerProvider.canProvideSigner()).thenReturn(true);
+        JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
+        when(signerProvider.getSigner()).thenReturn(jwsSigner);
+
+        Object result = service.assembleRequestObject(mgmtId);
+
+        assertThat(result).isInstanceOf(String.class);
+
+        SignedJWT jwt = SignedJWT.parse((String) result);
+        assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
+        assertEquals(verificationMethod, jwt.getHeader().getKeyID());
+        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(overrideDid);
+        assertThat(jwt.getJWTClaimsSet().getClaim("response_uri").toString()).startsWith(externalUrl);
+
+    }
+
+    @Test
     void assembleRequestObjectUnsigned_thenSuccess() {
         mockManagement(false);
 
@@ -90,6 +118,22 @@ class RequestObjectServiceTest {
         assertThat(result).isInstanceOf(RequestObjectDto.class);
         RequestObjectDto dto = (RequestObjectDto) result;
         assertThat(dto.getClientId()).isEqualTo(clientId);
+    }
+
+    @Test
+    void assembleRequestObjectUnsigned_whenOverrideParameters_thenSuccess() {
+        var externalUrl = "https://overriden.example.com";
+        var overrideDid = "did:override";
+        var management = mockManagement(false);
+        var override = new ConfigurationOverride(externalUrl, overrideDid, null, null, null);
+        when(management.getConfigurationOverride()).thenReturn(override);
+        Object result = service.assembleRequestObject(mgmtId);
+
+        assertThat(result).isInstanceOf(RequestObjectDto.class);
+        RequestObjectDto dto = (RequestObjectDto) result;
+        assertEquals(overrideDid, dto.getClientId());
+        assertThat(dto.getResponseUri()).startsWith(externalUrl);
+
     }
 
     @Test
@@ -130,7 +174,7 @@ class RequestObjectServiceTest {
                 .hasMessageContaining("no signing key");
     }
 
-    private void mockManagement(boolean needsJwsAuthorizationRequest) {
+    private Management mockManagement(boolean needsJwsAuthorizationRequest) {
         var management = mock(Management.class);
         when(managementRepository.findById(mgmtId)).thenReturn(Optional.of(management));
         when(management.isVerificationPending()).thenReturn(true);
@@ -138,5 +182,7 @@ class RequestObjectServiceTest {
         when(management.getRequestedPresentation()).thenReturn(null);
         when(management.getRequestNonce()).thenReturn("nonce");
         when(management.getJwtSecuredAuthorizationRequest()).thenReturn(needsJwsAuthorizationRequest);
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
+        return management;
     }
 }

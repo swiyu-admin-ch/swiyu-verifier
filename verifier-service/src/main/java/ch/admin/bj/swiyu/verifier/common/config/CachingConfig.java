@@ -13,9 +13,14 @@ public class CachingConfig {
     public static final String STATUS_LIST_CACHE = "statusListCache";
     public static final String ISSUER_PUBLIC_KEY_CACHE = "issuerPublicKeyCache";
     public static final String TRUST_STATEMENT_CACHE = "trustStatementCache";
+    public static final String SIGNING_KEY_CACHE = "signingKeyCache";
 
     @Bean
     public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager(STATUS_LIST_CACHE, ISSUER_PUBLIC_KEY_CACHE, TRUST_STATEMENT_CACHE);
+        return new ConcurrentMapCacheManager(
+                STATUS_LIST_CACHE,
+                ISSUER_PUBLIC_KEY_CACHE,
+                TRUST_STATEMENT_CACHE,
+                SIGNING_KEY_CACHE);
     }
 }

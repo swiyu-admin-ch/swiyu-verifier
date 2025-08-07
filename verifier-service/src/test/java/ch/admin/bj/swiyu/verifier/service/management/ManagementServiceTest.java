@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
@@ -47,7 +48,7 @@ class ManagementServiceTest {
         var management = mock(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);
 
-        try(MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
+        try (MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
             managementMapper.when(() -> ManagementMapper.toPresentationDefinition(any(PresentationDefinitionDto.class)))
                     .thenReturn(presentationDefinition);
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(any(Management.class), any()))
@@ -79,7 +80,7 @@ class ManagementServiceTest {
         when(management.isExpired()).thenReturn(false);
         when(repository.findById(id)).thenReturn(Optional.of(management));
 
-        try(MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
+        try (MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties))
                     .thenReturn(mock(ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto.class));
 
@@ -102,7 +103,7 @@ class ManagementServiceTest {
         when(management.isExpired()).thenReturn(true);
         when(management.getId()).thenReturn(id);
         when(repository.findById(id)).thenReturn(Optional.of(management));
-
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
         service.getManagement(id);
         verify(repository).deleteById(id);
     }

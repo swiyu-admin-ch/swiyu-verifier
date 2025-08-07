@@ -65,7 +65,7 @@ public class RequestObjectService {
 
         // Override Params
         var override = managementEntity.getConfigurationOverride();
-        var externalUrl = StringUtils.isNotEmpty(override.externalUrl()) ? override.externalUrl() : applicationProperties.getClientId();
+        var externalUrl = StringUtils.isNotEmpty(override.externalUrl()) ? override.externalUrl() : applicationProperties.getExternalUrl();
         var clientId = StringUtils.isNotEmpty(override.verifierDid()) ? override.verifierDid() : applicationProperties.getClientId();
         var verificationMethod = StringUtils.isNotEmpty(override.verificationMethod()) ? override.verificationMethod() : applicationProperties.getSigningKeyVerificationMethod();
         var requestObject = RequestObjectDto.builder()

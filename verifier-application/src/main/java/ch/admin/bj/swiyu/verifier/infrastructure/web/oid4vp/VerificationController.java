@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
@@ -143,6 +144,36 @@ public class VerificationController {
     public void receiveVerificationPresentation(
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRequestDto request) {
+        verificationService.receiveVerificationPresentation(requestId, request);
+    }
+
+    @Timed
+    @PostMapping(value = {"request-object/{request_id}/response-data"},
+            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @Operation(
+            summary = "Reject Verification Presentation (from e.g. Wallet)",
+            externalDocs = @ExternalDocumentation(
+                    description = "OpenId4VP response parameters",
+                    url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1"
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Verification Presentation received"
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Bad Request. The request body is not valid",
+                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                    )
+            }
+    )
+    @ResponseStatus(HttpStatus.OK)
+    @RequestBody(content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
+    public void verificationPresentationClientRejection(
+            @PathVariable(name = "request_id") UUID requestId,
+            VerificationPresentationRejectionDto request) {
         verificationService.receiveVerificationPresentation(requestId, request);
     }
 }

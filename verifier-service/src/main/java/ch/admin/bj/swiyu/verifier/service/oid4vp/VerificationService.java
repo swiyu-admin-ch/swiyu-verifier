@@ -16,6 +16,7 @@ import static ch.admin.bj.swiyu.verifier.service.oid4vp.VerifiableCredentialExtr
 import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
@@ -70,18 +71,40 @@ public class VerificationService {
             log.trace("Loaded management entity for {}", managementEntityId);
             verifyProcessNotClosed(managementEntity);
 
-            // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
-            if (request.isClientRejection()) {
-                managementEntity.verificationFailedDueToClientRejection(request.getError_description());
-                return;
-            }
-
             // 3. verifiy the presentation submission
             log.debug("Starting submission verification for {}", managementEntityId);
             var credentialSubjectData = verifyPresentation(managementEntity, request);
             log.trace("Submission verification completed for {}", managementEntityId);
             managementEntity.verificationSucceeded(credentialSubjectData);
             log.debug("Saved successful verification result for {}", managementEntityId);
+        } catch (VerificationException e) {
+            managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
+            log.debug("Saved failed verification result for {}", managementEntityId);
+            throw e; // rethrow since client get notified of the error
+        } finally {
+            // Notify Business Verifier that this verification is done
+            webhookService.produceEvent(managementEntityId);
+        }
+    }
+
+    /**
+     * Validates the presentation request. If it fails, it will
+     * be marked as failed and can't be used anymore.
+     *
+     * @param managementEntityId the id of the Management
+     * @param request            the presentation request to verify
+     */
+    @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
+    // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
+    public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRejectionDto request) {
+        log.debug("Received verification presentation for management id {}", managementEntityId);
+        var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
+        try {
+            // 1. Check if the process is still pending and not expired
+            log.trace("Loaded management entity for {}", managementEntityId);
+            verifyProcessNotClosed(managementEntity);
+            // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
+            managementEntity.verificationFailedDueToClientRejection(request.getError_description());
         } catch (VerificationException e) {
             managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
             log.debug("Saved failed verification result for {}", managementEntityId);

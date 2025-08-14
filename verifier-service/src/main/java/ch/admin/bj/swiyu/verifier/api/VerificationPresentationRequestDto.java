@@ -37,18 +37,5 @@ public class VerificationPresentationRequestDto {
     )
     private String presentation_submission;
 
-    @Schema(
-            description = "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#name-error-response)"
-    )
-    private VerificationClientErrorDto error;
-
-    @Schema(
-            description = "Error description as seems fit"
-    )
-    private String error_description;
-
-    @JsonIgnore
-    public boolean isClientRejection() {
-        return error != null;
-    }
 }
+

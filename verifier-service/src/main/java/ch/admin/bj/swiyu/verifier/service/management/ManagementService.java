@@ -57,7 +57,7 @@ public class ManagementService {
         // TODO https://jira.bit.admin.ch/browse/EIDOMNI-207: Handle DCQL flow here in the future
         if (request.dcqlQuery() != null) {
             // Placeholder for DCQL implementation
-            throw new UnsupportedOperationException("DCQL query support is not yet implemented.");
+            throw new IllegalArgumentException("DCQL query is not supported yet. Please use presentationDefinition instead.");
         }
 
         // Handle Presentation Exchange (PE) flow

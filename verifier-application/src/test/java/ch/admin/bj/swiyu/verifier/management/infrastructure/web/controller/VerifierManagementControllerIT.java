@@ -234,7 +234,7 @@ class VerifierManagementControllerIT {
     }
 
     @Test
-    void testCreateOffer_withDcqlQuery_thenUnsupportedOperationException() throws Exception {
+    void testCreateOffer_withDcqlQuery_thenIllegalArgumentException() throws Exception {
 
         // Build a minimal DCQL query DTO
         var request = createVerificationManagementWithDcqlQueryDto();
@@ -242,9 +242,9 @@ class VerifierManagementControllerIT {
         mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
-                .andExpect(status().isInternalServerError())
+                .andExpect(status().is4xxClientError())
                 .andExpect(result -> assertEquals(
-                        UnsupportedOperationException.class,
+                        IllegalArgumentException.class,
                         result.getResolvedException().getClass()))
                 .andReturn();
     }

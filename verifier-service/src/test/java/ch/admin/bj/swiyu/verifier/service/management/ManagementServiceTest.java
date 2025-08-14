@@ -41,12 +41,13 @@ class ManagementServiceTest {
                 List.of("did:example:123"),
                 null,
                 false,
-                presentationDefinitionDto
+                presentationDefinitionDto,
+                null
         );
         var management = mock(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);
 
-        try(MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
+        try (MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
             managementMapper.when(() -> ManagementMapper.toPresentationDefinition(any(PresentationDefinitionDto.class)))
                     .thenReturn(presentationDefinition);
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(any(Management.class), any()))
@@ -78,7 +79,7 @@ class ManagementServiceTest {
         when(management.isExpired()).thenReturn(false);
         when(repository.findById(id)).thenReturn(Optional.of(management));
 
-        try(MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
+        try (MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties))
                     .thenReturn(mock(ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto.class));
 

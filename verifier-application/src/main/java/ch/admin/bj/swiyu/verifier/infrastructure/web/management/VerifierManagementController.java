@@ -39,7 +39,6 @@ public class VerifierManagementController {
 
     private final ManagementService presentationService;
 
-    private final ApplicationProperties applicationProperties;
 
     @Timed
     @PostMapping(value = {""})

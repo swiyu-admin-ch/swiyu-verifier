@@ -50,14 +50,22 @@ public class ManagementService {
         if (request == null) {
             throw new IllegalArgumentException("CreateVerificationManagement is null");
         }
-        if (request.presentationDefinition() == null) {
-            throw new IllegalArgumentException("PresentationDefinition is null");
+        if (request.presentationDefinition() == null && request.dcqlQuery() == null) {
+            throw new IllegalArgumentException("Either PresentationDefinition or DCQLQuery must be provided");
         }
 
+        // TODO https://jira.bit.admin.ch/browse/EIDOMNI-207: Handle DCQL flow here in the future
+        if (request.dcqlQuery() != null) {
+            // Placeholder for DCQL implementation
+            throw new IllegalArgumentException("DCQL query is not supported yet. Please use presentationDefinition instead.");
+        }
+
+        // Handle Presentation Exchange (PE) flow
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
         List<TrustAnchor> trustAnchors = null;
-        if ( request.trustAnchors() != null ) {
-            trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();}
+        if (request.trustAnchors() != null) {
+            trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
+        }
         var management = repository.save(new Management(
                 UUID.randomUUID(),
                 applicationProperties.getVerificationTTL(),
@@ -65,10 +73,8 @@ public class ManagementService {
                 requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true),
                 request.acceptedIssuerDids(),
                 trustAnchors)
-                );
-
+        );
         log.info("Created pending verification for id: {}", management.getId());
-
         return toManagementResponseDto(management, applicationProperties);
     }
 

@@ -65,7 +65,7 @@ public class VerificationPresentationRequestDto {
      * @deprecated This method is deprecated. Use the dedicated rejection endpoint instead:
      * POST /oid4vp/api/request-object/{request_id}/response-data-rejection
      */
-    @Deprecated
+    @Deprecated()
     @JsonIgnore
     public boolean isClientRejection() {
         return error != null;

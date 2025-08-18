@@ -49,6 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class VerificationService {
 
+    private static final String LOADED_MANAGEMENT_ENTITY_FOR = "Loaded management entity for ";
     private final VerificationProperties verificationProperties;
     private final ManagementRepository managementEntityRepository;
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
@@ -70,7 +71,7 @@ public class VerificationService {
         var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
         try {
             // 1. Check if the process is still pending and not expired
-            log.trace("Loaded management entity for {}", managementEntityId);
+            log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
             verifyProcessNotClosed(managementEntity);
 
             // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
@@ -109,7 +110,7 @@ public class VerificationService {
         var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
         try {
             // 1. Check if the process is still pending and not expired
-            log.trace("Loaded management entity for {}", managementEntityId);
+            log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
             verifyProcessNotClosed(managementEntity);
             // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
             managementEntity.verificationFailedDueToClientRejection(request.getError_description());
@@ -136,7 +137,7 @@ public class VerificationService {
         var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
         try {
             // 1. Check if the process is still pending and not expired
-            log.trace("Loaded management entity for {}", managementEntityId);
+            log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
             verifyProcessNotClosed(managementEntity);
 
             // 2. Verify the DCQL presentation submission
@@ -168,7 +169,7 @@ public class VerificationService {
         var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
         try {
             // 1. Check if the process is still pending and not expired
-            log.trace("Loaded management entity for {}", managementEntityId);
+            log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
             verifyProcessNotClosed(managementEntity);
 
             // 2. Verify the encrypted DCQL presentation submission

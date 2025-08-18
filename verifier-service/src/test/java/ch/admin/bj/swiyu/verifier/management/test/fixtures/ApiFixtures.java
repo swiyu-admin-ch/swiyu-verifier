@@ -141,8 +141,8 @@ public class ApiFixtures {
                 null
         );
         var claims = List.of(
-                new DcqlClaimDto(null, List.of("given_name")),
-                new DcqlClaimDto(null, List.of("family_name"))
+                new DcqlClaimDto(null, List.of("given_name"), null),
+                new DcqlClaimDto(null, List.of("family_name"),null)
         );
         var credential = new DcqlCredentialDto(
                 "identity_credential_dcql",

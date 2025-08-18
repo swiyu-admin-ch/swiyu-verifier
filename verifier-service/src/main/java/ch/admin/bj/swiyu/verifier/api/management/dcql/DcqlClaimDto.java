@@ -31,7 +31,13 @@ public record DcqlClaimDto(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("path")
         @NotEmpty(message = "path must not be empty")
-        List<String> path // REQUIRED
+        List<String> path, // REQUIRED
 
+        @Schema(description = "OPTIONAL. A non-empty array of strings, integers or boolean values that specifies " +
+                "the expected values of the claim. If the values property is present, the Wallet SHOULD return " +
+                "the claim only if the type and value of the claim both match exactly for at least one of the " +
+                "elements in the array. Details of the processing rules are defined in Section 6.4.1.")
+        @JsonProperty("values")
+        List<Object> values // OPTIONAL
 ) {
 }

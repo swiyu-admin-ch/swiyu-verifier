@@ -146,7 +146,7 @@ public class VerificationController {
     public void receiveVerificationPresentation(
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRequestDto request) {
-        verificationService.receiveVerificationPresentationDCQLEncrypted(requestId, request);
+        verificationService.receiveVerificationPresentation(requestId, request);
     }
 
     @Timed

@@ -18,6 +18,8 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestEncryptedDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
@@ -63,13 +65,19 @@ public class VerificationService {
      */
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
-    public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
+    public void receiveVerificationPresentationDCQLEncrypted(UUID managementEntityId, VerificationPresentationRequestDto request) {
         log.debug("Received verification presentation for management id {}", managementEntityId);
         var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
         try {
             // 1. Check if the process is still pending and not expired
             log.trace("Loaded management entity for {}", managementEntityId);
             verifyProcessNotClosed(managementEntity);
+
+            // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
+            if (request.isClientRejection()) {
+                managementEntity.verificationFailedDueToClientRejection(request.getError_description());
+                return;
+            }
 
             // 3. verifiy the presentation submission
             log.debug("Starting submission verification for {}", managementEntityId);
@@ -96,7 +104,7 @@ public class VerificationService {
      */
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
-    public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRejectionDto request) {
+    public void receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto request) {
         log.debug("Received verification presentation for management id {}", managementEntityId);
         var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
         try {
@@ -115,6 +123,69 @@ public class VerificationService {
         }
     }
 
+    /**
+     * Validates the DCQL presentation request with VP token as object. If it fails, it will
+     * be marked as failed and can't be used anymore.
+     *
+     * @param managementEntityId the id of the Management
+     * @param request            the DCQL presentation request to verify
+     */
+    @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
+    public void receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
+        log.debug("Received DCQL verification presentation for management id {}", managementEntityId);
+        var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
+        try {
+            // 1. Check if the process is still pending and not expired
+            log.trace("Loaded management entity for {}", managementEntityId);
+            verifyProcessNotClosed(managementEntity);
+
+            // 2. Verify the DCQL presentation submission
+            log.debug("Starting DCQL submission verification for {}", managementEntityId);
+            var credentialSubjectData = verifyDCQLPresentation(managementEntity, request);
+            log.trace("DCQL submission verification completed for {}", managementEntityId);
+            managementEntity.verificationSucceeded(credentialSubjectData);
+            log.debug("Saved successful DCQL verification result for {}", managementEntityId);
+        } catch (VerificationException e) {
+            managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
+            log.debug("Saved failed DCQL verification result for {}", managementEntityId);
+            throw e; // rethrow since client get notified of the error
+        } finally {
+            // Notify Business Verifier that this verification is done
+            webhookService.produceEvent(managementEntityId);
+        }
+    }
+
+    /**
+     * Validates the encrypted DCQL presentation request. If it fails, it will
+     * be marked as failed and can't be used anymore.
+     *
+     * @param managementEntityId the id of the Management
+     * @param request            the encrypted DCQL presentation request to verify
+     */
+    @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
+    public void receiveVerificationPresentationDCQLEncrypted(UUID managementEntityId, VerificationPresentationDCQLRequestEncryptedDto request) {
+        log.debug("Received encrypted DCQL verification presentation for management id {}", managementEntityId);
+        var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
+        try {
+            // 1. Check if the process is still pending and not expired
+            log.trace("Loaded management entity for {}", managementEntityId);
+            verifyProcessNotClosed(managementEntity);
+
+            // 2. Verify the encrypted DCQL presentation submission
+            log.debug("Starting encrypted DCQL submission verification for {}", managementEntityId);
+            var credentialSubjectData = verifyEncryptedDCQLPresentation(managementEntity, request);
+            log.trace("Encrypted DCQL submission verification completed for {}", managementEntityId);
+            managementEntity.verificationSucceeded(credentialSubjectData);
+            log.debug("Saved successful encrypted DCQL verification result for {}", managementEntityId);
+        } catch (VerificationException e) {
+            managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
+            log.debug("Saved failed encrypted DCQL verification result for {}", managementEntityId);
+            throw e; // rethrow since client get notified of the error
+        } finally {
+            // Notify Business Verifier that this verification is done
+            webhookService.produceEvent(managementEntityId);
+        }
+    }
 
     private static void verifyProcessNotClosed(Management entity) {
         if (entity.isExpired() || !entity.isVerificationPending()) {
@@ -189,5 +260,15 @@ public class VerificationService {
             return verifier.verifyPresentation();
         }
         throw new IllegalArgumentException("Unknown format: " + format);
+    }
+
+    private String verifyDCQLPresentation(Management entity, VerificationPresentationDCQLRequestDto request) {
+        // TODO: DCQL functionality is not yet implemented - this is a placeholder for the next ticket
+        throw new IllegalArgumentException("DCQL verification functionality is not yet implemented. This feature will be available in a future release.");
+    }
+
+    private String verifyEncryptedDCQLPresentation(Management entity, VerificationPresentationDCQLRequestEncryptedDto request) {
+        // TODO: Encrypted DCQL functionality is not yet implemented - this is a placeholder for the next ticket
+        throw new IllegalArgumentException("Encrypted DCQL verification functionality is not yet implemented. This feature will be available in a future release.");
     }
 }

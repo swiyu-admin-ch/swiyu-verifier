@@ -9,6 +9,8 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestEncryptedDto;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
@@ -144,11 +146,11 @@ public class VerificationController {
     public void receiveVerificationPresentation(
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRequestDto request) {
-        verificationService.receiveVerificationPresentation(requestId, request);
+        verificationService.receiveVerificationPresentationDCQLEncrypted(requestId, request);
     }
 
     @Timed
-    @PostMapping(value = {"request-object/{request_id}/response-data"},
+    @PostMapping(value = {"request-object/{request_id}/response-data-rejection"},
             consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(
@@ -160,7 +162,7 @@ public class VerificationController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Verification Presentation received"
+                            description = "Verification Presentation rejection received"
                     ),
                     @ApiResponse(
                             responseCode = "400",
@@ -174,6 +176,74 @@ public class VerificationController {
     public void verificationPresentationClientRejection(
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationRejectionDto request) {
-        verificationService.receiveVerificationPresentation(requestId, request);
+        verificationService.receiveVerificationPresentationClientRejection(requestId, request);
+    }
+
+    @Timed
+    @PostMapping(value = {"request-object/{request_id}/response-data-dcql"},
+            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @Operation(
+            summary = "Receive Verification Presentation DCQL (from e.g. Wallet) - NOT YET IMPLEMENTED",
+            description = "⚠️ **PLACEHOLDER ENDPOINT** - This endpoint is not yet implemented and serves only to publish the interface specification. " +
+                    "Calling this endpoint will result in an UnsupportedOperationException. " +
+                    "Implementation will be provided in a future release. " +
+                    "This endpoint is intended to handle DCQL verification presentations with VP token as object structure according to the DCQL specification.",
+            externalDocs = @ExternalDocumentation(
+                    description = "OpenId4VP response parameters for DCQL",
+                    url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.1"
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "DCQL Verification Presentation received and processed (NOT CURRENTLY AVAILABLE)"
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Bad Request. The request body is not valid",
+                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                    )
+            }
+    )
+    @ResponseStatus(HttpStatus.OK)
+    @RequestBody(content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
+    public void receiveVerificationPresentationDCQL(
+            @PathVariable(name = "request_id") UUID requestId,
+            VerificationPresentationDCQLRequestDto request) {
+        verificationService.receiveVerificationPresentationDCQL(requestId, request);
+    }
+
+    @Timed
+    @PostMapping(value = {"request-object/{request_id}/response-data-dcql-encrypted"},
+            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @Operation(
+            summary = "Receive Verification Presentation DCQL Encrypted (from e.g. Wallet) - NOT YET IMPLEMENTED",
+            description = "⚠️ **PLACEHOLDER ENDPOINT** - This endpoint is not yet implemented and serves only to publish the interface specification. " +
+                    "Calling this endpoint will result in an UnsupportedOperationException. " +
+                    "Implementation will be provided in a future release. " +
+                    "This endpoint is intended to handle encrypted DCQL verification presentations with response as encrypted string.",
+            externalDocs = @ExternalDocumentation(
+                    description = "OpenId4VP response parameters for encrypted DCQL",
+                    url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1"
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Encrypted DCQL Verification Presentation received and processed (NOT CURRENTLY AVAILABLE)"
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Bad Request. The request body is not valid",
+                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                    )
+            }
+    )
+    @ResponseStatus(HttpStatus.OK)
+    @RequestBody(content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
+    public void receiveVerificationPresentationDCQLEncrypted(
+            @PathVariable(name = "request_id") UUID requestId,
+            VerificationPresentationDCQLRequestEncryptedDto request) {
+        verificationService.receiveVerificationPresentationDCQLEncrypted(requestId, request);
     }
 }

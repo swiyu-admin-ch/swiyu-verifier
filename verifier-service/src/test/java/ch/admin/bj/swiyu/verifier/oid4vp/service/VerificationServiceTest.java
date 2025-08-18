@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
@@ -71,7 +72,7 @@ class VerificationServiceTest {
 
         try (MockedConstruction<SdjwtCredentialVerifier> mocked = mockConstruction(SdjwtCredentialVerifier.class,
                 (mock, context) -> when(mock.verifyPresentation()).thenReturn("credential-data"))) {
-            verificationService.receiveVerificationPresentation(managementId, mockRequest);
+            verificationService.receiveVerificationPresentationDCQLEncrypted(managementId, mockRequest);
 
             verify(managementEntity).verificationSucceeded("credential-data");
             verify(webhookService).produceEvent(managementId);
@@ -84,7 +85,7 @@ class VerificationServiceTest {
         when(request.isClientRejection()).thenReturn(true);
         when(request.getError_description()).thenReturn("User cancelled");
 
-        verificationService.receiveVerificationPresentation(managementId, request);
+        verificationService.receiveVerificationPresentationDCQLEncrypted(managementId, request);
 
         verify(managementEntity).verificationFailedDueToClientRejection("User cancelled");
         verify(webhookService).produceEvent(managementId);
@@ -97,7 +98,7 @@ class VerificationServiceTest {
         VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
 
         assertThrows(ProcessClosedException.class, () ->
-                verificationService.receiveVerificationPresentation(managementId, request));
+                verificationService.receiveVerificationPresentationDCQLEncrypted(managementId, request));
         verify(webhookService).produceEvent(managementId);
     }
 
@@ -109,12 +110,74 @@ class VerificationServiceTest {
         var mockRequest = getMockRequestNoVpToken();
 
         var exception = assertThrows(VerificationException.class, () ->
-                verificationService.receiveVerificationPresentation(managementId, mockRequest));
+                verificationService.receiveVerificationPresentationDCQLEncrypted(managementId, mockRequest));
 
         assertEquals(AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, exception.getErrorResponseCode());
 
         verify(managementEntity).verificationFailed(any(), any());
         verify(webhookService).produceEvent(managementId);
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_thenSuccess() {
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getError_description()).thenReturn("User declined the verification request");
+
+        verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
+
+        verify(managementEntity).verificationFailedDueToClientRejection("User declined the verification request");
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationSucceeded(any());
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_withNullErrorDescription_thenSuccess() {
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getError_description()).thenReturn(null);
+
+        verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
+
+        verify(managementEntity).verificationFailedDueToClientRejection(null);
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationSucceeded(any());
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_withEmptyErrorDescription_thenSuccess() {
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getError_description()).thenReturn("");
+
+        verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
+
+        verify(managementEntity).verificationFailedDueToClientRejection("");
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationSucceeded(any());
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_processClosed_thenThrowsException() {
+        when(managementEntity.isExpired()).thenReturn(true);
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getError_description()).thenReturn("User cancelled");
+
+        assertThrows(ProcessClosedException.class, () ->
+                verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_verificationNotPending_thenThrowsException() {
+        when(managementEntity.isVerificationPending()).thenReturn(false);
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getError_description()).thenReturn("User cancelled");
+
+        assertThrows(ProcessClosedException.class, () ->
+                verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
     }
 
     private VerificationPresentationRequestDto getMockRequestNoVpToken() throws JsonProcessingException {

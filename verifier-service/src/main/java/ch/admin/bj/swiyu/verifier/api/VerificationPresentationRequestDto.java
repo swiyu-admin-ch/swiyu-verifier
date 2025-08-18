@@ -37,5 +37,38 @@ public class VerificationPresentationRequestDto {
     )
     private String presentation_submission;
 
-}
+    /**
+     * @deprecated These error properties are deprecated. Use the dedicated rejection endpoint instead:
+     * POST /oid4vp/api/request-object/{request_id}/response-data-rejection
+     * with VerificationPresentationRejectionDto
+     */
+    @Deprecated
+    @Schema(
+            description = "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#name-error-response)",
+            deprecated = true
+    )
+    private VerificationClientErrorDto error;
 
+    /**
+     * @deprecated These error properties are deprecated. Use the dedicated rejection endpoint instead:
+     * POST /oid4vp/api/request-object/{request_id}/response-data-rejection
+     * with VerificationPresentationRejectionDto
+     */
+    @Deprecated
+    @Schema(
+            description = "Error description as seems fit",
+            deprecated = true
+    )
+    private String error_description;
+
+    /**
+     * @deprecated This method is deprecated. Use the dedicated rejection endpoint instead:
+     * POST /oid4vp/api/request-object/{request_id}/response-data-rejection
+     */
+    @Deprecated
+    @JsonIgnore
+    public boolean isClientRejection() {
+        return error != null;
+    }
+
+}

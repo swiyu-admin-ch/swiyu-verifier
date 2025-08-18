@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "VerificationPresentationRequest")
+@Schema(name = "VerificationPresentationRejection")
 public class VerificationPresentationRejectionDto {
 
     @Schema(

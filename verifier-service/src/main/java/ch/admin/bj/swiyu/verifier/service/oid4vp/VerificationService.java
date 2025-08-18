@@ -65,7 +65,7 @@ public class VerificationService {
      */
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
-    public void receiveVerificationPresentationDCQLEncrypted(UUID managementEntityId, VerificationPresentationRequestDto request) {
+    public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
         log.debug("Received verification presentation for management id {}", managementEntityId);
         var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
         try {

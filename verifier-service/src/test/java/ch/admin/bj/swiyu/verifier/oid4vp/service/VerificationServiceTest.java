@@ -72,7 +72,7 @@ class VerificationServiceTest {
 
         try (MockedConstruction<SdjwtCredentialVerifier> mocked = mockConstruction(SdjwtCredentialVerifier.class,
                 (mock, context) -> when(mock.verifyPresentation()).thenReturn("credential-data"))) {
-            verificationService.receiveVerificationPresentationDCQLEncrypted(managementId, mockRequest);
+            verificationService.receiveVerificationPresentation(managementId, mockRequest);
 
             verify(managementEntity).verificationSucceeded("credential-data");
             verify(webhookService).produceEvent(managementId);
@@ -85,7 +85,7 @@ class VerificationServiceTest {
         when(request.isClientRejection()).thenReturn(true);
         when(request.getError_description()).thenReturn("User cancelled");
 
-        verificationService.receiveVerificationPresentationDCQLEncrypted(managementId, request);
+        verificationService.receiveVerificationPresentation(managementId, request);
 
         verify(managementEntity).verificationFailedDueToClientRejection("User cancelled");
         verify(webhookService).produceEvent(managementId);
@@ -98,7 +98,7 @@ class VerificationServiceTest {
         VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
 
         assertThrows(ProcessClosedException.class, () ->
-                verificationService.receiveVerificationPresentationDCQLEncrypted(managementId, request));
+                verificationService.receiveVerificationPresentation(managementId, request));
         verify(webhookService).produceEvent(managementId);
     }
 
@@ -110,7 +110,7 @@ class VerificationServiceTest {
         var mockRequest = getMockRequestNoVpToken();
 
         var exception = assertThrows(VerificationException.class, () ->
-                verificationService.receiveVerificationPresentationDCQLEncrypted(managementId, mockRequest));
+                verificationService.receiveVerificationPresentation(managementId, mockRequest));
 
         assertEquals(AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, exception.getErrorResponseCode());
 

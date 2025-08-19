@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
@@ -99,7 +99,7 @@ public class VerificationController {
                     @ApiResponse(
                             responseCode = "404",
                             description = "Request Object not found",
-                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
                     )
             }
     )
@@ -134,7 +134,7 @@ public class VerificationController {
                     @ApiResponse(
                             responseCode = "400",
                             description = "Bad Request. The request body is not valid",
-                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
                     )
             }
     )

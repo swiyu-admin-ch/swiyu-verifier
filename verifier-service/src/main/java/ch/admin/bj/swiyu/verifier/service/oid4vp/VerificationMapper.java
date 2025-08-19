@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -17,11 +17,12 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class VerificationMapper {
 
-    public static VerificationErrorResponseDto toVerificationErrorResponseDto(VerificationException e) {
-        return new VerificationErrorResponseDto(
-                toVerificationErrorTypeDto(e.getErrorType()),
-                toVerificationErrorResponseCode(e.getErrorResponseCode()),
-                e.getErrorDescription());
+    public static ApiErrorDto toVerificationErrorResponseDto(VerificationException e) {
+        return ApiErrorDto.builder()
+                .error(toVerificationErrorTypeDto(e.getErrorType()).toString())
+                .errorDetails(toVerificationErrorResponseCode(e.getErrorResponseCode()).toString())
+                .errorDescription(e.getErrorDescription())
+                .build();
     }
 
     private static VerificationErrorResponseCodeDto toVerificationErrorResponseCode(VerificationErrorResponseCode source) {

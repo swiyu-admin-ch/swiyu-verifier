@@ -9,13 +9,10 @@ package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.api.definition.FieldDto;
 import ch.admin.bj.swiyu.verifier.api.definition.FormatAlgorithmDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.*;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -30,7 +27,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.*;
 import static org.hamcrest.Matchers.containsString;
@@ -131,8 +127,7 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].id: id of input descriptor is mandatory"))
+                .andExpect(jsonPath("$.error_description").value("presentationDefinition.inputDescriptors[0].id: id of input descriptor is mandatory"))
                 .andReturn();
     }
 
@@ -146,8 +141,7 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].constraints: must not be null"))
+                .andExpect(jsonPath("$.error_description").value("presentationDefinition.inputDescriptors[0].constraints: must not be null"))
                 .andReturn();
     }
 
@@ -163,8 +157,7 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].constraints.fields[0].path: must not be empty"))
+                .andExpect(jsonPath("$.error_description").value("presentationDefinition.inputDescriptors[0].constraints.fields[0].path: must not be empty"))
                 .andReturn();
     }
 
@@ -180,8 +173,7 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.detail").value("presentationDefinition.inputDescriptors[0].constraints.fields: must not be empty"))
+                .andExpect(jsonPath("$.error_description").value("presentationDefinition.inputDescriptors[0].constraints.fields: must not be empty"))
                 .andReturn();
     }
 
@@ -202,8 +194,7 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.detail").value(expectedPresentationFormatError + ", " + expectedInputDescriptorFormatError))
+                .andExpect(jsonPath("$.error_description").value(expectedPresentationFormatError + ", " + expectedInputDescriptorFormatError))
                 .andReturn();
     }
 
@@ -249,4 +240,3 @@ class VerifierManagementControllerIT {
                 .andReturn();
     }
 }
-

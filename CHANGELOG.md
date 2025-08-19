@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Updated ApiErrorDto and reused it for every error response. This allows for a more consistent error
+  response structure.
 - Optional callback as alternative for active polling for verification status.
 - Optional OAuth security with bearer tokens on `/management` endpoints.
   It can be activated and configured via spring environment variables.

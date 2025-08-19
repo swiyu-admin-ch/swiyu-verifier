@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -75,6 +76,10 @@ public class Management {
     @Column(name = "trust_anchors")
     private List<TrustAnchor> trustAnchors;
 
+    @Column(name = "dcql_query", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private DcqlQuery dcqlQuery;
+
     public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids, List<TrustAnchor> trustAnchors) {
         this.id = id;
         this.state = VerificationStatus.PENDING;
@@ -82,6 +87,19 @@ public class Management {
         this.expirationInSeconds = expirationInSeconds;
         this.expiresAt = calculateExpiresAt(expirationInSeconds);
         this.requestedPresentation = requestedPresentation;
+        this.jwtSecuredAuthorizationRequest = jwtSecuredAuthorizationRequest;
+        this.acceptedIssuerDids = acceptedIssuerDids;
+        this.trustAnchors = trustAnchors;
+    }
+
+    public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, DcqlQuery dcqlQuery, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids, List<TrustAnchor> trustAnchors) {
+        this.id = id;
+        this.state = VerificationStatus.PENDING;
+        this.requestNonce = createNonce();
+        this.expirationInSeconds = expirationInSeconds;
+        this.expiresAt = calculateExpiresAt(expirationInSeconds);
+        this.requestedPresentation = requestedPresentation;
+        this.dcqlQuery = dcqlQuery;
         this.jwtSecuredAuthorizationRequest = jwtSecuredAuthorizationRequest;
         this.acceptedIssuerDids = acceptedIssuerDids;
         this.trustAnchors = trustAnchors;

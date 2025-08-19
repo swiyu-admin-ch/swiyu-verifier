@@ -31,7 +31,6 @@ import static java.util.Objects.requireNonNullElse;
 public class ManagementService {
 
     private final ManagementRepository repository;
-
     private final ApplicationProperties applicationProperties;
 
     @Transactional
@@ -62,6 +61,7 @@ public class ManagementService {
 
         // Handle Presentation Exchange (PE) flow
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
+        var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
         List<TrustAnchor> trustAnchors = null;
         if (request.trustAnchors() != null) {
             trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
@@ -77,6 +77,7 @@ public class ManagementService {
         log.info("Created pending verification for id: {}", management.getId());
         return toManagementResponseDto(management, applicationProperties);
     }
+
 
     @Transactional
     public void removeExpiredManagements() {

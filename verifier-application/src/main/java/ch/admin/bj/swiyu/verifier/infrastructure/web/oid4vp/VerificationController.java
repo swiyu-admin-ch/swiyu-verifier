@@ -149,35 +149,35 @@ public class VerificationController {
         verificationService.receiveVerificationPresentation(requestId, request);
     }
 
-    @Timed
-    @PostMapping(value = {"request-object/{request_id}/response-data-rejection"},
-            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
-            produces = {MediaType.APPLICATION_JSON_VALUE})
-    @Operation(
-            summary = "Reject Verification Presentation (from e.g. Wallet)",
-            externalDocs = @ExternalDocumentation(
-                    description = "OpenId4VP response parameters",
-                    url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1"
-            ),
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "Verification Presentation rejection received"
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Bad Request. The request body is not valid",
-                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
-                    )
-            }
-    )
-    @ResponseStatus(HttpStatus.OK)
-    @RequestBody(content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
-    public void verificationPresentationClientRejection(
-            @PathVariable(name = "request_id") UUID requestId,
-            VerificationPresentationRejectionDto request) {
-        verificationService.receiveVerificationPresentationClientRejection(requestId, request);
-    }
+//    @Timed
+//    @PostMapping(value = {"request-object/{request_id}/response-data-rejection"},
+//            consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE},
+//            produces = {MediaType.APPLICATION_JSON_VALUE})
+//    @Operation(
+//            summary = "Reject Verification Presentation (from e.g. Wallet)",
+//            externalDocs = @ExternalDocumentation(
+//                    description = "OpenId4VP response parameters",
+//                    url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1"
+//            ),
+//            responses = {
+//                    @ApiResponse(
+//                            responseCode = "200",
+//                            description = "Verification Presentation rejection received"
+//                    ),
+//                    @ApiResponse(
+//                            responseCode = "400",
+//                            description = "Bad Request. The request body is not valid",
+//                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+//                    )
+//            }
+//    )
+//    @ResponseStatus(HttpStatus.OK)
+//    @RequestBody(content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
+//    public void verificationPresentationClientRejection(
+//            @PathVariable(name = "request_id") UUID requestId,
+//            VerificationPresentationRejectionDto request) {
+//        verificationService.receiveVerificationPresentationClientRejection(requestId, request);
+//    }
 
     @Timed
     @PostMapping(value = {"request-object/{request_id}/response-data-dcql"},

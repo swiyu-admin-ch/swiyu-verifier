@@ -31,3 +31,4 @@ public class VerificationPresentationRejectionDto {
     private String error_description;
 }
 
+

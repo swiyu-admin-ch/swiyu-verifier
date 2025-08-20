@@ -74,12 +74,6 @@ public class VerificationService {
             log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
             verifyProcessNotClosed(managementEntity);
 
-            // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
-            if (request.isClientRejection()) {
-                managementEntity.verificationFailedDueToClientRejection(request.getError_description());
-                return;
-            }
-
             // 3. verifiy the presentation submission
             log.debug("Starting submission verification for {}", managementEntityId);
             var credentialSubjectData = verifyPresentation(managementEntity, request);

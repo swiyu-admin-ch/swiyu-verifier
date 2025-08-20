@@ -81,11 +81,10 @@ class VerificationServiceTest {
 
     @Test
     void receiveVerificationPresentation_clientRejected() {
-        VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
-        when(request.isClientRejection()).thenReturn(true);
+        VerificationPresentationRejectionDto request = mock(VerificationPresentationRejectionDto.class);
         when(request.getError_description()).thenReturn("User cancelled");
 
-        verificationService.receiveVerificationPresentation(managementId, request);
+        verificationService.receiveVerificationPresentationClientRejection(managementId, request);
 
         verify(managementEntity).verificationFailedDueToClientRejection("User cancelled");
         verify(webhookService).produceEvent(managementId);

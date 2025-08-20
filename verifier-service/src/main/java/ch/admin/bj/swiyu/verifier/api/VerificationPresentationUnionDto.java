@@ -99,10 +99,6 @@ public class VerificationPresentationUnionDto {
         var dto = new VerificationPresentationRequestDto();
         dto.setVp_token((String) this.vp_token);
         dto.setPresentation_submission(this.presentation_submission);
-
-        // for backward compatibility with deprecated fields
-        dto.setError(this.error);
-        dto.setError_description(this.error_description);
         return dto;
     }
 

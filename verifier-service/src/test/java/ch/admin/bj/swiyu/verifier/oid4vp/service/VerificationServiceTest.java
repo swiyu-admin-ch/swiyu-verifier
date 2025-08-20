@@ -66,7 +66,6 @@ class VerificationServiceTest {
     @Test
     void receiveVerificationPresentation_thenSuccess() throws JsonProcessingException {
         VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
-        when(request.isClientRejection()).thenReturn(false);
 
         var mockRequest = getMockRequest(getVpToken(), getPresentationSubmissionString(UUID.randomUUID()));
 
@@ -104,7 +103,6 @@ class VerificationServiceTest {
     @Test
     void receiveVerificationPresentation_verificationException() throws JsonProcessingException {
         VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
-        when(request.isClientRejection()).thenReturn(false);
 
         var mockRequest = getMockRequestNoVpToken();
 
@@ -185,7 +183,7 @@ class VerificationServiceTest {
     }
 
     private VerificationPresentationRequestDto getMockRequest(String vpToken, String presentationSubmission) {
-        return new VerificationPresentationRequestDto(vpToken, presentationSubmission, null, null);
+        return new VerificationPresentationRequestDto(vpToken, presentationSubmission);
     }
 
     private String getVpToken() {

@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationErrorTypeDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -17,12 +17,12 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class VerificationMapper {
 
-    public static ApiErrorDto toVerificationErrorResponseDto(VerificationException e) {
-        return ApiErrorDto.builder()
-                .error(toVerificationErrorTypeDto(e.getErrorType()).toString())
-                .errorDetails(toVerificationErrorResponseCode(e.getErrorResponseCode()).toString())
-                .errorDescription(e.getErrorDescription())
-                .build();
+    public static VerificationErrorResponseDto toVerificationErrorResponseDto(VerificationException e) {
+        return new VerificationErrorResponseDto(
+                toVerificationErrorTypeDto(e.getErrorType()),
+                toVerificationErrorResponseCode(e.getErrorResponseCode()),
+                toVerificationErrorResponseCode(e.getErrorResponseCode()),
+                e.getErrorDescription());
     }
 
     private static VerificationErrorResponseCodeDto toVerificationErrorResponseCode(VerificationErrorResponseCode source) {
@@ -59,14 +59,14 @@ public class VerificationMapper {
         };
     }
 
-    private static VerificationErrorDto toVerificationErrorTypeDto(VerificationError source) {
+    private static VerificationErrorTypeDto toVerificationErrorTypeDto(VerificationError source) {
         if (source == null) {
-            return VerificationErrorDto.SERVER_ERROR;
+            return VerificationErrorTypeDto.SERVER_ERROR;
         }
         return switch (source) {
-            case INVALID_REQUEST -> VerificationErrorDto.INVALID_REQUEST;
-            case SERVER_ERROR -> VerificationErrorDto.SERVER_ERROR;
-            case INVALID_CREDENTIAL -> VerificationErrorDto.INVALID_CREDENTIAL;
+            case INVALID_REQUEST -> VerificationErrorTypeDto.INVALID_REQUEST;
+            case SERVER_ERROR -> VerificationErrorTypeDto.SERVER_ERROR;
+            case INVALID_CREDENTIAL -> VerificationErrorTypeDto.INVALID_CREDENTIAL;
         };
     }
 }

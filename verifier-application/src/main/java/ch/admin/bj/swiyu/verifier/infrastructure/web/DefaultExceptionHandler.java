@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web;
 
 import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -152,10 +153,10 @@ public class DefaultExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(VerificationException.class)
-    ResponseEntity<ApiErrorDto> handleVerificationException(VerificationException e) {
+    ResponseEntity<VerificationErrorResponseDto> handleVerificationException(VerificationException e) {
         var error = toVerificationErrorResponseDto(e);
 
-        log.warn("The received verification presentation could not be verified - caused by {}-{}:{}", error.getError(), error.getErrorDetails(), error.getErrorDescription(), e);
+        log.warn("The received verification presentation could not be verified - caused by {}-{}:{}", error.error(), error.errorCode(), error.errorDescription(), e);
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 }

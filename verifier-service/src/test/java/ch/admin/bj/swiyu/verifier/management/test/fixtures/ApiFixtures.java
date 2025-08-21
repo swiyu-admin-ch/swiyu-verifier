@@ -28,11 +28,11 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids, PresentationDefinitionDto presentationDefinitionDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, presentationDefinitionDto, null);
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, presentationDefinitionDto, null, null);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto() {
-        return new CreateVerificationManagementDto(null, null, false, null, getDcqlQueryDto());
+        return new CreateVerificationManagementDto(null, null, false, null, null, getDcqlQueryDto());
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
@@ -57,6 +57,7 @@ public class ApiFixtures {
                 null,
                 null,
                 List.of(inputDescriptorMinimal)),
+                null,
                 null
         );
     }

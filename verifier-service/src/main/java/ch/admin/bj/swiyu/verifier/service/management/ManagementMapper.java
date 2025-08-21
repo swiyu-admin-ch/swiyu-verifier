@@ -49,6 +49,7 @@ public class ManagementMapper {
                 management.getRequestNonce(),
                 toVerifcationStatusDto(management.getState()),
                 toPresentationDefinitionDto(management.getRequestedPresentation()),
+                null,
                 toResponseDataDto(management.getWalletResponse()),
                 verificationUrl,
                 buildVerificationDeeplink(verificationUrl, clientId, props.getDeeplinkSchema())

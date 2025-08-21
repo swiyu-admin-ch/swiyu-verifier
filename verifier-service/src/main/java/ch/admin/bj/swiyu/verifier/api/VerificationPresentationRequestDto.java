@@ -26,6 +26,7 @@ public class VerificationPresentationRequestDto {
     )
     private String vp_token;
 
+
     /**
      * Note: Why string - we do not use PresentationSubmissionDto here, because we support invalid
      * submissions. We will parse the JSON and if it is invalid we apply propper

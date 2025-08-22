@@ -17,6 +17,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,7 +39,7 @@ public class DcqlMapper {
      * @param dcqlQueryDto the DTO to convert
      * @return the converted domain object, or null if input is null
      */
-    public static DcqlQuery toDcqlQuery(DcqlQueryDto dcqlQueryDto) {
+    public static DcqlQuery toDcqlQuery(@Nullable DcqlQueryDto dcqlQueryDto) {
         if (dcqlQueryDto == null) {
             return null;
         }
@@ -169,97 +170,3 @@ public class DcqlMapper {
         return list != null ? list : List.of();
     }
 }
-
-/**
- * private DcqlQuery toDCQL(@Valid DcqlQueryDto dcqlQueryDto) {
- * if (dcqlQueryDto == null) {
- * return null;
- * }
- * <p>
- * return DcqlQuery.builder()
- * .credentials(dcqlQueryDto.credentials() != null
- * ? dcqlQueryDto.credentials().stream()
- * .map(this::toDcqlCredential)
- * .toList()
- * : null)
- * .credentialSets(dcqlQueryDto.credentialSets() != null
- * ? dcqlQueryDto.credentialSets().stream()
- * .map(this::toDcqlCredentialSet)
- * .toList()
- * : null)
- * .build();
- * }
- * <p>
- * private DcqlCredential toDcqlCredential(ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlCredentialDto dto) {
- * return ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential.builder()
- * .id(dto.id())
- * .format(dto.format())
- * .meta(toDcqlCredentialMeta(dto.meta()))
- * .claims(dto.claims() != null
- * ? dto.claims().stream()
- * .map(this::toDcqlClaim)
- * .toList()
- * : null)
- * .requireCryptographicHolderBinding(dto.requireCryptographicHolderBinding())
- * .multiple(dto.multiple())
- * .build();
- * }
- * <p>
- * private DcqlCredentialMeta toDcqlCredentialMeta(ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlCredentialMetaDto dto) {
- * if (dto == null) {
- * return null;
- * }
- * <p>
- * return ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta.builder()
- * .vctValues(dto.vctValues())
- * .doctype_value(dto.doctypeValue())
- * .typeValues(dto.typeValues() != null
- * ? dto.typeValues().stream()
- * .map(this::ensureNonNullList)
- * .toList()
- * : null)
- * .build();
- * }
- * <p>
- * private DcqlClaim toDcqlClaim(ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlClaimDto dto) {
- * return ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim.builder()
- * .path(dto.path())
- * .id(dto.id())
- * .values(dto.values() != null
- * ? dto.values().stream()
- * .map(this::convertObjectToString)
- * .toList()
- * : null)
- * .build();
- * }
- * <p>
- * private DcqlCredentialSet toDcqlCredentialSet(ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlCredentialSetDto dto) {
- * return ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialSet.builder()
- * .options(dto.options() != null
- * ? dto.options().stream()
- * .map(this::ensureNonNullList)
- * .toList()
- * : null)
- * .required(dto.required())
- * .build();
- * }
- * <p>
- * private String convertObjectToString(Object value) {
- * if (value == null) {
- * return null;
- * }
- * if (value instanceof String string) {
- * return string;
- * }
- * try {
- * return objectMapper.writeValueAsString(value);
- * } catch (Exception e) {
- * log.warn("Failed to convert object to string: {}", value, e);
- * return value.toString();
- * }
- * }
- * <p>
- * private List<String> ensureNonNullList(List<String> list) {
- * return list != null ? list : List.of();
- * }
- */

@@ -53,28 +53,23 @@ public class ManagementService {
             throw new IllegalArgumentException("Either PresentationDefinition or DCQLQuery must be provided");
         }
 
-        // TODO https://jira.bit.admin.ch/browse/EIDOMNI-207: Handle DCQL flow here in the future
-        if (request.dcqlQuery() != null) {
-            // Placeholder for DCQL implementation
-            throw new IllegalArgumentException("DCQL query is not supported yet. Please use presentationDefinition instead.");
-        }
-
-        // Handle Presentation Exchange (PE) flow
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
         var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
         List<TrustAnchor> trustAnchors = null;
         if (request.trustAnchors() != null) {
             trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
         }
-        var management = repository.save(new Management(
-                UUID.randomUUID(),
-                applicationProperties.getVerificationTTL(),
-                presentationDefinition,
-                requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true),
-                request.acceptedIssuerDids(),
-                trustAnchors,
-                ManagementMapper.toSigningOverride(request.configuration_override()))
-                );
+
+        var management = repository.save(Management.builder()
+                .expirationInSeconds(applicationProperties.getVerificationTTL())
+                .requestedPresentation(presentationDefinition)
+                .dcqlQuery(dcqlQuery)
+                .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
+                .acceptedIssuerDids(request.acceptedIssuerDids())
+                .trustAnchors(trustAnchors)
+                .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
+                .build()
+                .resetExpiresAt());
 
         log.info("Created pending verification for id: {}", management.getId());
         return toManagementResponseDto(management, applicationProperties);

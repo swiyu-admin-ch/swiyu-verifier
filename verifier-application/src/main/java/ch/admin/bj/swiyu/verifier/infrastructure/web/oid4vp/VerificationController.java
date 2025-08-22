@@ -138,7 +138,7 @@ public class VerificationController {
                             name = "SWIYU-API-Version",
                             description = "Optional API version. Supported values: " +
                                     "1 - This supports OID4VP ID2 with DIF Presentation Exchange), " +
-                                    "2 - This supprots OID4VP 1.0 ",
+                                    "2 - This supports OID4VP 1.0",
                             in = ParameterIn.HEADER,
                             schema = @Schema(type = "string", allowableValues = {"1", "2"})
                     )

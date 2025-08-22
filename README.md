@@ -37,7 +37,7 @@ be accessible by the wallet.
 > - Generated the signing keys file with the didtoolbox.jar
 > - Generated a DID which is registered on the identifier registry
 > - Registered yourself on the swiyuprobeta portal
-> - Registered yourself on the api self service portal
+> - Registered yourself on the api self-service portal
 
 ## 1. Set the environment variables
 
@@ -53,12 +53,12 @@ Please be aware that the **oid4vp** endpoints need to be publicly accessible and
 
 ## 2. Creating a verification
 
-> For a detailled understanding of the verfication process and the data structure of verification please consult the
+> For a detailed understanding of the verification process and the data structure of verification please consult the
 > [DIF presentation exchange specification](https://identity.foundation/presentation-exchange/#presentation-definition).
 > For more information on the general verification flow consult
 > the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html)
 
-Once the components are deployed cou can create your first verification. For this you first need to define a
+Once the components are deployed you can create your first verification. For this you first need to define a
 presentation
 definition. Based on that definition you can then create a verification request for a holder as shown in the example
 below.
@@ -66,75 +66,12 @@ In this case we're asking for a credential called "my-custom-vc" which should at
 firstName and lastName. The following request can be performed by using the swagger endpoint on https://<EXTERNAL_URL of
 verifier-agent-management>**/swagger-ui/index.html**
 
-**Request**
-
-```bash
-curl -X 'POST' \
-  'https://<EXTERNAL_URL verification agent management>/management/verifications' \
-  -H 'accept: */*' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "presentation_definition": {
-    "id": "00000000-0000-0000-0000-000000000000",
-    "name": "Test Verification",
-    "purpose": "We want to test a new Verifier",
-    "format": {
-      "vc+sd-jwt": {
-        "sd-jwt_alg_values": [
-          "ES256"
-        ],
-        "kb-jwt_alg_values": [
-          "ES256"
-        ]
-      }
-    },
-    "input_descriptors": [
-      {
-        "id": "my-custom-vc",
-        "name": "Custom VC",
-        "purpose": "DEMO vc",
-        "format": {
-          "vc+sd-jwt": {
-            "sd-jwt_alg_values": [
-              "ES256"
-            ],
-            "kb-jwt_alg_values": [
-              "ES256"
-            ]
-          }
-        },
-        "constraints": {
-          "fields": [
-            {
-              "path": [
-                "$.credentialSubject.firstName",
-                "$.credentialSubject.lastName"
-              ]
-            }
-          ]
-        }
-      }
-    ]
-  }
-}'
-```
-
-**Response**
-
-The response contains a verification_url which points to verification request just created. This link needs to be
-provided to the holder in order to submit a response to the verification request.
-
-```json
-{
-    "verification_url": "https://<EXTERNAL_URL verifier agent oid4vp>/oid4vp/request-object/fc884edd-7667-49e3-b961-04a98e7b5600"
-}
-```
+To see more details and examples of the verification process please consult the [documentation](documentation/verification_process.md).
 
 # Development
 
-> Please be aware that this section **focus on the development of the issuer service**. For the deployment of
-> the
-> component please consult [deployment section](#Deployment).
+> Please be aware that this section **focus on the development of the verifier service**. For the deployment of
+> the component please consult [deployment section](#Deployment).
 
 ## Single service development
 
@@ -142,7 +79,7 @@ Run the following commands to start the service. This will also spin up a local 
 the docker compose.yml:
 
 ```shell
-mvn spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java application
+./mvnw -f verifier-application  spring-boot:run -Dspring-boot.run.profiles=local # start spring boot java application
 ```
 
 After the start api definitions can be found [here](http://localhost:8080/swagger-ui/index.html)
@@ -171,11 +108,11 @@ On the base registry the public key is published. To generate the public key for
 
 | Variable                          | Description                                                                                                                                                                                                | Type             | Default        |
 |-----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|----------------| 
-| POSTGRES_USER                     | Username to connect to the Issuer Agent Database shared with the issuer agent managment service                                                                                                            | string           | none           |
-| POSTGRES_PASSWORD                 | Username to connect to the Issuer Agent Database                                                                                                                                                           | string           | none           |
+| POSTGRES_USER                     | Username to connect to the Verifier Database                                                                                                                                                               | string           | none           |
+| POSTGRES_PASSWORD                 | Username to connect to the Verifier Database                                                                                                                                                               | string           | none           |
 | POSTGRES_JDBC                     | JDBC Connection string to the shared DB                                                                                                                                                                    | string           | none           |
 | VERIFICATION_TTL_SEC              | Validity period in seconds of an verification offer                                                                                                                                                        | int              | 900            |
-| DATA_CLEAR_PROCESS_INTERVAL_MS    | Inverval in which expired offers should be removed from cache in milliseconds.                                                                                                                             | int              | 420000         |
+| DATA_CLEAR_PROCESS_INTERVAL_MS    | Interval in which expired offers should be removed from cache in milliseconds.                                                                                                                             | int              | 420000         |
 | MONITORING_BASIC_AUTH_ENABLED     | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                                                                       |
 | MONITORING_BASIC_AUTH_USERNAME    | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                                                                      |
 | MONITORING_BASIC_AUTH_PASSWORD    | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                                                                      |
@@ -193,8 +130,8 @@ On the base registry the public key is published. To generate the public key for
 
 | Variable           | Description                                                                                      |
 |--------------------|--------------------------------------------------------------------------------------------------|
-| secret.db.username | Username to connect to the Issuer Agent Database shared with the issuer agent managment service  |
-| secret.db.password | Username to connect to the Issuer Agent Database                                                 |
+| secret.db.username | Username to connect to the Verifier Database                                                     |
+| secret.db.password | Username to connect to the Verifier Database                                                     |
 | secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable |
 
 ### HSM - Hardware Security Module
@@ -203,7 +140,7 @@ For operations with an HSM, the keys need not be mounted directly into the envir
 Instead, a connection is created to the HSM via JCA. This can be with
 the [Sun PKCS11 provider](https://docs.oracle.com/en/java/javase/22/security/pkcs11-reference-guide1.html) or a vendor
 specific option.
-Note that for creating the keys it is expected that the public key is provided as self-signed certificated.
+Note that for creating the keys it is expected that the public key is provided as self-signed certificate.
 
 For vendor specific options it is necessary to provide the library in the java classpath. For this mount or add the necessary jars to the docker container.
 Provide the environment variable `JAVA_BOOTCLASSPATH` to the directory which should be added to the classpath.
@@ -232,12 +169,12 @@ It is possible to configure a Webhook Callback endpoint, optionally secured by A
 callback events will be retried until successful, to guarantee an at-least-once delivery.
 Failed deliveries will create error logs and be retried in the next interval.
 
-| Variable               | Description                                                                                                                                                                           |
-|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| WEBHOOK_CALLBACK_URI   | Full URI of the REST endpoint where webhooks shall be sent to. No Callback events will be created if not set.                                                                         |
-| WEBHOOK_API_KEY_HEADER | (Optional) API key header, if the callback uri has a api key for protection. Will be used as HTTP header key.                                                                         |
-| WEBHOOK_API_KEY_VALUE  | (Optional, Required if WEBHOOK_API_KEY_HEADER is set) The API key used.                                                                                                               |
-| WEBHOOK_INTERVAL       | How often the collected events are sent. Value interpreted as millisends if given a plain integer or an [ISO 8601 duration format](https://en.wikipedia.org/wiki/ISO_8601#Durations). | 
+| Variable               | Description                                                                                                                                                                             |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| WEBHOOK_CALLBACK_URI   | Full URI of the REST endpoint where webhooks shall be sent to. No Callback events will be created if not set.                                                                           |
+| WEBHOOK_API_KEY_HEADER | (Optional) API key header, if the callback uri has a api key for protection. Will be used as HTTP header key.                                                                           |
+| WEBHOOK_API_KEY_VALUE  | (Optional, Required if WEBHOOK_API_KEY_HEADER is set) The API key used.                                                                                                                 |
+| WEBHOOK_INTERVAL       | How often the collected events are sent. Value interpreted as milliseconds if given a plain integer or an [ISO 8601 duration format](https://en.wikipedia.org/wiki/ISO_8601#Durations). | 
 
 Callbacks will be sent on change of verification state. This means the verification can be fetched by the business
 verifier.
@@ -247,7 +184,7 @@ Callback Object Structure
 | Field           | Description                                                                            |
 |-----------------|----------------------------------------------------------------------------------------|
 | verification_id | ID of the element the callback is about. For now the management id of the verification |
-| timestamp       | timestamp the event occured. Can differ from the time it is sent.                      |
+| timestamp       | timestamp the event occurred. Can differ from the time it is sent.                     |
 
 ### Security
 
@@ -258,17 +195,17 @@ For more details see the official [spring security documentation](https://docs.s
 For easy playground setup security starts deactivated. It is activated when the appropriate environment variables are set.
 
 #### Fixed single asymmetric key
-| Variable         | Description                                                                                                                                                                                        | Type                                               |
-|------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------| 
+| Variable                                                    | Description                                                                                                                                                                                        | Type                             |
+|-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------| 
 | SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_PUBLICKEYLOCATION | URI path to a single public key in pem format. [See Details](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html#oauth2resourceserver-jwt-decoder-public-key) | URI eg: file:/app/public-key.pem |
 
 
 #### Authorization Server
-| Variable                                                | Description                                                                                                                                                                                                                                                                        | Type        |
-|---------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------| 
+| Variable                                                | Description                                                                                                                                                                                                                                                                        | Type         |
+|---------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------| 
 | SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI     | URI to the issuer including path component. Will be resolved to <issuer-uri>/.well-known/openid-configuration to fetch the public key [See Details](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html#_specifying_the_authorization_server) | URI / String |
 | SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI     | URI directly to fetch directly the jwk-set instead of fetching the openid connect first.                                                                                                                                                                                           | URI / String |
-| SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWSALGORITHMS | List of algorithms supported for the key of the jkw-set. Defaults to only RS256.                                                                                                                                                                                                     | String |
+| SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWSALGORITHMS | List of algorithms supported for the key of the jkw-set. Defaults to only RS256.                                                                                                                                                                                                   | String       |
 
 Other properties as defined by spring can be used.
 
@@ -351,10 +288,10 @@ The response of this post call contains the URI which has to be provided to the 
 | unresolvable_status_list                    | The credential presented during validation contains a status list which cannot be reached during validation.                                                                                                                                         |
 | public_key_of_issuer_unresolvable           | The credential presented during validation was issued by an entity that does not provide the public key at the time of verification.                                                                                                                 |
 | issuer_not_accepted                         | The credential presented during validation was issued by an entity that is not in the list of allowed issuers.                                                                                                                                       |
-| malformed_credential                        | The credential presented during validation isnt valid according to the format specification in question                                                                                                                                              |
+| malformed_credential                        | The credential presented during validation isn't valid according to the format specification in question                                                                                                                                             |
 | holder_binding_mismatch                     | The holder has provided invalid proof that the credential is under their control.                                                                                                                                                                    |
 | client_rejected                             | The holder rejected the verification request.                                                                                                                                                                                                        |
-| issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                                                                                                                                    |
+| issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verification request.                                                                                                                                                                    |
 | authorization_request_missing_error_param   | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.                                                                                                                                  |
 | authorization_request_object_not_found      | The requested verification process cannot be found.                                                                                                                                                                                                  |
 | verification_process_closed                 | The requested verification process is already closed.                                                                                                                                                                                                |

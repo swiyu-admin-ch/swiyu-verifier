@@ -51,10 +51,7 @@ sequenceDiagram
     end
 ```
 
-Certainly! Here is the README documentation with example `curl` requests in Markdown syntax.  
-All code blocks and sections use proper Markdown formatting.
-
-# OID4VP Verifier API - Example Requests
+## Shared operations between Verification and Rejection
 
 > [!NOTE]  
 > All calls use the localhost server at port 8083, which can be started with the sample-compose file [how to get started]().
@@ -63,11 +60,20 @@ All code blocks and sections use proper Markdown formatting.
 > [!NOTE]  
 > This call works with the current version of the Beta-ID.
 
-## Business Verifier Interactions
-
 The Business Verifier exclusively uses the management api endpoints provided under `/management/api/`.
 
+All interactions between the Wallet and the Verifier Service use the [OID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html) and are provided under `/oid4vp/api/`
+
 ### 1. Create Verification
+
+Actor:
+- Business Verifier: The entity requesting the verification (e.g., a company or service).
+
+Process:
+- The Business Verifier initiates the process by sending a request to the Verifier Service to create a verification request.
+- The Verifier Service stores this new request in the Verifier DB.
+- After storing the request, the Verifier Service responds back to the Business Verifier with a Verification URI.
+- The Business Verifier forwards the received Verification URI to the Holder (e.g., a person or entity holding credentials).
 
 > [!IMPORTANT]  
 > The example above is only a bare minimum working example. In a production scenario, you should at least set the `accepted_issuer_dids` or `trust_anchors` which are described below.
@@ -195,7 +201,11 @@ List of trust anchor dids from the trust registry.
 
 ### 2. Get Verification by ID
 
-Returns the current status and provided data of a verification request to the business verifier.
+Actor:
+- Business Verifier: The entity requesting the verification (e.g., a company or service).
+
+Process:
+- Returns the current status and provided data of a verification request to the business verifier.
 
 **Request:**
 ```bash
@@ -251,13 +261,10 @@ curl -X GET \
 }
 ```
 
-## Wallet Interactions
+### 3. Get OpenID Client Metadata
 
-All interactions between the Wallet and the Verifier Service use the OID4VP protocol.
-- All endpoints are under `/oid4vp/api/`
-- See [OID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html) for protocol details.
-
-### 1. Get OpenID Client Metadata
+Actor:
+- Wallet: The entity that holds the credentials.
 
 **Request:**
 ```bash
@@ -289,7 +296,13 @@ curl -X GET \
 }
 ```
 
-### 2. Get Request Object
+### 4. Get Request Object
+Actor:
+- Wallet: The entity that holds the credentials.
+
+Process:
+- The Holder uses the Verification Deeplink and decodes it to retrieve the request object from the Verifier Service.
+- The Verifier Service fetches the corresponding verification request from the Verifier DB.
 
 > [!NOTE]  
 > In order to get the url to get the request-object (including the REQUEST_ID), decode the `verification_deeplink` received in step 1 from the Business Verifier.
@@ -305,6 +318,9 @@ curl -X GET \
 Returns a signed JWT or JSON request object.
 
 ### 3. Receive Verification Presentation
+
+Actor:
+- Wallet: The entity that holds the credentials.
 
 > [!NOTE]  
 > This call is done by the Wallet to send the presentation or refusal back to the Verifier Service. The wallet will send the vp_tokn and the presentation_submission as form parameters. An example of the presentation_submission JSON is shown below.
@@ -331,7 +347,24 @@ curl -X POST \
   http://localhost:8083/oid4vp/api/request-object/${REQUEST_ID}/response-data
 ```
 
-### 4. Refusal Example
+After receiving the request, the Verifier Service:
+- Internally verifies the presentation.
+- Requests the issuer's public key from the Base Registry to validate the credential.
+- Checks the credential status with the Status Registry.
+- Updates the verification result in the Verifier DB.
+
+While the verification status remains PENDING:
+- The Business Verifier periodically polls the Verifier Service to get the current status. 
+- The Verifier Service reads the status from the Verifier DB and responds accordingly.
+
+## Rejection Example
+
+Actor:
+- Wallet: The entity that holds the credentials.
+
+Process:
+- The Holder may choose to reject the verification. 
+- The Verifier Service updates the corresponding entry in the Verifier DB to reflect the rejection.
 
 **Request:**
 ```bash

@@ -39,14 +39,15 @@ public class VerificationPresentationUnionDto {
                     """,
             oneOf = {String.class, Map.class}
     )
-    private Object vp_token;
+    @JsonProperty("vp_token")
+    private Object vpToken;
 
     @Schema(
             description = "The presentation submission as defined in DIF presentation submission (used for Standard and PE presentations)",
             example = "{\"id\":\"a30e3b91-fb77-4d22-95fa-871689c322e2\",\"definition_id\":\"32f54163-7166-48f1-93d8-ff217bdb0653\"}"
     )
     @JsonProperty("presentation_submission")
-    private String presentation_submission;
+    private String presentationSubmission;
 
     // From VerificationPresentationRejectionDto
     @Schema(
@@ -59,7 +60,8 @@ public class VerificationPresentationUnionDto {
             description = "Error description for rejection (used for REJECTION)",
             example = "The owner has declined the verification request."
     )
-    private String error_description;
+    @JsonProperty("error_description")
+    private String errorDescription;
 
 
     // From VerificationPresentationDCQLRequestEncryptedDto
@@ -72,7 +74,7 @@ public class VerificationPresentationUnionDto {
     // Helper methods to determine the type of request
     @JsonIgnore
     public boolean isStandardPresentation() {
-        return vp_token instanceof String && presentation_submission != null;
+        return vpToken instanceof String && presentationSubmission != null;
     }
 
     @JsonIgnore
@@ -82,7 +84,7 @@ public class VerificationPresentationUnionDto {
 
     @JsonIgnore
     public boolean isDcqlPresentation() {
-        return vp_token != null && presentation_submission == null;
+        return vpToken != null && presentationSubmission == null;
     }
 
     @JsonIgnore
@@ -97,8 +99,8 @@ public class VerificationPresentationUnionDto {
             throw new IllegalArgumentException("Union DTO does not contain standard presentation data");
         }
         var dto = new VerificationPresentationRequestDto();
-        dto.setVp_token((String) this.vp_token);
-        dto.setPresentation_submission(this.presentation_submission);
+        dto.setVpToken((String) this.vpToken);
+        dto.setPresentationSubmission(this.presentationSubmission);
         return dto;
     }
 
@@ -109,7 +111,7 @@ public class VerificationPresentationUnionDto {
         }
         var dto = new VerificationPresentationRejectionDto();
         dto.setError(this.error);
-        dto.setError_description(this.error_description);
+        dto.setErrorDescription(this.errorDescription);
         return dto;
     }
 
@@ -125,13 +127,13 @@ public class VerificationPresentationUnionDto {
             ObjectMapper objectMapper = new ObjectMapper();
             Map<String, List<String>> mapToken;
 
-            if (this.vp_token instanceof String vpTokenString) {
+            if (this.vpToken instanceof String vpTokenString) {
                 // If vp_token is a JSON string, parse it first
                 mapToken = objectMapper.readValue(vpTokenString, new TypeReference<>() {
                 });
             } else {
                 // If vp_token is already an object, convert it directly
-                mapToken = objectMapper.convertValue(this.vp_token, new TypeReference<>() {
+                mapToken = objectMapper.convertValue(this.vpToken, new TypeReference<>() {
                 });
             }
 

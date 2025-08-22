@@ -9,10 +9,10 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 import ch.admin.bj.swiyu.verifier.api.*;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,7 +30,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Objects;
 import java.util.UUID;
+
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 
 /**
  * OpenID4VC Issuance Controller
@@ -134,12 +137,10 @@ public class VerificationController {
                     @Parameter(
                             name = "SWIYU-API-Version",
                             description = "Optional API version. Supported values: " +
-                                    "PE (DIF Presentation Exchange), " +
-                                    "REJECTION (OpenID4VP Rejection), " +
-                                    "DCQL (DCQL request), " +
-                                    "DCQLE (Encrypted DCQL request)",
+                                    "1 - This support OID4VP ID2 includes DIF Presentation Exchange), " +
+                                    "2 - This supprots OID4VP 1.0 ",
                             in = ParameterIn.HEADER,
-                            schema = @Schema(type = "string", allowableValues = {"PE", "REJECTION", "DCQL", "DCQLE"})
+                            schema = @Schema(type = "string", allowableValues = {"1", "2"})
                     )
             },
             externalDocs = @ExternalDocumentation(
@@ -178,50 +179,33 @@ public class VerificationController {
             VerificationPresentationUnionDto unionDto) {
 
         log.info("Received verification presentation for request_id: {} with version: {}", requestId, versionString);
+        if (unionDto.isRejection()) {
+            // Handle rejection
+            log.debug("Processing rejection for request_id: {}", requestId);
+            var rejectionDto = unionDto.toRejection();
+            verificationService.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
+            return;
+        }
 
         VPApiVersion version = VPApiVersion.fromValue(versionString);
 
-        if (version == null) {
-            // For backward compatibility, if no version is provided, we assume the old behavior
-            if (unionDto.isStandardPresentation()) {
-                // Handle standard presentation (DIF Presentation Exchange)
-                log.debug("Processing standard presentation for request_id: {}", requestId);
-                var standardDto = unionDto.toStandardPresentation();
-                verificationService.receiveVerificationPresentation(requestId, standardDto);
-                return;
-            } else if (unionDto.isRejection()) {
-                // Handle rejection
-                log.debug("Processing rejection for request_id: {}", requestId);
-                var rejectionDto = unionDto.toRejection();
-                verificationService.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
-                return;
-            }
-        } else {
-            switch (version) {
-                case PE -> {
-                    // Handle standard presentation (DIF Presentation Exchange)
-                    log.debug("Processing standard presentation for request_id: {}", requestId);
-                    var standardDto = unionDto.toStandardPresentation();
-                    verificationService.receiveVerificationPresentation(requestId, standardDto);
-                }
-                case REJECTION -> {
-                    // Handle rejection
-                    log.debug("Processing rejection for request_id: {}", requestId);
-                    var rejectionDto = unionDto.toRejection();
-                    verificationService.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
-                }
-                case DCQL -> {
-                    // Handle DCQL
-                    log.debug("Processing DCQL presentation for request_id: {}", requestId);
-                    var dcqlDto = unionDto.toDcqlPresentation();
-                    verificationService.receiveVerificationPresentationDCQL(requestId, dcqlDto);
-                }
-                case DCQLE -> {
-                    // Handle encrypted DCQL
-                    log.debug("Processing encrypted DCQL presentation for request_id: {}", requestId);
-                    var encryptedDto = unionDto.toDcqlEncryptedPresentation();
-                    verificationService.receiveVerificationPresentationDCQLEncrypted(requestId, encryptedDto);
-                }
+        if (version == VPApiVersion.ID2) {// Handle DIF Presentation Exchange presentation
+            log.debug("Processing standard presentation for request_id: {}", requestId);
+            var standardDto = unionDto.toStandardPresentation();
+            verificationService.receiveVerificationPresentation(requestId, standardDto);
+        } else if (version == VPApiVersion.V1) {
+            if (unionDto.isDcqlPresentation()) {
+                log.debug("Processing DCQL presentation for request_id: {}", requestId);
+                var dcqlDto = unionDto.toDcqlPresentation();
+                verificationService.receiveVerificationPresentationDCQL(requestId, dcqlDto);
+            } else if (unionDto.isDcqlEncryptedPresentation()) {
+                // Handle encrypted DCQL
+                log.debug("Processing encrypted DCQL presentation for request_id: {}", requestId);
+                var encryptedDto = unionDto.toDcqlEncryptedPresentation();
+                verificationService.receiveVerificationPresentationDCQLEncrypted(requestId, encryptedDto);
+            } else {
+                log.debug("Incomplete submission");
+                throw submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, "Incomplete submission, must contain only vp_token or response");
             }
         }
         log.info("Successfully processed verification presentation for request_id: {}", requestId);

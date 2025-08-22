@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.api;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,9 +25,10 @@ public class VerificationPresentationRejectionDto {
     )
     private VerificationClientErrorDto error;
 
+    @JsonProperty("error_description")
     @Schema(
-            description = "Error description as seems fit"
+            description = "Human readable error description"
     )
-    private String error_description;
+    private String errorDescription;
 }
 

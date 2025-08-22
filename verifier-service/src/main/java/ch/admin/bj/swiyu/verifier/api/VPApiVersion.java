@@ -13,22 +13,12 @@ public enum VPApiVersion {
     /**
      * DIF Presentation Exchange for old Presentation Exchange requests standard
      */
-    PE("PE", "DIF Presentation Exchange for old Presentation Exchange requests standard"),
+    ID2("1", "Implementers Draft 2 (OID4VP Draft 18) with DIF Presentation Exchange"),
     
     /**
      * OpenID4VP Rejection for rejections
      */
-    REJECTION("REJECTION", "OpenID4VP Rejection for rejections"),
-    
-    /**
-     * DCQL for DCQL request
-     */
-    DCQL("DCQL", "DCQL for DCQL request"),
-    
-    /**
-     * Encrypted DCQL request
-     */
-    DCQLE("DCQLE", "Encrypted DCQL request");
+    V1("2", "Version 1.0 of OID4VP with DCQL for requesting credentials");
 
     private final String value;
     private final String description;
@@ -54,7 +44,7 @@ public enum VPApiVersion {
      */
     public static VPApiVersion fromValue(String value) {
         if (value == null) {
-            return null;
+            return ID2; // Default behaviour
         }
         
         for (VPApiVersion version : values()) {

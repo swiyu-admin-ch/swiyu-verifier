@@ -81,7 +81,7 @@ class VerificationServiceTest {
     @Test
     void receiveVerificationPresentation_clientRejected() {
         VerificationPresentationRejectionDto request = mock(VerificationPresentationRejectionDto.class);
-        when(request.getError_description()).thenReturn("User cancelled");
+        when(request.getErrorDescription()).thenReturn("User cancelled");
 
         verificationService.receiveVerificationPresentationClientRejection(managementId, request);
 
@@ -118,7 +118,7 @@ class VerificationServiceTest {
     @Test
     void receiveVerificationPresentationClientRejection_thenSuccess() {
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
-        when(rejectionRequest.getError_description()).thenReturn("User declined the verification request");
+        when(rejectionRequest.getErrorDescription()).thenReturn("User declined the verification request");
 
         verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
 
@@ -130,7 +130,7 @@ class VerificationServiceTest {
     @Test
     void receiveVerificationPresentationClientRejection_withNullErrorDescription_thenSuccess() {
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
-        when(rejectionRequest.getError_description()).thenReturn(null);
+        when(rejectionRequest.getErrorDescription()).thenReturn(null);
 
         verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
 
@@ -142,7 +142,7 @@ class VerificationServiceTest {
     @Test
     void receiveVerificationPresentationClientRejection_withEmptyErrorDescription_thenSuccess() {
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
-        when(rejectionRequest.getError_description()).thenReturn("");
+        when(rejectionRequest.getErrorDescription()).thenReturn("");
 
         verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
 
@@ -155,7 +155,7 @@ class VerificationServiceTest {
     void receiveVerificationPresentationClientRejection_processClosed_thenThrowsException() {
         when(managementEntity.isExpired()).thenReturn(true);
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
-        when(rejectionRequest.getError_description()).thenReturn("User cancelled");
+        when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
         assertThrows(ProcessClosedException.class, () ->
                 verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
@@ -168,7 +168,7 @@ class VerificationServiceTest {
     void receiveVerificationPresentationClientRejection_verificationNotPending_thenThrowsException() {
         when(managementEntity.isVerificationPending()).thenReturn(false);
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
-        when(rejectionRequest.getError_description()).thenReturn("User cancelled");
+        when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
         assertThrows(ProcessClosedException.class, () ->
                 verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));

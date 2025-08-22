@@ -107,7 +107,7 @@ public class VerificationService {
             log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
             verifyProcessNotClosed(managementEntity);
             // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
-            managementEntity.verificationFailedDueToClientRejection(request.getError_description());
+            managementEntity.verificationFailedDueToClientRejection(request.getErrorDescription());
         } catch (VerificationException e) {
             managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
             log.debug("Saved failed verification result for {}", managementEntityId);
@@ -226,12 +226,12 @@ public class VerificationService {
     private String verifyPresentation(Management entity, VerificationPresentationRequestDto request) {
         // NOTE: we do support invalid json of a presentation submissions, that is why we parse it manually.in case we have an
         // error we will update the entity (status to failed)
-        var presentationSubmission = parseAndValidatePresentationSubmission(request.getPresentation_submission());
-        if (isBlank(request.getVp_token()) || isNull(presentationSubmission)) {
+        var presentationSubmission = parseAndValidatePresentationSubmission(request.getPresentationSubmission());
+        if (isBlank(request.getVpToken()) || isNull(presentationSubmission)) {
             throw submissionError(AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, "Incomplete presentation submission received");
         }
         log.trace("Successfully verified presentation submission for id {}", entity.getId());
-        return verifyPresentation(entity, request.getVp_token(), presentationSubmission);
+        return verifyPresentation(entity, request.getVpToken(), presentationSubmission);
 
     }
 

@@ -37,6 +37,6 @@ public class VerificationPresentationDCQLRequestDto {
             implementation = Map.class
     )
     @JsonProperty("vp_token")
-    private Map<String, List<Object>> vpToken;
+    private Map<String, List<String>> vpToken;
 
 }

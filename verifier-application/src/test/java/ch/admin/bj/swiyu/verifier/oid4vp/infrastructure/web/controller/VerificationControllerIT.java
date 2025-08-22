@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.api.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -746,8 +747,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldThrowUnsupportedOperationExceptionForDCQLEndpoint() throws Exception {
         // GIVEN
-        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
-
         // Create DCQL vp_token structure as specified
         String dcqlVpTokenJson = """
             {
@@ -757,9 +756,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             """;
 
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data-dcql", REQUEST_ID_SECURED))
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("vp_token", dcqlVpTokenJson))
                 .andExpect(status().is4xxClientError());
 
@@ -777,9 +776,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         String encryptedResponse = "eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0...";
 
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data-dcql-encrypted", REQUEST_ID_SECURED))
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("response", encryptedResponse))
                 .andExpect(status().is4xxClientError());
 
@@ -794,8 +793,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         String errorDescription = "User declined the verification request";
 
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data-rejection", REQUEST_ID_SECURED))
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("error", "access_denied")
                         .formField("error_description", errorDescription))
                 .andExpect(status().isOk());
@@ -809,8 +809,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldHandleClientRejectionWithOnlyError() throws Exception {
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data-rejection", REQUEST_ID_SECURED))
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("error", "client_rejected"))
                 .andExpect(status().isOk());
 
@@ -822,8 +823,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldHandleClientRejectionWithEmptyErrorDescription() throws Exception {
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data-rejection", REQUEST_ID_SECURED))
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", ""))
                 .andExpect(status().isOk());
@@ -837,8 +839,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldFailClientRejectionOnExpiredRequest() throws Exception {
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data-rejection", REQUEST_ID_EXPIRED))
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_EXPIRED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("error", "access_denied")
                         .formField("error_description", "User cancelled"))
                 .andExpect(status().isGone());
@@ -851,8 +854,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldFailClientRejectionWithInvalidErrorType() throws Exception {
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data-rejection", REQUEST_ID_SECURED))
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("error", "invalid_error_type")
                         .formField("error_description", "Some description"))
                 .andExpect(status().isBadRequest());

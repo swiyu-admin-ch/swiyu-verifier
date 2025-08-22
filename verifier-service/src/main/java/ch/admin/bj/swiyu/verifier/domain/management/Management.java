@@ -22,6 +22,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.FAILED;
@@ -76,6 +77,10 @@ public class Management {
     @Column(name = "trust_anchors")
     private List<TrustAnchor> trustAnchors;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name="configuration_override", columnDefinition = "jsonb")
+    private ConfigurationOverride configurationOverride;
+
     @Column(name = "dcql_query", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     private DcqlQuery dcqlQuery;
@@ -103,6 +108,11 @@ public class Management {
         this.jwtSecuredAuthorizationRequest = jwtSecuredAuthorizationRequest;
         this.acceptedIssuerDids = acceptedIssuerDids;
         this.trustAnchors = trustAnchors;
+    }
+
+    public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids, List<TrustAnchor> trustAnchors, ConfigurationOverride configurationOverride) {
+        this(id, expirationInSeconds, requestedPresentation, jwtSecuredAuthorizationRequest, acceptedIssuerDids, trustAnchors);
+        this.configurationOverride = configurationOverride;
     }
 
     public boolean isVerificationPending() {
@@ -149,5 +159,10 @@ public class Management {
 
     public boolean isExpired() {
         return System.currentTimeMillis() > expiresAt;
+    }
+
+    @NotNull
+    public ConfigurationOverride getConfigurationOverride() {
+        return Objects.requireNonNullElseGet(this.configurationOverride, () -> new ConfigurationOverride(null, null, null, null, null));
     }
 }

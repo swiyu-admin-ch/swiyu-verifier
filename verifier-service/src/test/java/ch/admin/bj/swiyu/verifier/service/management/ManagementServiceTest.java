@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
@@ -42,6 +43,7 @@ class ManagementServiceTest {
                 null,
                 false,
                 presentationDefinitionDto,
+                null,
                 null
         );
         var management = mock(Management.class);
@@ -102,7 +104,7 @@ class ManagementServiceTest {
         when(management.isExpired()).thenReturn(true);
         when(management.getId()).thenReturn(id);
         when(repository.findById(id)).thenReturn(Optional.of(management));
-
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
         service.getManagement(id);
         verify(repository).deleteById(id);
     }

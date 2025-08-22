@@ -57,6 +57,15 @@ public record CreateVerificationManagementDto(
         @JsonProperty("presentation_definition")
         PresentationDefinitionDto presentationDefinition,
 
+        @Schema(description = "Optional Parameter to override configured parameters, such as the DID used or the HSM key used in singing the request object",
+                example = """
+                {}
+                """)
+        @Valid
+        @Nullable
+        @JsonProperty("configuration_override")
+        ConfigurationOverrideDto configuration_override,
+
         @Valid
         @Nullable
         @JsonProperty("dcql_query")

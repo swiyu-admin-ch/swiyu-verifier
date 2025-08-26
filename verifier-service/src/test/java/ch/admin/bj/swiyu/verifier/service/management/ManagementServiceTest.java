@@ -79,9 +79,9 @@ class ManagementServiceTest {
                 List.of("did:example:123"),
                 null,
                 false,
-                useBoth ? presentationDefinitionDto : null,
+                presentationDefinitionDto,
                 null,
-                dcqlQueryDto
+                useBoth ? dcqlQueryDto : null
         );
         var management = mock(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);
@@ -113,7 +113,7 @@ class ManagementServiceTest {
                 null
         );
         var error = assertThrows(IllegalArgumentException.class, () -> service.createVerificationManagement(requestDto));
-        assertEquals("Either PresentationDefinition or DCQLQuery must be provided", error.getMessage());
+        assertEquals("PresentationDefinition must be provided", error.getMessage());
     }
 
     @Test

@@ -10,7 +10,9 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
+import ch.admin.bj.swiyu.verifier.service.DcqlService;
 import ch.admin.bj.swiyu.verifier.service.callback.WebhookService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.SdJwtVerificationService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationService;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -44,6 +46,8 @@ class VerificationServiceTest {
         StatusListReferenceFactory statusListReferenceFactory = mock(StatusListReferenceFactory.class);
         ObjectMapper objectMapper = new ObjectMapper();
         webhookService = mock(WebhookService.class);
+        var sdJwtVerificationService = mock(SdJwtVerificationService.class);
+        var dcqlService = mock(DcqlService.class);
 
         verificationService = new VerificationService(
                 verificationProperties,
@@ -51,7 +55,9 @@ class VerificationServiceTest {
                 issuerPublicKeyLoader,
                 statusListReferenceFactory,
                 objectMapper,
-                webhookService
+                webhookService,
+                sdJwtVerificationService,
+                dcqlService
         );
 
         managementEntity = mock(Management.class);

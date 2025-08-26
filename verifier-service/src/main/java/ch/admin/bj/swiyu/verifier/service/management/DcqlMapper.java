@@ -31,8 +31,6 @@ import java.util.List;
 @Slf4j
 public class DcqlMapper {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
     /**
      * Converts a DcqlQueryDto to DcqlQuery domain object.
      *

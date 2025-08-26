@@ -163,13 +163,14 @@ public class ApiFixtures {
                 true,
                 null
         );
-        var credentialSet = new DcqlCredentialSetDto(
-                List.of(List.of("identity_credential_dcql")),
-                true
-        );
+        // TODO Start supporting credential sets
+//        var credentialSet = new DcqlCredentialSetDto(
+//                List.of(List.of("identity_credential_dcql")),
+//                true
+//        );
         return new DcqlQueryDto(
                 List.of(credential),
-                List.of(credentialSet)
+                List.of()
         );
     }
 }

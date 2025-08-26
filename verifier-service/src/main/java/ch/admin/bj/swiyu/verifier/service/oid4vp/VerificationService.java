@@ -25,10 +25,12 @@ import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.service.DcqlService;
 import ch.admin.bj.swiyu.verifier.service.callback.WebhookService;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
@@ -56,6 +58,8 @@ public class VerificationService {
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
     private final WebhookService webhookService;
+    private final SdJwtVerificationService sdJwtVerificationService;
+    private final DcqlService dcqlService;
 
     /**
      * Validates the presentation request. If it fails, it will
@@ -258,7 +262,24 @@ public class VerificationService {
     }
 
     private String verifyDCQLPresentation(Management entity, VerificationPresentationDCQLRequestDto request) {
-        // TODO: DCQL functionality is not yet implemented - this is a placeholder for the next ticket
+        var requestedCredentials = entity.getDcqlQuery().getCredentials();
+        var vpTokens = request.getVpToken();
+        for (var requestedCredential : requestedCredentials) {
+            if (!vpTokens.containsKey(requestedCredential.getId())) {
+                throw new IllegalArgumentException("Missing vp token for credential id " + requestedCredential.getId());
+            }
+            var requestedVpTokens = vpTokens.get(requestedCredential.getId());
+            // We expect only 1 vpToken, but receive more than 1
+            if(Boolean.FALSE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
+                throw new IllegalArgumentException("Expected only 1 vp token for " + requestedCredential.getId());
+            }
+            var sdJwts = requestedVpTokens.stream().map(SdJwt::new).toList();
+            sdJwts.forEach(sdjwt -> sdJwtVerificationService.verifyVpToken(sdjwt, entity));
+            dcqlService.containsRequestedFields(sdJwts.getFirst(), requestedCredential.getClaims());
+        }
+
+
+
         throw new IllegalArgumentException("DCQL verification functionality is not yet implemented. This feature will be available in a future release.");
     }
 

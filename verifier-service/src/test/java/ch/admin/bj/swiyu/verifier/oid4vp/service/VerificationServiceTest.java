@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
@@ -65,7 +66,6 @@ class VerificationServiceTest {
     @Test
     void receiveVerificationPresentation_thenSuccess() throws JsonProcessingException {
         VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
-        when(request.isClientRejection()).thenReturn(false);
 
         var mockRequest = getMockRequest(getVpToken(), getPresentationSubmissionString(UUID.randomUUID()));
 
@@ -80,11 +80,10 @@ class VerificationServiceTest {
 
     @Test
     void receiveVerificationPresentation_clientRejected() {
-        VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
-        when(request.isClientRejection()).thenReturn(true);
-        when(request.getError_description()).thenReturn("User cancelled");
+        VerificationPresentationRejectionDto request = mock(VerificationPresentationRejectionDto.class);
+        when(request.getErrorDescription()).thenReturn("User cancelled");
 
-        verificationService.receiveVerificationPresentation(managementId, request);
+        verificationService.receiveVerificationPresentationClientRejection(managementId, request);
 
         verify(managementEntity).verificationFailedDueToClientRejection("User cancelled");
         verify(webhookService).produceEvent(managementId);
@@ -104,7 +103,6 @@ class VerificationServiceTest {
     @Test
     void receiveVerificationPresentation_verificationException() throws JsonProcessingException {
         VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
-        when(request.isClientRejection()).thenReturn(false);
 
         var mockRequest = getMockRequestNoVpToken();
 
@@ -117,13 +115,75 @@ class VerificationServiceTest {
         verify(webhookService).produceEvent(managementId);
     }
 
+    @Test
+    void receiveVerificationPresentationClientRejection_thenSuccess() {
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getErrorDescription()).thenReturn("User declined the verification request");
+
+        verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
+
+        verify(managementEntity).verificationFailedDueToClientRejection("User declined the verification request");
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationSucceeded(any());
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_withNullErrorDescription_thenSuccess() {
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getErrorDescription()).thenReturn(null);
+
+        verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
+
+        verify(managementEntity).verificationFailedDueToClientRejection(null);
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationSucceeded(any());
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_withEmptyErrorDescription_thenSuccess() {
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getErrorDescription()).thenReturn("");
+
+        verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
+
+        verify(managementEntity).verificationFailedDueToClientRejection("");
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationSucceeded(any());
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_processClosed_thenThrowsException() {
+        when(managementEntity.isExpired()).thenReturn(true);
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
+
+        assertThrows(ProcessClosedException.class, () ->
+                verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
+    }
+
+    @Test
+    void receiveVerificationPresentationClientRejection_verificationNotPending_thenThrowsException() {
+        when(managementEntity.isVerificationPending()).thenReturn(false);
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
+
+        assertThrows(ProcessClosedException.class, () ->
+                verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+
+        verify(webhookService).produceEvent(managementId);
+        verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
+    }
+
     private VerificationPresentationRequestDto getMockRequestNoVpToken() throws JsonProcessingException {
         var presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
         return getMockRequest("", presentationSubmission);
     }
 
     private VerificationPresentationRequestDto getMockRequest(String vpToken, String presentationSubmission) {
-        return new VerificationPresentationRequestDto(vpToken, presentationSubmission, null, null);
+        return new VerificationPresentationRequestDto(vpToken, presentationSubmission);
     }
 
     private String getVpToken() {

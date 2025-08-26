@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.api.requestobject;
 
 import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
+import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,7 +25,12 @@ import lombok.Data;
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(name = "RequestObject")
+@Schema(name = "RequestObject", description = """
+    OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
+    Contains either a Presentation Exchange (PE) presentation_definition or a DCQL query (dcql_query), depending on the verification request format.
+    - If the verification was initiated using the older PE format, the presentation_definition field is used.
+    - If the verification was initiated using the new DCQL format, the dcql_query field is used.
+    """)
 public class RequestObjectDto {
 
     /**
@@ -57,7 +63,24 @@ public class RequestObjectDto {
     private String version;
 
     @JsonProperty("presentation_definition")
+    @Schema(
+        description = """
+            Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition.
+            This field is only used for requests initiated with the older Presentation Exchange (PE) format.
+            """,
+        requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
     private PresentationDefinitionDto presentationDefinition;
+
+    @JsonProperty("dcql_query")
+    @Schema(
+        description = """
+            DCQL query object as an Authorization Request parameter.
+            This field is used for requests initiated with the DCQL format and contains the Digital Credentials Query Language (DCQL) query.
+            """,
+        requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
+    private DcqlQueryDto dcqlQuery;
 
     @JsonProperty("client_metadata")
     @Schema(description = "A JSON object containing the Verifier metadata values providing further information about the verifier, such as name and logo. It is UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter is present.",

@@ -9,13 +9,12 @@ package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.api.definition.FieldDto;
 import ch.admin.bj.swiyu.verifier.api.definition.FormatAlgorithmDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.*;
+import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlClaimDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
+import ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,10 +25,12 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.*;
@@ -233,11 +234,12 @@ class VerifierManagementControllerIT {
         assertEquals(-1, result2.getResponse().getContentAsString().indexOf("null"));
     }
 
+
     @Test
-    void testCreateOffer_withDcqlQuery_thenIllegalArgumentException() throws Exception {
+    void testCreateOffer_withOnlyDcqlQuery_thenIllegalArgumentException() throws Exception {
 
         // Build a minimal DCQL query DTO
-        var request = createVerificationManagementWithDcqlQueryDto();
+        var request = createVerificationManagementWithDcqlQueryDto(null, getDcqlQueryDto());
 
         mvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -245,6 +247,60 @@ class VerifierManagementControllerIT {
                 .andExpect(status().is4xxClientError())
                 .andExpect(result -> assertEquals(
                         IllegalArgumentException.class,
+                        result.getResolvedException().getClass()))
+                .andReturn();
+    }
+
+    @Test
+    void testCreateOffer_withDcqlQuery_thenSuccess() throws Exception {
+
+        // Build a minimal DCQL query DTO
+        var request = createVerificationManagementWithDcqlQueryDto(presentationDefinitionDto(), getDcqlQueryDto());
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn();
+    }
+
+    @Test
+    void testCreateOffer_withComplexDcqlQuery_thenSuccess() throws Exception {
+        List<Object> nullContainingList = new ArrayList<>();
+        nullContainingList.add("degrees");
+        nullContainingList.add(null);
+        nullContainingList.add("type");
+        var claims = List.of(
+                new DcqlClaimDto(null, nullContainingList, null), // Select all elements of array
+                new DcqlClaimDto(null, List.of("degrees", 1, "title"), null), // Select first element of array
+                new DcqlClaimDto(null, List.of("first", "second", "third"), null) // Just selecting something a bit deeper
+        );
+        var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims));
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testCreateOffer_withComplexDcqlQueryIncludingIllegalValue_thenMethodArgumentNotValid() throws Exception {
+        List<Object> nullContainingList = new ArrayList<>();
+        nullContainingList.add("degrees");
+        nullContainingList.add(null);
+        nullContainingList.add("type");
+        nullContainingList.add(false); // Booleans not allowed
+        var claims = List.of(
+                new DcqlClaimDto(null, nullContainingList, null), // Select all elements of array
+                new DcqlClaimDto(null, List.of("degrees", 1, "title"), null), // Select first element of array
+                new DcqlClaimDto(null, List.of("first", "second", "third"), null) // Just selecting something a bit deeper
+        );
+        var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims));
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().is4xxClientError())
+                .andExpect(result -> assertEquals(
+                        MethodArgumentNotValidException.class,
                         result.getResolvedException().getClass()))
                 .andReturn();
     }

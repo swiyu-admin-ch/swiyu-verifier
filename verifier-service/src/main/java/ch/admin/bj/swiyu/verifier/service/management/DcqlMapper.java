@@ -115,7 +115,6 @@ public class DcqlMapper {
                 .id(dto.id())
                 .values(dto.values() != null
                         ? dto.values().stream()
-                        .map(DcqlMapper::convertObjectToString)
                         .toList()
                         : null)
                 .build();
@@ -138,27 +137,6 @@ public class DcqlMapper {
                 .build();
     }
 
-    /**
-     * Converts an object to string representation.
-     * Handles different types of objects by converting them to JSON or string.
-     *
-     * @param value the object to convert
-     * @return string representation of the object
-     */
-    private static String convertObjectToString(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String string) {
-            return string;
-        }
-        try {
-            return OBJECT_MAPPER.writeValueAsString(value);
-        } catch (Exception e) {
-            log.warn("Failed to convert object to string: {}", value, e);
-            return value.toString();
-        }
-    }
 
     /**
      * Ensures that a list is not null by returning an empty list if input is null.

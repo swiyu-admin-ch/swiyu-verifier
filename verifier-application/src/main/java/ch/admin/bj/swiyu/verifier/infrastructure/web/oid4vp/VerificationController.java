@@ -30,7 +30,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Objects;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;

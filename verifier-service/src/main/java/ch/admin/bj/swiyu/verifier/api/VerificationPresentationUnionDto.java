@@ -7,7 +7,6 @@
 package ch.admin.bj.swiyu.verifier.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,6 +17,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
+
+@SuppressWarnings("java:S116")
+// Note: For Spring to correctly parse x-www-url-encoded payload the field must be named the same as the field. JsonProperty does not work for these.
 
 @Builder
 @Data
@@ -39,15 +41,13 @@ public class VerificationPresentationUnionDto {
                     """,
             oneOf = {String.class, Map.class}
     )
-    @JsonProperty("vp_token")
-    private Object vpToken;
+    private Object vp_token;
 
     @Schema(
             description = "The presentation submission as defined in DIF presentation submission (used for Standard and PE presentations)",
             example = "{\"id\":\"a30e3b91-fb77-4d22-95fa-871689c322e2\",\"definition_id\":\"32f54163-7166-48f1-93d8-ff217bdb0653\"}"
     )
-    @JsonProperty("presentation_submission")
-    private String presentationSubmission;
+    private String presentation_submission;
 
     // From VerificationPresentationRejectionDto
     @Schema(
@@ -60,8 +60,7 @@ public class VerificationPresentationUnionDto {
             description = "Error description for rejection (used for REJECTION)",
             example = "The owner has declined the verification request."
     )
-    @JsonProperty("error_description")
-    private String errorDescription;
+    private String error_description;
 
 
     // From VerificationPresentationDCQLRequestEncryptedDto
@@ -74,7 +73,7 @@ public class VerificationPresentationUnionDto {
     // Helper methods to determine the type of request
     @JsonIgnore
     public boolean isStandardPresentation() {
-        return vpToken instanceof String && presentationSubmission != null;
+        return vp_token instanceof String && presentation_submission != null;
     }
 
     @JsonIgnore
@@ -84,7 +83,7 @@ public class VerificationPresentationUnionDto {
 
     @JsonIgnore
     public boolean isDcqlPresentation() {
-        return vpToken != null && presentationSubmission == null;
+        return vp_token != null && presentation_submission == null;
     }
 
     @JsonIgnore
@@ -99,8 +98,8 @@ public class VerificationPresentationUnionDto {
             throw new IllegalArgumentException("Union DTO does not contain standard presentation data");
         }
         var dto = new VerificationPresentationRequestDto();
-        dto.setVpToken((String) this.vpToken);
-        dto.setPresentationSubmission(this.presentationSubmission);
+        dto.setVpToken((String) this.vp_token);
+        dto.setPresentationSubmission(this.presentation_submission);
         return dto;
     }
 
@@ -111,7 +110,7 @@ public class VerificationPresentationUnionDto {
         }
         var dto = new VerificationPresentationRejectionDto();
         dto.setError(this.error);
-        dto.setErrorDescription(this.errorDescription);
+        dto.setErrorDescription(this.error_description);
         return dto;
     }
 
@@ -127,13 +126,13 @@ public class VerificationPresentationUnionDto {
             ObjectMapper objectMapper = new ObjectMapper();
             Map<String, List<String>> mapToken;
 
-            if (this.vpToken instanceof String vpTokenString) {
+            if (this.vp_token instanceof String vpTokenString) {
                 // If vp_token is a JSON string, parse it first
                 mapToken = objectMapper.readValue(vpTokenString, new TypeReference<>() {
                 });
             } else {
                 // If vp_token is already an object, convert it directly
-                mapToken = objectMapper.convertValue(this.vpToken, new TypeReference<>() {
+                mapToken = objectMapper.convertValue(this.vp_token, new TypeReference<>() {
                 });
             }
 

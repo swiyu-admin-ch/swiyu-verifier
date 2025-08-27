@@ -2,20 +2,21 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.service.DcqlService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.CollectionUtils;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +30,7 @@ class DcqlServiceTest {
         // OID4VP 1.0 7.3 Claims Path Pointer Example https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-7.3
         exampleData = objectMapper.readValue("""
                 {
+                  "vct": "https://www.oid4vp.example.com/university",
                   "name": "Arthur Dent",
                   "address": {
                     "street_address": "42 Market Street",
@@ -194,6 +196,20 @@ class DcqlServiceTest {
         var requestClaim = new DcqlClaim(null, paths, List.of("Bachelor of Science", "Master of Arts"));
         var claims = List.of(requestClaim);
         assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
+    }
+
+    @Test
+    void filterVct_thenPresent() {
+        var meta = new DcqlCredentialMeta(null, List.of("https://www.oid4vp.example.com/university"), null);
+        var filtered = assertDoesNotThrow(() -> DcqlService.filterByVct(List.of(sdJwt), meta));
+        assertFalse(CollectionUtils.isEmpty(filtered));
+    }
+
+    @Test
+    void filterVct_whenMismatch_thenEmpty() {
+        var meta = new DcqlCredentialMeta(null, List.of("https://www.oid4vp.example.com/doesNotExist"), null);
+        var filtered = assertDoesNotThrow(() -> DcqlService.filterByVct(List.of(sdJwt), meta));
+        assertTrue(CollectionUtils.isEmpty(filtered));
     }
 
     private DcqlClaim createSimpleDCQLClaim(Object... claimPath) {

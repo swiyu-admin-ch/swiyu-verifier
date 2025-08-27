@@ -6,7 +6,6 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -57,13 +56,7 @@ public class DcqlService {
             return sdJwts;
         }
         // TODO Handle VCT extends according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#I-D.ietf-oauth-sd-jwt-vc or decide to not support it in swiss profile
-        return sdJwts.stream().filter(presentation -> {
-            try {
-                return acceptedVcts.contains(presentation.getClaims().getStringClaim("vct"));
-            } catch (ParseException e) {
-                throw new IllegalArgumentException("vct claim is not a string");
-            }
-        }).toList();
+        return sdJwts.stream().filter(presentation -> acceptedVcts.contains(presentation.getClaims().getClaims().get("vct"))).toList();
     }
 
     /**

@@ -35,3 +35,5 @@ build/
 
 ### VS Code ###
 .vscode/
+/codeql/
+/swiyu-verifier-codeql-db/

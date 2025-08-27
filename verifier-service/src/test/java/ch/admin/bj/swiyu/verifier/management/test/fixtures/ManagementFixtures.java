@@ -22,7 +22,13 @@ public class ManagementFixtures {
     }
 
     public static Management management(int expirationInSeconds) {
-        return new Management(UUID.randomUUID(), expirationInSeconds, presentationDefinition(), true, List.of("did:example:123"), null);
+        return Management.builder()
+                .expirationInSeconds(expirationInSeconds)
+                .requestedPresentation(presentationDefinition())
+                .jwtSecuredAuthorizationRequest(true)
+                .acceptedIssuerDids(List.of("did:example:123"))
+                .build()
+                .resetExpiresAt();
     }
 
     private static PresentationDefinition presentationDefinition() {

@@ -1,0 +1,1 @@
+ALTER TABLE management ADD dcql_query jsonb;

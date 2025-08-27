@@ -40,5 +40,5 @@ public class DcqlCredentialMeta {
      * List of acceptable issuer DIDs.
      */
     @JsonProperty("doctype_value")
-    private String doctype_value;
+    private String doctypeValue;
 }

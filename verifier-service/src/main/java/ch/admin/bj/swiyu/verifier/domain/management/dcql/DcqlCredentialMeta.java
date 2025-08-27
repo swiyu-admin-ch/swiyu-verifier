@@ -42,5 +42,5 @@ public class DcqlCredentialMeta {
      * Currently not supported.
      */
     @JsonProperty("doctype_value")
-    private String doctype_value;
+    private String doctypeValue;
 }

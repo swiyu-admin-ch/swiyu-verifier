@@ -90,7 +90,7 @@ public class DcqlMapper {
 
         return DcqlCredentialMeta.builder()
                 .vctValues(dto.vctValues())
-                .doctype_value(dto.doctypeValue())
+                .doctypeValue(dto.doctypeValue())
                 .typeValues(dto.typeValues() != null
                         ? dto.typeValues().stream()
                         .map(DcqlMapper::ensureNonNullList)

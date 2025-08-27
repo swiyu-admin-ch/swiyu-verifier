@@ -25,19 +25,21 @@ import java.util.List;
 public class DcqlCredentialMeta {
 
     /**
-     * List of acceptable credential types.
+     * List of acceptable W3C credential types.
+     * Currently not supported.
      */
     @JsonProperty("type_values")
     private List<List<String>> typeValues;
 
     /**
-     * List of acceptable verifiable credential types (vct) values.
+     * List of acceptable verifiable credential types (vct) values for sd-jwt vc format.
      */
     @JsonProperty("vct_values")
     private List<String> vctValues;
 
     /**
-     * List of acceptable issuer DIDs.
+     * Acceptable ISO/IEC 18013-5 mDOCs.
+     * Currently not supported.
      */
     @JsonProperty("doctype_value")
     private String doctype_value;

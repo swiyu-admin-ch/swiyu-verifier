@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -19,13 +20,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class DcqlServiceTest {
-    private DcqlService dcqlService;
     private ObjectMapper objectMapper;
     private Map<String, Object> exampleData;
     private SdJwt sdJwt;
     @BeforeEach
     void setUp() throws JsonProcessingException {
-        dcqlService = new DcqlService();
         objectMapper = new ObjectMapper();
         // OID4VP 1.0 7.3 Claims Path Pointer Example https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-7.3
         exampleData = objectMapper.readValue("""
@@ -60,7 +59,7 @@ class DcqlServiceTest {
     void selection_whenNotContained_thenIllegalArgumentException() {
         var requestClaim = createSimpleDCQLClaim("doesNotExist");
         var claims = List.of(requestClaim);
-        assertThrows(IllegalArgumentException.class, () ->dcqlService.containsRequestedFields(sdJwt, claims));
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
     }
 
     /**
@@ -69,7 +68,7 @@ class DcqlServiceTest {
     @Test
     void simpleSelection_thenSuccess() {
         var requestClaim = createSimpleDCQLClaim("name");
-        assertDoesNotThrow(() ->dcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
     }
 
     /**
@@ -78,7 +77,7 @@ class DcqlServiceTest {
     @Test
     void objectSelection_thenSuccess() {
         var requestClaim = createSimpleDCQLClaim("address");
-        assertDoesNotThrow(() ->dcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
     }
 
     /**
@@ -87,7 +86,7 @@ class DcqlServiceTest {
     @Test
     void nestedSelection_thenSuccess() {
         var requestClaim = createSimpleDCQLClaim("address", "street_address");
-        assertDoesNotThrow(() ->dcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
     }
 
     /**
@@ -97,7 +96,7 @@ class DcqlServiceTest {
     void nestedSelection_whenMissing_thenIllegalArgumentException() {
         var requestClaim = createSimpleDCQLClaim("address", "street_address_does_not_exist");
         var claims = List.of(requestClaim);
-        assertThrows(IllegalArgumentException.class, () ->dcqlService.containsRequestedFields(sdJwt, claims));
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
     }
 
     /**
@@ -107,7 +106,7 @@ class DcqlServiceTest {
     void nestedSelection_whenNotNested_thenIllegalArgumentException() {
         var requestClaim = createSimpleDCQLClaim("address", "street_address", "does_not_exist");
         var claims = List.of(requestClaim);
-        assertThrows(IllegalArgumentException.class, () ->dcqlService.containsRequestedFields(sdJwt, claims));
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
     }
 
     /**
@@ -116,7 +115,7 @@ class DcqlServiceTest {
     @Test
     void arraySelection_whenAll_thenSuccess() {
         var requestClaim = createSimpleDCQLClaim("degrees", null, "type");
-        assertDoesNotThrow(() ->dcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
     }
 
     /**
@@ -126,7 +125,7 @@ class DcqlServiceTest {
     void arraySelection_whenAll_andNotExists_thenIllegalArgumentException() {
         var requestClaim = createSimpleDCQLClaim("degrees", null, "type_b");
         var claims = List.of(requestClaim);
-        assertThrows(IllegalArgumentException.class, () ->dcqlService.containsRequestedFields(sdJwt, claims));
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
     }
 
     /**
@@ -135,7 +134,7 @@ class DcqlServiceTest {
     @Test
     void arraySelection_whenIndex_thenSuccess() {
         var requestClaim = createSimpleDCQLClaim("nationalities", 1);
-        assertDoesNotThrow(() ->dcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
     }
 
     /**
@@ -145,13 +144,56 @@ class DcqlServiceTest {
     void arraySelection_whenIndexDoesNotExist_thenIllegalArgumentException() {
         var requestClaim = createSimpleDCQLClaim("nationalities", 2);
         var claims = List.of(requestClaim);
-        assertThrows(IllegalArgumentException.class, () ->dcqlService.containsRequestedFields(sdJwt, claims));
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
     }
 
     @Test
     void arraySelection_whenIndexAndFurther_thenSuccess() {
         var requestClaim = createSimpleDCQLClaim("degrees", 1, "type");
-        assertDoesNotThrow(() ->dcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+    }
+
+    /**
+     * ["name"]: The claim name with the value Arthur Dent is selected and check if the value is Arthur Dent
+     */
+    @Test
+    void simpleSelection_whenValue_thenSuccess() {
+        var requestClaim = new DcqlClaim(null, List.of("name"), List.of("Arthur Dent"));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void simpleSelection_whenValueSurplus_thenSuccess() {
+        var requestClaim = new DcqlClaim(null, List.of("name"), List.of("Arthur Dent", "Bruce Wayne"));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void simpleSelection_whenValueMismatch_thenIllegalArgumentException() {
+        var requestClaim = new DcqlClaim(null, List.of("name"), List.of("Bruce Wayne"));
+        var claims = List.of(requestClaim);
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
+    }
+
+    @Test
+    void arraySelection_whenMultipleValues_thenSuccess() {
+        var paths = new LinkedList<>();
+        paths.add("degrees");
+        paths.add(null);
+        paths.add("type");
+        var requestClaim = new DcqlClaim(null, paths, List.of("Bachelor of Science", "Master of Science"));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void arraySelection_whenValueMissing_thenThrowIllegalArgumentException() {
+        var paths = new LinkedList<>();
+        paths.add("degrees");
+        paths.add(null);
+        paths.add("type");
+        var requestClaim = new DcqlClaim(null, paths, List.of("Bachelor of Science", "Master of Arts"));
+        var claims = List.of(requestClaim);
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
     }
 
     private DcqlClaim createSimpleDCQLClaim(Object... claimPath) {

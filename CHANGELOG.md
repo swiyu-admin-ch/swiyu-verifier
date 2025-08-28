@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- ...
+
+## 2.0.0
+
+### Added
+
 - Optional callback as alternative for active polling for verification status.
 - Optional OAuth security with bearer tokens on `/management` endpoints.
   It can be activated and configured via spring environment variables.

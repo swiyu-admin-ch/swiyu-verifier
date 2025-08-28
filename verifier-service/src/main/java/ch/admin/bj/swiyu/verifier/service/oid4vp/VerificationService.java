@@ -35,8 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
@@ -57,7 +56,6 @@ public class VerificationService {
     private final ObjectMapper objectMapper;
     private final WebhookService webhookService;
     private final SdJwtVerificationService sdJwtVerificationService;
-    private final DcqlService dcqlService;
 
     private static void verifyProcessNotClosed(Management entity) {
         if (entity.isExpired() || !entity.isVerificationPending()) {
@@ -262,6 +260,7 @@ public class VerificationService {
     private String verifyDCQLPresentation(Management entity, VerificationPresentationDCQLRequestDto request) {
         var requestedCredentials = entity.getDcqlQuery().getCredentials();
         var vpTokens = request.getVpToken();
+        var verifiedResponses = new HashMap<String, List<Map<String, Object>>>();
         for (var requestedCredential : requestedCredentials) {
             if (!vpTokens.containsKey(requestedCredential.getId())) {
                 throw new IllegalArgumentException("Missing vp token for requested credential id " + requestedCredential.getId());
@@ -272,13 +271,21 @@ public class VerificationService {
                 throw new IllegalArgumentException("Expected only 1 vp token for " + requestedCredential.getId());
             }
             var sdJwts = requestedVpTokens.stream().map(SdJwt::new).toList();
-            sdJwts.forEach(sdjwt -> sdJwtVerificationService.verifyVpToken(sdjwt, entity));
+            sdJwts = sdJwts.stream().map(sdjwt -> sdJwtVerificationService.verifyVpToken(sdjwt, entity)).toList();
             sdJwts = DcqlService.filterByVct(sdJwts, requestedCredential.getMeta());
             DcqlService.containsRequestedFields(sdJwts.getFirst(), requestedCredential.getClaims());
+            verifiedResponses.put(requestedCredential.getId(), sdJwts.stream().map(sdJwt -> (sdJwt.getClaims().getClaims())).toList());
         }
 
+        return parseAsStringOrThrowIllegalArgumentException(verifiedResponses);
+    }
 
-        throw new IllegalArgumentException("DCQL verification functionality is not yet implemented. This feature will be available in a future release.");
+    private String parseAsStringOrThrowIllegalArgumentException(Object object){
+        try {
+            return objectMapper.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     private String verifyEncryptedDCQLPresentation(Management entity, VerificationPresentationDCQLRequestEncryptedDto request) {

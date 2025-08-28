@@ -61,7 +61,7 @@ public class SdJwtVerificationService {
      */
     public String verifyVpTokenPresentationExchange(String vpToken, Management management) {
         var sdJwt = new SdJwt(vpToken);
-        verifyVpToken(sdJwt, management);
+        sdJwt = verifyVpToken(sdJwt, management);
         try {
             // Presentation Exchange requested format check
             var presentationFormat = sdJwt.getHeader().getType().toString();
@@ -104,7 +104,7 @@ public class SdJwtVerificationService {
      * @param vpToken    sd-jwt of the vp token to be updated in place
      * @param management verification request management object for ancillary such as nonce and request id
      */
-    public void verifyVpToken(SdJwt vpToken, Management management) {
+    public SdJwt verifyVpToken(SdJwt vpToken, Management management) {
         // Validate Basic JWT
         verifyVerifiableCredentialJWT(vpToken, management);
         // If Key Binding is present, validate that it is correct
@@ -117,6 +117,8 @@ public class SdJwtVerificationService {
         verifyStatus(vpToken.getClaims().getClaims(), management);
         // Resolve Disclosures
         validateDisclosures(vpToken, management);
+
+        return vpToken;
     }
 
     /**
@@ -286,7 +288,7 @@ public class SdJwtVerificationService {
 
     private boolean isProvidingTrust(String issuerDidTdw, String vct, TrustAnchor trustAnchor, String rawTrustStatement, Management management) throws ParseException {
         var trustStatement = new SdJwt(rawTrustStatement);
-        verifyVpToken(trustStatement, management);
+        trustStatement =verifyVpToken(trustStatement, management);
         return issuerDidTdw.equals(trustStatement.getClaims().getSubject())
                 && trustAnchor.did().equals(trustStatement.getClaims().getIssuer())
                 && vct.equals(trustStatement.getClaims().getStringClaim("canIssue"));
@@ -312,15 +314,6 @@ public class SdJwtVerificationService {
 
     private boolean requiresKeyBinding(JWTClaimsSet claims) {
         return claims.getClaims().containsKey("cnf");
-    }
-
-    private boolean hasKeyBinding(String fullSdJwt, Map<String, Object> payload) {
-        boolean keyBindingProofPresent = !fullSdJwt.endsWith("~");
-        if (payload.containsKey("cnf") && !keyBindingProofPresent) {
-            // There is a Holder Key Binding, but we did not receive a proof for it!
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
-        }
-        return keyBindingProofPresent;
     }
 
     private void validateKeyBinding(SdJwt sdJwt, String nonce) {
@@ -433,8 +426,5 @@ public class SdJwtVerificationService {
                     String.format("Holder Binding lacks correct nonce expected '%s' but was '%s'", expectedNonce,
                             actualNonce));
         }
-    }
-
-    private record ValidatedJWT(SignedJWT jwt, JWTClaimsSet jwtClaimsSet) {
     }
 }

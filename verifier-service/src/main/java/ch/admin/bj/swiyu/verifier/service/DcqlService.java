@@ -76,7 +76,7 @@ public class DcqlService {
          */
         private DcqlPathSelection {
             if (CollectionUtils.isEmpty(selected)) {
-                throw new IllegalArgumentException("No possible selection found");
+                throw new IllegalArgumentException("Requested DCQL path could not be found");
             }
         }
 

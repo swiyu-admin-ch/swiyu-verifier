@@ -39,6 +39,7 @@ import java.util.*;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionErrorV1;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.VerifiableCredentialExtractor.extractVerifiableCredential;
 import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -181,10 +182,15 @@ public class VerificationService {
             log.trace("DCQL submission verification completed for {}", managementEntityId);
             managementEntity.verificationSucceeded(credentialSubjectData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
-        } catch (VerificationException e) {
+        }
+        catch (IllegalArgumentException e) {
+            managementEntity.verificationFailed(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
+            throw submissionErrorV1(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION,  e.getMessage());
+        }
+        catch (VerificationException e) {
             managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
             log.debug("Saved failed DCQL verification result for {}", managementEntityId);
-            throw e; // rethrow since client get notified of the error
+            throw submissionErrorV1(e.getErrorResponseCode(), e.getErrorDescription()); // rethrow as v1
         } finally {
             // Notify Business Verifier that this verification is done
             webhookService.produceEvent(managementEntityId);

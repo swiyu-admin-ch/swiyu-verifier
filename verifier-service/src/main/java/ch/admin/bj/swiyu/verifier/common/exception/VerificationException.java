@@ -33,6 +33,19 @@ public class VerificationException extends RuntimeException {
     }
 
 
+    /**
+     * Submission error for invalid transaction data according to OID4VP 1.0 spec
+     */
+    public static VerificationException submissionErrorV1(VerificationErrorResponseCode error, String errorDescription) {
+        return new VerificationException(
+                null /* submissionError is only caused by business cases and not exceptions */,
+                VerificationError.INVALID_TRANSACTION_DATA,
+                error,
+                errorDescription
+        );
+    }
+
+
     public static VerificationException submissionError(VerificationError error, String errorDescription) {
         return new VerificationException(
                 null /* submissionError is only caused by business cases and not exceptions */,

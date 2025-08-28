@@ -2,20 +2,25 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -61,6 +66,54 @@ class ManagementServiceTest {
         }
 
         verify(repository).save(any(Management.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void createVerificationManagementDcql_thenSuccess(boolean useBoth) {
+        var presentationDefinitionDto = mock(PresentationDefinitionDto.class);
+        var presentationDefinition = mock(PresentationDefinition.class);
+        var dcqlQueryDto = mock(DcqlQueryDto.class);
+        var dcqlQuery = mock(DcqlQuery.class);
+        CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
+                List.of("did:example:123"),
+                null,
+                false,
+                useBoth ? presentationDefinitionDto : null,
+                null,
+                dcqlQueryDto
+        );
+        var management = mock(Management.class);
+        when(repository.save(any(Management.class))).thenReturn(management);
+
+        try (MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
+            managementMapper.when(() -> ManagementMapper.toPresentationDefinition(any(PresentationDefinitionDto.class)))
+                    .thenReturn(presentationDefinition);
+            managementMapper.when(() -> ManagementMapper.toManagementResponseDto(any(Management.class), any()))
+                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto.class));
+            try (MockedStatic<DcqlMapper> dcqlMapper = mockStatic(DcqlMapper.class)) {
+                dcqlMapper.when(() -> DcqlMapper.toDcqlQuery(any(DcqlQueryDto.class)))
+                        .thenReturn(dcqlQuery);
+                service.createVerificationManagement(requestDto);
+
+                managementMapper.verify(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties), times(1));
+            }
+        }
+        verify(repository).save(any(Management.class));
+    }
+
+    @Test
+    void createVerificationManagement_whenNoDcqlOrPE_thenFailure() {
+        CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
+                List.of("did:example:123"),
+                null,
+                false,
+                null,
+                null,
+                null
+        );
+        var error = assertThrows(IllegalArgumentException.class, () -> service.createVerificationManagement(requestDto));
+        assertEquals("Either PresentationDefinition or DCQLQuery must be provided", error.getMessage());
     }
 
     @Test

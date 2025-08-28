@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.api;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +24,9 @@ public class VerificationPresentationRequestDto {
             description = "Submitted token (e.g. of the wallet) according to " +
                     "[OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1)"
     )
-    private String vp_token;
+    @JsonProperty("vp_token")
+    private String vpToken;
+
 
     /**
      * Note: Why string - we do not use PresentationSubmissionDto here, because we support invalid
@@ -34,20 +36,7 @@ public class VerificationPresentationRequestDto {
     @Schema(
             description = "The presentation submission as defined in [DIF presentation submission](https://identity.foundation/presentation-exchange/#presentation-submission)"
     )
-    private String presentation_submission;
+    @JsonProperty("presentation_submission")
+    private String presentationSubmission;
 
-    @Schema(
-            description = "Error code as defined in [OpenId4VP error response section](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#name-error-response)"
-    )
-    private VerificationClientErrorDto error;
-
-    @Schema(
-            description = "Error description as seems fit"
-    )
-    private String error_description;
-
-    @JsonIgnore
-    public boolean isClientRejection() {
-        return error != null;
-    }
 }

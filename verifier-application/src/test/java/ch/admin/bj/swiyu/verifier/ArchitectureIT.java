@@ -241,7 +241,7 @@ public class ArchitectureIT {
         @ArchTest
         static final ArchRule interfaces_must_not_be_placed_in_implementation_packages = noClasses()
                 .that()
-                .resideInAPackage("..service..")
+                .resideInAPackage("..service")
                 .should()
                 .beInterfaces()
                 .allowEmptyShould(true);

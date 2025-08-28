@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.api.management;
 
 import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
+import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,6 +23,8 @@ public record ManagementResponseDto(
         VerificationStatusDto state,
         @JsonProperty("presentation_definition")
         PresentationDefinitionDto presentationDefinition,
+        @JsonProperty("dcql_query")
+        DcqlQueryDto dcqlQuery,
         @JsonProperty("wallet_response")
         ResponseDataDto walletResponse,
         @JsonProperty("verification_url")

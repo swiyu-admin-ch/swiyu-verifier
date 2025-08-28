@@ -6,20 +6,21 @@
 
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.api.*;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationService;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
@@ -30,6 +31,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 
 /**
  * OpenID4VC Issuance Controller
@@ -122,14 +125,44 @@ public class VerificationController {
             produces = {MediaType.APPLICATION_JSON_VALUE})
     @Operation(
             summary = "Receive Verification Presentation (from e.g. Wallet)",
+            description = "Handles various types of verification presentations including standard presentations, rejections, DCQL presentations, and encrypted DCQL presentations. The method automatically determines the request type based on the provided parameters.",
+            parameters = {
+                    @Parameter(
+                            name = "request_id",
+                            description = "The unique identifier of the verification request",
+                            required = true,
+                            in = ParameterIn.PATH
+                    ),
+                    @Parameter(
+                            name = "SWIYU-API-Version",
+                            description = "Optional API version. Supported values: " +
+                                    "1 - This supports OID4VP ID2 with DIF Presentation Exchange), " +
+                                    "2 - This supports OID4VP 1.0",
+                            in = ParameterIn.HEADER,
+                            schema = @Schema(type = "string", allowableValues = {"1", "2"})
+                    )
+            },
             externalDocs = @ExternalDocumentation(
                     description = "OpenId4VP response parameters",
                     url = "https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1"
             ),
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = {
+                            @Content(
+                                    mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+                                    schema = @Schema(
+                                            implementation = VerificationPresentationUnionDto.class,
+                                            description = "The verification presentation request. Type is determined " +
+                                                    "automatically based on the provided parameters."
+                                    )
+                            )
+                    }
+            ),
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Verification Presentation received"
+                            description = "Verification Presentation received and processed successfully"
                     ),
                     @ApiResponse(
                             responseCode = "400",
@@ -139,10 +172,42 @@ public class VerificationController {
             }
     )
     @ResponseStatus(HttpStatus.OK)
-    @RequestBody(content = @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE))
     public void receiveVerificationPresentation(
+            @RequestHeader(name = "SWIYU-API-Version", required = false) String versionString,
             @PathVariable(name = "request_id") UUID requestId,
-            VerificationPresentationRequestDto request) {
-        verificationService.receiveVerificationPresentation(requestId, request);
+            VerificationPresentationUnionDto unionDto) {
+
+        log.info("Received verification presentation for request_id: {} with version: {}", requestId, versionString);
+        if (unionDto.isRejection()) {
+            // Handle rejection
+            log.debug("Processing rejection for request_id: {}", requestId);
+            var rejectionDto = unionDto.toRejection();
+            verificationService.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
+            return;
+        }
+
+        VPApiVersion version = VPApiVersion.fromValue(versionString);
+
+        if (version == VPApiVersion.ID2) {// Handle DIF Presentation Exchange presentation
+            log.debug("Processing standard presentation for request_id: {}", requestId);
+            var standardDto = unionDto.toStandardPresentation();
+            verificationService.receiveVerificationPresentation(requestId, standardDto);
+        } else if (version == VPApiVersion.V1) {
+            if (unionDto.isDcqlPresentation()) {
+                log.debug("Processing DCQL presentation for request_id: {}", requestId);
+                var dcqlDto = unionDto.toDcqlPresentation();
+                verificationService.receiveVerificationPresentationDCQL(requestId, dcqlDto);
+            } else if (unionDto.isDcqlEncryptedPresentation()) {
+                // Handle encrypted DCQL
+                log.debug("Processing encrypted DCQL presentation for request_id: {}", requestId);
+                var encryptedDto = unionDto.toDcqlEncryptedPresentation();
+                verificationService.receiveVerificationPresentationDCQLEncrypted(requestId, encryptedDto);
+            } else {
+                log.debug("Incomplete submission");
+                throw submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, "Incomplete submission, must contain only vp_token or response");
+            }
+        }
+        log.info("Successfully processed verification presentation for request_id: {}", requestId);
+
     }
 }

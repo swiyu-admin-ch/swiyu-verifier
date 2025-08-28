@@ -31,7 +31,6 @@ import static java.util.Objects.requireNonNullElse;
 public class ManagementService {
 
     private final ManagementRepository repository;
-
     private final ApplicationProperties applicationProperties;
 
     @Transactional
@@ -50,27 +49,32 @@ public class ManagementService {
         if (request == null) {
             throw new IllegalArgumentException("CreateVerificationManagement is null");
         }
-        if (request.presentationDefinition() == null) {
-            throw new IllegalArgumentException("PresentationDefinition is null");
+        if (request.presentationDefinition() == null && request.dcqlQuery() == null) {
+            throw new IllegalArgumentException("Either PresentationDefinition or DCQLQuery must be provided");
         }
 
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
+        var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
         List<TrustAnchor> trustAnchors = null;
-        if ( request.trustAnchors() != null ) {
-            trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();}
-        var management = repository.save(new Management(
-                UUID.randomUUID(),
-                applicationProperties.getVerificationTTL(),
-                presentationDefinition,
-                requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true),
-                request.acceptedIssuerDids(),
-                trustAnchors)
-                );
+        if (request.trustAnchors() != null) {
+            trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
+        }
+
+        var management = repository.save(Management.builder()
+                .expirationInSeconds(applicationProperties.getVerificationTTL())
+                .requestedPresentation(presentationDefinition)
+                .dcqlQuery(dcqlQuery)
+                .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
+                .acceptedIssuerDids(request.acceptedIssuerDids())
+                .trustAnchors(trustAnchors)
+                .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
+                .build()
+                .resetExpiresAt());
 
         log.info("Created pending verification for id: {}", management.getId());
-
         return toManagementResponseDto(management, applicationProperties);
     }
+
 
     @Transactional
     public void removeExpiredManagements() {

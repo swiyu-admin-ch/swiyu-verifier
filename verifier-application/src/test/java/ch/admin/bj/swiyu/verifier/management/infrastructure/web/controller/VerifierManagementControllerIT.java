@@ -9,10 +9,13 @@ package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.api.definition.FieldDto;
 import ch.admin.bj.swiyu.verifier.api.definition.FormatAlgorithmDto;
+import ch.admin.bj.swiyu.verifier.api.management.dcql.*;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -27,6 +30,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.*;
 import static org.hamcrest.Matchers.containsString;
@@ -228,4 +232,21 @@ class VerifierManagementControllerIT {
 
         assertEquals(-1, result2.getResponse().getContentAsString().indexOf("null"));
     }
+
+    @Test
+    void testCreateOffer_withDcqlQuery_thenIllegalArgumentException() throws Exception {
+
+        // Build a minimal DCQL query DTO
+        var request = createVerificationManagementWithDcqlQueryDto();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().is4xxClientError())
+                .andExpect(result -> assertEquals(
+                        IllegalArgumentException.class,
+                        result.getResolvedException().getClass()))
+                .andReturn();
+    }
 }
+

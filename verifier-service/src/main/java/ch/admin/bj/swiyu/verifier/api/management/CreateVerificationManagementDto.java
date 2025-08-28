@@ -7,12 +7,12 @@
 package ch.admin.bj.swiyu.verifier.api.management;
 
 import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
+import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -26,9 +26,9 @@ public record CreateVerificationManagementDto(
                 List of dids from issuers whose credentials are accepted for this verification.
                 Will be evaluated before trust anchor.
                 If not specified and no trust anchor specified all dids are trusted.
-                """, example="""
-        ["did:example:12345"]
-        """)
+                """, example = """
+                ["did:example:12345"]
+                """)
         @JsonProperty("accepted_issuer_dids")
         List<String> acceptedIssuerDids,
 
@@ -53,8 +53,22 @@ public record CreateVerificationManagementDto(
         @Schema(description = "Presentation definition according to " +
                 "https://identity.foundation/presentation-exchange/#presentation-definition")
         @Valid
-        @NotNull
+        @Nullable
         @JsonProperty("presentation_definition")
-        PresentationDefinitionDto presentationDefinition
+        PresentationDefinitionDto presentationDefinition,
+
+        @Schema(description = "Optional Parameter to override configured parameters, such as the DID used or the HSM key used in singing the request object",
+                example = """
+                {}
+                """)
+        @Valid
+        @Nullable
+        @JsonProperty("configuration_override")
+        ConfigurationOverrideDto configuration_override,
+
+        @Valid
+        @Nullable
+        @JsonProperty("dcql_query")
+        DcqlQueryDto dcqlQuery
 ) {
 }

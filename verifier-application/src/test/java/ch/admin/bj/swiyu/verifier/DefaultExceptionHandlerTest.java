@@ -69,7 +69,7 @@ class DefaultExceptionHandlerTest {
 
     @Test
     void checkDefaultException_shouldReturnInternalServerError() {
-        Exception ex = new Exception("This shouldn't happen");
+        Exception ex = new Exception("This is a test for exception handling");
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURL()).thenReturn(new StringBuffer("http://localhost/test"));
@@ -86,7 +86,7 @@ class DefaultExceptionHandlerTest {
 
     @Test
     void checkHttpRequestMethodNotSupportedException_shouldReturnInternalServerError() {
-        Exception ex = new HttpRequestMethodNotSupportedException("This shouldn't happen");
+        Exception ex = new HttpRequestMethodNotSupportedException("This is a test for exception handling");
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURL()).thenReturn(new StringBuffer("http://localhost/test"));

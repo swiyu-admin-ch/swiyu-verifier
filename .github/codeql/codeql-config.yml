@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
+name: "Advanced CodeQL Configuration"
+
+queries:
+  - name: java-security-extended
+    uses: java-security-extended
+  - name: java-security-and-quality
+    uses: java-security-and-quality
+
+# Additional queries for extended security analysis
+query-filters:
+  - include:
+      kind: problem
+  - include:
+      kind: path-problem
+  - include:
+      severity: ["error", "warning"]  # Only errors and warnings
+#  - exclude:
+#      tags: ["external/cwe/cwe-798"] # Exclude specific CWEs
+
+# Extended analysis options
+disable-default-queries: false
+
+build-mode: manual

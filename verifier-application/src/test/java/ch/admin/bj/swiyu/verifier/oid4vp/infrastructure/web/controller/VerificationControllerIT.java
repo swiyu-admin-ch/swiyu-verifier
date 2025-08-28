@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.api.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -741,5 +742,127 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             throw new AssertionError(e);
         }
 
+    }
+
+    @Test
+    void shouldThrowUnsupportedOperationExceptionForDCQLEndpoint() throws Exception {
+        // GIVEN
+        // Create DCQL vp_token structure as specified
+        String dcqlVpTokenJson = """
+            {
+              "identity_credential_dcql": ["eyJhbGci...QMA"],
+              "university_degree_dcql": ["eyJhbGci...QMA"]
+            }
+            """;
+
+        // WHEN / THEN
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", dcqlVpTokenJson))
+                .andExpect(status().is4xxClientError());
+
+        // Verify that the management entity remains in pending state since the exception is thrown early
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(PENDING);
+    }
+
+    @Test
+    void shouldThrowUnsupportedOperationExceptionForDCQLEncryptedEndpoint() throws Exception {
+        // GIVEN
+        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
+
+        // Create encrypted DCQL response string
+        String encryptedResponse = "eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0...";
+
+        // WHEN / THEN
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("response", encryptedResponse))
+                .andExpect(status().is4xxClientError());
+
+        // Verify that the management entity remains in pending state since the exception is thrown early
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(PENDING);
+    }
+
+    @Test
+    void shouldHandleClientRejectionThroughRejectionEndpoint() throws Exception {
+        // GIVEN
+        String errorDescription = "User declined the verification request";
+
+        // WHEN / THEN
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("error", "access_denied")
+                        .formField("error_description", errorDescription))
+                .andExpect(status().isOk());
+
+        // Verify that the management entity is marked as failed due to client rejection
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+        assertThat(managementEntity.getWalletResponse().errorDescription()).isEqualTo(errorDescription);
+    }
+
+    @Test
+    void shouldHandleClientRejectionWithOnlyError() throws Exception {
+        // WHEN / THEN
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("error", "client_rejected"))
+                .andExpect(status().isOk());
+
+        // Verify that the management entity is marked as failed due to client rejection
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+    }
+
+    @Test
+    void shouldHandleClientRejectionWithEmptyErrorDescription() throws Exception {
+        // WHEN / THEN
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("error", "vp_formats_not_supported")
+                        .formField("error_description", ""))
+                .andExpect(status().isOk());
+
+        // Verify that the management entity is marked as failed due to client rejection
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+        assertThat(managementEntity.getWalletResponse().errorDescription()).isEqualTo("");
+    }
+
+    @Test
+    void shouldFailClientRejectionOnExpiredRequest() throws Exception {
+        // WHEN / THEN
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_EXPIRED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("error", "access_denied")
+                        .formField("error_description", "User cancelled"))
+                .andExpect(status().isGone());
+
+        // Verify that the management entity state remains unchanged
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_EXPIRED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(PENDING);
+    }
+
+    @Test
+    void shouldFailClientRejectionWithInvalidErrorType() throws Exception {
+        // WHEN / THEN
+        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("error", "invalid_error_type")
+                        .formField("error_description", "Some description"))
+                .andExpect(status().isBadRequest());
+
+        // Verify that the management entity remains in pending state
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 }

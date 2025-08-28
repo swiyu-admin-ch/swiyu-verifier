@@ -47,7 +47,10 @@ class DcqlServiceTest {
                       "university": "University of Betelgeuse"
                     }
                   ],
-                  "nationalities": ["British", "Betelgeusian"]
+                  "nationalities": ["British", "Betelgeusian"],
+                  "boolean_value": true,
+                  "integer_number": 98,
+                  "float_number": 55.5
                 }
                 """, Map.class);
         sdJwt = mock(SdJwt.class);
@@ -178,6 +181,45 @@ class DcqlServiceTest {
     }
 
     @Test
+    void booleanSelection_whenValue_thenSuccess() {
+        var requestClaim = new DcqlClaim(null, List.of("boolean_value"), List.of(true));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void booleanSelection_whenValueMismatch_thenIllegalArgumentException() {
+        var requestClaim = new DcqlClaim(null, List.of("boolean_value"), List.of(false));
+        var claims = List.of(requestClaim);
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
+    }
+
+    @Test
+    void integerSelection_whenValue_thenSuccess() {
+        var requestClaim = new DcqlClaim(null, List.of("integer_number"), List.of(97,98,99,100));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void integerSelection_whenValueMismatch_thenIllegalArgumentException() {
+        var requestClaim = new DcqlClaim(null, List.of("integer_number"), List.of(0.98, 9.8,98.1,99,100));
+        var claims = List.of(requestClaim);
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
+    }
+
+    @Test
+    void floatSelection_whenValue_thenSuccess() {
+        var requestClaim = new DcqlClaim(null, List.of("float_number"), List.of(55.5));
+        assertDoesNotThrow(() -> DcqlService.containsRequestedFields(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void floatSelection_whenValueMismatch_thenIllegalArgumentException() {
+        var requestClaim = new DcqlClaim(null, List.of("float_number"), List.of(55.4, 55.6, 5.55));
+        var claims = List.of(requestClaim);
+        assertThrows(IllegalArgumentException.class, () -> DcqlService.containsRequestedFields(sdJwt, claims));
+    }
+
+    @Test
     void arraySelection_whenMultipleValues_thenSuccess() {
         var paths = new LinkedList<>();
         paths.add("degrees");
@@ -210,6 +252,13 @@ class DcqlServiceTest {
         var meta = new DcqlCredentialMeta(null, List.of("https://www.oid4vp.example.com/doesNotExist"), null);
         var filtered = assertDoesNotThrow(() -> DcqlService.filterByVct(List.of(sdJwt), meta));
         assertTrue(CollectionUtils.isEmpty(filtered));
+    }
+
+    @Test
+    void filterVct_whenMultiple_thenPresent() {
+        var meta = new DcqlCredentialMeta(null, List.of("https://www.oid4vp.example.com/university", "https://www.oid4vp.example.com/doesNotExist"), null);
+        var filtered = assertDoesNotThrow(() -> DcqlService.filterByVct(List.of(sdJwt), meta));
+        assertFalse(CollectionUtils.isEmpty(filtered));
     }
 
     private DcqlClaim createSimpleDCQLClaim(Object... claimPath) {

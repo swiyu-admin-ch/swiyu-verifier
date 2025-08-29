@@ -19,5 +19,16 @@
             <property name="junit5TestPattern" value="[a-z][a-zA-Z0-9_]*" />
         </properties>
     </rule>
+    <rule ref="category/java/codestyle.xml/ClassNamingConventions">
+        <properties>
+            <property name="classPattern" value="[A-Z][a-zA-Z0-9]*" />
+            <property name="abstractClassPattern" value="[A-Z][a-zA-Z0-9]*" />
+            <property name="interfacePattern" value="[A-Z][a-zA-Z0-9]*" />
+            <property name="enumPattern" value="[A-Z][a-zA-Z0-9]*" />
+            <property name="annotationPattern" value="[A-Z][a-zA-Z0-9]*" />
+            <property name="utilityClassPattern" value="[A-Z][a-zA-Z0-9]*" />
+            <property name="testClassPattern" value="^Test.*$|^[A-Z][a-zA-Z0-9]*(Test(s|Case)|IT)?$" />
+        </properties>
+    </rule>
 
 </ruleset>

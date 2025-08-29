@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated ApiErrorDto and reused it for every error response. This allows for a more consistent error
   response structure. Possible breaking change could be that the `error_code` will be moved to details
+- Added WebhookCallbackDto to openapi config schemas.
+
+## 2.0.0
+
+### Added
+
 - Optional callback as alternative for active polling for verification status.
 - Optional OAuth security with bearer tokens on `/management` endpoints.
   It can be activated and configured via spring environment variables.

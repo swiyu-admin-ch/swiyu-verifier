@@ -75,9 +75,7 @@ class DefaultExceptionHandlerTest {
         when(request.getRequestURL()).thenReturn(new StringBuffer("http://localhost/test"));
 
         ResponseEntity<Object> response = handler.handleException(ex, request);
-
-        // Then
-        var apiErrorDto = (ApiErrorDto) response.getBody();
+        
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         ApiErrorDto body = (ApiErrorDto) response.getBody();
         assertNotNull(response.getBody());

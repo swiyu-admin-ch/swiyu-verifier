@@ -10,26 +10,37 @@ public class DcqlClaimPathValidator implements ConstraintValidator<DcqlClaimPath
     @Override
     public boolean isValid(List<Object> values, ConstraintValidatorContext context) {
         for(Object value : values) {
-            switch (value) {
-                case null -> {
-                    // null allowed for selecting every element in an array
-                }
-                case Number number when number.intValue() >= 0 -> {
-                    // Number allowed to select a certain element of an array
-                }
-                case Number number when number.intValue() < 0 -> {
-                    // Array index less than 0 not allowed
-                    return false;
-                }
-                case String s -> {
-                    // String allowed for selecting json element
-                }
-                default -> {
-                    // Other values like boolean are not accepted
-                    return false;
-                }
+            if (!isValidPathOperation(value)) {
+                return false;
             }
         }
         return true;
+    }
+
+    private static boolean isValidPathOperation(Object value) {
+        return isSelectClaim(value)
+                || isSelectArrayIndex(value)
+                || isSelectAll(value);
+    }
+
+    /**
+     * Any arbitrary string for selecting a JSON claim
+     */
+    private static boolean isSelectClaim(Object value) {
+        return value instanceof String;
+    }
+
+    /**
+     * A non-negative number for selecting a JSON Array Index
+     */
+    private static boolean isSelectArrayIndex(Object value) {
+        return value instanceof Number number && number.intValue() >= 0;
+    }
+
+    /**
+     * Null for selecting all elements in a JSON array
+     */
+    private static boolean isSelectAll(Object value) {
+        return value == null;
     }
 }

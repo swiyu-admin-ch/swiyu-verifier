@@ -77,7 +77,7 @@ public class VerificationService {
             validatePresentationSubmission(presentationSubmission);
             return presentationSubmission;
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
+            throw submissionError(e, VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
         }
 
     }
@@ -182,15 +182,13 @@ public class VerificationService {
             log.trace("DCQL submission verification completed for {}", managementEntityId);
             managementEntity.verificationSucceeded(credentialSubjectData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             managementEntity.verificationFailed(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
-            throw submissionErrorV1(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION,  e.getMessage());
-        }
-        catch (VerificationException e) {
+            throw submissionErrorV1(e, VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
+        } catch (VerificationException e) {
             managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
             log.debug("Saved failed DCQL verification result for {}", managementEntityId);
-            throw submissionErrorV1(e.getErrorResponseCode(), e.getErrorDescription()); // rethrow as v1
+            throw submissionErrorV1(e, e.getErrorResponseCode(), e.getErrorDescription()); // rethrow as v1
         } finally {
             // Notify Business Verifier that this verification is done
             webhookService.produceEvent(managementEntityId);
@@ -280,13 +278,12 @@ public class VerificationService {
             sdJwts = sdJwts.stream().map(sdjwt -> sdJwtVerificationService.verifyVpToken(sdjwt, entity)).toList();
             sdJwts = DcqlService.filterByVct(sdJwts, requestedCredential.getMeta());
             DcqlService.containsRequestedFields(sdJwts.getFirst(), requestedCredential.getClaims());
-            verifiedResponses.put(requestedCredential.getId(), sdJwts.stream().map(sdJwt -> (sdJwt.getClaims().getClaims())).toList());
+            verifiedResponses.put(requestedCredential.getId(), sdJwts.stream().map(sdJwt -> sdJwt.getClaims().getClaims()).toList());
         }
-
         return parseAsStringOrThrowIllegalArgumentException(verifiedResponses);
     }
 
-    private String parseAsStringOrThrowIllegalArgumentException(Object object){
+    private String parseAsStringOrThrowIllegalArgumentException(Object object) {
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {

@@ -21,14 +21,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class DcqlServiceTest {
-    private ObjectMapper objectMapper;
-    private Map<String, Object> exampleData;
     private SdJwt sdJwt;
     @BeforeEach
     void setUp() throws JsonProcessingException {
-        objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper();
         // OID4VP 1.0 7.3 Claims Path Pointer Example https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-7.3
-        exampleData = objectMapper.readValue("""
+        Map<String, Object> exampleData = objectMapper.readValue("""
                 {
                   "vct": "https://www.oid4vp.example.com/university",
                   "name": "Arthur Dent",

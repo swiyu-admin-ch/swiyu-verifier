@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 class SdjwtVerificationServiceTest {
 
-    private final String testNonce = "test-nonce";
+    private static final String TEST_NONCE = "test-nonce";
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
     private StatusListReferenceFactory statusListReferenceFactory;
     private ObjectMapper objectMapper;
@@ -60,7 +60,7 @@ class SdjwtVerificationServiceTest {
 
         when(managementEntity.getId()).thenReturn(UUID.randomUUID());
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(Collections.emptyList());
-        when(managementEntity.getRequestNonce()).thenReturn(testNonce);
+        when(managementEntity.getRequestNonce()).thenReturn(TEST_NONCE);
 
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
@@ -77,7 +77,7 @@ class SdjwtVerificationServiceTest {
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "http://localhost");
 
         // Trust Statement for default vc type
         var trustRegistryUrl = "https://trust-registry.example.com";
@@ -104,7 +104,7 @@ class SdjwtVerificationServiceTest {
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "http://localhost");
 
         // Trust Statement for default vc type
         var trustRegistryUrl = "https://trust-registry.example.com";
@@ -168,7 +168,7 @@ class SdjwtVerificationServiceTest {
     void verifyPresentationWithIncorrectClaims_throwsException() throws NoSuchAlgorithmException, ParseException, JOSEException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var incompleteJwt = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(incompleteJwt, testNonce, "http://localhost");
+        var vpToken = emulator.addKeyBindingProof(incompleteJwt, TEST_NONCE, "http://localhost");
         presentationDefinition = getMockedPresentationDefinition("ES384", "ES256", List.of("$.first_name", "$.last_name"));
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
         var exception = assertThrows(VerificationException.class, () -> verificationService.verifyVpTokenPresentationExchange(vpToken, managementEntity));
@@ -193,7 +193,7 @@ class SdjwtVerificationServiceTest {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
         var incorrectKeyBindingFormat = "not-kb+jwt";
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), incorrectKeyBindingFormat);
+        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "http://localhost", Instant.now().getEpochSecond(), incorrectKeyBindingFormat);
 
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
@@ -207,7 +207,7 @@ class SdjwtVerificationServiceTest {
     void verifyPresentationWithInvalidKbTime_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(0);
 
@@ -255,7 +255,7 @@ class SdjwtVerificationServiceTest {
     void verifyPresentationWithForbiddenSdJWTClaims_throwsException(String input) throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMockWithClaims(Map.of("test-key", "test-value", input, "this is forbidden"));
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
 
         var exception = assertThrows(VerificationException.class, () -> verificationService.verifyVpTokenPresentationExchange(vpToken, managementEntity));
 
@@ -268,7 +268,7 @@ class SdjwtVerificationServiceTest {
     void verifyPresentationWithForbiddenClaims_throwsException(String input) throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMockWithClaims(Map.of("test-key", "test-value", input, "this is forbidden"));
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
         var exception = assertThrows(VerificationException.class, () -> verificationService.verifyVpTokenPresentationExchange(vpToken, managementEntity));
 
         assertEquals(MALFORMED_CREDENTIAL, exception.getErrorResponseCode());
@@ -282,7 +282,7 @@ class SdjwtVerificationServiceTest {
         // duplicate disclosures
         var parts = sdjwt.split("~");
         sdjwt = parts[0] + "~" + parts[1] + "~" + parts[1] + "~";
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "http://localhost");
         var exception = assertThrows(VerificationException.class, () -> verificationService.verifyVpTokenPresentationExchange(vpToken, managementEntity));
 
         assertEquals(MALFORMED_CREDENTIAL, exception.getErrorResponseCode());
@@ -293,7 +293,7 @@ class SdjwtVerificationServiceTest {
     void testCheckPresentationDefinitionCriteriaWithNull() throws NoSuchAlgorithmException, ParseException, JOSEException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "http://localhost");
         var vpTokenParts = vpToken.split("~");
 
         var jwt = SignedJWT.parse(vpTokenParts[0]);
@@ -312,9 +312,9 @@ class SdjwtVerificationServiceTest {
         presentationDefinition = getMockedPresentationDefinition("ES384", "ES256", List.of("$.first_name", "$.last_name", "$.not_existing"));
 
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
-
+        var claims = payload.getClaims();
         assertThrows(VerificationException.class, () ->
-                verifier.checkPresentationDefinitionCriteria(payload.getClaims(), disclosures)
+                verifier.checkPresentationDefinitionCriteria(claims, disclosures)
         );
     }
 

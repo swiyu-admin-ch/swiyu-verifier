@@ -745,33 +745,114 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void shouldThrowUnsupportedOperationExceptionForDCQLEndpoint() throws Exception {
+    void shouldSucceedForDCQLEndpoint() throws Exception {
         // GIVEN
-        // Create DCQL vp_token structure as specified
-        String dcqlVpTokenJson = """
-            {
-              "identity_credential_dcql": ["eyJhbGci...QMA"],
-              "university_degree_dcql": ["eyJhbGci...QMA"]
-            }
-            """;
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
 
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", dcqlVpTokenJson))
-                .andExpect(status().is4xxClientError());
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isOk());
 
-        // Verify that the management entity remains in pending state since the exception is thrown early
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+        assertThat(managementEntity.getWalletResponse().credentialSubjectData())
+                .contains("first_name")
+                .contains("TestFirstname")
+                .contains("last_name")
+                .contains("TestLastName");
+    }
+
+
+    @Test
+    void shouldBadRequestForDCQLEndpoint_whenMalformedVpToken_notConsumedPresentationRequest() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, sdJwt);
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isBadRequest());
+
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
     @Test
+    void shouldBadRequestForDCQLEndpoint_whenAlteredSdJwt() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
+        // Split jwt, disclosures & binding proof
+        var parts = sdJwt.split("~");
+        sdJwt = parts[0] + "~" + parts[1] + "~" + parts[parts.length - 1];
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().is4xxClientError())
+                .andExpect(jsonPath("$.error").value("invalid_transaction_data"))
+                .andExpect(jsonPath("$.error_code").value("holder_binding_mismatch"));
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+        assertThat(managementEntity.getWalletResponse().credentialSubjectData()).isNull();
+    }
+
+    @Test
+    void shouldBadRequestForDCQLEndpoint_whenMissingClaim() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        // Split jwt, disclosures
+        var parts = unsignedSdJwt.split("~");
+        // Only have the first claim (first_name) as disclosure
+        unsignedSdJwt = parts[0]+"~"+parts[1]+"~";
+        // Sign the presentation
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().is4xxClientError())
+                .andExpect(jsonPath("$.error").value("invalid_transaction_data"));
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+        assertThat(managementEntity.getWalletResponse().credentialSubjectData()).isNull();
+    }
+
+    @Test
     void shouldThrowUnsupportedOperationExceptionForDCQLEncryptedEndpoint() throws Exception {
         // GIVEN
-        String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
-
         // Create encrypted DCQL response string
         String encryptedResponse = "eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0...";
 
@@ -833,7 +914,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // Verify that the management entity is marked as failed due to client rejection
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertThat(managementEntity.getWalletResponse().errorDescription()).isEqualTo("");
+        assertThat(managementEntity.getWalletResponse().errorDescription()).isEmpty();
     }
 
     @Test

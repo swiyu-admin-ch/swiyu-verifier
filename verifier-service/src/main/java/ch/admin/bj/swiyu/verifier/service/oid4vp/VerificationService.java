@@ -6,32 +6,23 @@
 
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import java.util.Set;
-import java.util.UUID;
-
-
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.VerifiableCredentialExtractor.extractVerifiableCredential;
-import static java.util.Objects.isNull;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestEncryptedDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
+import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
-
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
+import ch.admin.bj.swiyu.verifier.service.DcqlService;
 import ch.admin.bj.swiyu.verifier.service.callback.WebhookService;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,6 +34,15 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionErrorV1;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.VerifiableCredentialExtractor.extractVerifiableCredential;
+import static java.util.Objects.isNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Slf4j
 @Service
@@ -56,6 +56,48 @@ public class VerificationService {
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
     private final WebhookService webhookService;
+    private final SdJwtVerificationService sdJwtVerificationService;
+
+    private static void verifyProcessNotClosed(Management entity) {
+        if (entity.isExpired() || !entity.isVerificationPending()) {
+            throw new ProcessClosedException();
+        }
+    }
+
+    private static PresentationSubmissionDto parseAndValidatePresentationSubmission(String presentationSubmissionJson) {
+        if (isBlank(presentationSubmissionJson)) {
+            return null;
+        }
+
+        var objectMapper = new ObjectMapper();
+        objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+
+        try {
+            var presentationSubmission = objectMapper.readValue(presentationSubmissionJson, PresentationSubmissionDto.class);
+            validatePresentationSubmission(presentationSubmission);
+            return presentationSubmission;
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            throw submissionError(e, VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
+        }
+
+    }
+
+    private static void validatePresentationSubmission(PresentationSubmissionDto presentationSubmission) {
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            Validator validator = factory.getValidator();
+            Set<ConstraintViolation<PresentationSubmissionDto>> violations = validator.validate(presentationSubmission);
+
+            if (violations.isEmpty()) {
+                return;
+            }
+
+            StringBuilder builder = new StringBuilder();
+            for (ConstraintViolation<PresentationSubmissionDto> violation : violations) {
+                builder.append("%s%s - %s".formatted(builder.isEmpty() ? "" : ", ", violation.getPropertyPath(), violation.getMessage()));
+            }
+            throw new IllegalArgumentException("Invalid presentation submission: " + builder);
+        }
+    }
 
     /**
      * Validates the presentation request. If it fails, it will
@@ -140,10 +182,13 @@ public class VerificationService {
             log.trace("DCQL submission verification completed for {}", managementEntityId);
             managementEntity.verificationSucceeded(credentialSubjectData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
+        } catch (IllegalArgumentException e) {
+            managementEntity.verificationFailed(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
+            throw submissionErrorV1(e, VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
         } catch (VerificationException e) {
             managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
             log.debug("Saved failed DCQL verification result for {}", managementEntityId);
-            throw e; // rethrow since client get notified of the error
+            throw submissionErrorV1(e, e.getErrorResponseCode(), e.getErrorDescription()); // rethrow as v1
         } finally {
             // Notify Business Verifier that this verification is done
             webhookService.produceEvent(managementEntityId);
@@ -182,47 +227,6 @@ public class VerificationService {
         }
     }
 
-    private static void verifyProcessNotClosed(Management entity) {
-        if (entity.isExpired() || !entity.isVerificationPending()) {
-            throw new ProcessClosedException();
-        }
-    }
-
-    private static PresentationSubmissionDto parseAndValidatePresentationSubmission(String presentationSubmissionJson) {
-        if (isBlank(presentationSubmissionJson)) {
-            return null;
-        }
-
-        var objectMapper = new ObjectMapper();
-        objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-
-        try {
-            var presentationSubmission = objectMapper.readValue(presentationSubmissionJson, PresentationSubmissionDto.class);
-            validatePresentationSubmission(presentationSubmission);
-            return presentationSubmission;
-        } catch (JsonProcessingException | IllegalArgumentException e) {
-            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, e.getMessage());
-        }
-
-    }
-
-    private static void validatePresentationSubmission(PresentationSubmissionDto presentationSubmission) {
-        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
-            Validator validator = factory.getValidator();
-            Set<ConstraintViolation<PresentationSubmissionDto>> violations = validator.validate(presentationSubmission);
-
-            if (violations.isEmpty()) {
-                return;
-            }
-
-            StringBuilder builder = new StringBuilder();
-            for (ConstraintViolation<PresentationSubmissionDto> violation : violations) {
-                builder.append("%s%s - %s".formatted(builder.isEmpty() ? "" : ", ", violation.getPropertyPath(), violation.getMessage()));
-            }
-            throw new IllegalArgumentException("Invalid presentation submission: " + builder);
-        }
-    }
-
     private String verifyPresentation(Management entity, VerificationPresentationRequestDto request) {
         // NOTE: we do support invalid json of a presentation submissions, that is why we parse it manually.in case we have an
         // error we will update the entity (status to failed)
@@ -258,8 +262,33 @@ public class VerificationService {
     }
 
     private String verifyDCQLPresentation(Management entity, VerificationPresentationDCQLRequestDto request) {
-        // TODO: DCQL functionality is not yet implemented - this is a placeholder for the next ticket
-        throw new IllegalArgumentException("DCQL verification functionality is not yet implemented. This feature will be available in a future release.");
+        var requestedCredentials = entity.getDcqlQuery().getCredentials();
+        var vpTokens = request.getVpToken();
+        var verifiedResponses = new HashMap<String, List<Map<String, Object>>>();
+        for (var requestedCredential : requestedCredentials) {
+            if (!vpTokens.containsKey(requestedCredential.getId())) {
+                throw new IllegalArgumentException("Missing vp token for requested credential id " + requestedCredential.getId());
+            }
+            var requestedVpTokens = vpTokens.get(requestedCredential.getId());
+            // We expect only 1 vpToken, but receive more than 1
+            if (Boolean.FALSE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
+                throw new IllegalArgumentException("Expected only 1 vp token for " + requestedCredential.getId());
+            }
+            var sdJwts = requestedVpTokens.stream().map(SdJwt::new).toList();
+            sdJwts = sdJwts.stream().map(sdjwt -> sdJwtVerificationService.verifyVpToken(sdjwt, entity)).toList();
+            sdJwts = DcqlService.filterByVct(sdJwts, requestedCredential.getMeta());
+            DcqlService.containsRequestedFields(sdJwts.getFirst(), requestedCredential.getClaims());
+            verifiedResponses.put(requestedCredential.getId(), sdJwts.stream().map(sdJwt -> sdJwt.getClaims().getClaims()).toList());
+        }
+        return parseAsStringOrThrowIllegalArgumentException(verifiedResponses);
+    }
+
+    private String parseAsStringOrThrowIllegalArgumentException(Object object) {
+        try {
+            return objectMapper.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     private String verifyEncryptedDCQLPresentation(Management entity, VerificationPresentationDCQLRequestEncryptedDto request) {

@@ -66,6 +66,9 @@ public class VerificationMapper {
             case INVALID_REQUEST -> VerificationErrorDto.INVALID_REQUEST;
             case SERVER_ERROR -> VerificationErrorDto.SERVER_ERROR;
             case INVALID_CREDENTIAL -> VerificationErrorDto.INVALID_CREDENTIAL;
+            case INVALID_CLIENT -> VerificationErrorDto.INVALID_CLIENT;
+            case ACCESS_DENIED -> VerificationErrorDto.ACCESS_DENIED;
+            case INVALID_TRANSACTION_DATA -> VerificationErrorDto.INVALID_TRANSACTION_DATA;
         };
     }
 }

@@ -5,17 +5,22 @@ import ch.admin.bj.swiyu.verifier.infrastructure.web.DefaultExceptionHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import java.util.NoSuchElementException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(OutputCaptureExtension.class)
 class DefaultExceptionHandlerTest {
 
     private DefaultExceptionHandler handler;
@@ -51,7 +56,7 @@ class DefaultExceptionHandlerTest {
     }
 
     @Test
-    void handleNoSuchElementException_shouldReturnNotFoundResponse() {
+    void handleNoSuchElementException_shouldReturnNotFoundResponse(CapturedOutput output) {
         var errorMessage = "There is nothing with this ID";
         NoSuchElementException ex = new NoSuchElementException("There is nothing with this ID");
 
@@ -61,12 +66,12 @@ class DefaultExceptionHandlerTest {
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(errorMessage, response.getBody());
+        assertThat(output.getAll()).doesNotContain("ERROR");
     }
 
     @Test
-    void checkDefaultException_shouldReturnInternalServerError() {
+    void checkDefaultException_shouldReturnInternalServerError(CapturedOutput output) {
         Exception ex = new Exception("This is a test for exception handling");
-
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURL()).thenReturn(new StringBuffer("http://localhost/test"));
 
@@ -77,10 +82,11 @@ class DefaultExceptionHandlerTest {
         ApiErrorDto body = (ApiErrorDto) response.getBody();
         assertNotNull(response.getBody());
         assertEquals("Internal Server Error. Please check again later", body.detail());
+        assertThat(output.getAll()).contains("ERROR").contains("This is a test for exception handling");
     }
 
     @Test
-    void checkHttpRequestMethodNotSupportedException_shouldReturnInternalServerError() {
+    void checkHttpRequestMethodNotSupportedException_shouldReturnInternalServerError(CapturedOutput output) {
         Exception ex = new HttpRequestMethodNotSupportedException("This is a test for exception handling");
 
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -90,5 +96,6 @@ class DefaultExceptionHandlerTest {
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertThat(output.getAll()).doesNotContain("ERROR");
     }
 }

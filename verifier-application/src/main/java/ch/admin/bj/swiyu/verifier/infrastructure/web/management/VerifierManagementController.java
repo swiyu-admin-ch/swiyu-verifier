@@ -9,7 +9,6 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.management;
 import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import io.micrometer.core.annotation.Timed;
@@ -85,6 +84,10 @@ public class VerifierManagementController {
     @ExceptionHandler(VerificationNotFoundException.class)
     ResponseEntity<ApiErrorDto> handleVerificationNotFoundException(final VerificationNotFoundException exception) {
         log.info("Verification not found for id: {}", exception.getManagementId());
-        return new ResponseEntity<>(new ApiErrorDto(NOT_FOUND, exception.getMessage()), NOT_FOUND);
+        var error = ApiErrorDto.builder()
+                .errorDetails(exception.getMessage())
+                .status(NOT_FOUND)
+                .build();
+        return new ResponseEntity<>(error, error.getStatus());
     }
 }

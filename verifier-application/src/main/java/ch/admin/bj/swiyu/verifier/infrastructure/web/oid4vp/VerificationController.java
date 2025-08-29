@@ -102,7 +102,7 @@ public class VerificationController {
                     @ApiResponse(
                             responseCode = "404",
                             description = "Request Object not found",
-                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
                     )
             }
     )
@@ -167,7 +167,7 @@ public class VerificationController {
                     @ApiResponse(
                             responseCode = "400",
                             description = "Bad Request. The request body is not valid",
-                            content = @Content(schema = @Schema(implementation = VerificationErrorResponseDto.class))
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
                     )
             }
     )

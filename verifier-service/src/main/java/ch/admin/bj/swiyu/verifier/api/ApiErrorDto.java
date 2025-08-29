@@ -6,15 +6,23 @@
 
 package ch.admin.bj.swiyu.verifier.api;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
-@Schema(name = "ApiError")
-public record ApiErrorDto(
-        @Schema(description = "HTTP status code of the error")
-        @NotNull HttpStatus status,
-        @Schema(description = "Error message")
-        @NotNull String detail
-) {
+@Builder
+@Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ApiErrorDto {
+    @JsonProperty("error")
+    String error;
+    @JsonProperty("error_description")
+    String errorDescription;
+    @JsonProperty("detail")
+    String errorDetails;
+    @JsonIgnore
+    HttpStatus status;
 }

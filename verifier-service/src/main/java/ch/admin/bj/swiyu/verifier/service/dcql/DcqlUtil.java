@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.verifier.service;
+package ch.admin.bj.swiyu.verifier.service.dcql;
 
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;

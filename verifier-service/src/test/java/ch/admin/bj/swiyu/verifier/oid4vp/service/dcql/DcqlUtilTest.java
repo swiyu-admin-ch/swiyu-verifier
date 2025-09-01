@@ -1,9 +1,9 @@
-package ch.admin.bj.swiyu.verifier.oid4vp.service;
+package ch.admin.bj.swiyu.verifier.oid4vp.service.dcql;
 
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
-import ch.admin.bj.swiyu.verifier.service.DcqlUtil;
+import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class DcqlServiceTest {
+class DcqlUtilTest {
     private SdJwt sdJwt;
     @BeforeEach
     void setUp() throws JsonProcessingException {

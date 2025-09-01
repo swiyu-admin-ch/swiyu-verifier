@@ -20,7 +20,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
-import ch.admin.bj.swiyu.verifier.service.DcqlUtil;
+import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
 import ch.admin.bj.swiyu.verifier.service.callback.WebhookService;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import com.fasterxml.jackson.core.JsonParser;

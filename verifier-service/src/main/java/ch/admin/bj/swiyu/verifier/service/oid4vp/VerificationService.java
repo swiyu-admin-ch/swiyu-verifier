@@ -20,7 +20,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
-import ch.admin.bj.swiyu.verifier.service.DcqlService;
+import ch.admin.bj.swiyu.verifier.service.DcqlUtil;
 import ch.admin.bj.swiyu.verifier.service.callback.WebhookService;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import com.fasterxml.jackson.core.JsonParser;
@@ -178,7 +178,7 @@ public class VerificationService {
 
             // 2. Verify the DCQL presentation submission
             log.debug("Starting DCQL submission verification for {}", managementEntityId);
-            var credentialSubjectData = verifyDCQLPresentation(managementEntity, request);
+            var credentialSubjectData = extractWalletResponseAndValidateDCQLClaims(managementEntity, request);
             log.trace("DCQL submission verification completed for {}", managementEntityId);
             managementEntity.verificationSucceeded(credentialSubjectData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
@@ -261,7 +261,21 @@ public class VerificationService {
         throw new IllegalArgumentException("Unknown format: " + format);
     }
 
-    private String verifyDCQLPresentation(Management entity, VerificationPresentationDCQLRequestDto request) {
+    /**
+     * Extracts and validates DCQL claims from the VP tokens provided by the wallet.
+     * <p>
+     * For each requested credential configuration, this method checks if a corresponding VP token is present.
+     * It then verifies the contained SD-JWTs, filters them by credential type, and validates the claims.
+     * The extracted and validated claims are collected as a map (credential ID → list of claims) and returned as a JSON string.
+     * <p>
+     * Error cases (e.g., missing tokens, too many tokens, invalid claims) result in an IllegalArgumentException.
+     *
+     * @param entity  The management entity containing the DCQL query and expected credentials.
+     * @param request The DCQL presentation request submitted by the wallet, containing the VP tokens.
+     * @return JSON string with the extracted and validated claims per credential ID.
+     * @throws IllegalArgumentException if validation or serialization fails.
+     */
+    private String extractWalletResponseAndValidateDCQLClaims(Management entity, VerificationPresentationDCQLRequestDto request) {
         var requestedCredentials = entity.getDcqlQuery().getCredentials();
         var vpTokens = request.getVpToken();
         var verifiedResponses = new HashMap<String, List<Map<String, Object>>>();
@@ -276,18 +290,29 @@ public class VerificationService {
             }
             var sdJwts = requestedVpTokens.stream().map(SdJwt::new).toList();
             sdJwts = sdJwts.stream().map(sdjwt -> sdJwtVerificationService.verifyVpToken(sdjwt, entity)).toList();
-            sdJwts = DcqlService.filterByVct(sdJwts, requestedCredential.getMeta());
-            DcqlService.containsRequestedFields(sdJwts.getFirst(), requestedCredential.getClaims());
-            verifiedResponses.put(requestedCredential.getId(), sdJwts.stream().map(sdJwt -> sdJwt.getClaims().getClaims()).toList());
+            sdJwts = DcqlUtil.filterByVct(sdJwts, requestedCredential.getMeta());
+            DcqlUtil.validateRequestedClaims(sdJwts.getFirst(), requestedCredential.getClaims());
+            // Extract claims from SdJwt list and put into verifiedResponses
+            verifiedResponses.put(requestedCredential.getId(), extractClaimsList(sdJwts));
         }
         return parseAsStringOrThrowIllegalArgumentException(verifiedResponses);
     }
+
+    /**
+     * Extracts the claims from a list of SdJwt objects as a list of maps.
+     */
+    private List<Map<String, Object>> extractClaimsList(List<SdJwt> sdJwts) {
+        return sdJwts.stream()
+                .map(sdJwt -> sdJwt.getClaims().getClaims())
+                .toList();
+    }
+
 
     private String parseAsStringOrThrowIllegalArgumentException(Object object) {
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException(e);
+            throw new IllegalArgumentException("Failed to serialize object to string", e);
         }
     }
 

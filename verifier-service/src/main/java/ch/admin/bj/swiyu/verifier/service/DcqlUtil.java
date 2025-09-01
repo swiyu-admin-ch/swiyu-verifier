@@ -3,16 +3,23 @@ package ch.admin.bj.swiyu.verifier.service;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
-import org.springframework.stereotype.Service;
+import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-@Service
-public class DcqlService {
-
+/**
+ * Service for processing and validating DCQL (Decentralized Credential Query Language) claims and paths.
+ * <p>
+ * The core logic follows the OID4VP specification for DCQL processing:
+ * https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-7.1.1
+ * <p>
+ * All methods throw IllegalArgumentException on invalid input, path, or claim structure.
+ */
+@UtilityClass
+public class DcqlUtil {
     private static List<Object> selectClaim(SdJwt sdJwt, DcqlClaim requestedClaim) {
         var selected = new DcqlPathSelection(sdJwt.getClaims().getClaims());
         List<Object> requestedPath = requestedClaim.getPath();
@@ -32,7 +39,7 @@ public class DcqlService {
      * Validate if the requestedClaims are present in the jwt
      * Throws Illegal Argument Exception if something is wrong with the presented sd jwt
      */
-    public static void containsRequestedFields(SdJwt sdJwt, List<DcqlClaim> requestedClaims) throws IllegalArgumentException {
+    public static void validateRequestedClaims(SdJwt sdJwt, List<DcqlClaim> requestedClaims) throws IllegalArgumentException {
         if (CollectionUtils.isEmpty(requestedClaims)) {
             return;
         }

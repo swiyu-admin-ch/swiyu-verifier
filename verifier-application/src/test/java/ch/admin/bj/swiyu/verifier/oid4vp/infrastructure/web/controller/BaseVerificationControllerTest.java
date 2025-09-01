@@ -4,6 +4,8 @@ import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,7 @@ public abstract class BaseVerificationControllerTest {
     protected static final UUID REQUEST_DIFFERENT_KB_ALGS = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee5");
 
     protected static final String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
+    protected static final String DEFAULT_DCQL_CREDENTIAL_ID = "defaultTestDcqlCredentialId";
 
     @Autowired
     protected ManagementRepository managementEntityRepository;
@@ -64,6 +67,7 @@ public abstract class BaseVerificationControllerTest {
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .jwtSecuredAuthorizationRequest(true)
+                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -76,6 +80,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(0)
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -87,6 +92,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
+                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -117,6 +123,11 @@ public abstract class BaseVerificationControllerTest {
     private PresentationDefinition presentationDefinition(String presentationDefinitionJson) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readValue(presentationDefinitionJson, PresentationDefinition.class);
+    }
+
+    private DcqlQuery dcqlQuery(String dcqlQuery) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(dcqlQuery, DcqlQuery.class);
     }
 
 
@@ -154,6 +165,26 @@ public abstract class BaseVerificationControllerTest {
                   ]
                 }
                 """;
+    }
+
+    private static String dcqlQueryJson() {
+        return """
+                {
+                "credentials": [
+                    {
+                      "id": "%s",
+                      "format": "dc+sd-jwt",
+                      "meta": {
+                        "vct_values": [ "%s" ]
+                      },
+                      "claims": [
+                          {"path": ["last_name"]},
+                          {"path": ["first_name"]}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT);
     }
 
     private static String presentationDefinitionJsonDiffAlgs() {

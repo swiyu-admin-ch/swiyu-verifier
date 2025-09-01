@@ -28,7 +28,10 @@ public enum VerificationErrorDto {
     SERVER_ERROR("server_error"),
 
     // Codes according to custom profile
-    INVALID_CREDENTIAL("invalid_credential");
+    INVALID_CREDENTIAL("invalid_credential"),
+    ACCESS_DENIED("access_denied"),
+    INVALID_TRANSACTION_DATA("invalid_transaction_data"),
+    INVALID_CLIENT("invalid_client");
 
     private final String displayName;
 

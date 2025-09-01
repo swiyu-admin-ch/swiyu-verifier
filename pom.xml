@@ -81,7 +81,6 @@
                 <artifactId>maven-pmd-plugin</artifactId>
                 <version>3.27.0</version>
                 <configuration>
-                    <rulesets>config/pmd/pmd-rule-customization.xml</rulesets>
                     <printFailingErrors>true</printFailingErrors>
                     <linkXRef>false</linkXRef>
                     <failOnViolation>true</failOnViolation>

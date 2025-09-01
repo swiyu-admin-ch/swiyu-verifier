@@ -58,6 +58,7 @@ public class SdJwtVerificationService {
 
     /**
      * Test function to ensure parity with DIF PE
+     * @return claims of the vpToken requested in the management as json string
      */
     public String verifyVpTokenPresentationExchange(String vpToken, Management management) {
         var sdJwt = new SdJwt(vpToken);
@@ -70,9 +71,9 @@ public class SdJwtVerificationService {
                 throw credentialError(INVALID_FORMAT, "Invalid Algorithm: alg must be one of %s, but was %s"
                         .formatted(management.getRequestedPresentation().format().get(presentationFormat).alg(), sdJwt.getHeader().getAlgorithm()));
             }
-            var sdJwtString = objectMapper.writeValueAsString(sdJwt.getClaims().getClaims());
-            checkCommonPresentationDefinitionCriteria(sdJwtString, management);
-            return  sdJwtString;
+            var claims = objectMapper.writeValueAsString(sdJwt.getClaims().getClaims());
+            checkCommonPresentationDefinitionCriteria(claims, management);
+            return claims;
         } catch (JsonProcessingException e) {
             throw credentialError(e, "An error occurred while parsing SDJWT");
         }
@@ -101,6 +102,7 @@ public class SdJwtVerificationService {
      *     <a href=https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#section-3.2.2.2>SD-JWT VC 3.2</a>
      * </li>
      * </ul>
+     *
      * @param vpToken    sd-jwt of the vp token to be updated in place
      * @param management verification request management object for ancillary such as nonce and request id
      */
@@ -162,8 +164,8 @@ public class SdJwtVerificationService {
         List<Disclosure> disclosures;
         var claims = sdJwt.getClaims();
         try {
-             disclosures = sdJwt.getDisclosures();
-        // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
+            disclosures = sdJwt.getDisclosures();
+            // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
             digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
         } catch (IllegalArgumentException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
@@ -288,7 +290,7 @@ public class SdJwtVerificationService {
 
     private boolean isProvidingTrust(String issuerDidTdw, String vct, TrustAnchor trustAnchor, String rawTrustStatement, Management management) throws ParseException {
         var trustStatement = new SdJwt(rawTrustStatement);
-        trustStatement =verifyVpToken(trustStatement, management);
+        trustStatement = verifyVpToken(trustStatement, management);
         return issuerDidTdw.equals(trustStatement.getClaims().getSubject())
                 && trustAnchor.did().equals(trustStatement.getClaims().getIssuer())
                 && vct.equals(trustStatement.getClaims().getStringClaim("canIssue"));

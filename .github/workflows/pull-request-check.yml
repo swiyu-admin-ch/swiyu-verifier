@@ -44,7 +44,7 @@ jobs:
           uses: pmd/pmd-github-action@v2
           id: pmd
           with:
-            rulesets: 'config/pmd/pmd-rule-customization.xml'
+            rulesets: '.github/rulesets/java/pmd_omni_ruleset.xml'
 
         - name: Upload PMD SARIF to GitHub Code Scanning
           uses: github/codeql-action/upload-sarif@v3

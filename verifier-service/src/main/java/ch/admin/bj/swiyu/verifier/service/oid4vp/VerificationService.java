@@ -178,7 +178,7 @@ public class VerificationService {
 
             // 2. Verify the DCQL presentation submission
             log.debug("Starting DCQL submission verification for {}", managementEntityId);
-            var credentialSubjectData = extractWalletResponseAndValidateDCQLClaims(managementEntity, request);
+            var credentialSubjectData = processAndValidateDCQLRequest(managementEntity, request);
             log.trace("DCQL submission verification completed for {}", managementEntityId);
             managementEntity.verificationSucceeded(credentialSubjectData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
@@ -275,7 +275,7 @@ public class VerificationService {
      * @return JSON string with the extracted and validated claims per credential ID.
      * @throws IllegalArgumentException if validation or serialization fails.
      */
-    private String extractWalletResponseAndValidateDCQLClaims(Management entity, VerificationPresentationDCQLRequestDto request) {
+    private String processAndValidateDCQLRequest(Management entity, VerificationPresentationDCQLRequestDto request) {
         var requestedCredentials = entity.getDcqlQuery().getCredentials();
         var vpTokens = request.getVpToken();
         var verifiedResponses = new HashMap<String, List<Map<String, Object>>>();

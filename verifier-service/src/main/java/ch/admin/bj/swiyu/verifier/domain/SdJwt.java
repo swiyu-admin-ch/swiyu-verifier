@@ -10,15 +10,18 @@ import java.util.List;
 import java.util.Optional;
 
 public class SdJwt {
-    private final String sdJwt;
+    /**
+     * Unprocessed sd-jwt
+     */
+    private final String rawSdJwt;
     private String[] parts;
     @Setter
     private JWSHeader header;
     @Setter
     private JWTClaimsSet claims;
 
-    public SdJwt(String sdJwt) {
-        this.sdJwt = sdJwt;
+    public SdJwt(String rawSdJwt) {
+        this.rawSdJwt = rawSdJwt;
     }
 
     public String getJwt() {
@@ -27,13 +30,13 @@ public class SdJwt {
 
     private String[] getParts() {
         if(parts == null){
-            parts = sdJwt.split("~");
+            parts = rawSdJwt.split("~");
         }
         return parts;
     }
 
     public boolean hasKeyBinding() {
-        return !sdJwt.endsWith("~");
+        return !rawSdJwt.endsWith("~");
     }
 
     public Optional<String> getKeyBinding() {
@@ -54,7 +57,7 @@ public class SdJwt {
     }
 
     public String getPresentation() {
-        return sdJwt.substring(0,sdJwt.lastIndexOf("~")+1);
+        return rawSdJwt.substring(0, rawSdJwt.lastIndexOf("~")+1);
     }
 
     public JWSHeader getHeader() {

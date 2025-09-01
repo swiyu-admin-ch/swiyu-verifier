@@ -31,8 +31,9 @@ public class DcqlService {
     /**
      * Validate if the requestedClaims are present in the jwt
      * Throws Illegal Argument Exception if something is wrong with the presented sd jwt
+     * @throws IllegalArgumentException if not all requested claims are present in the sd jwt's claims
      */
-    public static void containsRequestedFields(SdJwt sdJwt, List<DcqlClaim> requestedClaims) throws IllegalArgumentException {
+    public static void containsRequestedFields(SdJwt sdJwt, List<DcqlClaim> requestedClaims) {
         if (CollectionUtils.isEmpty(requestedClaims)) {
             return;
         }

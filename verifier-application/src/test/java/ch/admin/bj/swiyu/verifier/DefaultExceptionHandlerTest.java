@@ -39,8 +39,11 @@ class DefaultExceptionHandlerTest {
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+
+        var apiErrorDto = (ApiErrorDto) response.getBody();
+
         assertNotNull(response.getBody());
-        assertEquals(errorMessage, response.getBody());
+        assertEquals(errorMessage, apiErrorDto.getErrorDescription());
     }
 
     @Test
@@ -50,9 +53,9 @@ class DefaultExceptionHandlerTest {
         ResponseEntity<Object> response = handler.handleIllegalArgumentException(ex);
 
         // Then
+        var apiErrorDto = (ApiErrorDto) response.getBody();
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("Bad request", response.getBody());
+        assertEquals("Bad request", apiErrorDto.getErrorDescription());
     }
 
     @Test
@@ -63,9 +66,10 @@ class DefaultExceptionHandlerTest {
         ResponseEntity<Object> response = handler.handleNoSuchElementException(ex);
 
         // Then
+        var apiErrorDto = (ApiErrorDto) response.getBody();
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(errorMessage, response.getBody());
+        assertEquals(errorMessage, apiErrorDto.getErrorDescription());
         assertThat(output.getAll()).doesNotContain("ERROR");
     }
 
@@ -77,11 +81,10 @@ class DefaultExceptionHandlerTest {
 
         ResponseEntity<Object> response = handler.handleException(ex, request);
 
-        // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         ApiErrorDto body = (ApiErrorDto) response.getBody();
         assertNotNull(response.getBody());
-        assertEquals("Internal Server Error. Please check again later", body.detail());
+        assertEquals("Internal Server Error. Please check again later", body.getErrorDescription());
         assertThat(output.getAll()).contains("ERROR").contains("This is a test for exception handling");
     }
 

@@ -17,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -49,12 +50,28 @@ public class ManagementService {
         if (request == null) {
             throw new IllegalArgumentException("CreateVerificationManagement is null");
         }
-        if (request.presentationDefinition() == null && request.dcqlQuery() == null) {
-            throw new IllegalArgumentException("Either PresentationDefinition or DCQLQuery must be provided");
+        if (request.presentationDefinition() == null) {
+            // Until the wallet is migrated we MUST provide a presentation definition.
+            throw new IllegalArgumentException("PresentationDefinition must be provided");
         }
 
+
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
-        var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
+        var dcqlQueryDto = request.dcqlQuery();
+        if (dcqlQueryDto != null) {
+            if (dcqlQueryDto.credentials().stream().anyMatch(cred -> Boolean.TRUE.equals(cred.multiple()))) {
+                // Currently supporting only 1 vp token per credential query
+                throw new IllegalArgumentException("multiple credentials in response for a single query not supported");
+            }
+            if (!CollectionUtils.isEmpty(dcqlQueryDto.credentialSets())) {
+                // Not yet supporting credential sets
+                throw new IllegalArgumentException("credential sets not yet supported");
+            }
+            if (dcqlQueryDto.credentials().stream().anyMatch(cred -> cred.meta().vctValues().isEmpty())) {
+                throw new IllegalArgumentException("vct_values is required");
+            }
+        }
+        var dcqlQuery = DcqlMapper.toDcqlQuery(dcqlQueryDto);
         List<TrustAnchor> trustAnchors = null;
         if (request.trustAnchors() != null) {
             trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();

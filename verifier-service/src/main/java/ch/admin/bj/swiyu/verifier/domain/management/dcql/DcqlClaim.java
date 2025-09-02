@@ -31,8 +31,11 @@ public class DcqlClaim {
      * JSON path to the claim within the credential.
      */
     @JsonProperty("path")
-    private List<String> path;
+    private List<Object> path;
 
+    /**
+     * OPTIONAL A non-empty array of strings, integers or boolean values that specifies the expected values of the claim
+     */
     @JsonProperty("values")
-    List<String> values; // Todo: should not be object
+    List<Object> values;
 }

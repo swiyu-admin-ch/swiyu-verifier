@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.api.management.dcql;
 
+import ch.admin.bj.swiyu.verifier.api.definition.DcqlClaimPath;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
@@ -31,7 +32,8 @@ public record DcqlClaimDto(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("path")
         @NotEmpty(message = "path must not be empty")
-        List<String> path, // REQUIRED
+        @DcqlClaimPath
+        List<Object> path, // REQUIRED
 
         @Schema(description = "OPTIONAL. A non-empty array of strings, integers or boolean values that specifies " +
                 "the expected values of the claim. If the values property is present, the Wallet SHOULD return " +

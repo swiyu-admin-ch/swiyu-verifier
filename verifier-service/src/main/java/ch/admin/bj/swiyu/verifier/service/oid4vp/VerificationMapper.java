@@ -25,7 +25,8 @@ public class VerificationMapper {
                 e.getErrorDescription());
     }
 
-    private static VerificationErrorResponseCodeDto toVerificationErrorResponseCode(VerificationErrorResponseCode source) {
+    private static VerificationErrorResponseCodeDto toVerificationErrorResponseCode(
+            VerificationErrorResponseCode source) {
         if (source == null) {
             return null;
         }
@@ -43,17 +44,17 @@ public class VerificationMapper {
             case CREDENTIAL_MISSING_DATA -> VerificationErrorResponseCodeDto.CREDENTIAL_MISSING_DATA;
             case UNRESOLVABLE_STATUS_LIST -> VerificationErrorResponseCodeDto.UNRESOLVABLE_STATUS_LIST;
             case PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE ->
-                    VerificationErrorResponseCodeDto.PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE;
+                VerificationErrorResponseCodeDto.PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
             case ISSUER_NOT_ACCEPTED -> VerificationErrorResponseCodeDto.ISSUER_NOT_ACCEPTED;
             case AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND -> null;
             case AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM ->
-                    VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
+                VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
             case VERIFICATION_PROCESS_CLOSED -> null;
             case INVALID_PRESENTATION_DEFINITION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION;
             case MALFORMED_CREDENTIAL -> VerificationErrorResponseCodeDto.MALFORMED_CREDENTIAL;
             case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED ->
-                    VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
+                VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
             case INVALID_PRESENTATION_SUBMISSION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_SUBMISSION;
             default -> throw new IllegalStateException("Unexpected value: " + source);
         };
@@ -67,6 +68,9 @@ public class VerificationMapper {
             case INVALID_REQUEST -> VerificationErrorTypeDto.INVALID_REQUEST;
             case SERVER_ERROR -> VerificationErrorTypeDto.SERVER_ERROR;
             case INVALID_CREDENTIAL -> VerificationErrorTypeDto.INVALID_CREDENTIAL;
+            case INVALID_CLIENT -> VerificationErrorTypeDto.INVALID_CLIENT;
+            case ACCESS_DENIED -> VerificationErrorTypeDto.ACCESS_DENIED;
+            case INVALID_TRANSACTION_DATA -> VerificationErrorTypeDto.INVALID_TRANSACTION_DATA;
         };
     }
 }

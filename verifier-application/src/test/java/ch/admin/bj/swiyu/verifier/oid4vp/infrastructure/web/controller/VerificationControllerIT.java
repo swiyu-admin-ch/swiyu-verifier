@@ -107,7 +107,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         assertEquals("ES256", vp.get("sd-jwt_alg_values").getFirst());
         assertEquals("ES256", vp.get("kb-jwt_alg_values").getFirst());
 
-        var constraints = (LinkedTreeMap<List, List<LinkedTreeMap<List, List>>>) inputDescriptor.get("constraints");
+        var constraints = (LinkedTreeMap<String, List<LinkedTreeMap<String, List>>>) inputDescriptor.get("constraints");
         assertThat(constraints.get("fields").getFirst().get("path").getFirst()).isEqualTo("$");
 
         var clientMetadata = (LinkedTreeMap) claims.getClaim("client_metadata");

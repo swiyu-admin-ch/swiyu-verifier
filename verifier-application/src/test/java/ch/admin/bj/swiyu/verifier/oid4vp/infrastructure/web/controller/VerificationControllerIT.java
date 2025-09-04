@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
-import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.api.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -29,6 +29,7 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
@@ -88,6 +89,46 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @MockitoBean
     private StatusListResolverAdapter mockedStatusListResolverAdapter;
 
+    private static void assertPresentationDefinition(JWTClaimsSet claims) {
+        var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
+        assertThat(presentationDefinition.get("id")).isNotNull();
+        assertEquals("Presentation Definition Name", presentationDefinition.get("name"));
+        assertEquals("Presentation Definition Purpose", presentationDefinition.get("purpose"));
+
+        var inputDescriptors = (List<LinkedTreeMap>) presentationDefinition.get("input_descriptors");
+        var inputDescriptor = inputDescriptors.getFirst();
+
+        assertThat(inputDescriptor.get("id")).isNotNull();
+        assertEquals("Test Descriptor Name", inputDescriptor.get("name"));
+        assertEquals("Input Descriptor Purpose", inputDescriptor.get("purpose"));
+
+        var format = (LinkedTreeMap<String, Object>) inputDescriptor.get("format");
+        var vp = (Map<String, List>) format.get("vc+sd-jwt");
+        assertEquals("ES256", vp.get("sd-jwt_alg_values").getFirst());
+        assertEquals("ES256", vp.get("kb-jwt_alg_values").getFirst());
+
+        var constraints = (LinkedTreeMap<List, List<LinkedTreeMap<List, List>>>) inputDescriptor.get("constraints");
+        assertThat(constraints.get("fields").getFirst().get("path").getFirst()).isEqualTo("$");
+
+        var clientMetadata = (LinkedTreeMap) claims.getClaim("client_metadata");
+        assertEquals("Fallback name", clientMetadata.get("client_name"));
+        assertEquals("German name (region Switzerland)", clientMetadata.get("client_name#de-CH"));
+        assertEquals("www.example.com/logo.png", clientMetadata.get("logo_uri"));
+    }
+
+    private static void assertDcqlIsComplete(JWTClaimsSet claims) {
+        var dcqlQuery = (LinkedTreeMap) claims.getClaim("dcql_query");
+        assertThat(dcqlQuery).isNotNull().isNotEmpty();
+        var dcqlRequestedCredentials = (List<?>) dcqlQuery.get("credentials");
+        assertThat(dcqlRequestedCredentials).isNotNull().isNotEmpty();
+        var firstRequestedCredential = (Map<?, ?>) dcqlRequestedCredentials.getFirst();
+        assertThat(firstRequestedCredential.get("id")).isNotNull().asString().isNotBlank();
+        assertThat(firstRequestedCredential.get("format")).isNotNull().asString().isNotBlank();
+        assertThat(firstRequestedCredential.get("meta")).isNotNull();
+        assertThat(firstRequestedCredential.get("claims")).isNotNull();
+
+        assertThat(dcqlQuery.get("credential_sets")).isNull();
+    }
 
     @Test
     void shouldFailOnExpiredManagementObject() throws Exception {
@@ -165,30 +206,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
                     assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
 
-                    var presentationDefinition = (LinkedTreeMap) claims.getClaim("presentation_definition");
-                    assertThat(presentationDefinition.get("id")).isNotNull();
-                    assertEquals("Presentation Definition Name", presentationDefinition.get("name"));
-                    assertEquals("Presentation Definition Purpose", presentationDefinition.get("purpose"));
-
-                    var inputDescriptors = (List<LinkedTreeMap>) presentationDefinition.get("input_descriptors");
-                    var inputDescriptor = inputDescriptors.getFirst();
-
-                    assertThat(inputDescriptor.get("id")).isNotNull();
-                    assertEquals("Test Descriptor Name", inputDescriptor.get("name"));
-                    assertEquals("Input Descriptor Purpose", inputDescriptor.get("purpose"));
-
-                    var format = (LinkedTreeMap<String, Object>) inputDescriptor.get("format");
-                    var vp = (Map<String, List>) format.get("vc+sd-jwt");
-                    assertEquals("ES256", vp.get("sd-jwt_alg_values").getFirst());
-                    assertEquals("ES256", vp.get("kb-jwt_alg_values").getFirst());
-
-                    var constraints = (LinkedTreeMap<List, List<LinkedTreeMap<List, List>>>) inputDescriptor.get("constraints");
-                    assertThat(constraints.get("fields").getFirst().get("path").getFirst()).isEqualTo("$");
-
-                    var clientMetadata = (LinkedTreeMap) claims.getClaim("client_metadata");
-                    assertEquals("Fallback name", clientMetadata.get("client_name"));
-                    assertEquals("German name (region Switzerland)", clientMetadata.get("client_name#de-CH"));
-                    assertEquals("www.example.com/logo.png", clientMetadata.get("logo_uri"));
+                    assertDcqlIsComplete(claims);
+                    assertPresentationDefinition(claims);
 
                     assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
                 });
@@ -829,7 +848,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // Split jwt, disclosures
         var parts = unsignedSdJwt.split("~");
         // Only have the first claim (first_name) as disclosure
-        unsignedSdJwt = parts[0]+"~"+parts[1]+"~";
+        unsignedSdJwt = parts[0] + "~" + parts[1] + "~";
         // Sign the presentation
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
 

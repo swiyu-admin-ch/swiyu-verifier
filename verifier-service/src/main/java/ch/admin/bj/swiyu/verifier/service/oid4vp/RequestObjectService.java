@@ -14,6 +14,7 @@ import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.SignatureService;
+import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -61,6 +62,7 @@ public class RequestObjectService {
         }
 
         var presentation = managementEntity.getRequestedPresentation();
+        var dcqlQuery = managementEntity.getDcqlQuery();
 
 
         // Override Params
@@ -72,6 +74,7 @@ public class RequestObjectService {
                 .nonce(managementEntity.getRequestNonce())
                 .version(applicationProperties.getRequestObjectVersion())
                 .presentationDefinition(toPresentationDefinitionDto(presentation))
+                .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
                 .clientId(clientId)
                 .clientMetadata(openIdClientMetadataConfiguration.getOpenIdClientMetadata())
                 .clientIdScheme(applicationProperties.getClientIdScheme())

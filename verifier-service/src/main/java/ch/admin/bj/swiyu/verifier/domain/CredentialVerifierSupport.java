@@ -15,11 +15,14 @@ import lombok.experimental.UtilityClass;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
+import static ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier.CREDENTIAL_FORMAT;
+import static ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier.CREDENTIAL_FORMAT_NEW;
 import static ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.Field;
 import static ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.FormatAlgorithm;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
@@ -78,12 +81,16 @@ public class CredentialVerifierSupport {
     public static FormatAlgorithm getRequestedFormat(String credentialFormat, Management managementEntity) {
 
         var presentationDefinition = managementEntity.getRequestedPresentation();
-        var formats = new HashMap<String, FormatAlgorithm>();
+        final Map<String, FormatAlgorithm> formats = new HashMap<>();
 
         addFormatsToMap(presentationDefinition.format(), formats);
         presentationDefinition.inputDescriptors().forEach(descriptor -> addFormatsToMap(descriptor.format(), formats));
-
-        return formats.get(credentialFormat);
+        // EIDOMNI-284 - Contract to only accept correct dc+sd-jwt
+        var updatedFormats = formats.entrySet().stream().collect(
+                Collectors.toMap(
+                        e -> (e.getKey().replace(CREDENTIAL_FORMAT_NEW, CREDENTIAL_FORMAT)),
+                        Map.Entry::getValue));
+        return updatedFormats.get(credentialFormat.replace(CREDENTIAL_FORMAT_NEW, CREDENTIAL_FORMAT));
     }
 
     private static void addFormatsToMap(Map<String, FormatAlgorithm> inputFormats, Map<String, FormatAlgorithm> outputFormats) {

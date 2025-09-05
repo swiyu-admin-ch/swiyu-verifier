@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Updated ApiErrorDto and reused it for every error response. This allows for a more consistent error
+  response structure. Possible breaking change could be that the `error_code` will be moved to details
 - Added WebhookCallbackDto to openapi config schemas.
 - Base functionality for DCQL, allowing using OID4VP v1 style along side legacy DIF PE to query credentials. 
   Verifiable presentations are validated and checked according to DCQL "credentials" query. 
@@ -29,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 {
     "client_id": "your verifier did",
     "version": "1.0.0",
-    ...
     "vp_formats": {
         "jwt_vp": {
             "alg": [

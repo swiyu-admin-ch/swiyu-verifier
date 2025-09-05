@@ -22,7 +22,7 @@ import lombok.AllArgsConstructor;
         | server_error                                            | The authorization server encountered an unexpected                                           |
         | invalid_credential                                      | The credential presented during validation was deemed invalid.                               |
         """)
-public enum VerificationErrorDto {
+public enum VerificationErrorTypeDto {
     // RFC codes
     INVALID_REQUEST("invalid_request"),
     SERVER_ERROR("server_error"),

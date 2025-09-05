@@ -131,6 +131,7 @@ public abstract class BaseVerificationControllerTest {
     }
 
 
+
     private static String presentationDefinitionJson() {
         return """
                 {

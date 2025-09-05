@@ -2,3 +2,6 @@
 CVE-2025-7425
 # We do not use rar in our application and no attacker should have access to the deployed pod CLI
 CVE-2025-5914
+# We do not allow any filesystem path operations
+CVE-2025-6020
+CVE-2025-8941

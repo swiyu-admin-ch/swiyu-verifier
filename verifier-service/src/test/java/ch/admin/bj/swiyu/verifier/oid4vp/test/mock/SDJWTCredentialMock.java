@@ -136,8 +136,8 @@ public class SDJWTCredentialMock {
         return createSDJWTMock(validFrom, validUntil, null, DEFAULT_VCT, getSDClaims());
     }
 
-    public String createSDJWTMock(boolean useLegacyCnfFormat) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, "vc+sd-jwt", JWSAlgorithm.ES256);
+    public String createSDJWTMock(boolean useLegacyCnfFormat, String credentialFormat) {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, credentialFormat, JWSAlgorithm.ES256);
     }
 
     public String createSDJWTMock(String credentialFormat) {

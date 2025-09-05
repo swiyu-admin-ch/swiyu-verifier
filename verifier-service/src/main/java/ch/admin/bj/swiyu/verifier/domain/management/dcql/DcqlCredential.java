@@ -36,6 +36,7 @@ public class DcqlCredential {
 
     /**
      * The format of the requested credential (e.g., "dc+sd-jwt", "jwt_vc_json").
+     * Do not use for verification before EIDOMNI-284 is done
      */
     @JsonProperty("format")
     @NotEmpty

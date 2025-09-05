@@ -55,6 +55,8 @@ import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.getReq
 public class SdjwtCredentialVerifier {
 
     public static final String CREDENTIAL_FORMAT = "vc+sd-jwt";
+    public static final String CREDENTIAL_FORMAT_NEW = "dc+sd-jwt";
+    public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of(CREDENTIAL_FORMAT, CREDENTIAL_FORMAT_NEW);
 
     private final List<String> supportedAlgorithms = List.of("ES256");
     private final String vpToken;
@@ -251,8 +253,8 @@ public class SdjwtCredentialVerifier {
             throw credentialError(INVALID_FORMAT, "Invalid Algorithm: alg must be one of %s, but was %s"
                     .formatted(requestedAlg, header.getAlgorithm().getName()));
         }
-        if (!CREDENTIAL_FORMAT.equals(header.getType().getType())) {
-            throw credentialError(INVALID_FORMAT, String.format("Type header must be %s", CREDENTIAL_FORMAT));
+        if (!SUPPORTED_CREDENTIAL_FORMATS.contains(header.getType().getType())) {
+            throw credentialError(INVALID_FORMAT, String.format("Type header must be %s or %s", CREDENTIAL_FORMAT, CREDENTIAL_FORMAT_NEW));
         }
         // TODO Move the supported algorithm check to creation of the verification request
         if (!supportedAlgorithms.contains(header.getAlgorithm().getName())) {

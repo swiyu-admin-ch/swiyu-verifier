@@ -8,6 +8,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.Field
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.Filter;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.FormatAlgorithm;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 import java.util.Map;
@@ -79,19 +81,23 @@ class CredentialVerifierSupportTest {
         assertTrue(ex.getErrorDescription().contains("Validation criteria not matched"));
     }
 
-    @Test
-    void testGetRequestedFormat_thenSuccess() {
+    @ParameterizedTest
+    @CsvSource({"vc+sd-jwt,vc+sd-jwt",
+            "vc+sd-jwt,dc+sd-jwt",
+            "dc+sd-jwt,vc+sd-jwt",
+            "dc+sd-jwt,dc+sd-jwt"})
+    void testGetRequestedFormat_thenSuccess(String givenFormat, String requestedFormat) {
         FormatAlgorithm formatAlgorithm = mock(FormatAlgorithm.class);
 
         PresentationDefinition pd = mock(PresentationDefinition.class);
-        when(pd.format()).thenReturn(Map.of("jwt", formatAlgorithm));
+        when(pd.format()).thenReturn(Map.of(givenFormat, formatAlgorithm));
         when(pd.inputDescriptors()).thenReturn(List.of());
 
         Management management = mock(Management.class);
         when(management.getRequestedPresentation()).thenReturn(pd);
 
         assertEquals(formatAlgorithm,
-                CredentialVerifierSupport.getRequestedFormat("jwt", management));
+                CredentialVerifierSupport.getRequestedFormat(requestedFormat, management));
     }
 
     @Test

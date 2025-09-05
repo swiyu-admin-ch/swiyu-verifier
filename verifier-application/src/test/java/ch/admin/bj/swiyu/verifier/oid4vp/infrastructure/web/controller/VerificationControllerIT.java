@@ -526,11 +526,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
-    @Test
-    void shouldSucceedVerifyingCredentialWithLegacyCNFFormat_thenSuccess() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"vc+sd-jwt", "dc+sd-jwt"})
+    void shouldSucceedVerifyingCredentialWithLegacyCNFFormat_thenSuccess(String credentialFormat) throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSDJWTMock(true);
+        var sdJWT = emulator.createSDJWTMock(true, credentialFormat);
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "http://localhost");
         vpToken = SDJWTCredentialMock.createMultipleVPTokenMock(vpToken);
         String presentationSubmission = getMultiplePresentationSubmissionString(UUID.randomUUID());

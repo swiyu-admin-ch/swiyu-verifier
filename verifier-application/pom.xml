@@ -370,7 +370,7 @@
             <plugin>
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-maven-plugin</artifactId>
-                <version>1.4</version>
+                <version>1.5</version>
                 <configuration>
                     <attachArtifact>true</attachArtifact>
                     <outputDir>${project.parent.basedir}</outputDir>

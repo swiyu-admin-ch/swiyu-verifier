@@ -21,10 +21,11 @@ jobs:
     steps:
         - name: Checkout repository
           uses: actions/checkout@v4
-#        - name: Initialize CodeQL
-#          uses: github/codeql-action/init@v3
-#          with:
-#            languages: java
+        - name: Initialize CodeQL
+          uses: github/codeql-action/init@v3
+          with:
+            languages: java
+            config-file: ./.github/codeql/codeql-config.yml
         - name: Set up Java
           uses: actions/setup-java@v4
           with:
@@ -34,14 +35,29 @@ jobs:
         - name: Build with Maven
           run: mvn --batch-mode clean generate-resources install
           # Note: codeQL MUST be after the compile step
-#        - name: Perform CodeQL Analysis
-#          uses: github/codeql-action/analyze@v3
+        - name: Perform CodeQL Analysis
+          uses: github/codeql-action/analyze@v3
+          with:
+            category: "/language:java"
+
+        - name: Run PMD static analysis
+          uses: pmd/pmd-github-action@v2
+          id: pmd
+          with:
+            rulesets: '.github/rulesets/java/pmd_omni_ruleset.xml'
+
+        - name: Upload PMD SARIF to GitHub Code Scanning
+          uses: github/codeql-action/upload-sarif@v3
+          with:
+            sarif_file: pmd-report.sarif
+
         - name: Build and push docker image
           id: push
           uses: docker/build-push-action@v6
           with:
             context: .
             load: true
+            pull: true # Prevent old images to be used, which may trigger CVE findings
             tags: pull_request_check:latest
             build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
             file: Dockerfile
@@ -52,4 +68,5 @@ jobs:
             image-ref: pull_request_check:latest
             severity: 'CRITICAL,HIGH'
             exit-code: 1
+            ignore-unfixed: true
             format: table

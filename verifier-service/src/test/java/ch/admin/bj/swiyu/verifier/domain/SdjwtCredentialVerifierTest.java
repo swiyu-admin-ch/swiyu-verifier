@@ -34,6 +34,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * Legacy for DIF Presentation Exchange
+ */
 class SdjwtCredentialVerifierTest {
 
     private final String testNonce = "test-nonce";

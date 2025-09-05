@@ -22,13 +22,16 @@ import lombok.AllArgsConstructor;
         | server_error                                            | The authorization server encountered an unexpected                                           |
         | invalid_credential                                      | The credential presented during validation was deemed invalid.                               |
         """)
-public enum VerificationErrorDto {
+public enum VerificationErrorTypeDto {
     // RFC codes
     INVALID_REQUEST("invalid_request"),
     SERVER_ERROR("server_error"),
 
     // Codes according to custom profile
-    INVALID_CREDENTIAL("invalid_credential");
+    INVALID_CREDENTIAL("invalid_credential"),
+    ACCESS_DENIED("access_denied"),
+    INVALID_TRANSACTION_DATA("invalid_transaction_data"),
+    INVALID_CLIENT("invalid_client");
 
     private final String displayName;
 

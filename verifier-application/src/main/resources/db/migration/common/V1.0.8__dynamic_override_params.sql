@@ -1,0 +1,1 @@
+ALTER TABLE management ADD configuration_override jsonb;

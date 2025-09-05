@@ -32,6 +32,28 @@ public class VerificationException extends RuntimeException {
         );
     }
 
+    public static VerificationException submissionError(Throwable cause, VerificationErrorResponseCode error, String errorDescription) {
+        return new VerificationException(
+                cause /* submissionError is only caused by business cases and not exceptions */,
+                VerificationError.INVALID_REQUEST,
+                error,
+                errorDescription
+        );
+    }
+
+
+    /**
+     * Submission error for invalid transaction data according to OID4VP 1.0 spec
+     */
+    public static VerificationException submissionErrorV1(Throwable cause, VerificationErrorResponseCode error, String errorDescription) {
+        return new VerificationException(
+                cause /* submissionError is only caused by business cases and not exceptions */,
+                VerificationError.INVALID_TRANSACTION_DATA,
+                error,
+                errorDescription
+        );
+    }
+
 
     public static VerificationException submissionError(VerificationError error, String errorDescription) {
         return new VerificationException(

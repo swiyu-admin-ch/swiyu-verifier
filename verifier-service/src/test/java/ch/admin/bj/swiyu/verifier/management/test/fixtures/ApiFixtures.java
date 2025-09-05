@@ -8,7 +8,9 @@ package ch.admin.bj.swiyu.verifier.management.test.fixtures;
 
 import ch.admin.bj.swiyu.verifier.api.definition.*;
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.api.management.dcql.*;
 import lombok.experimental.UtilityClass;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -26,7 +28,15 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids, PresentationDefinitionDto presentationDefinitionDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, presentationDefinitionDto);
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, presentationDefinitionDto, null, null);
+    }
+
+    public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(PresentationDefinitionDto presentationDefinitionDto, DcqlQueryDto dcqlQueryDto) {
+        return new CreateVerificationManagementDto(null, null, false, presentationDefinitionDto, null, dcqlQueryDto);
+    }
+
+    public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(DcqlQueryDto dcqlQueryDto) {
+        return new CreateVerificationManagementDto(null, null, false, presentationDefinitionDto(), null, dcqlQueryDto);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
@@ -50,7 +60,9 @@ public class ApiFixtures {
                 null,
                 null,
                 null,
-                List.of(inputDescriptorMinimal))
+                List.of(inputDescriptorMinimal)),
+                null,
+                null
         );
     }
 
@@ -123,5 +135,42 @@ public class ApiFixtures {
                 "field_name",
                 "field_purpose",
                 null);
+    }
+
+    @NotNull
+    public static DcqlQueryDto getDcqlQueryDto() {
+        var claims = List.of(
+                new DcqlClaimDto(null, List.of("given_name"), null),
+                new DcqlClaimDto(null, List.of("family_name"),null)
+        );
+        return createDcqlQueryDto(claims);
+    }
+
+    public static DcqlQueryDto createDcqlQueryDto(List<DcqlClaimDto> claims) {
+        // Build a minimal DCQL query DTO
+        var meta = new DcqlCredentialMetaDto(
+                null,
+                List.of("https://credentials.example.com/identity_credential"),
+                null
+        );
+        var credential = new DcqlCredentialDto(
+                "identity_credential_dcql",
+                "dc+sd-jwt",
+                null,
+                meta,
+                claims,
+                null,
+                true,
+                null
+        );
+        // TODO Start supporting credential sets
+//        var credentialSet = new DcqlCredentialSetDto(
+//                List.of(List.of("identity_credential_dcql")),
+//                true
+//        );
+        return new DcqlQueryDto(
+                List.of(credential),
+                List.of()
+        );
     }
 }

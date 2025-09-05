@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.FAILED;
@@ -45,10 +47,12 @@ public class Management {
     @Builder.Default
     private UUID id = UUID.randomUUID(); // Generate the ID manually
 
-    private String requestNonce;
+    @Builder.Default
+    private String requestNonce = createNonce();
 
     @Enumerated(EnumType.STRING)
-    private VerificationStatus state;
+    @Builder.Default
+    private VerificationStatus state = VerificationStatus.PENDING;
 
     @NotNull
     private Boolean jwtSecuredAuthorizationRequest;
@@ -75,17 +79,14 @@ public class Management {
     @Column(name = "trust_anchors")
     private List<TrustAnchor> trustAnchors;
 
-    public Management(UUID id, int expirationInSeconds, PresentationDefinition requestedPresentation, boolean jwtSecuredAuthorizationRequest, List<String> acceptedIssuerDids, List<TrustAnchor> trustAnchors) {
-        this.id = id;
-        this.state = VerificationStatus.PENDING;
-        this.requestNonce = createNonce();
-        this.expirationInSeconds = expirationInSeconds;
-        this.expiresAt = calculateExpiresAt(expirationInSeconds);
-        this.requestedPresentation = requestedPresentation;
-        this.jwtSecuredAuthorizationRequest = jwtSecuredAuthorizationRequest;
-        this.acceptedIssuerDids = acceptedIssuerDids;
-        this.trustAnchors = trustAnchors;
-    }
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name="configuration_override", columnDefinition = "jsonb")
+    private ConfigurationOverride configurationOverride;
+
+    @Column(name = "dcql_query", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private DcqlQuery dcqlQuery;
+
 
     public boolean isVerificationPending() {
         return state == ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
@@ -131,5 +132,19 @@ public class Management {
 
     public boolean isExpired() {
         return System.currentTimeMillis() > expiresAt;
+    }
+
+    /**
+     * Reset the timestamp at which this object will count as expired with the <code>expirationInSeconds</code>
+     * @return this object for daisy chaining
+     */
+    public Management resetExpiresAt() {
+        expiresAt = calculateExpiresAt(expirationInSeconds);
+        return this;
+    }
+
+    @NotNull
+    public ConfigurationOverride getConfigurationOverride() {
+        return Objects.requireNonNullElseGet(this.configurationOverride, () -> new ConfigurationOverride(null, null, null, null, null));
     }
 }

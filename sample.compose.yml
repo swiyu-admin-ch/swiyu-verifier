@@ -4,7 +4,7 @@
 
 services:
   verifier_postgres:
-    image: postgres:15.8
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: "verifier_user"
       POSTGRES_PASSWORD: "secret"

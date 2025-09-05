@@ -17,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +32,6 @@ import static java.util.Objects.requireNonNullElse;
 public class ManagementService {
 
     private final ManagementRepository repository;
-
     private final ApplicationProperties applicationProperties;
 
     @Transactional
@@ -51,26 +51,47 @@ public class ManagementService {
             throw new IllegalArgumentException("CreateVerificationManagement is null");
         }
         if (request.presentationDefinition() == null) {
-            throw new IllegalArgumentException("PresentationDefinition is null");
+            // Until the wallet is migrated we MUST provide a presentation definition.
+            throw new IllegalArgumentException("PresentationDefinition must be provided");
         }
 
+
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
+        var dcqlQueryDto = request.dcqlQuery();
+        if (dcqlQueryDto != null) {
+            if (dcqlQueryDto.credentials().stream().anyMatch(cred -> Boolean.TRUE.equals(cred.multiple()))) {
+                // Currently supporting only 1 vp token per credential query
+                throw new IllegalArgumentException("multiple credentials in response for a single query not supported");
+            }
+            if (!CollectionUtils.isEmpty(dcqlQueryDto.credentialSets())) {
+                // Not yet supporting credential sets
+                throw new IllegalArgumentException("credential sets not yet supported");
+            }
+            if (dcqlQueryDto.credentials().stream().anyMatch(cred -> cred.meta().vctValues().isEmpty())) {
+                throw new IllegalArgumentException("vct_values is required");
+            }
+        }
+        var dcqlQuery = DcqlMapper.toDcqlQuery(dcqlQueryDto);
         List<TrustAnchor> trustAnchors = null;
-        if ( request.trustAnchors() != null ) {
-            trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();}
-        var management = repository.save(new Management(
-                UUID.randomUUID(),
-                applicationProperties.getVerificationTTL(),
-                presentationDefinition,
-                requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true),
-                request.acceptedIssuerDids(),
-                trustAnchors)
-                );
+        if (request.trustAnchors() != null) {
+            trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
+        }
+
+        var management = repository.save(Management.builder()
+                .expirationInSeconds(applicationProperties.getVerificationTTL())
+                .requestedPresentation(presentationDefinition)
+                .dcqlQuery(dcqlQuery)
+                .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
+                .acceptedIssuerDids(request.acceptedIssuerDids())
+                .trustAnchors(trustAnchors)
+                .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
+                .build()
+                .resetExpiresAt());
 
         log.info("Created pending verification for id: {}", management.getId());
-
         return toManagementResponseDto(management, applicationProperties);
     }
+
 
     @Transactional
     public void removeExpiredManagements() {

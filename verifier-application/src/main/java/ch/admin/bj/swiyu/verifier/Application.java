@@ -15,6 +15,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
 @SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class})
 @EnableConfigurationProperties
 @ConfigurationPropertiesScan
@@ -40,5 +41,4 @@ public class Application {
                 serverPort
         );
     }
-
 }

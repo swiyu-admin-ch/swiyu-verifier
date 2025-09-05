@@ -6,20 +6,13 @@
 
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlCredentialDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlCredentialMetaDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlClaimDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlCredentialSetDto;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialSet;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ch.admin.bj.swiyu.verifier.api.management.dcql.*;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.*;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 
@@ -55,6 +48,49 @@ public class DcqlMapper {
                         : null)
                 .build();
     }
+
+
+    public static DcqlQueryDto toDcqlQueryDto(@Nullable DcqlQuery dcqlQuery) {
+        if (dcqlQuery == null) {
+            return null;
+        }
+
+        var credentials = dcqlQuery.getCredentials();
+        var credentialSets = dcqlQuery.getCredentialSets();
+        return new DcqlQueryDto(
+                CollectionUtils.isEmpty(credentials) ? null : credentials.stream().map(DcqlMapper::toDcqlCredentialDto).toList(),
+                CollectionUtils.isEmpty(credentialSets) ? null : credentialSets.stream().map(DcqlMapper::toDcqlCredentialSetDto).toList());
+    }
+
+    private static DcqlCredentialSetDto toDcqlCredentialSetDto(DcqlCredentialSet credentialSet) {
+        return new DcqlCredentialSetDto(credentialSet.getOptions(), credentialSet.getRequired());
+    }
+
+    private static DcqlCredentialDto toDcqlCredentialDto(DcqlCredential credential) {
+        List<DcqlClaim> claims = credential.getClaims();
+        return new DcqlCredentialDto(
+                credential.getId(),
+                credential.getFormat(),
+                credential.getMultiple(),
+                DcqlMapper.toDcqlCredentialMetaDto(credential.getMeta()),
+                CollectionUtils.isEmpty(claims) ? null : claims.stream().map(DcqlMapper::toDcqlClaimDto).toList(),
+                null,
+                credential.getRequireCryptographicHolderBinding(),
+                null);
+    }
+
+    private static DcqlClaimDto toDcqlClaimDto(DcqlClaim dcqlClaim) {
+        return new DcqlClaimDto(
+                dcqlClaim.getId(),
+                dcqlClaim.getPath(),
+                dcqlClaim.getValues()
+        );
+    }
+
+    private static DcqlCredentialMetaDto toDcqlCredentialMetaDto(@NotNull DcqlCredentialMeta meta) {
+        return new DcqlCredentialMetaDto(meta.getTypeValues(), meta.getVctValues(), meta.getDoctypeValue());
+    }
+
 
     /**
      * Converts a DcqlCredentialDto to DcqlCredential domain object.

@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -55,6 +56,7 @@ class VerificationServiceTest {
     @BeforeEach
     void setUp() {
         VerificationProperties verificationProperties = mock(VerificationProperties.class);
+        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
         ManagementRepository managementRepository = mock(ManagementRepository.class);
         IssuerPublicKeyLoader issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
         StatusListReferenceFactory statusListReferenceFactory = mock(StatusListReferenceFactory.class);
@@ -64,6 +66,7 @@ class VerificationServiceTest {
 
         verificationService = new VerificationService(
                 verificationProperties,
+                applicationProperties,
                 managementRepository,
                 issuerPublicKeyLoader,
                 statusListReferenceFactory,

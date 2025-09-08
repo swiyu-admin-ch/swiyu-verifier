@@ -11,6 +11,7 @@ import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestEncrypt
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -51,6 +52,7 @@ public class VerificationService {
 
     private static final String LOADED_MANAGEMENT_ENTITY_FOR = "Loaded management entity for ";
     private final VerificationProperties verificationProperties;
+    private final ApplicationProperties applicationProperties;
     private final ManagementRepository managementEntityRepository;
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
@@ -255,7 +257,8 @@ public class VerificationService {
                     issuerPublicKeyLoader,
                     statusListReferenceFactory,
                     objectMapper,
-                    verificationProperties);
+                    verificationProperties,
+                    applicationProperties);
             return verifier.verifyPresentation();
         }
         throw new IllegalArgumentException("Unknown format: " + format);

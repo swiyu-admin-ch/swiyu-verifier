@@ -388,7 +388,10 @@ public class SdjwtCredentialVerifier {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Multiple audiences not supported for Holder Binding");
         }
         var aud = audience.getFirst();
-        if (!applicationProperties.getClientId().equals(aud) && !aud.startsWith(applicationProperties.getExternalUrl())) {
+        var override = managementEntity.getConfigurationOverride();
+        String clientId = Optional.ofNullable(override.verifierDid()).orElse(applicationProperties.getClientId());
+        String externalUrl = Optional.ofNullable(override.externalUrl()).orElse(applicationProperties.getExternalUrl());
+        if (!clientId.equals(aud) && !aud.startsWith(externalUrl)) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding Audience mismatch. Holder Binding was created for different audience.");
         }
     }

@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.domain;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
@@ -65,6 +66,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getId()).thenReturn(UUID.randomUUID());
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(Collections.emptyList());
         when(managementEntity.getRequestNonce()).thenReturn(testNonce);
+        when(managementEntity.getConfigurationOverride()).thenReturn(new  ConfigurationOverride(null, null, null, null, null));
 
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
@@ -92,6 +94,7 @@ class SdjwtCredentialVerifierTest {
         var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, DEFAULT_ISSUER_ID);
         when(managementEntity.getTrustAnchors())
                 .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
+        when(managementEntity.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
         when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
                 .thenReturn((List.of(trustStatement)));
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(

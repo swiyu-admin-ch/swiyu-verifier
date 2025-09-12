@@ -384,7 +384,12 @@ public class SdjwtCredentialVerifier {
         if(audience == null || audience.isEmpty()) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Audience");
         }
-        if (audience.size() != 1) {
+        /*
+         * https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3
+         * The value MUST be a single string that identifies the intended receiver of the Key Binding JWT.
+         */
+        var maximumSupportedHolderBindingAudiences = 1;
+        if (audience.size() != maximumSupportedHolderBindingAudiences) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Multiple audiences not supported for Holder Binding");
         }
         var aud = audience.getFirst();

@@ -55,12 +55,13 @@ public class SdJwtVerificationService {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
-    private final ApplicationProperties  applicationProperties;
+    private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
 
 
     /**
      * Test function to ensure parity with DIF PE
+     *
      * @return claims of the vpToken requested in the management as json string
      */
     public String verifyVpTokenPresentationExchange(String vpToken, Management management) {
@@ -326,7 +327,7 @@ public class SdJwtVerificationService {
         // Validate Holder Binding Proof JWT
         JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding,
                 Optional.ofNullable(management.getConfigurationOverride())
-                        .orElse(new ConfigurationOverride(null,null,null,null,null)));
+                        .orElse(new ConfigurationOverride(null, null, null, null, null)));
         validateNonce(keyBindingClaims, management.getRequestNonce());
         validateSDHash(sdJwt, keyBindingClaims);
     }
@@ -373,18 +374,23 @@ public class SdJwtVerificationService {
     }
 
     private void validateHolderBindingAudience(List<String> audience, ConfigurationOverride configurationOverride) {
-            if(audience == null || audience.isEmpty()) {
-                throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Audience");
-            }
-            if (audience.size() != 1) {
-                throw credentialError(HOLDER_BINDING_MISMATCH, "Multiple audiences not supported for Holder Binding");
-            }
-            var aud = audience.getFirst();
-            if (
-                    !Optional.ofNullable(configurationOverride.verifierDid()).orElse(applicationProperties.getClientId()).equals(aud)
-                            && !aud.startsWith(Optional.ofNullable(configurationOverride.externalUrl()).orElse(applicationProperties.getExternalUrl()))) {
-                throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding Audience mismatch. Holder Binding was created for different audience.");
-            }
+        if (audience == null || audience.isEmpty()) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Audience");
+        }
+        /*
+         * https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3
+         * The value MUST be a single string that identifies the intended receiver of the Key Binding JWT.
+         */
+        var maximumSupportedHolderBindingAudiences = 1;
+        if (audience.size() != maximumSupportedHolderBindingAudiences) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Multiple audiences not supported for Holder Binding");
+        }
+        var aud = audience.getFirst();
+        if (
+                !Optional.ofNullable(configurationOverride.verifierDid()).orElse(applicationProperties.getClientId()).equals(aud)
+                        && !aud.startsWith(Optional.ofNullable(configurationOverride.externalUrl()).orElse(applicationProperties.getExternalUrl()))) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding Audience mismatch. Holder Binding was created for different audience.");
+        }
 
     }
 

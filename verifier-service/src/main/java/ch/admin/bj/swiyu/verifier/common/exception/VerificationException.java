@@ -11,7 +11,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationError.INVA
 import lombok.Getter;
 
 @Getter
-public class VerificationException extends RuntimeException {
+public final class VerificationException extends RuntimeException {
     private final VerificationError errorType;
     private final VerificationErrorResponseCode errorResponseCode;
     private final String errorDescription;

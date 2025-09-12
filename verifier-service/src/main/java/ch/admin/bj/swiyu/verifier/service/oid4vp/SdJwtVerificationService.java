@@ -1,10 +1,12 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
@@ -53,11 +55,13 @@ public class SdJwtVerificationService {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
+    private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
 
 
     /**
      * Test function to ensure parity with DIF PE
+     *
      * @return claims of the vpToken requested in the management as json string
      */
     public String verifyVpTokenPresentationExchange(String vpToken, Management management) {
@@ -112,7 +116,7 @@ public class SdJwtVerificationService {
         // If Key Binding is present, validate that it is correct
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken,
-                    management.getRequestNonce());
+                    management);
         } else if (requiresKeyBinding(vpToken.getClaims())) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
@@ -318,11 +322,13 @@ public class SdJwtVerificationService {
         return claims.getClaims().containsKey("cnf");
     }
 
-    private void validateKeyBinding(SdJwt sdJwt, String nonce) {
+    private void validateKeyBinding(SdJwt sdJwt, Management management) {
         JWK keyBinding = getHolderKeyBinding(sdJwt.getClaims().getClaims());
         // Validate Holder Binding Proof JWT
-        JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding);
-        validateNonce(keyBindingClaims, nonce);
+        JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding,
+                Optional.ofNullable(management.getConfigurationOverride())
+                        .orElse(new ConfigurationOverride(null, null, null, null, null)));
+        validateNonce(keyBindingClaims, management.getRequestNonce());
         validateSDHash(sdJwt, keyBindingClaims);
     }
 
@@ -344,7 +350,7 @@ public class SdJwtVerificationService {
     }
 
     @NotNull
-    private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding) {
+    private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding, ConfigurationOverride configurationOverride) {
         JWTClaimsSet keyBindingClaims;
         try {
             SignedJWT keyBindingJWT = SignedJWT.parse(keyBindingProof);
@@ -356,6 +362,7 @@ public class SdJwtVerificationService {
             }
             validateKeyBindingClaims(keyBindingJWT);
             keyBindingClaims = keyBindingJWT.getJWTClaimsSet();
+            validateHolderBindingAudience(keyBindingClaims.getAudience(), configurationOverride);
         } catch (ParseException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed");
         } catch (JOSEException e) {
@@ -364,6 +371,27 @@ public class SdJwtVerificationService {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding is not a valid JWT");
         }
         return keyBindingClaims;
+    }
+
+    private void validateHolderBindingAudience(List<String> audience, ConfigurationOverride configurationOverride) {
+        if (audience == null || audience.isEmpty()) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Audience");
+        }
+        /*
+         * https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3
+         * The value MUST be a single string that identifies the intended receiver of the Key Binding JWT.
+         */
+        var maximumSupportedHolderBindingAudiences = 1;
+        if (audience.size() != maximumSupportedHolderBindingAudiences) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Multiple audiences not supported for Holder Binding");
+        }
+        var aud = audience.getFirst();
+        if (
+                !Optional.ofNullable(configurationOverride.verifierDid()).orElse(applicationProperties.getClientId()).equals(aud)
+                        && !aud.startsWith(Optional.ofNullable(configurationOverride.externalUrl()).orElse(applicationProperties.getExternalUrl()))) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding Audience mismatch. Holder Binding was created for different audience.");
+        }
+
     }
 
     /**

@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.domain;
 
 import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
@@ -63,7 +64,7 @@ public class SdjwtCredentialVerifier {
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
     private final VerificationProperties verificationProperties;
-
+    private final ApplicationProperties applicationProperties;
 
     /**
      * Verifies the presentation of a SD-JWT Credential as described in
@@ -376,6 +377,28 @@ public class SdjwtCredentialVerifier {
         JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(keyBindingProof, keyBinding);
         validateNonce(keyBindingClaims);
         validateSDHash(keyBindingClaims);
+        validateKeyBindingAudience(keyBindingClaims.getAudience());
+    }
+
+    private void validateKeyBindingAudience(List<String> audience) {
+        if(audience == null || audience.isEmpty()) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Audience");
+        }
+        /*
+         * https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3
+         * The value MUST be a single string that identifies the intended receiver of the Key Binding JWT.
+         */
+        var maximumSupportedHolderBindingAudiences = 1;
+        if (audience.size() != maximumSupportedHolderBindingAudiences) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Multiple audiences not supported for Holder Binding");
+        }
+        var aud = audience.getFirst();
+        var override = managementEntity.getConfigurationOverride();
+        String clientId = Optional.ofNullable(override.verifierDid()).orElse(applicationProperties.getClientId());
+        String externalUrl = Optional.ofNullable(override.externalUrl()).orElse(applicationProperties.getExternalUrl());
+        if (!clientId.equals(aud) && !aud.startsWith(externalUrl)) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding Audience mismatch. Holder Binding was created for different audience.");
+        }
     }
 
     private void validateSDHash(JWTClaimsSet keyBindingClaims) {

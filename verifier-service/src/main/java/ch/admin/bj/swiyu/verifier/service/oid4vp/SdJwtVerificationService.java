@@ -351,6 +351,7 @@ public class SdJwtVerificationService {
         }
     }
 
+
     @NotNull
     private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding, ConfigurationOverride configurationOverride) {
         JWTClaimsSet keyBindingClaims;
@@ -376,6 +377,12 @@ public class SdJwtVerificationService {
     }
 
 
+    /**
+     * Validates if we as verifier are indeed the audience of the holder binding, or whether it was created for another (eg. man in the middle) service.
+     * @param audience the audience as provided in the holder binding JWT
+     * @param configurationOverride possible override values
+     * @throws VerificationException if the audience for the holder binding does not match the expected one
+     */
     private void validateHolderBindingAudience(List<String> audience,
                                                ConfigurationOverride configurationOverride) {
         if (CollectionUtils.isEmpty(audience)){
@@ -391,30 +398,12 @@ public class SdJwtVerificationService {
                     "Multiple audiences not supported. Expected 1 but was %d: %s".formatted(audience.size(), audience));
         }
 
-        String aud = audience.get(0);
-        if (aud == null || aud.isBlank()) {
+        String aud = audience.getFirst();
+        if (StringUtils.isBlank(aud)) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
         }
 
-        String effectiveVerifierDid = Optional.ofNullable(configurationOverride.verifierDid())
-                .orElse(applicationProperties.getClientId());
-
-        String effectiveExternalUrl = Optional.ofNullable(configurationOverride.externalUrl())
-                .orElse(applicationProperties.getExternalUrl());
-
-        // Normalize external URL (remove trailing slash)
-        if (effectiveExternalUrl != null && effectiveExternalUrl.endsWith("/")) {
-            effectiveExternalUrl = effectiveExternalUrl.substring(0, effectiveExternalUrl.length() - 1);
-        }
-
-        // Allowed exact audiences (spec: single string identifying the receiver)
-        Set<String> allowedAudiences = new HashSet<>();
-        if (effectiveVerifierDid != null) {
-            allowedAudiences.add(effectiveVerifierDid);
-        }
-        if (effectiveExternalUrl != null) {
-            allowedAudiences.add(effectiveExternalUrl);
-        }
+        List<String> allowedAudiences = getAllowedAudiences(configurationOverride);
 
         // Exact match only
         if (!allowedAudiences.contains(aud)) {
@@ -422,6 +411,27 @@ public class SdJwtVerificationService {
                     "Holder Binding audience mismatch. Actual: '%s'. Expected one of: %s"
                             .formatted(aud, allowedAudiences));
         }
+    }
+
+    /**
+     *
+     * @param configurationOverride override possibly providing
+     * @return an unmodifiable set of all exact allowed audience values
+     */
+    @NotNull
+    private List<String> getAllowedAudiences(ConfigurationOverride configurationOverride) {
+        String effectiveVerifierDid = Optional.ofNullable(configurationOverride.verifierDid())
+                .orElse(applicationProperties.getClientId());
+
+        String effectiveExternalUrl = Optional.ofNullable(configurationOverride.externalUrl())
+                .orElse(applicationProperties.getExternalUrl());
+
+        // Normalize external URL (remove trailing slash)
+        if (effectiveExternalUrl.endsWith("/")) {
+            effectiveExternalUrl = effectiveExternalUrl.substring(0, effectiveExternalUrl.length() - 1);
+        }
+
+        return List.of(effectiveVerifierDid, effectiveExternalUrl);
     }
 
     /**

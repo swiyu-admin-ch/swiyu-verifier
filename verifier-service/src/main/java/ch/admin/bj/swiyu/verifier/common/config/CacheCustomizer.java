@@ -29,7 +29,7 @@ public class CacheCustomizer implements CacheManagerCustomizer<ConcurrentMapCach
     @CacheEvict(value = STATUS_LIST_CACHE, allEntries = true)
     @Scheduled(fixedRateString = "${caching.statusListCacheTTL}")
     public void emptyStatusListCache() {
-        log.info("emptying status list cache");
+        log.debug("emptying status list cache");
     }
 
     /**
@@ -39,6 +39,6 @@ public class CacheCustomizer implements CacheManagerCustomizer<ConcurrentMapCach
     @CacheEvict(value = ISSUER_PUBLIC_KEY_CACHE, allEntries = true)
     @Scheduled(fixedRateString = "${caching.issuerPublicKeyCacheTTL}")
     public void emptyIssuerPublicKeyCache() {
-        log.info("emptying public keys cache");
+        log.debug("emptying public keys cache");
     }
 }

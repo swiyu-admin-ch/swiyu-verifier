@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
   verifier-service:
-    image: ghcr.io/swiyu-admin-ch/swiyu-verifier-service:latest
+    image: ghcr.io/swiyu-admin-ch/swiyu-verifier:latest
     configs:
       - source: verifier_metadata
         target: /verifier_metadata.json

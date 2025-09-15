@@ -1,7 +1,9 @@
 package ch.admin.bj.swiyu.verifier.domain;
 
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
@@ -44,6 +46,7 @@ class SdjwtCredentialVerifierTest {
     private StatusListReferenceFactory statusListReferenceFactory;
     private ObjectMapper objectMapper;
     private VerificationProperties verificationProperties;
+    private ApplicationProperties applicationProperties;
     private Management managementEntity;
     private PresentationDefinition presentationDefinition;
 
@@ -53,14 +56,17 @@ class SdjwtCredentialVerifierTest {
         statusListReferenceFactory = mock(StatusListReferenceFactory.class);
         objectMapper = new ObjectMapper();
         verificationProperties = mock(VerificationProperties.class);
+        applicationProperties = mock(ApplicationProperties.class);
         managementEntity = mock(Management.class);
         presentationDefinition = getMockedPresentationDefinition("ES256", "ES256", List.of("$.first_name", "$.last_name"));
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-
+        when(applicationProperties.getClientId()).thenReturn("did:example:12345");
+        when(applicationProperties.getExternalUrl()).thenReturn("http://localhost");
         when(managementEntity.getId()).thenReturn(UUID.randomUUID());
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(Collections.emptyList());
         when(managementEntity.getRequestNonce()).thenReturn(testNonce);
+        when(managementEntity.getConfigurationOverride()).thenReturn(new  ConfigurationOverride(null, null, null, null, null));
 
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
@@ -88,18 +94,20 @@ class SdjwtCredentialVerifierTest {
         var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, DEFAULT_ISSUER_ID);
         when(managementEntity.getTrustAnchors())
                 .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
+        when(managementEntity.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
         when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
                 .thenReturn((List.of(trustStatement)));
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var ex = assertThrows(VerificationException.class, verifier::verifyPresentation);
         assertEquals(ISSUER_NOT_ACCEPTED, ex.getErrorResponseCode());
         assertEquals("Issuer not in list of accepted issuers or connected to trust anchor", ex.getErrorDescription());
     }
     
-    @Test
-    void verifyPresentationWithTrustStatement_thenSuccess() throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+    @ParameterizedTest
+    @ValueSource(strings = {"http://localhost", "did:example:12345"})
+    void verifyPresentationWithTrustStatement_thenSuccess(String audience) throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
         // Issuer not in Accepted Issuer dids
         var vcIssuerDid = "did:example:third";
         var vcIssuerKid = vcIssuerDid+"#key-1";
@@ -107,7 +115,7 @@ class SdjwtCredentialVerifierTest {
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, audience);
 
         // Trust Statement for default vc type
         var trustRegistryUrl = "https://trust-registry.example.com";
@@ -121,7 +129,7 @@ class SdjwtCredentialVerifierTest {
         when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
                 .thenReturn((List.of(trustStatement)));
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         assertDoesNotThrow(verifier::verifyPresentation);
     }
@@ -133,7 +141,7 @@ class SdjwtCredentialVerifierTest {
 
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of("did:example:other"));
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                sdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                sdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
         // No issuer is a trusted issuer ==> VC is refused
@@ -148,7 +156,7 @@ class SdjwtCredentialVerifierTest {
         String incorrectSdjwt = emulator.createSDJWTMock();
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of("did:example:other"));
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                incorrectSdjwt, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                incorrectSdjwt, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
         assertEquals(ISSUER_NOT_ACCEPTED, exception.getErrorResponseCode());
@@ -161,7 +169,7 @@ class SdjwtCredentialVerifierTest {
         var prematureSdJWT = emulator.createSDJWTMock(Instant.now().plus(1, ChronoUnit.HOURS).getEpochSecond());
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -176,7 +184,7 @@ class SdjwtCredentialVerifierTest {
                 Instant.now().minusSeconds(10).getEpochSecond());
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                expiredSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                expiredSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -194,7 +202,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -211,7 +219,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                prematureSdJWT, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -230,7 +238,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -250,7 +258,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -270,7 +278,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -288,7 +296,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -308,7 +316,7 @@ class SdjwtCredentialVerifierTest {
                 .thenThrow(new LoadingPublicKeyOfIssuerFailedException("Failed to load public key for issuer", new Exception("Loading failed")));
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -325,7 +333,7 @@ class SdjwtCredentialVerifierTest {
         var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -341,7 +349,7 @@ class SdjwtCredentialVerifierTest {
         var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost", Instant.now().getEpochSecond(), "kb+jwt");
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
@@ -361,12 +369,32 @@ class SdjwtCredentialVerifierTest {
         var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://localhost");
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
         assertEquals(MALFORMED_CREDENTIAL, exception.getErrorResponseCode());
         assertEquals("Request contains non-distinct disclosures", exception.getErrorDescription());
+    }
+
+    @Test
+    void verifyPresentationMismatchingAudience_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdjwt = emulator.createSDJWTMock();
+
+        // duplicate disclosures
+        var parts = sdjwt.split("~");
+        sdjwt = parts[0] + "~" + parts[1] + "~" + parts[1] + "~";
+
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://example.com");
+
+        SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
+        );
+        var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
+
+        assertEquals(HOLDER_BINDING_MISMATCH, exception.getErrorResponseCode());
+        assertTrue(exception.getErrorDescription().contains("Holder Binding audience mismatch"));
     }
 
     @Test
@@ -386,7 +414,7 @@ class SdjwtCredentialVerifierTest {
                 .map(Disclosure::parse).toList();
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
 
         presentationDefinition = getMockedPresentationDefinition("ES384", "ES256", List.of("$.first_name", "$.last_name", "$.not_existing"));
@@ -423,3 +451,4 @@ class SdjwtCredentialVerifierTest {
                 List.of(fieldPath), "test-field", "Test Field", "purpose", null);
     }
 }
+

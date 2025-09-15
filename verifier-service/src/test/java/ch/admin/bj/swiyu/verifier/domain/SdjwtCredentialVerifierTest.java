@@ -394,7 +394,7 @@ class SdjwtCredentialVerifierTest {
         var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
 
         assertEquals(HOLDER_BINDING_MISMATCH, exception.getErrorResponseCode());
-        assertEquals("Holder Binding Audience mismatch. Holder Binding was created for different audience.", exception.getErrorDescription());
+        assertTrue(exception.getErrorDescription().contains("Holder Binding audience mismatch"));
     }
 
     @Test
@@ -451,3 +451,4 @@ class SdjwtCredentialVerifierTest {
                 List.of(fieldPath), "test-field", "Test Field", "purpose", null);
     }
 }
+

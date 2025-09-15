@@ -374,7 +374,7 @@ public class SdJwtVerificationService {
     }
 
     private void validateHolderBindingAudience(List<String> audience, ConfigurationOverride configurationOverride) {
-        if (audience == null || audience.isEmpty()) {
+        if (CollectionUtils.isEmpty(audience) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Audience");
         }
         /*

@@ -74,6 +74,22 @@
                             <goal>prepare-agent-integration</goal>
                         </goals>
                     </execution>
+                    <!-- Generate module jacoco.xml reports in verify phase -->
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <!-- Optional: enforce minimal coverage (adjust thresholds or remove if not desired) -->
+                    <execution>
+                        <id>jacoco-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>

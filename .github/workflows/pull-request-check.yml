@@ -14,6 +14,7 @@ permissions:
     packages: write
     attestations: write
     id-token: write
+    pull-requests: write  # allow coverage comment
 
 jobs:
   docker-security-scan:
@@ -32,14 +33,56 @@ jobs:
             distribution: 'temurin'
             java-version: '21'
             cache: 'maven'
-        - name: Build with Maven
-          run: mvn --batch-mode clean generate-resources install
-          # Note: codeQL MUST be after the compile step
+        - name: Build & test with Maven (produce JaCoCo)
+          run: mvn --batch-mode clean verify -DskipTests=false
         - name: Perform CodeQL Analysis
           uses: github/codeql-action/analyze@v3
           with:
             category: "/language:java"
-
+        - name: Upload JaCoCo reports
+          uses: actions/upload-artifact@v4
+          with:
+            name: jacoco-reports
+            path: |
+              verifier-service/target/site/jacoco/jacoco.xml
+              verifier-service/target/site/jacoco/index.html
+              verifier-application/target/site/jacoco/jacoco.xml
+              verifier-application/target/site/jacoco/index.html
+        - name: Comment PR with coverage
+          if: github.event_name == 'pull_request'
+          uses: madrapps/jacoco-report@v1.7.1
+          with:
+            paths: |
+              verifier-service/target/site/jacoco/jacoco.xml
+              verifier-application/target/site/jacoco/jacoco.xml
+            token: ${{ secrets.GITHUB_TOKEN }}
+            title: Combined Coverage
+            min-coverage-overall: 50
+            min-coverage-changed-files: 40
+        - name: Add coverage to summary
+          uses: actions/github-script@v7
+          with:
+            script: |
+              const fs = require('fs');
+              const files = [
+                'verifier-service/target/site/jacoco/jacoco.xml',
+                'verifier-application/target/site/jacoco/jacoco.xml'
+              ].filter(f => fs.existsSync(f));
+              function parse(file){
+                const xml = fs.readFileSync(file,'utf8');
+                const counters = [...xml.matchAll(/<counter type="LINE" missed="(\d+)" covered="(\d+)"\/>/g)];
+                let missed=0, covered=0; counters.forEach(m=>{missed+=+m[1]; covered+=+m[2];});
+                const pct = covered+missed===0?0:(covered/(covered+missed))*100;
+                return {file,pct,covered,missed};
+              }
+              const rows = files.map(parse);
+              const totalCovered = rows.reduce((a,r)=>a+r.covered,0);
+              const totalMissed = rows.reduce((a,r)=>a+r.missed,0);
+              const overall = totalCovered+totalMissed===0?0:(totalCovered/(totalCovered+totalMissed))*100;
+              let md = '### Test Coverage\n';
+              rows.forEach(r=> md += `- ${r.file}: ${r.pct.toFixed(2)}% (covered ${r.covered}, missed ${r.missed})\n`);
+              md += `\n**Overall:** ${overall.toFixed(2)}%`; 
+              core.summary.addRaw(md).write();
         - name: Run PMD static analysis
           uses: pmd/pmd-github-action@v2
           id: pmd
@@ -61,7 +104,7 @@ jobs:
             tags: pull_request_check:latest
             build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
             file: Dockerfile
-        
+
         - name: Run Trivy vulnerability scan
           uses: aquasecurity/trivy-action@0.30.0
           with:

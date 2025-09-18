@@ -8,126 +8,128 @@ run-name: ${{ github.repository }} is evaluating pull request
 on: [pull_request]
 
 permissions:
-    actions: read
-    security-events: write
-    contents: read
-    packages: write
-    attestations: write
-    id-token: write
-    pull-requests: write  # allow coverage comment
+  actions: read
+  security-events: write
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+  pull-requests: write  # allow coverage comment
 
 jobs:
   docker-security-scan:
     runs-on: ubuntu-latest
     steps:
-        - name: Checkout repository
-          uses: actions/checkout@v4
-        - name: Initialize CodeQL
-          uses: github/codeql-action/init@v3
-          with:
-            languages: java
-            config-file: ./.github/codeql/codeql-config.yml
-        - name: Set up Java
-          uses: actions/setup-java@v4
-          with:
-            distribution: 'temurin'
-            java-version: '21'
-            cache: 'maven'
-        - name: Build & test with Maven (produce JaCoCo)
-          run: mvn --batch-mode clean verify -DskipTests=false
-        - name: Perform CodeQL Analysis
-          uses: github/codeql-action/analyze@v3
-          with:
-            category: "/language:java"
-        - name: Upload JaCoCo reports
-          uses: actions/upload-artifact@v4
-          with:
-            name: jacoco-reports
-            path: |
-              verifier-service/target/site/jacoco/jacoco.xml
-              verifier-service/target/site/jacoco/index.html
-              verifier-application/target/site/jacoco-it/jacoco.xml
-              verifier-application/target/site/jacoco-it/index.html
-        - name: Comment PR with coverage
-          if: github.event_name == 'pull_request'
-          uses: madrapps/jacoco-report@v1.7.1
-          with:
-            paths: |
-              verifier-service/target/site/jacoco/jacoco.xml
-              verifier-application/target/site/jacoco-it/jacoco.xml
-            token: ${{ secrets.GITHUB_TOKEN }}
-            title: Combined Coverage (Service Unit + Application IT)
-            min-coverage-overall: 50
-            min-coverage-changed-files: 40
-        - name: Add coverage to summary
-          uses: actions/github-script@v7
-          with:
-            script: |
-              const fs = require('fs');
-              // Only show Service Unit and Application Integration separately as requested
-              const reports = [
-                { path: 'verifier-service/target/site/jacoco/jacoco.xml', label: 'Service Module (Unit Tests)', category: 'service-unit' },
-                { path: 'verifier-application/target/site/jacoco-it/jacoco.xml', label: 'Application Module (Integration Tests)', category: 'application-it' }
-              ].filter(r => fs.existsSync(r.path));
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+          config-file: ./.github/codeql/codeql-config.yml
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+      - name: Build & test with Maven (produce JaCoCo)
+        run: mvn --batch-mode clean verify -DskipTests=false
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java"
+      - name: Upload JaCoCo reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-reports
+          path: |
+            verifier-service/target/site/jacoco/jacoco.xml
+            verifier-service/target/site/jacoco/index.html
+            verifier-application/target/site/jacoco/jacoco.xml
+            verifier-application/target/site/jacoco/index.html
+      - name: Comment PR with coverage
+        if: github.event_name == 'pull_request'
+        uses: madrapps/jacoco-report@v1.7.1
+        with:
+          paths: |
+            verifier-service/target/site/jacoco/jacoco.xml
+            verifier-application/target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Combined Coverage
+          min-coverage-overall: 50
+          min-coverage-changed-files: 40
+      - name: Add coverage to summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            // Map each report to a friendly label & category
+            const reports = [
+              { path: 'verifier-service/target/site/jacoco/jacoco.xml', label: 'Service Module (Unit Tests)', category: 'unit' },
+              { path: 'verifier-application/target/site/jacoco/jacoco.xml', label: 'Application Module (Integration Tests)', category: 'integration' }
+            ].filter(r => fs.existsSync(r.path));
+            
+            function parseReport(file){
+              const xml = fs.readFileSync(file,'utf8');
+              const m = [...xml.matchAll(/<counter type="LINE" missed="(\d+)" covered="(\d+)"\/>/g)];
+              let missed=0, covered=0; m.forEach(x=>{missed+=+x[1]; covered+=+x[2];});
+              return { missed, covered, pct: (covered+missed) === 0 ? 0 : (covered/(covered+missed))*100 };
+            }
+            
+            if (reports.length === 0) {
+              core.summary.addRaw('### Test Coverage\nNo JaCoCo reports found.').write();
+              core.setWarning('No JaCoCo reports found for summary');
+              return;
+            }
+            
+            // Parse each
+            reports.forEach(r => Object.assign(r, parseReport(r.path)));
+            
+            // Compute combined
+            const totalCovered = reports.reduce((a,r)=>a+r.covered,0);
+            const totalMissed = reports.reduce((a,r)=>a+r.missed,0);
+            const overall = (totalCovered + totalMissed) === 0 ? 0 : (totalCovered/(totalCovered+totalMissed))*100;
+            
+            let md = '### Test Coverage (Separated)\n';
+            for (const r of reports) {
+              md += `- ${r.label}: ${r.pct.toFixed(2)}% (covered ${r.covered}, missed ${r.missed})\n`;
+            }
+            md += `\n**Combined Overall:** ${overall.toFixed(2)}% (covered ${totalCovered}, missed ${totalMissed})`;
+            
+            // Optional: add a compact table
+            md += '\n\n| Category | Coverage % | Covered | Missed |\n|----------|-----------:|--------:|-------:|';
+            reports.forEach(r => { md += `\n| ${r.category} | ${r.pct.toFixed(2)} | ${r.covered} | ${r.missed} |`; });
+            md += `\n| overall | ${overall.toFixed(2)} | ${totalCovered} | ${totalMissed} |`;
+            
+            core.summary.addRaw(md).write();
+      - name: Run PMD static analysis
+        uses: pmd/pmd-github-action@v2
+        id: pmd
+        with:
+          rulesets: '.github/rulesets/java/pmd_omni_ruleset.xml'
 
-              function parseReport(file){
-                const xml = fs.readFileSync(file,'utf8');
-                const m = [...xml.matchAll(/<counter type="LINE" missed="(\d+)" covered="(\d+)"\/>/g)];
-                let missed=0, covered=0; m.forEach(x=>{missed+=+x[1]; covered+=+x[2];});
-                return { missed, covered, pct: (covered+missed) === 0 ? 0 : (covered/(covered+missed))*100 };
-              }
+      - name: Upload PMD SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: pmd-report.sarif
 
-              if (reports.length === 0) {
-                core.summary.addRaw('### Test Coverage\nNo JaCoCo reports found.').write();
-                core.setWarning('No JaCoCo reports found for summary');
-                return;
-              }
+      - name: Build and push docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          pull: true # Prevent old images to be used, which may trigger CVE findings
+          tags: pull_request_check:latest
+          build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
+          file: Dockerfile
 
-              reports.forEach(r => Object.assign(r, parseReport(r.path)));
-
-              const totalCovered = reports.reduce((a,r)=>a+r.covered,0);
-              const totalMissed = reports.reduce((a,r)=>a+r.missed,0);
-              const overall = (totalCovered + totalMissed) === 0 ? 0 : (totalCovered/(totalCovered+totalMissed))*100;
-
-              let md = '### Test Coverage (Service Unit vs Application IT)\n';
-              for (const r of reports) {
-                md += `- ${r.label}: ${r.pct.toFixed(2)}% (covered ${r.covered}, missed ${r.missed})\n`;
-              }
-              md += `\n**Combined Overall:** ${overall.toFixed(2)}% (covered ${totalCovered}, missed ${totalMissed})`;
-
-              md += '\n\n| Segment | Coverage % | Covered | Missed |';
-              md += '\n|---------|-----------:|--------:|-------:|';
-              reports.forEach(r => { md += `\n| ${r.category} | ${r.pct.toFixed(2)} | ${r.covered} | ${r.missed} |`; });
-              md += `\n| overall | ${overall.toFixed(2)} | ${totalCovered} | ${totalMissed} |`;
-
-              core.summary.addRaw(md).write();
-        - name: Run PMD static analysis
-          uses: pmd/pmd-github-action@v2
-          id: pmd
-          with:
-            rulesets: '.github/rulesets/java/pmd_omni_ruleset.xml'
-
-        - name: Upload PMD SARIF to GitHub Code Scanning
-          uses: github/codeql-action/upload-sarif@v3
-          with:
-            sarif_file: pmd-report.sarif
-
-        - name: Build and push docker image
-          id: push
-          uses: docker/build-push-action@v6
-          with:
-            context: .
-            load: true
-            pull: true # Prevent old images to be used, which may trigger CVE findings
-            tags: pull_request_check:latest
-            build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
-            file: Dockerfile
-
-        - name: Run Trivy vulnerability scan
-          uses: aquasecurity/trivy-action@0.30.0
-          with:
-            image-ref: pull_request_check:latest
-            severity: 'CRITICAL,HIGH'
-            exit-code: 1
-            ignore-unfixed: true
-            format: table
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: pull_request_check:latest
+          severity: 'CRITICAL,HIGH'
+          exit-code: 1
+          ignore-unfixed: true
+          format: table

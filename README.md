@@ -6,8 +6,6 @@ SPDX-License-Identifier: MIT
 
 ![github-banner](https://github.com/swiyu-admin-ch/swiyu-admin-ch.github.io/blob/main/assets/images/github-banner.jpg)
 
-# Warning - This Version is work in progress and NOT PEN-TESTED
-
 # SWIYU generic verifier service
 
 This software is a web server implementing the technical standards as specified in
@@ -304,6 +302,49 @@ The response of this post call contains the URI which has to be provided to the 
 | vp_formats_not_supported                    | The Wallet doesn't support any of the formats requested by the Verifier                                                                                                                                                                              |
 | invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
 | invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |
+
+## Release Process and Versioning
+
+### Semantic Versioning (SemVer)
+This project follows Semantic Versioning (SemVer) to make it easy to understand the impact of a software release just by looking at the version number. Our version numbers follow the format:
+
+```
+MAJOR.MINOR.PATCH[-rc][+BUILD]
+```
+
+### Version Components
+
+#### MAJOR version (X.y.z)
+- Incremented when we Contract the system by removing, changing, or breaking existing features
+- Example: Removing a deprecated endpoint, changing response formats in a non-compatible way
+
+#### MINOR version (x.Y.z)
+- Incremented when we Extend the system with new, backward-compatible functionality
+- Example: Adding a new endpoint, introducing an optional field, or extending valid inputs
+
+#### PATCH version (x.y.Z)
+- Incremented when we Maintain the system with backward-compatible security fixes on Release Branch
+- Example: Security bug fixes or important performance optimizations needed on the last Release
+
+### Release Candidates
+Release Candidates (RCs) are tagged as prereleases to indicate a build that is a candidate for the next official release:
+
+- Format: x.y.z-rc.N (e.g., 1.4.0-rc.1, 1.4.0-rc.2)
+- Used for testing, validation, and final quality assurance
+- Once validated, the RC suffix is dropped for the official release
+- Example: 1.4.0-rc.1, 1.4.0-rc.2 → 1.4.0 (final release)
+
+### Release Workflow
+Our release process follows these principles:
+
+Version Contract: If you upgrade within the same MAJOR version, your existing integrations will continue to work (following the Expand and Migrate Pattern)
+
+GitHub Pre-release Tagging:
+- All versions with -rc.N suffix (e.g., 2.1.0-rc.1) are published as GitHub Prereleases
+- Prereleases are meant for testing, staging, and final validation
+- After validation, we remove the -rc suffix and publish the official release (e.g., 2.1.0)
+- Official releases are not marked as pre-releases on GitHub
+
 ## Missing Features and Known Issues
 
 The swiyu Public Beta Trust Infrastructure was deliberately released at an early stage to enable future ecosystem participants. The [feature roadmap](https://github.com/orgs/swiyu-admin-ch/projects/1/views/7) shows the current discrepancies between Public Beta and the targeted productive Trust Infrastructure. There may still be minor bugs or security vulnerabilities in the test system. These are marked as [‘KnownIssues’](../../issues) in each repository.

@@ -7,18 +7,24 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Builder(toBuilder = true)
 @Data
 @Schema(description =
         """
                 Verifier metadata values.
                 Additional Verifier metadata parameters MAY be defined and used, as described in [RFC7591].
                 The Wallet MUST ignore any unrecognized parameters.""")
+@NoArgsConstructor
+@AllArgsConstructor
 public class OpenidClientMetadataDto {
 
     @NotBlank
@@ -44,7 +50,7 @@ public class OpenidClientMetadataDto {
             
             Public keys included in this parameter MUST NOT be used to verify the signature of signed Authorization Requests
             """)
-    private List<JwkDto> jwks;
+    private JwkSetDto jwks;
 
     @JsonProperty(value = "encrypted_response_enc_values_supported", defaultValue = """
             ["A128GCM"]

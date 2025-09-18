@@ -9,6 +9,7 @@ package ch.admin.bj.swiyu.verifier.service.management;
 import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.api.definition.*;
 import ch.admin.bj.swiyu.verifier.api.management.*;
+import ch.admin.bj.swiyu.verifier.api.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
@@ -16,6 +17,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -34,6 +36,7 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 
 @UtilityClass
 public class ManagementMapper {
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static ManagementResponseDto toManagementResponseDto(final Management management, final ApplicationProperties props) {
         if (management == null) {
@@ -281,10 +284,8 @@ public class ManagementMapper {
             return new HashMap<>();
         }
 
-        ObjectMapper objectMapper = new ObjectMapper();
-
         try {
-            return objectMapper.readValue(jsonString, Map.class);
+            return OBJECT_MAPPER.readValue(jsonString, Map.class);
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Invalid string cannot be converted to map");
         }
@@ -343,5 +344,27 @@ public class ManagementMapper {
                 overrideSigningDto.keyId(),
                 overrideSigningDto.keyPin()
         );
+    }
+
+    public static @NotNull ResponseMode toResponseMode(ResponseModeDto responseModeDto) {
+        return switch (responseModeDto) {
+            case DIRECT_POST -> ResponseMode.DIRECT_POST;
+            case DIRECT_POST_JWT ->  ResponseMode.DIRECT_POST_JWT;
+        };
+    }
+
+    public static ResponseModeDto toResponseModeDto(@NotNull ResponseMode responseMode) {
+        return switch (responseMode) {
+            case DIRECT_POST -> ResponseModeDto.DIRECT_POST;
+            case DIRECT_POST_JWT ->  ResponseModeDto.DIRECT_POST_JWT;
+        };
+    }
+
+    public static JwkSetDto toJWKSetDto(String jwks) {
+        try {
+            return OBJECT_MAPPER.readValue(jwks, JwkSetDto.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Malformed Json Web Key Set saved");
+        }
     }
 }

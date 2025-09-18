@@ -2,7 +2,9 @@ package ch.admin.bj.swiyu.verifier.api.metadata;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(name = "Json Web Key")
 public record JwkDto(
         @JsonProperty("kty") String kty,
         @JsonProperty("kid") String kid,

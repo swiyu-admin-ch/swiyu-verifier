@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
+import ch.admin.bj.swiyu.verifier.api.management.ResponseModeDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.VerificationController;
@@ -53,7 +54,7 @@ class VerificationControllerNoKeyIT extends BaseVerificationControllerTest {
         assertThat(requestObjectDto.getClientId()).contains(applicationProperties.getClientId());
         assertThat(requestObjectDto.getClientIdScheme()).contains(applicationProperties.getClientIdScheme());
         assertThat(requestObjectDto.getResponseType()).contains("vp_token");
-        assertThat(requestObjectDto.getResponseMode()).contains("direct_post");
+        assertThat(requestObjectDto.getResponseMode()).isEqualTo(ResponseModeDto.DIRECT_POST);
         assertNotNull(requestObjectDto.getNonce());
     }
 }

@@ -55,7 +55,8 @@ public class Management {
     private VerificationStatus state = VerificationStatus.PENDING;
 
     @NotNull
-    private Boolean jwtSecuredAuthorizationRequest;
+    @Builder.Default
+    private Boolean jwtSecuredAuthorizationRequest = true;
 
     @Column(name = "requested_presentation", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
@@ -86,6 +87,10 @@ public class Management {
     @Column(name = "dcql_query", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     private DcqlQuery dcqlQuery;
+
+    @Column(name = "response_specification")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private ResponseSpecification responseSpecification;
 
 
     public boolean isVerificationPending() {

@@ -7,6 +7,9 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.api.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.api.management.ResponseModeDto;
+import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
@@ -27,6 +30,7 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -39,6 +43,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -58,6 +63,7 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.ge
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -965,5 +971,40 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // Verify that the management entity remains in pending state
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
+    }
+
+    @Test
+    void shouldGetRequestObjectEncryptionRequired() throws Exception {
+        mock.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
+                        .accept("application/oauth-authz-req+jwt"))
+                .andExpect(status().isOk())
+                .andDo(result -> {
+                    var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
+                    assertThat(responseJwt.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
+                    assertThat(responseJwt.getHeader().getKeyID()).isEqualTo(applicationProperties.getSigningKeyVerificationMethod());
+                    assertThat(responseJwt.verify(new ECDSAVerifier(ECKey.parse(PUBLIC_KEY)))).isTrue();
+
+                    // checking claims
+                    var claims = responseJwt.getJWTClaimsSet();
+                    assertThat(claims.getStringClaim("client_id")).isEqualTo(applicationProperties.getClientId());
+                    assertThat(claims.getStringClaim("client_id_scheme")).isEqualTo(applicationProperties.getClientIdScheme());
+                    assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
+                    assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post.jwt");
+                    assertThat(claims.getStringClaim("nonce")).isNotNull();
+                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED));
+
+                    assertDcqlIsComplete(claims);
+                    assertPresentationDefinition(claims);
+
+                    assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
+                    var metadata = objectMapper.readValue(objectMapper.writeValueAsString(claims.getClaim("client_metadata")), OpenidClientMetadataDto.class);
+                    assertThat(metadata.getJwks()).isNotNull();
+                    assertThat(metadata.getJwks().keys()).isNotEmpty();
+                    assertThat(metadata.getEncryptedResponseEncValuesSupported()).isNotEmpty();
+                    var encryptionKeys = JWKSet.parse(objectMapper.writeValueAsString(metadata.getJwks()));
+                    assertThat(encryptionKeys.containsNonPublicKeys()).isFalse();
+                    assertThat(encryptionKeys.getKeys()).isNotEmpty();
+                });
+
     }
 }

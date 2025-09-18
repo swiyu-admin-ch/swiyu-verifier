@@ -12,9 +12,12 @@ import ch.admin.bj.swiyu.verifier.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseMode;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.SignatureService;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -70,16 +73,25 @@ public class RequestObjectService {
         var externalUrl = StringUtils.isNotEmpty(override.externalUrl()) ? override.externalUrl() : applicationProperties.getExternalUrl();
         var clientId = StringUtils.isNotEmpty(override.verifierDid()) ? override.verifierDid() : applicationProperties.getClientId();
         var verificationMethod = StringUtils.isNotEmpty(override.verificationMethod()) ? override.verificationMethod() : applicationProperties.getSigningKeyVerificationMethod();
+        var clientMetadata = openIdClientMetadataConfiguration.getOpenIdClientMetadata();
+        var clientMetadataBuilder = clientMetadata.toBuilder();
+
+        ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
+        if (ResponseMode.DIRECT_POST_JWT.equals(responseSpecification.getResponseMode())) {
+            clientMetadataBuilder.jwks(ManagementMapper.toJWKSetDto(responseSpecification.getJwks()));
+            clientMetadataBuilder.encryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported());
+        }
+
         var requestObject = RequestObjectDto.builder()
                 .nonce(managementEntity.getRequestNonce())
                 .version(applicationProperties.getRequestObjectVersion())
                 .presentationDefinition(toPresentationDefinitionDto(presentation))
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
                 .clientId(clientId)
-                .clientMetadata(openIdClientMetadataConfiguration.getOpenIdClientMetadata())
+                .clientMetadata(clientMetadataBuilder.build())
                 .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType("vp_token")
-                .responseMode("direct_post")
+                .responseMode(ManagementMapper.toResponseModeDto(responseSpecification.getResponseMode()))
                 .responseUri(String.format("%s/oid4vp/api/request-object/%s/response-data",
                         externalUrl,
                         managementEntityId))

@@ -50,6 +50,10 @@ public record CreateVerificationManagementDto(
         @JsonProperty("jwt_secured_authorization_request")
         Boolean jwtSecuredAuthorizationRequest,
 
+        @Schema(description = "Requested Response Mode")
+        @JsonProperty(value = "response_mode", defaultValue = "direct_post")
+        ResponseModeDto responseMode,
+
         @Schema(description = "Presentation definition according to " +
                 "https://identity.foundation/presentation-exchange/#presentation-definition")
         @Valid

@@ -48,61 +48,14 @@ jobs:
             verifier-service/target/site/jacoco/index.html
             verifier-application/target/site/jacoco/jacoco.xml
             verifier-application/target/site/jacoco/index.html
-      - name: Comment PR with coverage
-        if: github.event_name == 'pull_request'
-        uses: madrapps/jacoco-report@v1.7.1
+
+      - name: Setup Node.js (for coverage summary script)
+        uses: actions/setup-node@v4
         with:
-          paths: |
-            verifier-service/target/site/jacoco/jacoco.xml
-            verifier-application/target/site/jacoco/jacoco.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: Combined Coverage
-          min-coverage-overall: 50
-          min-coverage-changed-files: 40
+          node-version: 20
       - name: Add coverage to summary
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            // Map each report to a friendly label & category
-            const reports = [
-              { path: 'verifier-service/target/site/jacoco/jacoco.xml', label: 'Service Module (Unit Tests)', category: 'unit' },
-              { path: 'verifier-application/target/site/jacoco/jacoco.xml', label: 'Application Module (Integration Tests)', category: 'integration' }
-            ].filter(r => fs.existsSync(r.path));
-            
-            function parseReport(file){
-              const xml = fs.readFileSync(file,'utf8');
-              const m = [...xml.matchAll(/<counter type="LINE" missed="(\d+)" covered="(\d+)"\/>/g)];
-              let missed=0, covered=0; m.forEach(x=>{missed+=+x[1]; covered+=+x[2];});
-              return { missed, covered, pct: (covered+missed) === 0 ? 0 : (covered/(covered+missed))*100 };
-            }
-            
-            if (reports.length === 0) {
-              core.summary.addRaw('### Test Coverage\nNo JaCoCo reports found.').write();
-              core.setWarning('No JaCoCo reports found for summary');
-              return;
-            }
-            
-            // Parse each
-            reports.forEach(r => Object.assign(r, parseReport(r.path)));
-            
-            // Compute combined
-            const totalCovered = reports.reduce((a,r)=>a+r.covered,0);
-            const totalMissed = reports.reduce((a,r)=>a+r.missed,0);
-            const overall = (totalCovered + totalMissed) === 0 ? 0 : (totalCovered/(totalCovered+totalMissed))*100;
-            
-            let md = '### Test Coverage (Separated)\n';
-            for (const r of reports) {
-              md += `- ${r.label}: ${r.pct.toFixed(2)}% (covered ${r.covered}, missed ${r.missed})\n`;
-            }
-            md += `\n**Combined Overall:** ${overall.toFixed(2)}% (covered ${totalCovered}, missed ${totalMissed})`;
-            
-            // Optional: add a compact table
-            md += '\n\n| Category | Coverage % | Covered | Missed |\n|----------|-----------:|--------:|-------:|';
-            reports.forEach(r => { md += `\n| ${r.category} | ${r.pct.toFixed(2)} | ${r.covered} | ${r.missed} |`; });
-            md += `\n| overall | ${overall.toFixed(2)} | ${totalCovered} | ${totalMissed} |`;
-            
-            core.summary.addRaw(md).write();
+        run: node .github/scripts/coverage-summary.js
+
       - name: Run PMD static analysis
         uses: pmd/pmd-github-action@v2
         id: pmd

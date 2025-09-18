@@ -51,6 +51,10 @@ public class RequestObjectDto {
     private String responseType;
 
     @JsonProperty("response_mode")
+    @Schema(description = """
+            If "direct_post", expect the response to be sent via an HTTPS connection to response_uri.
+            If "direct_post.jwt" expects the response to also be encrypted.
+            """)
     private String responseMode;
 
     @JsonProperty("response_uri")

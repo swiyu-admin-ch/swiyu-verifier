@@ -46,17 +46,17 @@ jobs:
             path: |
               verifier-service/target/site/jacoco/jacoco.xml
               verifier-service/target/site/jacoco/index.html
-              verifier-application/target/site/jacoco/jacoco.xml
-              verifier-application/target/site/jacoco/index.html
+              verifier-application/target/site/jacoco-it/jacoco.xml
+              verifier-application/target/site/jacoco-it/index.html
         - name: Comment PR with coverage
           if: github.event_name == 'pull_request'
           uses: madrapps/jacoco-report@v1.7.1
           with:
             paths: |
               verifier-service/target/site/jacoco/jacoco.xml
-              verifier-application/target/site/jacoco/jacoco.xml
+              verifier-application/target/site/jacoco-it/jacoco.xml
             token: ${{ secrets.GITHUB_TOKEN }}
-            title: Combined Coverage
+            title: Combined Coverage (Service Unit + Application IT)
             min-coverage-overall: 50
             min-coverage-changed-files: 40
         - name: Add coverage to summary
@@ -64,10 +64,10 @@ jobs:
           with:
             script: |
               const fs = require('fs');
-              // Map each report to a friendly label & category
+              // Only show Service Unit and Application Integration separately as requested
               const reports = [
-                { path: 'verifier-service/target/site/jacoco/jacoco.xml', label: 'Service Module (Unit Tests)', category: 'unit' },
-                { path: 'verifier-application/target/site/jacoco/jacoco.xml', label: 'Application Module (Integration Tests)', category: 'integration' }
+                { path: 'verifier-service/target/site/jacoco/jacoco.xml', label: 'Service Module (Unit Tests)', category: 'service-unit' },
+                { path: 'verifier-application/target/site/jacoco-it/jacoco.xml', label: 'Application Module (Integration Tests)', category: 'application-it' }
               ].filter(r => fs.existsSync(r.path));
 
               function parseReport(file){
@@ -83,22 +83,20 @@ jobs:
                 return;
               }
 
-              // Parse each
               reports.forEach(r => Object.assign(r, parseReport(r.path)));
 
-              // Compute combined
               const totalCovered = reports.reduce((a,r)=>a+r.covered,0);
               const totalMissed = reports.reduce((a,r)=>a+r.missed,0);
               const overall = (totalCovered + totalMissed) === 0 ? 0 : (totalCovered/(totalCovered+totalMissed))*100;
 
-              let md = '### Test Coverage (Separated)\n';
+              let md = '### Test Coverage (Service Unit vs Application IT)\n';
               for (const r of reports) {
                 md += `- ${r.label}: ${r.pct.toFixed(2)}% (covered ${r.covered}, missed ${r.missed})\n`;
               }
               md += `\n**Combined Overall:** ${overall.toFixed(2)}% (covered ${totalCovered}, missed ${totalMissed})`;
 
-              // Optional: add a compact table
-              md += '\n\n| Category | Coverage % | Covered | Missed |\n|----------|-----------:|--------:|-------:|';
+              md += '\n\n| Segment | Coverage % | Covered | Missed |';
+              md += '\n|---------|-----------:|--------:|-------:|';
               reports.forEach(r => { md += `\n| ${r.category} | ${r.pct.toFixed(2)} | ${r.covered} | ${r.missed} |`; });
               md += `\n| overall | ${overall.toFixed(2)} | ${totalCovered} | ${totalMissed} |`;
 

@@ -12,7 +12,7 @@ import jakarta.validation.ConstraintValidatorContext;
 
 import java.util.regex.Pattern;
 
-public class JsonPathValidator {
+public final class JsonPathValidator {
 
     private JsonPathValidator() {
     }

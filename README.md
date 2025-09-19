@@ -66,6 +66,36 @@ verifier-agent-management>**/swagger-ui/index.html**
 
 To see more details and examples of the verification process please consult the [documentation](documentation/verification_process.md).
 
+## Digital Credentials Query Language (DCQL) Transition
+
+### Overview
+The verifier service now supports the Digital Credentials Query Language (DCQL) as specified in the OpenID for Verifiable Presentations (OID4VP) Standard 1.0. This replaces the previous DIF Presentation Exchange (PE) specification that was integrated into the "claims" request parameter.
+
+### Why DCQL?
+- **Standards Compliance**: Ensures compliance with the OID4VP Standard 1.0
+- **Enhanced Flexibility**: DCQL provides a JSON-encoded query language for simpler and more flexible presentation requests
+- **Improved Privacy**: Enables precise specification of credential requirements and individual claims, supporting selective disclosure
+- **Complex Scenarios Support**: Allows encoding constraints for credential combinations and expressing various alternatives
+
+### Key Interface Changes
+The service now supports both DCQL and PE formats through:
+- Optional `dcql_query` parameter alongside existing `presentation_definition`
+- API version headers for backward compatibility:
+  - Version "1": Supports OID4VP ID2 with DIF Presentation Exchange
+  - Version "2": Supports OID4VP 1.0 with DCQL
+
+### Verification Flow with DCQL
+1. **Creation**: Business Verifier creates verification request with DCQL query
+2. **Storage**: Verifier Service stores request in database
+3. **Holder Retrieval**: Holder uses Verification URI to get request object containing DCQL query
+4. **Presentation**: Holder's wallet processes DCQL query to identify suitable credentials
+5. **Verification**: Service validates credentials against DCQL query criteria
+6. **Status Update**: Business Verifier receives status via polling or webhooks
+
+### VP Token Response Encryption
+- Required after transition period
+- Uses client_metadata for encryption information
+
 # Development
 
 > Please be aware that this section **focus on the development of the verifier service**. For the deployment of

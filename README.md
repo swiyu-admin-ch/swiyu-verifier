@@ -66,6 +66,33 @@ verifier-agent-management>**/swagger-ui/index.html**
 
 To see more details and examples of the verification process please consult the [documentation](documentation/verification_process.md).
 
+
+## Deployment Considerations
+Please note that by default configuration the verifier service is set up in a way to easily gain experience with the verification process,
+not as a productive deployment. With the configuration options found below, it can be configured and set up for productive use.
+
+We recommend to not expose the service directly to the web. 
+The focus of the application lies in the functionality of the verification. 
+Using API Gateway or Web Application Firewall can decrease the attack surface significantly.
+
+To prevent misuse, the management endpoints should be protected either by network infrastructure (for example mTLS) or using OAuth.
+
+```mermaid
+flowchart LR
+    verint[\Verifier Business System\]
+    ver(Verifier Service)
+    vdb[(Postgres)]
+    wallet[Wallet]
+    apigw[\API Gateway\]
+    auth[\Authentication Server\]
+    verint --Internal network calls--> ver
+    ver --Cache verification results--> vdb
+    wallet --Web calls--> apigw
+    apigw --Filtered calls--> ver
+    verint --Get OAuth2.0 Token--> auth
+    ver --Validate OAuth2.0 Token--> auth
+```
+
 # Development
 
 > Please be aware that this section **focus on the development of the verifier service**. For the deployment of

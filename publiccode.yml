@@ -18,8 +18,7 @@ softwareType: standalone/backend
 description:
   en:
     localisedName: swiyu Generic Verifier Service
-    shortDescription: "Generic Verifier Service for Verifiable Credentials of the
-      swiyu Trust Infrastructure "
+    shortDescription: Generic Verifier Service for Verifiable Credentials of the swiyu Trust Infrastructure
     longDescription: This software is a web server implementing the technical
       standards as specified in the Swiss e-ID Interoperability Profile and is
       part of other generic components allowing the issuance and verification of
@@ -27,7 +26,7 @@ description:
     documentation: https://swiyu-admin-ch.github.io/open-source-components/
     apiDocumentation: https://swiyu-admin-ch.github.io/cookbooks/onboarding-generic-verifier/
     features:
-      - Issuing verifiable credentials
+      - Verifying verifiable credentials
 legal:
   license: MIT
 maintenance:

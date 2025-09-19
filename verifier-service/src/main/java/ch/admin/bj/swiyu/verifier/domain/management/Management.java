@@ -90,6 +90,7 @@ public class Management {
 
     @Column(name = "response_specification")
     @JdbcTypeCode(SqlTypes.JSON)
+    @NotNull
     private ResponseSpecification responseSpecification;
 
 

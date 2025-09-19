@@ -5,9 +5,7 @@ import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
-import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
-import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.SignatureService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
@@ -183,6 +181,9 @@ class RequestObjectServiceTest {
         when(management.getRequestNonce()).thenReturn("nonce");
         when(management.getJwtSecuredAuthorizationRequest()).thenReturn(needsJwsAuthorizationRequest);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
+        var responseVerification = mock(ResponseSpecification.class);
+        when(management.getResponseSpecification()).thenReturn(responseVerification);
+        when(responseVerification.getResponseMode()).thenReturn(ResponseMode.DIRECT_POST);
         return management;
     }
 }

@@ -85,16 +85,7 @@ public class ManagementService {
 
         var responseSpecificationBuilder = ResponseSpecification.builder().responseMode(ManagementMapper.toResponseMode(request.responseMode()));
         if (ResponseModeDto.DIRECT_POST_JWT.equals(request.responseMode())) {
-            try {
-                var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256).keyID(UUID.randomUUID().toString()).generate();
-                JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
-                responseSpecificationBuilder.jwksPrivate(jwkSet.toString(false));
-                responseSpecificationBuilder.jwks(jwkSet.toString(true));
-                responseSpecificationBuilder.encryptedResponseEncValuesSupported(List.of("A128GCM"));
-            } catch (JOSEException e) {
-                throw new IllegalStateException(e);
-            }
-
+            createEncryptionKeys(responseSpecificationBuilder);
         }
 
         var management = repository.save(Management.builder()
@@ -111,6 +102,18 @@ public class ManagementService {
 
         log.info("Created pending verification for id: {}", management.getId());
         return toManagementResponseDto(management, applicationProperties);
+    }
+
+    private static void createEncryptionKeys(ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder) {
+        try {
+            var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256).keyID(UUID.randomUUID().toString()).generate();
+            JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
+            responseSpecificationBuilder.jwksPrivate(jwkSet.toString(false));
+            responseSpecificationBuilder.jwks(jwkSet.toString(true));
+            responseSpecificationBuilder.encryptedResponseEncValuesSupported(List.of("A128GCM"));
+        } catch (JOSEException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
 

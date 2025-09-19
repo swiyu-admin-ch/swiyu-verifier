@@ -108,9 +108,12 @@ public class ManagementService {
         try {
             var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256).keyID(UUID.randomUUID().toString()).generate();
             JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
-            responseSpecificationBuilder.jwksPrivate(jwkSet.toString(false));
+
+            // Public keys used in request object
             responseSpecificationBuilder.jwks(jwkSet.toString(true));
             responseSpecificationBuilder.encryptedResponseEncValuesSupported(List.of("A128GCM"));
+            // Private Keys used to unpack Encryption
+            responseSpecificationBuilder.jwksPrivate(jwkSet.toString(false));
         } catch (JOSEException e) {
             throw new IllegalStateException(e);
         }

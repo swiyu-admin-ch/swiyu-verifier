@@ -11,6 +11,7 @@ import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.DecryptionService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationService;
 import io.micrometer.core.annotation.Timed;
@@ -52,6 +53,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 public class VerificationController {
 
     private final RequestObjectService requestObjectService;
+    private final DecryptionService decryptionService;
     private final VerificationService verificationService;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
 
@@ -177,7 +179,9 @@ public class VerificationController {
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationUnionDto unionDto) {
 
+
         log.info("Received verification presentation for request_id: {} with version: {}", requestId, versionString);
+        unionDto = decryptionService.decrypt(requestId, unionDto);
         if (unionDto.isRejection()) {
             // Handle rejection
             log.debug("Processing rejection for request_id: {}", requestId);
@@ -189,7 +193,7 @@ public class VerificationController {
         VPApiVersion version = VPApiVersion.fromValue(versionString);
 
         if (version == VPApiVersion.ID2) {// Handle DIF Presentation Exchange presentation
-            log.debug("Processing standard presentation for request_id: {}", requestId);
+            log.debug("Processing DIF presentation exchange presentation for request_id: {}", requestId);
             var standardDto = unionDto.toStandardPresentation();
             verificationService.receiveVerificationPresentation(requestId, standardDto);
         } else if (version == VPApiVersion.V1) {
@@ -197,11 +201,6 @@ public class VerificationController {
                 log.debug("Processing DCQL presentation for request_id: {}", requestId);
                 var dcqlDto = unionDto.toDcqlPresentation();
                 verificationService.receiveVerificationPresentationDCQL(requestId, dcqlDto);
-            } else if (unionDto.isDcqlEncryptedPresentation()) {
-                // Handle encrypted DCQL
-                log.debug("Processing encrypted DCQL presentation for request_id: {}", requestId);
-                var encryptedDto = unionDto.toDcqlEncryptedPresentation();
-                verificationService.receiveVerificationPresentationDCQLEncrypted(requestId, encryptedDto);
             } else {
                 log.debug("Incomplete submission");
                 throw submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, "Incomplete submission, must contain only vp_token or response");

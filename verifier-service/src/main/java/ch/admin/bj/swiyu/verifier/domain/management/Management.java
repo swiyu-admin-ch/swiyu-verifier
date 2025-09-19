@@ -80,18 +80,20 @@ public class Management {
     @Column(name = "trust_anchors")
     private List<TrustAnchor> trustAnchors;
 
+    @Builder.Default
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name="configuration_override", columnDefinition = "jsonb")
-    private ConfigurationOverride configurationOverride;
+    private ConfigurationOverride configurationOverride = ConfigurationOverride.builder().build();
 
     @Column(name = "dcql_query", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     private DcqlQuery dcqlQuery;
 
-    @Column(name = "response_specification")
+    @Builder.Default
+    @Column(name = "response_specification", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     @NotNull
-    private ResponseSpecification responseSpecification;
+    private ResponseSpecification responseSpecification = ResponseSpecification.builder().responseMode(ResponseMode.DIRECT_POST).build();
 
 
     public boolean isVerificationPending() {
@@ -151,6 +153,6 @@ public class Management {
 
     @NotNull
     public ConfigurationOverride getConfigurationOverride() {
-        return Objects.requireNonNullElseGet(this.configurationOverride, () -> new ConfigurationOverride(null, null, null, null, null));
+        return Objects.requireNonNullElseGet(this.configurationOverride, () -> ConfigurationOverride.builder().build());
     }
 }

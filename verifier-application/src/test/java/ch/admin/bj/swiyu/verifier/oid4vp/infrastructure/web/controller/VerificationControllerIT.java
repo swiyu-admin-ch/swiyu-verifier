@@ -15,6 +15,8 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseMode;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
@@ -26,7 +28,8 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededEx
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
@@ -39,6 +42,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.FieldSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
@@ -79,6 +84,11 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";
+
+    /**
+     * List of IDS to be used in Parameterized tests with different verification requests
+     */
+    private static final List<UUID> DEFAULT_REQUEST_OBJECT_SOURCE = List.of(REQUEST_ID_SECURED, REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED);
 
     @Autowired
     CacheManager cacheManager;
@@ -185,11 +195,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITHOUT_ACCEPTED_ISSUER))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isOk());
+        sendPresentation(REQUEST_ID_WITHOUT_ACCEPTED_ISSUER, presentationSubmission, vpToken);
     }
 
     @Test
@@ -248,8 +254,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess() throws Exception {
+    @ParameterizedTest
+    @FieldSource("DEFAULT_REQUEST_OBJECT_SOURCE")
+    void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess(UUID requestObjectId) throws Exception {
+        assertThat(requestObjectId).isIn(DEFAULT_REQUEST_OBJECT_SOURCE); // Nonsense Assert to stop linters going insane about unused field
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
@@ -259,15 +267,42 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
-        // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        // WHEN / THEN
+        sendPresentation(requestObjectId, presentationSubmission, vpToken);
+
+        var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
+
+    private void sendPresentation(UUID requestObjectId, String presentationSubmission, String vpToken) throws Exception {
+        var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
+        ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
+        if (responseSpecification.getResponseMode() == ResponseMode.DIRECT_POST) {
+            mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
+                            .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                            .formField("presentation_submission", presentationSubmission)
+                            .formField("vp_token", vpToken))
+                    .andExpect(status().isOk());
+        }
+        else if (responseSpecification.getResponseMode() == ResponseMode.DIRECT_POST_JWT) {
+            // JWKS & encryptionMethod are normally provided in Request Object
+            ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
+            var encryptionMethod = EncryptionMethod.parse(responseSpecification.getEncryptedResponseEncValuesSupported().getFirst());
+
+            JWEObject jweObject = new JWEObject(
+                    new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, encryptionMethod)
+                            .keyID(publicKey.getKeyID()).build(),
+                    new JWTClaimsSet.Builder()
+                            .claim("presentation_submission", presentationSubmission)
+                            .claim("vp_token", vpToken).build().toPayload()
+                    );
+            jweObject.encrypt(new ECDHEncrypter(publicKey));
+            mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
+                            .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                            .formField("response", jweObject.serialize()))
+                    .andExpect(status().isOk());
+        }
     }
 
     @ParameterizedTest
@@ -522,11 +557,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isOk());
+        sendPresentation(REQUEST_ID_SECURED, presentationSubmission, vpToken);
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
@@ -546,11 +577,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isOk());
+        sendPresentation(REQUEST_ID_SECURED, presentationSubmission, vpToken);
     }
 
     @Test

@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.domain.management;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ResponseSpecification {
     @Builder.Default
+    @NotNull
     @JsonProperty("response_mode")
     private ResponseMode responseMode = ResponseMode.DIRECT_POST;
 

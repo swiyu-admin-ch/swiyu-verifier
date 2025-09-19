@@ -60,6 +60,26 @@
         <skip.doc-generate>true</skip.doc-generate>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- fix for CVE-2025-41248 check again once spring-boot-starter-parent 3.4.10 -->
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-core</artifactId>
+                <version>6.4.10</version>
+            </dependency>
+            <!-- end fix -->
+
+            <!-- fix for CVE-2025-41249 check again once spring-boot-starter-parent 3.4.10 -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-core</artifactId>
+                <version>6.2.11</version>
+            </dependency>
+            <!-- end fix -->
+        </dependencies>
+    </dependencyManagement>
+
     <build>
         <plugins>
             <plugin>
@@ -74,6 +94,15 @@
                             <goal>prepare-agent-integration</goal>
                         </goals>
                     </execution>
+                    <!-- Generate module jacoco.xml reports in verify phase -->
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+
                 </executions>
             </plugin>
             <plugin>

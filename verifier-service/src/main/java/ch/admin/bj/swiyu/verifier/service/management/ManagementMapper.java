@@ -364,7 +364,7 @@ public class ManagementMapper {
         try {
             return OBJECT_MAPPER.readValue(jwks, JwkSetDto.class);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Malformed Json Web Key Set saved");
+            throw new IllegalStateException("Malformed Json Web Key Set saved", e);
         }
     }
 }

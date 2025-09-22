@@ -181,11 +181,11 @@ public class VerificationController {
 
 
         log.info("Received verification presentation for request_id: {} with version: {}", requestId, versionString);
-        unionDto = decryptionService.decrypt(requestId, unionDto);
-        if (unionDto.isRejection()) {
+        VerificationPresentationUnionDto decrypted = decryptionService.decrypt(requestId, unionDto);
+        if (decrypted.isRejection()) {
             // Handle rejection
             log.debug("Processing rejection for request_id: {}", requestId);
-            var rejectionDto = unionDto.toRejection();
+            var rejectionDto = decrypted.toRejection();
             verificationService.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
             return;
         }
@@ -194,12 +194,12 @@ public class VerificationController {
 
         if (version == VPApiVersion.ID2) {// Handle DIF Presentation Exchange presentation
             log.debug("Processing DIF presentation exchange presentation for request_id: {}", requestId);
-            var standardDto = unionDto.toStandardPresentation();
+            var standardDto = decrypted.toStandardPresentation();
             verificationService.receiveVerificationPresentation(requestId, standardDto);
         } else if (version == VPApiVersion.V1) {
-            if (unionDto.isDcqlPresentation()) {
+            if (decrypted.isDcqlPresentation()) {
                 log.debug("Processing DCQL presentation for request_id: {}", requestId);
-                var dcqlDto = unionDto.toDcqlPresentation();
+                var dcqlDto = decrypted.toDcqlPresentation();
                 verificationService.receiveVerificationPresentationDCQL(requestId, dcqlDto);
             } else {
                 log.debug("Incomplete submission");

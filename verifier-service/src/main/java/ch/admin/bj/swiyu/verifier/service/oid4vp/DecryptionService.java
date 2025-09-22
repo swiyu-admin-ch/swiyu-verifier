@@ -33,16 +33,12 @@ public class DecryptionService {
     @NotNull
     private static JWEDecrypter createJweDecryptor(Management managementEntity, String keyId) throws ParseException, JOSEException {
         ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
-        if (!ResponseMode.DIRECT_POST_JWT.equals(responseSpecification.getResponseMode())) {
-            // We did not ask for an encrypted response!
-            throw new IllegalArgumentException("No encrypted response expected.");
-        }
-
         JWKSet privateKeys = JWKSet.parse(Optional.ofNullable(responseSpecification.getJwksPrivate())
                 // Throw illegal state, as this would be a server error
                 .orElseThrow(() -> new IllegalStateException("Missing JWK private. Unable to decrypt response.")));
-        ECKey privateKey = Optional.ofNullable(privateKeys.getKeyByKeyId(keyId).toECKey())
-                .orElseThrow(() -> new IllegalArgumentException("No matching JWK for keyId %s found. Unable to decrypt response.".formatted(keyId)));
+        ECKey privateKey = Optional.ofNullable(privateKeys.getKeyByKeyId(keyId))
+                .orElseThrow(() -> new IllegalArgumentException("No matching JWK for keyId %s found. Unable to decrypt response.".formatted(keyId)))
+                .toECKey();
         return new ECDHDecrypter(privateKey);
     }
 
@@ -81,7 +77,7 @@ public class DecryptionService {
             jwe.decrypt(decrypter);
             return objectMapper.readValue(jwe.getPayload().toString(), VerificationPresentationUnionDto.class);
         } catch (ParseException | JOSEException | JsonProcessingException e) {
-            throw new IllegalArgumentException("Response cannot be decrypted", e);
+            throw new IllegalArgumentException("Response cannot be decrypted.", e);
         }
     }
 }

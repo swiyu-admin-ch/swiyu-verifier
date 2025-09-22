@@ -93,7 +93,7 @@ public class Management {
     @Column(name = "response_specification", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     @NotNull
-    private ResponseSpecification responseSpecification = ResponseSpecification.builder().responseMode(ResponseMode.DIRECT_POST).build();
+    private ResponseSpecification responseSpecification = ResponseSpecification.builder().responseModeType(ResponseModeType.DIRECT_POST).build();
 
 
     public boolean isVerificationPending() {

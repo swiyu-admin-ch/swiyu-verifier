@@ -53,7 +53,7 @@ public record CreateVerificationManagementDto(
         @Schema(description = "Requested Response Mode")
         @JsonProperty(value = "response_mode", defaultValue = "direct_post")
         // TODO Once the Ecosystem broadly supports JWE, we should use direct_post_jwt as default value
-        ResponseModeDto responseMode,
+        ResponseModeTypeDto responseMode,
 
         @Schema(description = "Presentation definition according to " +
                 "https://identity.foundation/presentation-exchange/#presentation-definition")

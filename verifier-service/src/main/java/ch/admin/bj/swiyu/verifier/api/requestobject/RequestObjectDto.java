@@ -7,7 +7,7 @@
 package ch.admin.bj.swiyu.verifier.api.requestobject;
 
 import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeDto;
+import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -60,7 +60,7 @@ public class RequestObjectDto {
             If "direct_post", expect the response to be sent via an HTTPS connection to response_uri.
             If "direct_post.jwt" expects the response to also be encrypted.
             """)
-    private ResponseModeDto responseMode;
+    private ResponseModeTypeDto responseMode;
 
     @JsonProperty("response_uri")
     private String responseUri;

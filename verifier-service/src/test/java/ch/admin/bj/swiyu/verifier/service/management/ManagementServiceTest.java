@@ -2,7 +2,7 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeDto;
+import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
@@ -54,7 +54,7 @@ class ManagementServiceTest {
                 List.of("did:example:123"),
                 null,
                 false,
-                ResponseModeDto.DIRECT_POST,
+                ResponseModeTypeDto.DIRECT_POST,
                 presentationDefinitionDto,
                 null,
                 null
@@ -87,7 +87,7 @@ class ManagementServiceTest {
                 List.of("did:example:123"),
                 null,
                 false,
-                ResponseModeDto.DIRECT_POST,
+                ResponseModeTypeDto.DIRECT_POST,
                 presentationDefinitionDto,
                 null,
                 useBoth ? dcqlQueryDto : null
@@ -117,7 +117,7 @@ class ManagementServiceTest {
                 List.of("did:example:123"),
                 null,
                 false,
-                ResponseModeDto.DIRECT_POST,
+                ResponseModeTypeDto.DIRECT_POST,
                 null,
                 null,
                 null
@@ -188,7 +188,7 @@ class ManagementServiceTest {
                 List.of("did:example:123"),
                 null,
                 false,
-                ResponseModeDto.DIRECT_POST_JWT,
+                ResponseModeTypeDto.DIRECT_POST_JWT,
                 presentationDefinitionDto,
                 null,
                 dcqlQueryDto

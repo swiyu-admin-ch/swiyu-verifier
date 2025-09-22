@@ -21,7 +21,7 @@ public class ResponseSpecification {
     @Builder.Default
     @NotNull
     @JsonProperty("response_mode")
-    private ResponseMode responseMode = ResponseMode.DIRECT_POST;
+    private ResponseModeType responseModeType = ResponseModeType.DIRECT_POST;
 
     /**
      * List of json web keys to be provided as encryption option to the wallet

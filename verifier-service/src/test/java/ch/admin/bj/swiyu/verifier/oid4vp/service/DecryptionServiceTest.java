@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseMode;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DecryptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,7 +50,7 @@ class DecryptionServiceTest {
 
     @Test
     void testUnencryptdDecryption_whenDirectPost_thenSuccess() {
-        Management management = createTestManagement(ResponseMode.DIRECT_POST);
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST);
         when(managementRepository.findById(management.getId())).thenReturn(Optional.of(management));
         VerificationPresentationUnionDto presentation = VerificationPresentationUnionDto.builder().vp_token("Anything").build();
         VerificationPresentationUnionDto decrypted = assertDoesNotThrow(() ->  decryptionService.decrypt(management.getId(), presentation));
@@ -63,7 +63,7 @@ class DecryptionServiceTest {
      */
     @Test
     void testUnencryptdDecryption_whenDirectPost_whenUnecessaryEncryptionAdded_thenSuccess() throws JOSEException {
-        Management management = createTestManagement(ResponseMode.DIRECT_POST);
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST);
         when(managementRepository.findById(management.getId())).thenReturn(Optional.of(management));
         String presentationId = "test_credential_id";
         List<String> presentationPayload = List.of("Not validated here");
@@ -75,7 +75,7 @@ class DecryptionServiceTest {
 
     @Test
     void testDecryption_thenSuccess() throws JOSEException {
-        Management management = createTestManagement(ResponseMode.DIRECT_POST_JWT);
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST_JWT);
         when(managementRepository.findById(management.getId())).thenReturn(Optional.of(management));
         String presentationId = "test_credential_id";
         List<String> presentationPayload = List.of("Not validated here");
@@ -92,7 +92,7 @@ class DecryptionServiceTest {
      */
     @Test
     void testDecryption_whenDataRevealed_thenIllegalArgument() throws JOSEException {
-        Management management = createTestManagement(ResponseMode.DIRECT_POST_JWT);
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST_JWT);
         UUID id = management.getId();
         when(managementRepository.findById(id)).thenReturn(Optional.of(management));
         String presentationId = "test_credential_id";
@@ -106,7 +106,7 @@ class DecryptionServiceTest {
     @Test
     void testDecryption_whenDifferentKeyId_thenIllegalArgument() throws JOSEException {
         ECKey otherEcKey = new ECKeyGenerator(Curve.P_256).keyID("other-ad-hoc-generated-testkey").generate();
-        Management management = createTestManagement(ResponseMode.DIRECT_POST_JWT);
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST_JWT);
         UUID id = management.getId();
         when(managementRepository.findById(id)).thenReturn(Optional.of(management));
         String presentationId = "test_credential_id";
@@ -120,7 +120,7 @@ class DecryptionServiceTest {
     @Test
     void testDecryption_whenDifferentKey_thenIllegalArgument() throws JOSEException {
         ECKey otherEcKey = new ECKeyGenerator(Curve.P_256).keyID("ad-hoc-generated-testkey").generate();
-        Management management = createTestManagement(ResponseMode.DIRECT_POST_JWT);
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST_JWT);
         UUID id = management.getId();
         when(managementRepository.findById(id)).thenReturn(Optional.of(management));
         String presentationId = "test_credential_id";
@@ -140,11 +140,11 @@ class DecryptionServiceTest {
         return jweObject.serialize();
     }
 
-    private static Management createTestManagement(ResponseMode responseMode) {
+    private static Management createTestManagement(ResponseModeType responseModeType) {
         return Management.builder()
                 .responseSpecification(
                         ResponseSpecification.builder()
-                                .responseMode(responseMode)
+                                .responseModeType(responseModeType)
                                 .jwksPrivate(new JWKSet(ecKey).toString(false))
                                 .build())
                 .build();

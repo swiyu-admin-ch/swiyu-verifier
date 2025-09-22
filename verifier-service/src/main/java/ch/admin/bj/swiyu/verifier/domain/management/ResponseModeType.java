@@ -1,21 +1,19 @@
-package ch.admin.bj.swiyu.verifier.api.management;
+package ch.admin.bj.swiyu.verifier.domain.management;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(name = "ResponseMode", description = "Supported response modes")
-public enum ResponseModeDto {
+public enum ResponseModeType {
     DIRECT_POST("direct_post"),
     DIRECT_POST_JWT("direct_post.jwt");
 
     private final String display;
 
-    ResponseModeDto(String display) {
+    ResponseModeType(String display) {
         this.display = display;
     }
 
-    @JsonValue
     @Override
+    @JsonValue
     public String toString() {
         return this.display;
     }

@@ -346,17 +346,17 @@ public class ManagementMapper {
         );
     }
 
-    public static @NotNull ResponseMode toResponseMode(ResponseModeDto responseModeDto) {
-        return switch (responseModeDto) {
-            case DIRECT_POST -> ResponseMode.DIRECT_POST;
-            case DIRECT_POST_JWT ->  ResponseMode.DIRECT_POST_JWT;
+    public static @NotNull ResponseModeType toResponseMode(ResponseModeTypeDto responseModeTypeDto) {
+        return switch (responseModeTypeDto) {
+            case DIRECT_POST -> ResponseModeType.DIRECT_POST;
+            case DIRECT_POST_JWT ->  ResponseModeType.DIRECT_POST_JWT;
         };
     }
 
-    public static ResponseModeDto toResponseModeDto(@NotNull ResponseMode responseMode) {
-        return switch (responseMode) {
-            case DIRECT_POST -> ResponseModeDto.DIRECT_POST;
-            case DIRECT_POST_JWT ->  ResponseModeDto.DIRECT_POST_JWT;
+    public static ResponseModeTypeDto toResponseModeDto(@NotNull ResponseModeType responseModeType) {
+        return switch (responseModeType) {
+            case DIRECT_POST -> ResponseModeTypeDto.DIRECT_POST;
+            case DIRECT_POST_JWT ->  ResponseModeTypeDto.DIRECT_POST_JWT;
         };
     }
 

@@ -7,15 +7,13 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.api.VPApiVersion;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeDto;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
-import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseMode;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
@@ -43,12 +41,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.FieldSource;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -278,14 +274,14 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private void sendPresentation(UUID requestObjectId, String presentationSubmission, String vpToken) throws Exception {
         var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
         ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
-        if (responseSpecification.getResponseMode() == ResponseMode.DIRECT_POST) {
+        if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST) {
             mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
                             .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                             .formField("presentation_submission", presentationSubmission)
                             .formField("vp_token", vpToken))
                     .andExpect(status().isOk());
         }
-        else if (responseSpecification.getResponseMode() == ResponseMode.DIRECT_POST_JWT) {
+        else if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST_JWT) {
             // JWKS & encryptionMethod are normally provided in Request Object
             ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
             var encryptionMethod = EncryptionMethod.parse(responseSpecification.getEncryptedResponseEncValuesSupported().getFirst());

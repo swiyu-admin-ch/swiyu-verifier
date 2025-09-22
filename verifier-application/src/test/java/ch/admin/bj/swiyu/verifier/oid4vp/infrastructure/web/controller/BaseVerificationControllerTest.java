@@ -135,7 +135,7 @@ public abstract class BaseVerificationControllerTest {
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .responseSpecification(ResponseSpecification.builder()
-                        .responseMode(ResponseMode.DIRECT_POST_JWT)
+                        .responseModeType(ResponseModeType.DIRECT_POST_JWT)
                         .jwksPrivate(jwkSet.toString(false))
                         .jwks(jwkSet.toString(true))
                         .encryptedResponseEncValuesSupported(List.of("A128GCM"))

@@ -12,7 +12,7 @@ import ch.admin.bj.swiyu.verifier.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseMode;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.SignatureService;
@@ -77,7 +77,7 @@ public class RequestObjectService {
         var clientMetadataBuilder = clientMetadata.toBuilder();
 
         ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
-        if (ResponseMode.DIRECT_POST_JWT.equals(responseSpecification.getResponseMode())) {
+        if (ResponseModeType.DIRECT_POST_JWT.equals(responseSpecification.getResponseModeType())) {
             clientMetadataBuilder.jwks(ManagementMapper.toJWKSetDto(responseSpecification.getJwks()));
             clientMetadataBuilder.encryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported());
         }
@@ -91,7 +91,7 @@ public class RequestObjectService {
                 .clientMetadata(clientMetadataBuilder.build())
                 .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType("vp_token")
-                .responseMode(ManagementMapper.toResponseModeDto(responseSpecification.getResponseMode()))
+                .responseMode(ManagementMapper.toResponseModeDto(responseSpecification.getResponseModeType()))
                 .responseUri(String.format("%s/oid4vp/api/request-object/%s/response-data",
                         externalUrl,
                         managementEntityId))

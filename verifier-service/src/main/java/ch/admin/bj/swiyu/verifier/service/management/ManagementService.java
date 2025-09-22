@@ -8,7 +8,7 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeDto;
+import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -83,8 +83,8 @@ public class ManagementService {
             trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
         }
 
-        var responseSpecificationBuilder = ResponseSpecification.builder().responseMode(ManagementMapper.toResponseMode(request.responseMode()));
-        if (ResponseModeDto.DIRECT_POST_JWT.equals(request.responseMode())) {
+        var responseSpecificationBuilder = ResponseSpecification.builder().responseModeType(ManagementMapper.toResponseMode(request.responseMode()));
+        if (ResponseModeTypeDto.DIRECT_POST_JWT.equals(request.responseMode())) {
             createEncryptionKeys(responseSpecificationBuilder);
         }
 

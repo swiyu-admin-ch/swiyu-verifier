@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseMode;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,10 +59,10 @@ public class DecryptionService {
     public VerificationPresentationUnionDto decrypt(UUID managementEntityId, VerificationPresentationUnionDto verificationResponse) {
 
         Management managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
-        ResponseMode responseMode = managementEntity.getResponseSpecification().getResponseMode();
-        if (ResponseMode.DIRECT_POST.equals(responseMode)) {
+        ResponseModeType responseModeType = managementEntity.getResponseSpecification().getResponseModeType();
+        if (ResponseModeType.DIRECT_POST.equals(responseModeType)) {
             return verificationResponse;
-        } else if (ResponseMode.DIRECT_POST_JWT.equals(responseMode) && verificationResponse.isEncryptedPresentation()) {
+        } else if (ResponseModeType.DIRECT_POST_JWT.equals(responseModeType) && verificationResponse.isEncryptedPresentation()) {
             return jweDecrypt(verificationResponse, managementEntity);
         } else {
             throw  new IllegalArgumentException("Lacking encryption. All elements of the response should be encrypted.");

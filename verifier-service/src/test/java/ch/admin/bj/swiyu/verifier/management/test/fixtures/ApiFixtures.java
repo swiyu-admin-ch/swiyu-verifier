@@ -8,7 +8,7 @@ package ch.admin.bj.swiyu.verifier.management.test.fixtures;
 
 import ch.admin.bj.swiyu.verifier.api.definition.*;
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeDto;
+import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.api.management.dcql.*;
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
@@ -29,15 +29,15 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids, PresentationDefinitionDto presentationDefinitionDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, ResponseModeDto.DIRECT_POST, presentationDefinitionDto, null, null);
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, ResponseModeTypeDto.DIRECT_POST, presentationDefinitionDto, null, null);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(PresentationDefinitionDto presentationDefinitionDto, DcqlQueryDto dcqlQueryDto) {
-        return new CreateVerificationManagementDto(null, null, false, ResponseModeDto.DIRECT_POST, presentationDefinitionDto, null, dcqlQueryDto);
+        return new CreateVerificationManagementDto(null, null, false, ResponseModeTypeDto.DIRECT_POST, presentationDefinitionDto, null, dcqlQueryDto);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(DcqlQueryDto dcqlQueryDto) {
-        return new CreateVerificationManagementDto(null, null, false, ResponseModeDto.DIRECT_POST, presentationDefinitionDto(), null, dcqlQueryDto);
+        return new CreateVerificationManagementDto(null, null, false, ResponseModeTypeDto.DIRECT_POST, presentationDefinitionDto(), null, dcqlQueryDto);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
@@ -56,7 +56,7 @@ public class ApiFixtures {
         );
         return new CreateVerificationManagementDto(
                 List.of("did:example:123"), null,
-                isJWTSecured, ResponseModeDto.DIRECT_POST,
+                isJWTSecured, ResponseModeTypeDto.DIRECT_POST,
                 new PresentationDefinitionDto(
                     UUID.randomUUID().toString(),
                     null,

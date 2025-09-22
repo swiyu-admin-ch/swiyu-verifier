@@ -183,7 +183,7 @@ class RequestObjectServiceTest {
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
         var responseVerification = mock(ResponseSpecification.class);
         when(management.getResponseSpecification()).thenReturn(responseVerification);
-        when(responseVerification.getResponseMode()).thenReturn(ResponseMode.DIRECT_POST);
+        when(responseVerification.getResponseModeType()).thenReturn(ResponseModeType.DIRECT_POST);
         return management;
     }
 }

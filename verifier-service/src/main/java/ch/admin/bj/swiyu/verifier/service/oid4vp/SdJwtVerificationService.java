@@ -1,10 +1,12 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
@@ -50,14 +52,18 @@ public class SdJwtVerificationService {
     public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
     public static final List<String> SUPPORTED_JWT_ALGORITHMS = List.of("ES256");
 
+    private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
+
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
+    private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
 
 
     /**
      * Test function to ensure parity with DIF PE
+     *
      * @return claims of the vpToken requested in the management as json string
      */
     public String verifyVpTokenPresentationExchange(String vpToken, Management management) {
@@ -112,7 +118,7 @@ public class SdJwtVerificationService {
         // If Key Binding is present, validate that it is correct
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken,
-                    management.getRequestNonce());
+                    management);
         } else if (requiresKeyBinding(vpToken.getClaims())) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
@@ -318,11 +324,13 @@ public class SdJwtVerificationService {
         return claims.getClaims().containsKey("cnf");
     }
 
-    private void validateKeyBinding(SdJwt sdJwt, String nonce) {
+    private void validateKeyBinding(SdJwt sdJwt, Management management) {
         JWK keyBinding = getHolderKeyBinding(sdJwt.getClaims().getClaims());
         // Validate Holder Binding Proof JWT
-        JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding);
-        validateNonce(keyBindingClaims, nonce);
+        JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding,
+                Optional.ofNullable(management.getConfigurationOverride())
+                        .orElse(new ConfigurationOverride(null, null, null, null, null)));
+        validateNonce(keyBindingClaims, management.getRequestNonce());
         validateSDHash(sdJwt, keyBindingClaims);
     }
 
@@ -343,8 +351,9 @@ public class SdJwtVerificationService {
         }
     }
 
+
     @NotNull
-    private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding) {
+    private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding, ConfigurationOverride configurationOverride) {
         JWTClaimsSet keyBindingClaims;
         try {
             SignedJWT keyBindingJWT = SignedJWT.parse(keyBindingProof);
@@ -356,6 +365,7 @@ public class SdJwtVerificationService {
             }
             validateKeyBindingClaims(keyBindingJWT);
             keyBindingClaims = keyBindingJWT.getJWTClaimsSet();
+            validateHolderBindingAudience(keyBindingClaims.getAudience(), configurationOverride);
         } catch (ParseException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed");
         } catch (JOSEException e) {
@@ -364,6 +374,64 @@ public class SdJwtVerificationService {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding is not a valid JWT");
         }
         return keyBindingClaims;
+    }
+
+
+    /**
+     * Validates if we as verifier are indeed the audience of the holder binding, or whether it was created for another (eg. man in the middle) service.
+     * @param audience the audience as provided in the holder binding JWT
+     * @param configurationOverride possible override values
+     * @throws VerificationException if the audience for the holder binding does not match the expected one
+     */
+    private void validateHolderBindingAudience(List<String> audience,
+                                               ConfigurationOverride configurationOverride) {
+        if (CollectionUtils.isEmpty(audience)){
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding audience (aud)");
+        }
+
+        /*
+         * https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3
+         * The value MUST be a single string that identifies the intended receiver of the Key Binding JWT.
+         */
+        if (audience.size() != MAX_HOLDER_BINDING_AUDIENCES) {
+            throw credentialError(HOLDER_BINDING_MISMATCH,
+                    "Multiple audiences not supported. Expected 1 but was %d: %s".formatted(audience.size(), audience));
+        }
+
+        String aud = audience.getFirst();
+        if (StringUtils.isBlank(aud)) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
+        }
+
+        List<String> allowedAudiences = getAllowedAudiences(configurationOverride);
+
+        // Exact match only
+        if (!allowedAudiences.contains(aud)) {
+            throw credentialError(HOLDER_BINDING_MISMATCH,
+                    "Holder Binding audience mismatch. Actual: '%s'. Expected one of: %s"
+                            .formatted(aud, allowedAudiences));
+        }
+    }
+
+    /**
+     *
+     * @param configurationOverride override possibly providing
+     * @return an unmodifiable set of all exact allowed audience values
+     */
+    @NotNull
+    private List<String> getAllowedAudiences(ConfigurationOverride configurationOverride) {
+        String effectiveVerifierDid = Optional.ofNullable(configurationOverride.verifierDid())
+                .orElse(applicationProperties.getClientId());
+
+        String effectiveExternalUrl = Optional.ofNullable(configurationOverride.externalUrl())
+                .orElse(applicationProperties.getExternalUrl());
+
+        // Normalize external URL (remove trailing slash)
+        if (effectiveExternalUrl.endsWith("/")) {
+            effectiveExternalUrl = effectiveExternalUrl.substring(0, effectiveExternalUrl.length() - 1);
+        }
+
+        return List.of(effectiveVerifierDid, effectiveExternalUrl);
     }
 
     /**

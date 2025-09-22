@@ -116,6 +116,21 @@
                     <failurePriority>3</failurePriority>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.27.0</version>
+                <configuration>
+                    <printFailingErrors>true</printFailingErrors>
+                    <linkXRef>false</linkXRef>
+                    <failOnViolation>true</failOnViolation>
+                    <failurePriority>2</failurePriority>
+                    <rulesets>
+                        <ruleset>.github/rulesets/java/pmd_omni_ruleset.xml</ruleset>
+                    </rulesets>
+                    <includeTests>false</includeTests>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

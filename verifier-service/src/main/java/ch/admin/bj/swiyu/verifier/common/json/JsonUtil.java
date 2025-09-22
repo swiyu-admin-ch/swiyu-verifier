@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 /**
  * Collection of Utils helping with handling of JSONs in simple data formats
  */
-public class JsonUtil {
+public final class JsonUtil {
     private JsonUtil() {
     }
 

@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.1.0
 info:
   title: Verifier API
   description: Generic Verifier service
@@ -58,6 +58,8 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: "#/components/schemas/VerificationPresentationUnion"
+              description: The verification presentation request. Type is determined
+                automatically based on the provided parameters.
         required: true
       responses:
         "400":
@@ -65,7 +67,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VerificationErrorResponse"
+                $ref: "#/components/schemas/ApiErrorDto"
         "200":
           description: Verification Presentation received and processed successfully
   /management/api/verifications:
@@ -86,7 +88,7 @@ paths:
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/ApiError"
+                $ref: "#/components/schemas/ApiErrorDto"
         "200":
           description: Verification created
           content:
@@ -129,10 +131,10 @@ paths:
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: "#/components/schemas/VerificationErrorResponse"
+                $ref: "#/components/schemas/ApiErrorDto"
             application/json:
               schema:
-                $ref: "#/components/schemas/VerificationErrorResponse"
+                $ref: "#/components/schemas/ApiErrorDto"
   /oid4vp/api/openid-client-metadata.json:
     get:
       tags:
@@ -196,7 +198,7 @@ paths:
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/ApiError"
+                $ref: "#/components/schemas/ApiErrorDto"
   /actuator:
     get:
       tags:
@@ -326,9 +328,11 @@ components:
   schemas:
     VerificationPresentationUnion:
       type: object
+      description: Union DTO that contains all possible parameters from all verification
+        presentation types. Only the relevant fields should be populated based on
+        the request type.
       properties:
         vp_token:
-          type: object
           description: "VP token that can be either a string for standard presentations\
             \ or a JSON object for DCQL presentations. For standard/PE presentations:\
             \ JWT token string. For DCQL presentations: Object containing credential\
@@ -338,16 +342,17 @@ components:
             DCQL: {"my_credential": ["eyJhbGci...QMA", "eyJhbGci...QMA"]}
           oneOf:
           - type: string
+          - {}
         presentation_submission:
           type: string
           description: The presentation submission as defined in DIF presentation
             submission (used for Standard and PE presentations)
-          example: "{\"id\":\"a30e3b91-fb77-4d22-95fa-871689c322e2\",\"definition_id\"\
-            :\"32f54163-7166-48f1-93d8-ff217bdb0653\"}"
+          example:
+            id: a30e3b91-fb77-4d22-95fa-871689c322e2
+            definition_id: 32f54163-7166-48f1-93d8-ff217bdb0653
         error:
           type: string
           description: Error code for rejection (used for REJECTION)
-          example: client_rejected
           enum:
           - invalid_scope
           - invalid_request
@@ -357,6 +362,7 @@ components:
           - invalid_presentation_definition_reference
           - client_rejected
           - access_denied
+          example: client_rejected
         error_description:
           type: string
           description: Error description for rejection (used for REJECTION)
@@ -365,32 +371,457 @@ components:
           type: string
           description: Encrypted response JWE string (used for DCQLE)
           example: eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0...
-      description: Union DTO that contains all possible parameters from all verification
-        presentation types. Only the relevant fields should be populated based on
-        the request type.
-    VerificationError:
-      type: string
-      description: |
-        | Value                                                   | Description                                                                                  |
-        |---------------------------------------------------------|----------------------------------------------------------------------------------------------|
-        | invalid_request                                         | The request was invalid.<br>This is a general purpose code if none of the other codes apply. |
-        | server_error                                            | The authorization server encountered an unexpected                                           |
-        | invalid_credential                                      | The credential presented during validation was deemed invalid.                               |
-      enum:
-      - invalid_request
-      - server_error
-      - invalid_credential
-    VerificationErrorResponse:
-      required:
-      - error
+    ApiErrorDto:
       type: object
       properties:
         error:
-          $ref: "#/components/schemas/VerificationError"
+          type: string
+        error_description:
+          type: string
+        detail:
+          type: string
+    Constraint:
+      type: object
+      properties:
+        id:
+          type: string
+          description: (Optional) unique string with no conflict with another id in
+            the Presentation Definition
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the data is requested
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format
+        fields:
+          type: array
+          description: Selection which properties are requested of the holder
+          example:
+          - path:
+            - $.vct
+            filter:
+              type: string
+              const: test-sdjwt
+          - path:
+            - $.dateOfBirth
+          items:
+            $ref: "#/components/schemas/Field"
+          minItems: 1
+      required:
+      - fields
+    DcqlClaimDto:
+      type: object
+      description: Represents an individual claim object within the 'claims' array
+        of a Credential Query according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.3
+      properties:
+        id:
+          type: string
+          description: "REQUIRED if claim_sets is present in the Credential Query;\
+            \ OPTIONAL otherwise. A string identifying the particular claim. The value\
+            \ MUST be a non-empty string consisting of alphanumeric, underscore (_),\
+            \ or hyphen (-) characters. Within the particular claims array, the same\
+            \ id MUST NOT be present more than once."
+          pattern: "^[a-zA-Z0-9_-]+$"
+        path:
+          type: array
+          description: "The path to the claim within the credential. According to\
+            \ OpenID for Verifiable Presentations 1.0, Section 6.3, property 'path'.https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#claims_path_pointer"
+          items: {}
+          minItems: 1
+        values:
+          type: array
+          description: "OPTIONAL. A non-empty array of strings, integers or boolean\
+            \ values that specifies the expected values of the claim. If the values\
+            \ property is present, the Wallet SHOULD return the claim only if the\
+            \ type and value of the claim both match exactly for at least one of the\
+            \ elements in the array. Details of the processing rules are defined in\
+            \ Section 6.4.1."
+          items: {}
+      required:
+      - path
+    DcqlCredentialDto:
+      type: object
+      description: Represents a Credential Query within a DCQL query according to
+        https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1
+      properties:
+        id:
+          type: string
+          description: "A string identifying the Credential in the response and, if\
+            \ provided, the constraints in credential_sets. The value MUST be a non-empty\
+            \ string consisting of alphanumeric, underscore (_) or hyphen (-) characters.\
+            \ Within the Authorization Request, the same id MUST NOT be present more\
+            \ than once. According to OpenID for Verifiable Presentations 1.0, Section\
+            \ 6.1, property 'id'."
+          minLength: 1
+          pattern: "^[a-zA-Z0-9_-]+$"
+        format:
+          type: string
+          description: "A string that specifies the format of the requested Credential.\
+            \ Valid Credential Format Identifier values are defined in Appendix B.\
+            \ According to OpenID for Verifiable Presentations 1.0, Section 6.1, property\
+            \ 'format'."
+          minLength: 1
+        multiple:
+          type: boolean
+          default: false
+          description: "A boolean which indicates whether multiple Credentials can\
+            \ be returned for this Credential Query. If omitted, the default value\
+            \ is false. According to OpenID for Verifiable Presentations 1.0, Section\
+            \ 6.1, property 'multiple'."
+        meta:
+          $ref: "#/components/schemas/DcqlCredentialMetaDto"
+          description: "An object defining additional properties requested by the\
+            \ Verifier that apply to the metadata and validity data of the Credential.\
+            \ The properties of this object are defined per Credential Format. According\
+            \ to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'meta'."
+        claims:
+          type: array
+          description: "An optional non-empty array of Claims Query objects, specifying\
+            \ individual claims. According to OpenID for Verifiable Presentations\
+            \ 1.0, Section 6.1, property 'claims'."
+          items:
+            $ref: "#/components/schemas/DcqlClaimDto"
+          maxItems: 2147483647
+          minItems: 1
+        claim_sets:
+          type: array
+          description: "An optional non-empty array containing arrays of identifiers\
+            \ for elements in claims that specifies which combinations of claims for\
+            \ the Credential are requested. According to OpenID for Verifiable Presentations\
+            \ 1.0, Section 6.1, property 'claim_sets'."
+          items:
+            type: array
+            items:
+              type: string
+          maxItems: 2147483647
+          minItems: 1
+        require_cryptographic_holder_binding:
+          type: boolean
+          description: "A boolean indicating if cryptographic holder binding is required.\
+            \ If true, the Wallet MUST return a Verifiable Presentation of a Verifiable\
+            \ Credential. If false, a Verifiable Credential without Holder Binding\
+            \ MAY be returned. If omitted, the default is to require cryptographic\
+            \ holder binding. According to OpenID for Verifiable Presentations 1.0,\
+            \ Section 6.1, property 'require_cryptographic_holder_binding'. Also referenced\
+            \ in Appendix B.1. See <a href=\"https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1\"\
+            >Section 6.1</a> and <a href=\"https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-w3c-verifiable-credentials\"\
+            >Appendix B.1</a>."
+        trusted_authorities:
+          type: array
+          description: "An optional non-empty array of Trusted Authorities Query objects.\
+            \ According to OpenID for Verifiable Presentations 1.0, Section 6.1, property\
+            \ 'trusted_authorities'."
+          items:
+            $ref: "#/components/schemas/DcqlTrustedAuthoritiesDto"
+      required:
+      - format
+      - id
+      - meta
+    DcqlCredentialMetaDto:
+      type: object
+      description: Represents metadata parameters within a Credential Query according
+        to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1
+      properties:
+        type_values:
+          type: array
+          description: "For W3C Verifiable Credentials: A non-empty array of arrays\
+            \ of strings that specifies allowed values for the 'type' of the requested\
+            \ Verifiable Credential. According to OpenID for Verifiable Presentations\
+            \ 1.0, Appendix B.1.1, property 'type_values'."
+          items:
+            type: array
+            items:
+              type: string
+          maxItems: 2147483647
+          minItems: 1
+        vct_values:
+          type: array
+          description: "For IETF SD-JWT VC: A non-empty array of strings that specifies\
+            \ allowed values for the type of the requested Verifiable Credential.\
+            \ According to OpenID for Verifiable Presentations 1.0, Appendix B.3.5,\
+            \ property 'vct_values'."
+          items:
+            type: string
+          maxItems: 2147483647
+          minItems: 1
+        doctype_value:
+          type: string
+          description: "For ISO mdoc: A string that specifies an allowed value for\
+            \ the 'doctype' of the requested Verifiable Credential. It MUST be a valid\
+            \ doctype identifier. According to OpenID for Verifiable Presentations\
+            \ 1.0, Appendix B.2.3, property 'doctype_value'."
+    DcqlCredentialSetDto:
+      type: object
+      description: Represents a Credential Set Query within a DCQL query according
+        to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.2
+      properties:
+        options:
+          type: array
+          description: "A non-empty array, where each value in the array is a list\
+            \ of Credential Query identifiers representing one set of Credentials\
+            \ that satisfies the use case. According to OpenID for Verifiable Presentations\
+            \ 1.0, 6.2 Credential Set Query, property 'options'."
+          items:
+            type: array
+            items:
+              type: string
+          minItems: 1
+        required:
+          type: boolean
+          default: true
+          description: "A boolean indicating if this credential set is required. (default\
+            \ is true)According to OpenID for Verifiable Presentations 1.0, 6.2. Credential\
+            \ Set Query, property 'required'."
+      required:
+      - options
+    DcqlQueryDto:
+      type: object
+      description: Represents the Digital Credentials Query Language (DCQL) query
+        according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6
+        **⚠️ Not yet implemented**
+      example:
+        credentials:
+        - id: identity_credential_dcql
+          format: dc+sd-jwt
+          meta:
+            vct_values:
+            - https://credentials.example.com/identity_credential
+          claims:
+          - path:
+            - given_name
+          - path:
+            - family_name
+          - path:
+            - address
+            - street_address
+          require_cryptographic_holder_binding: true
+        - id: university_degree_dcql
+          format: dc+sd-jwt
+          meta:
+            vct_values:
+            - https://credentials.example.com/university_degree
+          claims:
+          - path:
+            - degree_name
+          - path:
+            - graduation_year
+        credential_sets:
+        - options:
+          - - identity_credential_dcql
+          - - university_degree_dcql
+          required: true
+      properties:
+        credentials:
+          type: array
+          description: "A non-empty array of Credential Queries that specify the requested\
+            \ Credentials. According to OpenID for Verifiable Presentations 1.0, Section\
+            \ 6, property 'credentials'."
+          items:
+            $ref: "#/components/schemas/DcqlCredentialDto"
+          minItems: 1
+        credential_sets:
+          type: array
+          description: "An optional non-empty array of Credential Set Queries that\
+            \ specifies additional constraints on which of the requested Credentials\
+            \ to return. According to OpenID for Verifiable Presentations 1.0, Section\
+            \ 6, property 'credential_sets'."
+          items:
+            $ref: "#/components/schemas/DcqlCredentialSetDto"
+      required:
+      - credentials
+      x-implementation-status:
+        status: not-implemented
+    DcqlTrustedAuthoritiesDto:
+      type: object
+      description: Trusted Authorities Query according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1.1
+      properties:
+        type:
+          type: string
+          description: "A string uniquely identifying the type of information about\
+            \ the issuer trust framework. According to OpenID for Verifiable Presentations\
+            \ 1.0, Section 6.1.1, property 'type'."
+          minLength: 1
+        values:
+          type: array
+          description: "A non-empty array of strings, where each string (value) contains\
+            \ information specific to the used Trusted Authorities Query type that\
+            \ allows the identification of an issuer, a trust framework, or a federation\
+            \ that an issuer belongs to. According to OpenID for Verifiable Presentations\
+            \ 1.0, Section 6.1.1, property 'values'."
+          items:
+            type: string
+          minItems: 1
+      required:
+      - type
+      - values
+    Field:
+      type: object
+      properties:
+        path:
+          type: array
+          description: (Mandatory) Array of one or more JSONPath string expressions
+          items:
+            type: string
+          minItems: 1
+        id:
+          type: string
+          description: (Optional) If present value MUST be a string that is unique
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+        purpose:
+          type: string
+          description: (Optional) If present describes purpose for which the field
+            is requested
+        filter:
+          $ref: "#/components/schemas/Filter"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format
+      required:
+      - path
+    Filter:
+      type: object
+      properties:
+        type:
+          type: string
+          default: string
+          description: (Optional) If present value MUST be 'string'
+          example: string
+          pattern: string
+        const:
+          type: string
+          description: (Optional) If present value MUST be a string / no pattern
+          example: vct-as-in-issuer-metadata
+    FormatAlgorithm:
+      type: object
+      properties:
+        sd-jwt_alg_values:
+          type: array
+          description: (Required) algorithms string from the SDJWT family
+          items:
+            type: string
+          minItems: 1
+        kb-jwt_alg_values:
+          type: array
+          description: (Required) algorithms defining the keybinding algorithm for
+            SDJWT family
+          items:
+            type: string
+          minItems: 1
+      required:
+      - kb-jwt_alg_values
+      - sd-jwt_alg_values
+    InputDescriptor:
+      type: object
+      properties:
+        id:
+          type: string
+          description: (Mandatory) unique string with no conflict with another id
+            in the Presentation Definition
+          example: 11111111-1111-1111-1111-111111111111
+          minLength: 1
+        name:
+          type: string
+          description: (Optional) If present human-friendly name which describes the
+            target field
+          example: Example Data Request
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the data is requested
+          example: We collect this data to test our verifier
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format
+          example:
+            vc+sd-jwt:
+              sd-jwt_alg_values:
+              - ES256
+              kb-jwt_alg_values:
+              - ES256
+        constraints:
+          $ref: "#/components/schemas/Constraint"
+      required:
+      - constraints
+      - id
+    ManagementResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        request_nonce:
+          type: string
+        state:
+          $ref: "#/components/schemas/VerificationStatus"
+        presentation_definition:
+          $ref: "#/components/schemas/PresentationDefinition"
+        dcql_query:
+          $ref: "#/components/schemas/DcqlQueryDto"
+        wallet_response:
+          $ref: "#/components/schemas/ResponseData"
+        verification_url:
+          type: string
+        verification_deeplink:
+          type: string
+    PresentationDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "A unique ID for the desired context. Can be any String, but\
+            \ using a UUID is recommended."
+          example: 00000000-0000-0000-0000-000000000000
+        name:
+          type: string
+          description: (Optional) If present human-friendly string intended to constitute
+            a distinctive designation of the Presentation Definition
+          example: Test Verification
+        purpose:
+          type: string
+          description: (Optional) Purpose for which the presentation definition is
+            requested and used for
+          example: We want to test a new Verifier
+        format:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormatAlgorithm"
+          description: (Optional) If present object with one or more properties matching
+            the registered Claim Format.
+          example:
+            vc+sd-jwt:
+              sd-jwt_alg_values:
+              - ES256
+              kb-jwt_alg_values:
+              - ES256
+        input_descriptors:
+          type: array
+          description: Input Descriptors are objects used to describe the information
+            a Verifier requires of a Holder
+          items:
+            $ref: "#/components/schemas/InputDescriptor"
+      required:
+      - input_descriptors
+    ResponseData:
+      type: object
+      properties:
         error_code:
           $ref: "#/components/schemas/VerificationErrorResponseCode"
         error_description:
           type: string
+        credential_subject_data:
+          type: object
+          additionalProperties: {}
     VerificationErrorResponseCode:
       type: string
       description: |
@@ -454,583 +885,15 @@ components:
       - invalid_presentation_definition_uri
       - invalid_presentation_definition_reference
       - jwt_premature
-    Constraint:
-      required:
-      - fields
-      type: object
-      properties:
-        id:
-          type: string
-          description: (Optional) unique string with no conflict with another id in
-            the Presentation Definition
-        name:
-          type: string
-          description: (Optional) If present human-friendly name which describes the
-            target field
-        purpose:
-          type: string
-          description: (Optional) Purpose for which the data is requested
-        format:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/FormatAlgorithm"
-          description: (Optional) If present object with one or more properties matching
-            the registered Claim Format
-        fields:
-          type: array
-          description: Selection which properties are requested of the holder
-          example:
-          - path:
-            - $.vct
-            filter:
-              type: string
-              const: test-sdjwt
-          - path:
-            - $.dateOfBirth
-          items:
-            $ref: "#/components/schemas/Field"
-    DcqlClaimDto:
-      required:
-      - path
-      type: object
-      properties:
-        id:
-          pattern: "^[a-zA-Z0-9_-]+$"
-          type: string
-          description: "REQUIRED if claim_sets is present in the Credential Query;\
-            \ OPTIONAL otherwise. A string identifying the particular claim. The value\
-            \ MUST be a non-empty string consisting of alphanumeric, underscore (_),\
-            \ or hyphen (-) characters. Within the particular claims array, the same\
-            \ id MUST NOT be present more than once."
-        path:
-          type: array
-          description: "The path to the claim within the credential. According to\
-            \ OpenID for Verifiable Presentations 1.0, Section 6.3, property 'path'.https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#claims_path_pointer"
-          items:
-            type: string
-            description: "The path to the claim within the credential. According to\
-              \ OpenID for Verifiable Presentations 1.0, Section 6.3, property 'path'.https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#claims_path_pointer"
-        values:
-          type: array
-          description: "OPTIONAL. A non-empty array of strings, integers or boolean\
-            \ values that specifies the expected values of the claim. If the values\
-            \ property is present, the Wallet SHOULD return the claim only if the\
-            \ type and value of the claim both match exactly for at least one of the\
-            \ elements in the array. Details of the processing rules are defined in\
-            \ Section 6.4.1."
-          items:
-            type: object
-            description: "OPTIONAL. A non-empty array of strings, integers or boolean\
-              \ values that specifies the expected values of the claim. If the values\
-              \ property is present, the Wallet SHOULD return the claim only if the\
-              \ type and value of the claim both match exactly for at least one of\
-              \ the elements in the array. Details of the processing rules are defined\
-              \ in Section 6.4.1."
-      description: Represents an individual claim object within the 'claims' array
-        of a Credential Query according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.3
-    DcqlCredentialDto:
-      required:
-      - format
-      - id
-      - meta
-      type: object
-      properties:
-        id:
-          pattern: "^[a-zA-Z0-9_-]+$"
-          type: string
-          description: "A string identifying the Credential in the response and, if\
-            \ provided, the constraints in credential_sets. The value MUST be a non-empty\
-            \ string consisting of alphanumeric, underscore (_) or hyphen (-) characters.\
-            \ Within the Authorization Request, the same id MUST NOT be present more\
-            \ than once. According to OpenID for Verifiable Presentations 1.0, Section\
-            \ 6.1, property 'id'."
-        format:
-          type: string
-          description: "A string that specifies the format of the requested Credential.\
-            \ Valid Credential Format Identifier values are defined in Appendix B.\
-            \ According to OpenID for Verifiable Presentations 1.0, Section 6.1, property\
-            \ 'format'."
-        multiple:
-          type: boolean
-          description: "A boolean which indicates whether multiple Credentials can\
-            \ be returned for this Credential Query. If omitted, the default value\
-            \ is false. According to OpenID for Verifiable Presentations 1.0, Section\
-            \ 6.1, property 'multiple'."
-          default: false
-        meta:
-          $ref: "#/components/schemas/DcqlCredentialMetaDto"
-        claims:
-          maxItems: 2147483647
-          minItems: 1
-          type: array
-          description: "An optional non-empty array of Claims Query objects, specifying\
-            \ individual claims. According to OpenID for Verifiable Presentations\
-            \ 1.0, Section 6.1, property 'claims'."
-          items:
-            $ref: "#/components/schemas/DcqlClaimDto"
-        claim_sets:
-          maxItems: 2147483647
-          minItems: 1
-          type: array
-          description: "An optional non-empty array containing arrays of identifiers\
-            \ for elements in claims that specifies which combinations of claims for\
-            \ the Credential are requested. According to OpenID for Verifiable Presentations\
-            \ 1.0, Section 6.1, property 'claim_sets'."
-          items:
-            type: array
-            description: "An optional non-empty array containing arrays of identifiers\
-              \ for elements in claims that specifies which combinations of claims\
-              \ for the Credential are requested. According to OpenID for Verifiable\
-              \ Presentations 1.0, Section 6.1, property 'claim_sets'."
-            items:
-              type: string
-              description: "An optional non-empty array containing arrays of identifiers\
-                \ for elements in claims that specifies which combinations of claims\
-                \ for the Credential are requested. According to OpenID for Verifiable\
-                \ Presentations 1.0, Section 6.1, property 'claim_sets'."
-        require_cryptographic_holder_binding:
-          type: boolean
-          description: "A boolean indicating if cryptographic holder binding is required.\
-            \ If true, the Wallet MUST return a Verifiable Presentation of a Verifiable\
-            \ Credential. If false, a Verifiable Credential without Holder Binding\
-            \ MAY be returned. If omitted, the default is to require cryptographic\
-            \ holder binding. According to OpenID for Verifiable Presentations 1.0,\
-            \ Section 6.1, property 'require_cryptographic_holder_binding'. Also referenced\
-            \ in Appendix B.1. See <a href=\"https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1\"\
-            >Section 6.1</a> and <a href=\"https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-w3c-verifiable-credentials\"\
-            >Appendix B.1</a>."
-        trusted_authorities:
-          type: array
-          description: "An optional non-empty array of Trusted Authorities Query objects.\
-            \ According to OpenID for Verifiable Presentations 1.0, Section 6.1, property\
-            \ 'trusted_authorities'."
-          items:
-            $ref: "#/components/schemas/DcqlTrustedAuthoritiesDto"
-      description: Represents a Credential Query within a DCQL query according to
-        https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1
-    DcqlCredentialMetaDto:
-      type: object
-      properties:
-        type_values:
-          maxItems: 2147483647
-          minItems: 1
-          type: array
-          description: "For W3C Verifiable Credentials: A non-empty array of arrays\
-            \ of strings that specifies allowed values for the 'type' of the requested\
-            \ Verifiable Credential. According to OpenID for Verifiable Presentations\
-            \ 1.0, Appendix B.1.1, property 'type_values'."
-          items:
-            type: array
-            description: "For W3C Verifiable Credentials: A non-empty array of arrays\
-              \ of strings that specifies allowed values for the 'type' of the requested\
-              \ Verifiable Credential. According to OpenID for Verifiable Presentations\
-              \ 1.0, Appendix B.1.1, property 'type_values'."
-            items:
-              type: string
-              description: "For W3C Verifiable Credentials: A non-empty array of arrays\
-                \ of strings that specifies allowed values for the 'type' of the requested\
-                \ Verifiable Credential. According to OpenID for Verifiable Presentations\
-                \ 1.0, Appendix B.1.1, property 'type_values'."
-        vct_values:
-          maxItems: 2147483647
-          minItems: 1
-          type: array
-          description: "For IETF SD-JWT VC: A non-empty array of strings that specifies\
-            \ allowed values for the type of the requested Verifiable Credential.\
-            \ According to OpenID for Verifiable Presentations 1.0, Appendix B.3.5,\
-            \ property 'vct_values'."
-          items:
-            type: string
-            description: "For IETF SD-JWT VC: A non-empty array of strings that specifies\
-              \ allowed values for the type of the requested Verifiable Credential.\
-              \ According to OpenID for Verifiable Presentations 1.0, Appendix B.3.5,\
-              \ property 'vct_values'."
-        doctype_value:
-          type: string
-          description: "For ISO mdoc: A string that specifies an allowed value for\
-            \ the 'doctype' of the requested Verifiable Credential. It MUST be a valid\
-            \ doctype identifier. According to OpenID for Verifiable Presentations\
-            \ 1.0, Appendix B.2.3, property 'doctype_value'."
-      description: Represents metadata parameters within a Credential Query according
-        to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1
-    DcqlCredentialSetDto:
-      required:
-      - options
-      type: object
-      properties:
-        options:
-          type: array
-          description: "A non-empty array, where each value in the array is a list\
-            \ of Credential Query identifiers representing one set of Credentials\
-            \ that satisfies the use case. According to OpenID for Verifiable Presentations\
-            \ 1.0, 6.2 Credential Set Query, property 'options'."
-          items:
-            type: array
-            description: "A non-empty array, where each value in the array is a list\
-              \ of Credential Query identifiers representing one set of Credentials\
-              \ that satisfies the use case. According to OpenID for Verifiable Presentations\
-              \ 1.0, 6.2 Credential Set Query, property 'options'."
-            items:
-              type: string
-              description: "A non-empty array, where each value in the array is a\
-                \ list of Credential Query identifiers representing one set of Credentials\
-                \ that satisfies the use case. According to OpenID for Verifiable\
-                \ Presentations 1.0, 6.2 Credential Set Query, property 'options'."
-        required:
-          type: boolean
-          description: "A boolean indicating if this credential set is required. (default\
-            \ is true)According to OpenID for Verifiable Presentations 1.0, 6.2. Credential\
-            \ Set Query, property 'required'."
-          default: true
-      description: Represents a Credential Set Query within a DCQL query according
-        to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.2
-    DcqlQueryDto:
-      required:
-      - credentials
-      type: object
-      properties:
-        credentials:
-          type: array
-          description: "A non-empty array of Credential Queries that specify the requested\
-            \ Credentials. According to OpenID for Verifiable Presentations 1.0, Section\
-            \ 6, property 'credentials'."
-          items:
-            $ref: "#/components/schemas/DcqlCredentialDto"
-        credential_sets:
-          type: array
-          description: "An optional non-empty array of Credential Set Queries that\
-            \ specifies additional constraints on which of the requested Credentials\
-            \ to return. According to OpenID for Verifiable Presentations 1.0, Section\
-            \ 6, property 'credential_sets'."
-          items:
-            $ref: "#/components/schemas/DcqlCredentialSetDto"
-      description: Represents the Digital Credentials Query Language (DCQL) query
-        according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6
-        **⚠️ Not yet implemented**
-      example:
-        credentials:
-        - id: identity_credential_dcql
-          format: dc+sd-jwt
-          meta:
-            vct_values:
-            - https://credentials.example.com/identity_credential
-          claims:
-          - path:
-            - given_name
-          - path:
-            - family_name
-          - path:
-            - address
-            - street_address
-          require_cryptographic_holder_binding: true
-        - id: university_degree_dcql
-          format: dc+sd-jwt
-          meta:
-            vct_values:
-            - https://credentials.example.com/university_degree
-          claims:
-          - path:
-            - degree_name
-          - path:
-            - graduation_year
-        credential_sets:
-        - options:
-          - - identity_credential_dcql
-          - - university_degree_dcql
-          required: true
-      x-implementation-status:
-        status: not-implemented
-    DcqlTrustedAuthoritiesDto:
-      required:
-      - type
-      - values
-      type: object
-      properties:
-        type:
-          type: string
-          description: "A string uniquely identifying the type of information about\
-            \ the issuer trust framework. According to OpenID for Verifiable Presentations\
-            \ 1.0, Section 6.1.1, property 'type'."
-        values:
-          type: array
-          description: "A non-empty array of strings, where each string (value) contains\
-            \ information specific to the used Trusted Authorities Query type that\
-            \ allows the identification of an issuer, a trust framework, or a federation\
-            \ that an issuer belongs to. According to OpenID for Verifiable Presentations\
-            \ 1.0, Section 6.1.1, property 'values'."
-          items:
-            type: string
-            description: "A non-empty array of strings, where each string (value)\
-              \ contains information specific to the used Trusted Authorities Query\
-              \ type that allows the identification of an issuer, a trust framework,\
-              \ or a federation that an issuer belongs to. According to OpenID for\
-              \ Verifiable Presentations 1.0, Section 6.1.1, property 'values'."
-      description: Trusted Authorities Query according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1.1
-    Field:
-      required:
-      - path
-      type: object
-      properties:
-        path:
-          type: array
-          description: (Mandatory) Array of one or more JSONPath string expressions
-          items:
-            type: string
-            description: (Mandatory) Array of one or more JSONPath string expressions
-        id:
-          type: string
-          description: (Optional) If present value MUST be a string that is unique
-        name:
-          type: string
-          description: (Optional) If present human-friendly name which describes the
-            target field
-        purpose:
-          type: string
-          description: (Optional) If present describes purpose for which the field
-            is requested
-        filter:
-          $ref: "#/components/schemas/Filter"
-      description: Selection which properties are requested of the holder
-      example:
-      - path:
-        - $.vct
-        filter:
-          type: string
-          const: test-sdjwt
-      - path:
-        - $.dateOfBirth
-    Filter:
-      type: object
-      properties:
-        type:
-          pattern: string
-          type: string
-          description: (Optional) If present value MUST be 'string'
-          example: string
-          default: string
-        const:
-          type: string
-          description: (Optional) If present value MUST be a string / no pattern
-          example: vct-as-in-issuer-metadata
-      description: (Optional) If present object with one or more properties matching
-        the registered Claim Format
-    FormatAlgorithm:
-      required:
-      - kb-jwt_alg_values
-      - sd-jwt_alg_values
-      type: object
-      properties:
-        sd-jwt_alg_values:
-          type: array
-          description: (Required) algorithms string from the SDJWT family
-          items:
-            type: string
-            description: (Required) algorithms string from the SDJWT family
-        kb-jwt_alg_values:
-          type: array
-          description: (Required) algorithms defining the keybinding algorithm for
-            SDJWT family
-          items:
-            type: string
-            description: (Required) algorithms defining the keybinding algorithm for
-              SDJWT family
-      description: (Optional) If present object with one or more properties matching
-        the registered Claim Format
-    InputDescriptor:
-      required:
-      - constraints
-      - id
-      type: object
-      properties:
-        id:
-          type: string
-          description: (Mandatory) unique string with no conflict with another id
-            in the Presentation Definition
-          example: 11111111-1111-1111-1111-111111111111
-        name:
-          type: string
-          description: (Optional) If present human-friendly name which describes the
-            target field
-          example: Example Data Request
-        purpose:
-          type: string
-          description: (Optional) Purpose for which the data is requested
-          example: We collect this data to test our verifier
-        format:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/FormatAlgorithm"
-          description: (Optional) If present object with one or more properties matching
-            the registered Claim Format
-          example:
-            vc+sd-jwt:
-              sd-jwt_alg_values:
-              - ES256
-              kb-jwt_alg_values:
-              - ES256
-        constraints:
-          $ref: "#/components/schemas/Constraint"
-      description: Input Descriptors are objects used to describe the information
-        a Verifier requires of a Holder
-    ManagementResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        request_nonce:
-          type: string
-        state:
-          $ref: "#/components/schemas/VerificationStatus"
-        presentation_definition:
-          $ref: "#/components/schemas/PresentationDefinition"
-        dcql_query:
-          $ref: "#/components/schemas/DcqlQueryDto"
-        wallet_response:
-          $ref: "#/components/schemas/ResponseData"
-        verification_url:
-          type: string
-        verification_deeplink:
-          type: string
-    PresentationDefinition:
-      required:
-      - input_descriptors
-      type: object
-      properties:
-        id:
-          type: string
-          description: "A unique ID for the desired context. Can be any String, but\
-            \ using a UUID is recommended."
-          example: 00000000-0000-0000-0000-000000000000
-        name:
-          type: string
-          description: (Optional) If present human-friendly string intended to constitute
-            a distinctive designation of the Presentation Definition
-          example: Test Verification
-        purpose:
-          type: string
-          description: (Optional) Purpose for which the presentation definition is
-            requested and used for
-          example: We want to test a new Verifier
-        format:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/FormatAlgorithm"
-          description: (Optional) If present object with one or more properties matching
-            the registered Claim Format.
-          example:
-            vc+sd-jwt:
-              sd-jwt_alg_values:
-              - ES256
-              kb-jwt_alg_values:
-              - ES256
-        input_descriptors:
-          type: array
-          description: Input Descriptors are objects used to describe the information
-            a Verifier requires of a Holder
-          items:
-            $ref: "#/components/schemas/InputDescriptor"
-    ResponseData:
-      type: object
-      properties:
-        error_code:
-          $ref: "#/components/schemas/VerificationErrorResponseCode"
-        error_description:
-          type: string
-        credential_subject_data:
-          type: object
-          additionalProperties:
-            type: object
     VerificationStatus:
       type: string
       enum:
       - PENDING
       - SUCCESS
       - FAILED
-    ApiError:
-      required:
-      - detail
-      - status
-      type: object
-      properties:
-        status:
-          type: string
-          description: HTTP status code of the error
-          enum:
-          - 100 CONTINUE
-          - 101 SWITCHING_PROTOCOLS
-          - 102 PROCESSING
-          - 103 EARLY_HINTS
-          - 103 CHECKPOINT
-          - 200 OK
-          - 201 CREATED
-          - 202 ACCEPTED
-          - 203 NON_AUTHORITATIVE_INFORMATION
-          - 204 NO_CONTENT
-          - 205 RESET_CONTENT
-          - 206 PARTIAL_CONTENT
-          - 207 MULTI_STATUS
-          - 208 ALREADY_REPORTED
-          - 226 IM_USED
-          - 300 MULTIPLE_CHOICES
-          - 301 MOVED_PERMANENTLY
-          - 302 FOUND
-          - 302 MOVED_TEMPORARILY
-          - 303 SEE_OTHER
-          - 304 NOT_MODIFIED
-          - 305 USE_PROXY
-          - 307 TEMPORARY_REDIRECT
-          - 308 PERMANENT_REDIRECT
-          - 400 BAD_REQUEST
-          - 401 UNAUTHORIZED
-          - 402 PAYMENT_REQUIRED
-          - 403 FORBIDDEN
-          - 404 NOT_FOUND
-          - 405 METHOD_NOT_ALLOWED
-          - 406 NOT_ACCEPTABLE
-          - 407 PROXY_AUTHENTICATION_REQUIRED
-          - 408 REQUEST_TIMEOUT
-          - 409 CONFLICT
-          - 410 GONE
-          - 411 LENGTH_REQUIRED
-          - 412 PRECONDITION_FAILED
-          - 413 PAYLOAD_TOO_LARGE
-          - 413 REQUEST_ENTITY_TOO_LARGE
-          - 414 URI_TOO_LONG
-          - 414 REQUEST_URI_TOO_LONG
-          - 415 UNSUPPORTED_MEDIA_TYPE
-          - 416 REQUESTED_RANGE_NOT_SATISFIABLE
-          - 417 EXPECTATION_FAILED
-          - 418 I_AM_A_TEAPOT
-          - 419 INSUFFICIENT_SPACE_ON_RESOURCE
-          - 420 METHOD_FAILURE
-          - 421 DESTINATION_LOCKED
-          - 422 UNPROCESSABLE_ENTITY
-          - 423 LOCKED
-          - 424 FAILED_DEPENDENCY
-          - 425 TOO_EARLY
-          - 426 UPGRADE_REQUIRED
-          - 428 PRECONDITION_REQUIRED
-          - 429 TOO_MANY_REQUESTS
-          - 431 REQUEST_HEADER_FIELDS_TOO_LARGE
-          - 451 UNAVAILABLE_FOR_LEGAL_REASONS
-          - 500 INTERNAL_SERVER_ERROR
-          - 501 NOT_IMPLEMENTED
-          - 502 BAD_GATEWAY
-          - 503 SERVICE_UNAVAILABLE
-          - 504 GATEWAY_TIMEOUT
-          - 505 HTTP_VERSION_NOT_SUPPORTED
-          - 506 VARIANT_ALSO_NEGOTIATES
-          - 507 INSUFFICIENT_STORAGE
-          - 508 LOOP_DETECTED
-          - 509 BANDWIDTH_LIMIT_EXCEEDED
-          - 510 NOT_EXTENDED
-          - 511 NETWORK_AUTHENTICATION_REQUIRED
-        detail:
-          type: string
-          description: Error message
     ConfigurationOverrideDto:
       type: object
+      description: Override for Verifier configuration to be use for this one verification
       properties:
         external_url:
           type: string
@@ -1057,9 +920,7 @@ components:
           type: string
           description: "The pin which protects the key in the hsm, if any. Note that\
             \ this only the key pin, not hsm password or partition pin."
-          example: "11111"
-      description: Override for Verifier configuration to be use for this one verification
-      example: {}
+          example: 11111
     CreateVerificationManagement:
       type: object
       properties:
@@ -1073,11 +934,6 @@ components:
           - did:example:12345
           items:
             type: string
-            description: |
-              List of dids from issuers whose credentials are accepted for this verification.
-              Will be evaluated before trust anchor.
-              If not specified and no trust anchor specified all dids are trusted.
-            example: "[\"did:example:12345\"]"
         trust_anchors:
           type: array
           description: |
@@ -1092,21 +948,29 @@ components:
           type: boolean
           description: Toggle whether the request-object is available as plain object
             oras jwt object signed by the verifier as additional security measure
+        response_mode:
+          type: string
+          description: Requested Response Mode
+          enum:
+          - direct_post
+          - direct_post.jwt
         presentation_definition:
           $ref: "#/components/schemas/PresentationDefinition"
+          description: Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition
         configuration_override:
           $ref: "#/components/schemas/ConfigurationOverrideDto"
+          description: "Optional Parameter to override configured parameters, such\
+            \ as the DID used or the HSM key used in singing the request object"
+          example: {}
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
     TrustAnchor:
-      required:
-      - did
-      - trust_registry_uri
       type: object
       properties:
         did:
           type: string
           example: did:example:12345
+          minLength: 1
         trust_registry_uri:
           type: string
           description: |
@@ -1114,69 +978,121 @@ components:
             For the example value the trust anchor would be searched at
             https://trust-reg.trust-infra.swiyu-int.admin.ch/api/v1/truststatements/{trust_anchor_did}
           example: https://trust-reg.trust-infra.swiyu-int.admin.ch
-      description: |
-        List of trust anchor dids from the trust registry.
-        This is an alternative to specifying accepted issuer dids,
-        if these dids have a trust statement.
-        All dids trusted by the trust anchor are accepted.
-        If not specified, trust statements will not be used for this verification.
-    OpenIdClientMetadataVpFormat:
+          minLength: 1
       required:
-      - jwt_vp
+      - did
+      - trust_registry_uri
+    JWK Set:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: "#/components/schemas/Json Web Key"
+    Json Web Key:
+      type: object
+      properties:
+        kty:
+          type: string
+        kid:
+          type: string
+        use:
+          type: string
+        alg:
+          type: string
+        "n":
+          type: string
+        e:
+          type: string
+        crv:
+          type: string
+        x:
+          type: string
+        "y":
+          type: string
+    OpenIdClientMetadataVpFormat:
       type: object
       properties:
         jwt_vp:
           $ref: "#/components/schemas/OpenIdClientMetadataVpFormatAlg"
-    OpenIdClientMetadataVpFormatAlg:
       required:
-      - alg
+      - jwt_vp
+    OpenIdClientMetadataVpFormatAlg:
       type: object
       properties:
         alg:
           type: array
           items:
             type: string
-    OpenidClientMetadataDto:
+          minItems: 1
       required:
-      - client_id
-      - vp_formats
+      - alg
+    OpenIdClientMetadataVpFormatSdJwt:
       type: object
+      properties:
+        sd-jwt_alg_values:
+          type: array
+          items:
+            type: string
+        kb-jwt_alg_values:
+          type: array
+          items:
+            type: string
+    OpenIdClientMetadataVpFormatsSupported:
+      type: object
+      properties:
+        dc+sd-jwt:
+          $ref: "#/components/schemas/OpenIdClientMetadataVpFormatSdJwt"
+    OpenidClientMetadataDto:
+      type: object
+      description: |-
+        Verifier metadata values.
+        Additional Verifier metadata parameters MAY be defined and used, as described in [RFC7591].
+        The Wallet MUST ignore any unrecognized parameters.
       properties:
         version:
           type: string
         additionalProperties:
           type: object
-          additionalProperties:
-            type: object
+          additionalProperties: {}
           writeOnly: true
         client_id:
           type: string
+          minLength: 1
         vp_formats:
           $ref: "#/components/schemas/OpenIdClientMetadataVpFormat"
-      description: "A JSON object containing the Verifier metadata values providing\
-        \ further information about the verifier, such as name and logo. It is UTF-8\
-        \ encoded. It MUST NOT be present if client_metadata_uri parameter is present."
-      example: |-
-        {
-            "client_id": "did:example:12345",
-            "client_name#en": "English name (all regions)",
-            "client_name#fr": "French name (all regions)",
-            "client_name#de-DE": "German name (region Germany)",
-            "client_name#de-CH": "German name (region Switzerland)",
-            "client_name#de": "German name (fallback)",
-            "client_name": "Fallback name",
-            "client_logo": "www.example.com/logo.png",
-            "client_logo#fr": "www.example.com/logo_fr.png",
-            "vp_formats": {
-                "jwt_vp": {
-                    "alg": [
-                        "ES256"
-                    ],
-                }
-            }
-        }
+          deprecated: true
+        jwks:
+          $ref: "#/components/schemas/JWK Set"
+          description: |
+            One or more public keys, such as those used by the Wallet as an input to a key agreement
+            that may be used for encryption of the Authorization Response, or where the Wallet will
+            require the public key of the Verifier to generate a Verifiable Presentation.
+
+            Public keys included in this parameter MUST NOT be used to verify the signature of signed Authorization Requests
+        encrypted_response_enc_values_supported:
+          type: array
+          description: |-
+            If present, should be non-empty array of JWE algorithms as in RFC7516.
+            When a response_mode requiring encryption of the Response (such as direct_post.jwt) is specified,
+            one of the specified algorithms is to be used.
+          items:
+            type: string
+        vp_formats_supported:
+          $ref: "#/components/schemas/OpenIdClientMetadataVpFormatsSupported"
+          description: |
+            An object containing a list of name/value pairs, where the name is a Credential Format Identifier and the
+            value defines format-specific parameters that a Verifier supports.
+      required:
+      - client_id
+      - vp_formats
     RequestObject:
       type: object
+      description: |
+        OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
+        Contains either a Presentation Exchange (PE) presentation_definition or a DCQL query (dcql_query), depending on the verification request format.
+        - If the verification was initiated using the older PE format, the presentation_definition field is used.
+        - If the verification was initiated using the new DCQL format, the dcql_query field is used.
       properties:
         client_id:
           type: string
@@ -1186,6 +1102,12 @@ components:
           type: string
         response_mode:
           type: string
+          description: |
+            If "direct_post", expect the response to be sent via an HTTPS connection to response_uri.
+            If "direct_post.jwt" expects the response to also be encrypted.
+          enum:
+          - direct_post
+          - direct_post.jwt
         response_uri:
           type: string
         nonce:
@@ -1194,17 +1116,41 @@ components:
           type: string
         presentation_definition:
           $ref: "#/components/schemas/PresentationDefinition"
+          description: |
+            Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition.
+            This field is only used for requests initiated with the older Presentation Exchange (PE) format.
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
+          description: |
+            DCQL query object as an Authorization Request parameter.
+            This field is used for requests initiated with the DCQL format and contains the Digital Credentials Query Language (DCQL) query.
         client_metadata:
           $ref: "#/components/schemas/OpenidClientMetadataDto"
+          description: "A JSON object containing the Verifier metadata values providing\
+            \ further information about the verifier, such as name and logo. It is\
+            \ UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter\
+            \ is present."
+          example: |-
+            {
+                "client_id": "did:example:12345",
+                "client_name#en": "English name (all regions)",
+                "client_name#fr": "French name (all regions)",
+                "client_name#de-DE": "German name (region Germany)",
+                "client_name#de-CH": "German name (region Switzerland)",
+                "client_name#de": "German name (fallback)",
+                "client_name": "Fallback name",
+                "client_logo": "www.example.com/logo.png",
+                "client_logo#fr": "www.example.com/logo_fr.png",
+                "vp_formats": {
+                    "jwt_vp": {
+                        "alg": [
+                            "ES256"
+                        ],
+                    }
+                }
+            }
         state:
           type: string
-      description: |
-        OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
-        Contains either a Presentation Exchange (PE) presentation_definition or a DCQL query (dcql_query), depending on the verification request format.
-        - If the verification was initiated using the older PE format, the presentation_definition field is used.
-        - If the verification was initiated using the new DCQL format, the dcql_query field is used.
     Link:
       type: object
       properties:
@@ -1213,7 +1159,7 @@ components:
         templated:
           type: boolean
     WebhookCallback:
-      type: object
+      description: Callback transmitting that verification can now be fetched.
       properties:
         verification_id:
           type: string
@@ -1221,4 +1167,3 @@ components:
         timestamp:
           type: string
           format: date-time
-      description: Callback transmitting that verification can now be fetched.

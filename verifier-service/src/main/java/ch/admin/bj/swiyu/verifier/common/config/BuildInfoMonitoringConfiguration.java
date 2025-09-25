@@ -58,7 +58,7 @@ public class BuildInfoMonitoringConfiguration {
      * @param environment The environment to hash
      * @return A string which represents a hash of all environment variables
      */
-    public String hashAllProperties(Environment environment) throws NoSuchAlgorithmException {
+    private String hashAllProperties(Environment environment) throws NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         StringBuilder sb = new StringBuilder();
 

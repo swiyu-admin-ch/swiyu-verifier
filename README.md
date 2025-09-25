@@ -90,7 +90,7 @@ The service now supports both DCQL and PE formats through:
 3. **Holder Retrieval**: Holder uses Verification URI to get request object containing DCQL query
 4. **Presentation**: Holder's wallet processes DCQL query to identify suitable credentials
 5. **Verification**: Service validates credentials against DCQL query criteria
-6. **Status Update**: Business Verifier receives status via polling or webhooks
+6. **Status Update**: Business Verifier receives status and requested data via polling or webhooks
 
 ### VP Token Response Encryption
 - Required after transition period

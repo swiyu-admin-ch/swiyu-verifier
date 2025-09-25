@@ -8,11 +8,17 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
+import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -77,11 +83,17 @@ public class ManagementService {
             trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
         }
 
+        var responseSpecificationBuilder = ResponseSpecification.builder().responseModeType(ManagementMapper.toResponseMode(request.responseMode()));
+        if (ResponseModeTypeDto.DIRECT_POST_JWT.equals(request.responseMode())) {
+            createEncryptionKeys(responseSpecificationBuilder);
+        }
+
         var management = repository.save(Management.builder()
                 .expirationInSeconds(applicationProperties.getVerificationTTL())
                 .requestedPresentation(presentationDefinition)
                 .dcqlQuery(dcqlQuery)
                 .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
+                .responseSpecification(responseSpecificationBuilder.build())
                 .acceptedIssuerDids(request.acceptedIssuerDids())
                 .trustAnchors(trustAnchors)
                 .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
@@ -90,6 +102,21 @@ public class ManagementService {
 
         log.info("Created pending verification for id: {}", management.getId());
         return toManagementResponseDto(management, applicationProperties);
+    }
+
+    private static void createEncryptionKeys(ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder) {
+        try {
+            var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256).keyID(UUID.randomUUID().toString()).generate();
+            JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
+
+            // Public keys used in request object
+            responseSpecificationBuilder.jwks(jwkSet.toString(true));
+            responseSpecificationBuilder.encryptedResponseEncValuesSupported(List.of("A128GCM"));
+            // Private Keys used to unpack Encryption
+            responseSpecificationBuilder.jwksPrivate(jwkSet.toString(false));
+        } catch (JOSEException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
 

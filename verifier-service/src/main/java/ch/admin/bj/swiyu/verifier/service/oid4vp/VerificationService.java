@@ -7,7 +7,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestEncryptedDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
@@ -197,38 +196,6 @@ public class VerificationService {
         }
     }
 
-    /**
-     * Validates the encrypted DCQL presentation request. If it fails, it will
-     * be marked as failed and can't be used anymore.
-     *
-     * @param managementEntityId the id of the Management
-     * @param request            the encrypted DCQL presentation request to verify
-     */
-    @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
-    public void receiveVerificationPresentationDCQLEncrypted(UUID managementEntityId, VerificationPresentationDCQLRequestEncryptedDto request) {
-        log.debug("Received encrypted DCQL verification presentation for management id {}", managementEntityId);
-        var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
-        try {
-            // 1. Check if the process is still pending and not expired
-            log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-            verifyProcessNotClosed(managementEntity);
-
-            // 2. Verify the encrypted DCQL presentation submission
-            log.debug("Starting encrypted DCQL submission verification for {}", managementEntityId);
-            var credentialSubjectData = verifyEncryptedDCQLPresentation(managementEntity, request);
-            log.trace("Encrypted DCQL submission verification completed for {}", managementEntityId);
-            managementEntity.verificationSucceeded(credentialSubjectData);
-            log.debug("Saved successful encrypted DCQL verification result for {}", managementEntityId);
-        } catch (VerificationException e) {
-            managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
-            log.debug("Saved failed encrypted DCQL verification result for {}", managementEntityId);
-            throw e; // rethrow since client get notified of the error
-        } finally {
-            // Notify Business Verifier that this verification is done
-            webhookService.produceEvent(managementEntityId);
-        }
-    }
-
     private String verifyPresentation(Management entity, VerificationPresentationRequestDto request) {
         // NOTE: we do support invalid json of a presentation submissions, that is why we parse it manually.in case we have an
         // error we will update the entity (status to failed)
@@ -310,17 +277,11 @@ public class VerificationService {
                 .toList();
     }
 
-
     private String parseAsStringOrThrowIllegalArgumentException(Object object) {
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Failed to serialize object to string", e);
         }
-    }
-
-    private String verifyEncryptedDCQLPresentation(Management entity, VerificationPresentationDCQLRequestEncryptedDto request) {
-        // TODO: Encrypted DCQL functionality is not yet implemented - this is a placeholder for the next ticket
-        throw new IllegalArgumentException("Encrypted DCQL verification functionality is not yet implemented. This feature will be available in a future release.");
     }
 }

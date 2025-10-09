@@ -38,9 +38,7 @@ public class DidResolverAdapter {
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
             String didLog = didResolverRestClient.retrieveDidLog(didUrl);
-            try (DidDoc didDoc = did.resolve(didLog)) {
-                return didDoc;
-            }
+            return did.resolve(didLog);
         } catch (Exception e) {
             throw new DidResolverException(e);
         }

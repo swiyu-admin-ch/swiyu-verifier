@@ -405,30 +405,20 @@ public class SdjwtCredentialVerifier {
         var override = managementEntity.getConfigurationOverride();
         String clientId = Optional.ofNullable(override.verifierDid())
                 .orElse(applicationProperties.getClientId());
-        String externalUrl = Optional.ofNullable(override.externalUrl())
-                .orElse(applicationProperties.getExternalUrl());
 
-        externalUrl = normalizeUrl(externalUrl);
-        String normalizedAud = normalizeUrl(aud);
+
+        // Audience MUST be client_id
+        // See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-14.1.2
 
         Set<String> allowed = new HashSet<>();
         if (clientId != null) allowed.add(clientId);
-        if (externalUrl != null) allowed.add(externalUrl);
 
-        if (!allowed.contains(normalizedAud)) {
+        if (!allowed.contains(aud)) {
             throw credentialError(HOLDER_BINDING_MISMATCH,
                     "Holder Binding audience mismatch. Actual: '" + aud + "' Expected one of: " + allowed);
         }
     }
 
-    private String normalizeUrl(String url) {
-        if (url == null) return null;
-        // strip single trailing slash (except root)
-        if (url.endsWith("/") && url.length() > 1) {
-            return url.substring(0, url.length() - 1);
-        }
-        return url;
-    }
 
     private void validateSDHash(JWTClaimsSet keyBindingClaims) {
         // Compute the SD Hash of the VP Token

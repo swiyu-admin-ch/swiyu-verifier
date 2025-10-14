@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
-@Schema(name= "JWK Set")
+@Schema(name = "JWKSet")
 public record JwkSetDto(
     @JsonProperty("keys")
     List<JwkDto> keys

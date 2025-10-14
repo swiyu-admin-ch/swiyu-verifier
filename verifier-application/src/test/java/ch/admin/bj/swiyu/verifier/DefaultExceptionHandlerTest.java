@@ -1,6 +1,8 @@
 package ch.admin.bj.swiyu.verifier;
 
 import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
+import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.infrastructure.web.DefaultExceptionHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +13,9 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.multipart.MultipartException;
 
+import java.io.IOException;
 import java.util.NoSuchElementException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -100,5 +104,66 @@ class DefaultExceptionHandlerTest {
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertThat(output.getAll()).doesNotContain("ERROR");
+    }
+
+    @Test
+    void handleIOExceptionBrokenPipe_shouldReturnNull() {
+        final String message = "Broken pipe";
+        final IOException ex = new IOException(message);
+        final ResponseEntity<Object> response = handler.handleBrokenPipeException(ex);
+
+        assertThat(response).isNull();
+    }
+
+    @Test
+    void handleIOExceptionGeneric_shouldReturnInternalServerError() {
+        final String message = "Generic IO problem";
+        final IOException ex = new IOException(message);
+        final ResponseEntity<Object> response = handler.handleBrokenPipeException(ex);
+
+        assertThat(response.getBody()).isInstanceOf(ApiErrorDto.class);
+        final ApiErrorDto body = (ApiErrorDto) response.getBody();
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(body);
+        assertEquals(message, body.getErrorDescription());
+    }
+
+    @Test
+    void handleMultipartExceptionStreamEnded_shouldReturnBadRequest() {
+        final String message = "Stream ended unexpectedly";
+        final MultipartException ex = new MultipartException(message);
+        final ResponseEntity<Object> response = handler.handleUnexpectedStreamClosing(ex);
+
+        assertThat(response.getBody()).isInstanceOf(ApiErrorDto.class);
+        final ApiErrorDto body = (ApiErrorDto) response.getBody();
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(body);
+        assertEquals(message, body.getErrorDescription());
+    }
+
+    @Test
+    void handleMultipartExceptionGeneric_shouldReturnInternalServerError() {
+        final String message = "Some multipart error";
+        final MultipartException ex = new MultipartException(message);
+        final ResponseEntity<Object> response = handler.handleUnexpectedStreamClosing(ex);
+
+        assertThat(response.getBody()).isInstanceOf(ApiErrorDto.class);
+        final ApiErrorDto body = (ApiErrorDto) response.getBody();
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(body);
+        assertEquals(message, body.getErrorDescription());
+    }
+
+    @Test
+    void handleProcessClosedException_shouldReturnGone() {
+        final String message = "Verification Process has already been closed.";
+        final ProcessClosedException ex = new ProcessClosedException();
+        final ResponseEntity<Object> response = handler.handleProcessAlreadyClosedException(ex);
+
+        assertThat(response.getBody()).isInstanceOf(ApiErrorDto.class);
+        final ApiErrorDto body = (ApiErrorDto) response.getBody();
+        assertEquals(HttpStatus.GONE, response.getStatusCode());
+        assertNotNull(body);
+        assertEquals(message, body.getErrorDescription());
     }
 }

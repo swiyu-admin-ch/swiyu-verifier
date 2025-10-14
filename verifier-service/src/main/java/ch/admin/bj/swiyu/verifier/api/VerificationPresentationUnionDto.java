@@ -86,9 +86,13 @@ public class VerificationPresentationUnionDto {
         return vp_token != null && presentation_submission == null;
     }
 
+    /**
+     * Validate if the presentation is properly encrypted presentation
+     * @return false if response is missing or response is present but additional unencrypted data has been sent
+     */
     @JsonIgnore
-    public boolean isDcqlEncryptedPresentation() {
-        return response != null;
+    public boolean isEncryptedPresentation() {
+        return response != null && error == null && error_description == null && presentation_submission == null && vp_token == null;
     }
 
     // Factory methods to extract specific DTOs from Union DTO
@@ -141,15 +145,5 @@ public class VerificationPresentationUnionDto {
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to parse vp_token as DCQL format: " + e.getMessage(), e);
         }
-    }
-
-    @JsonIgnore
-    public VerificationPresentationDCQLRequestEncryptedDto toDcqlEncryptedPresentation() {
-        if (!isDcqlEncryptedPresentation()) {
-            throw new IllegalArgumentException("Union DTO does not contain encrypted DCQL presentation data");
-        }
-        var dto = new VerificationPresentationDCQLRequestEncryptedDto();
-        dto.setResponse(this.response);
-        return dto;
     }
 }

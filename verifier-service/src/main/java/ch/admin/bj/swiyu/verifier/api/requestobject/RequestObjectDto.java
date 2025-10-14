@@ -7,13 +7,16 @@
 package ch.admin.bj.swiyu.verifier.api.requestobject;
 
 import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
+import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
@@ -31,6 +34,8 @@ import lombok.Data;
     - If the verification was initiated using the older PE format, the presentation_definition field is used.
     - If the verification was initiated using the new DCQL format, the dcql_query field is used.
     """)
+@AllArgsConstructor
+@NoArgsConstructor
 public class RequestObjectDto {
 
     /**
@@ -51,7 +56,11 @@ public class RequestObjectDto {
     private String responseType;
 
     @JsonProperty("response_mode")
-    private String responseMode;
+    @Schema(description = """
+            If "direct_post", expect the response to be sent via an HTTPS connection to response_uri.
+            If "direct_post.jwt" expects the response to also be encrypted.
+            """)
+    private ResponseModeTypeDto responseMode;
 
     @JsonProperty("response_uri")
     private String responseUri;

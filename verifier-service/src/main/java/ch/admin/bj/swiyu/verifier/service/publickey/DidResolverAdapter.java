@@ -38,10 +38,7 @@ public class DidResolverAdapter {
         try (var did = new Did(didTdw)) {
             String didUrl = did.getUrl();
             String didLog = didResolverRestClient.retrieveDidLog(didUrl);
-            try (TrustDidWeb tdw = TrustDidWeb.Companion.read(didTdw, didLog)) {
-                String rawDidDoc = tdw.getDidDoc();
-                return DidDoc.Companion.fromJson(rawDidDoc);
-            }
+            return did.resolve(didLog);
         } catch (Exception e) {
             throw new DidResolverException(e);
         }

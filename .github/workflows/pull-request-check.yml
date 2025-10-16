@@ -86,3 +86,47 @@ jobs:
           exit-code: 1
           ignore-unfixed: true
           format: table
+
+  application-tests:
+    name: Trigger external application tests
+    needs: docker-security-scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Dispatch to swiyu-generic-application-test
+        env:
+          GH_TOKEN: ${{ secrets.APPLICATION_TESTS_DISPATCH_TOKEN }}
+          TARGET_REPO: swiyu-admin-ch/swiyu-generic-application-test
+          EVENT_TYPE: verifier-updated
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "ERROR: Secret APPLICATION_TESTS_DISPATCH_TOKEN is not set." >&2
+            exit 1
+          fi
+          echo "Sending repository_dispatch '${EVENT_TYPE}' to ${TARGET_REPO}"
+          payload=$(jq -n \
+            --arg repo "swiyu-verifier" \
+            --arg ref "${{ github.ref }}" \
+            --arg sha "${{ github.sha }}" \
+            --arg pr "${{ github.event.pull_request.number }}" \
+            '{event_type: "'${EVENT_TYPE}'", client_payload: {repo: $repo, ref: $ref, sha: $sha, pr_number: $pr}}')
+          curl -sSf -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            https://api.github.com/repos/${TARGET_REPO}/dispatches \
+            -d "${payload}"
+          echo "Dispatch sent."
+      - name: Summary
+        run: |
+          {
+            echo "### Application tests triggered";
+            echo "- External repo: ${TARGET_REPO}";
+            echo "- Event type: ${EVENT_TYPE}";
+            echo "- PR: #${{ github.event.pull_request.number }}";
+            echo "- Ref: ${{ github.ref }}";
+            echo "- SHA: ${{ github.sha }}";
+            echo "";
+            echo "NOTE: External workflow currently uses image tag 'main'; it will not yet test this PR's image."
+          } >> $GITHUB_STEP_SUMMARY

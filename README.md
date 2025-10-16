@@ -145,7 +145,7 @@ After the start api definitions can be found [here](http://localhost:8080/swagge
 The `openapi.yaml` can be updated by using the generate-doc profile.
 
 ```
-mvn verify -P doc-generate
+mvn verify -P generate-doc
 ```
 
 ## Configuration

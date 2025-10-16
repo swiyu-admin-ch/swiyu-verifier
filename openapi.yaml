@@ -949,11 +949,13 @@ components:
           description: Toggle whether the request-object is available as plain object
             oras jwt object signed by the verifier as additional security measure
         response_mode:
-          type: string
-          description: Requested Response Mode
-          enum:
-          - direct_post
-          - direct_post.jwt
+          $ref: "#/components/schemas/ResponseModeType"
+          description: |-
+            Requested Response Mode from the wallet to the verifier.
+            <ul>
+            <li>direct_post - the wallet sends a clear text response</li>
+            <li>direct_post.jwt - the wallet sends an encrypted response</li>
+            </ul>
         presentation_definition:
           $ref: "#/components/schemas/PresentationDefinition"
           description: Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition
@@ -964,6 +966,12 @@ components:
           example: {}
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
+    ResponseModeType:
+      type: string
+      description: Supported response_mode as defined in OID4VP
+      enum:
+      - direct_post
+      - direct_post.jwt
     TrustAnchor:
       type: object
       properties:
@@ -982,14 +990,14 @@ components:
       required:
       - did
       - trust_registry_uri
-    JWK Set:
+    JWKSet:
       type: object
       properties:
         keys:
           type: array
           items:
-            $ref: "#/components/schemas/Json Web Key"
-    Json Web Key:
+            $ref: "#/components/schemas/JsonWebKey"
+    JsonWebKey:
       type: object
       properties:
         kty:
@@ -1063,7 +1071,7 @@ components:
           $ref: "#/components/schemas/OpenIdClientMetadataVpFormat"
           deprecated: true
         jwks:
-          $ref: "#/components/schemas/JWK Set"
+          $ref: "#/components/schemas/JWKSet"
           description: |
             One or more public keys, such as those used by the Wallet as an input to a key agreement
             that may be used for encryption of the Authorization Response, or where the Wallet will
@@ -1101,13 +1109,10 @@ components:
         response_type:
           type: string
         response_mode:
-          type: string
+          $ref: "#/components/schemas/ResponseModeType"
           description: |
             If "direct_post", expect the response to be sent via an HTTPS connection to response_uri.
             If "direct_post.jwt" expects the response to also be encrypted.
-          enum:
-          - direct_post
-          - direct_post.jwt
         response_uri:
           type: string
         nonce:

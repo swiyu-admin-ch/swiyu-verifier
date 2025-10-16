@@ -105,7 +105,7 @@ We recommend to not expose the service directly to the web.
 The focus of the application lies in the functionality of the verification. 
 Using API Gateway or Web Application Firewall can decrease the attack surface significantly.
 
-To prevent misuse, the management endpoints should be protected either by network infrastructure (for example mTLS) or using OAuth.
+To prevent misuse, the management endpoints should be protected either by network infrastructure (for example mTLS) or using OAuth. 
 
 ```mermaid
 flowchart LR

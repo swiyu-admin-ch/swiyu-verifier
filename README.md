@@ -103,7 +103,7 @@ not as a productive deployment. With the configuration options found below, it c
 
 We recommend to not expose the service directly to the web. 
 The focus of the application lies in the functionality of the verification. 
-Using API Gateway or Web Application Firewall can decrease the attack surface significantly.
+Using API Gateway or Web Application Firewall can decrease the attack surface significantly. 
 
 To prevent misuse, the management endpoints should be protected either by network infrastructure (for example mTLS) or using OAuth.
 

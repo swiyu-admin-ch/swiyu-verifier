@@ -31,6 +31,10 @@ legal:
   license: MIT
 maintenance:
   type: internal
+  contacts:
+   - name: Andre Kunz
+     email: info@swiyu.admin.ch
+     affiliation: Federal Office of Justice
 localisation:
   localisationReady: false
   availableLanguages:

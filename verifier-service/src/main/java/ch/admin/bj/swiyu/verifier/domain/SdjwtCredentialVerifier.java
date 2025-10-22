@@ -268,7 +268,7 @@ public class SdjwtCredentialVerifier {
         }
     }
 
-    private void validateTrust(String issuerDidTdw, String vct) {
+    private void validateTrust(String issuerDid, String vct) {
         var acceptedIssuerDids = managementEntity.getAcceptedIssuerDids();
         var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
         var trustAnchors = managementEntity.getTrustAnchors();
@@ -278,21 +278,20 @@ public class SdjwtCredentialVerifier {
             return;
         }
 
-
-        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDidTdw)) {
+        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDid)) {
             // Issuer trusted because it is in the accepted issuer dids
             return;
         }
 
-        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDidTdw, vct, trustAnchors))
+        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDid, vct, trustAnchors)) {
             return; // We have a valid trust statement for the vct!
-
+        }
 
         throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
     }
 
-    private boolean hasMatchingTrustStatement(String issuerDidTdw, String vct, List<TrustAnchor> trustAnchors) {
-        if (trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDidTdw))) {
+    private boolean hasMatchingTrustStatement(String issuerDid, String vct, List<TrustAnchor> trustAnchors) {
+        if (trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDid))) {
             return true;
         }
 
@@ -306,7 +305,7 @@ public class SdjwtCredentialVerifier {
 
             for (var rawTrustStatement : rawTrustStatementIssuance) {
                 try {
-                    if (isProvidingTrust(issuerDidTdw, vct, trustAnchor, rawTrustStatement))
+                    if (isProvidingTrust(issuerDid, vct, trustAnchor, rawTrustStatement))
                         return true;
                 } catch (VerificationException e) {
                     // This exception will occur if the trust statement can not be verified fully
@@ -319,9 +318,9 @@ public class SdjwtCredentialVerifier {
         return false;
     }
 
-    private boolean isProvidingTrust(String issuerDidTdw, String vct, TrustAnchor trustAnchor, String rawTrustStatement) throws ParseException {
+    private boolean isProvidingTrust(String issuerDid, String vct, TrustAnchor trustAnchor, String rawTrustStatement) throws ParseException {
         var trustStatementIssuance = verifySdJwt(rawTrustStatement);
-        return issuerDidTdw.equals(trustStatementIssuance.payload.getSubject())
+        return issuerDid.equals(trustStatementIssuance.payload.getSubject())
                 && trustAnchor.did().equals(trustStatementIssuance.payload.getIssuer())
                 && vct.equals(trustStatementIssuance.payload.getStringClaim("canIssue"));
     }

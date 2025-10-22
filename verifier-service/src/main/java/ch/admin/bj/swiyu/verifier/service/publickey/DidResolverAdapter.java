@@ -7,8 +7,7 @@
 package ch.admin.bj.swiyu.verifier.service.publickey;
 
 import ch.admin.eid.didresolver.Did;
-import ch.admin.eid.didtoolbox.DidDoc;
-import ch.admin.eid.didtoolbox.TrustDidWeb;
+import ch.admin.eid.did_sidekicks.DidDoc;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,14 +27,14 @@ public class DidResolverAdapter {
     /**
      * Returns the DID Document for the given DID.
      *
-     * @param didTdw - the id of the DID Document
+     * @param didId - the id of the DID Document
      * @return the DID Document for the given DID
      */
-    public DidDoc resolveDid(String didTdw) throws DidResolverException {
-        if (didTdw == null) {
-            throw new IllegalArgumentException("didTdw must not be null");
+    public DidDoc resolveDid(String didId) throws DidResolverException {
+        if (didId == null) {
+            throw new IllegalArgumentException("did must not be null");
         }
-        try (var did = new Did(didTdw)) {
+        try (var did = new Did(didId)) {
             String didUrl = did.getUrl();
             String didLog = didResolverRestClient.retrieveDidLog(didUrl);
             return did.resolve(didLog);

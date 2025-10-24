@@ -22,11 +22,12 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # Steuerung, ob ein latest Tag erzeugt wird:
-  # - Bei manuellem Dispatch über Input publish_latest
-  # - Bei Release standardmäßig true
-  # - Bei Push auf main false
-  PUBLISH_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_latest || github.event_name == 'release' && 'true' || 'false' }}
+  # Control if a latest tag is produced:
+  # - workflow_dispatch: value from input publish_latest
+  # - release (published): only if NOT a pre-release (prerelease == false)
+  # - push on main: never latest
+  # Expression yields 'true' or 'false' as string; parentheses for readability.
+  PUBLISH_LATEST: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_latest) || (github.event_name == 'release' && !github.event.release.prerelease && 'true') || 'false' }}
 
 # Github documentation
 jobs:
@@ -42,7 +43,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        # https://docs.github.com/de/actions/use-cases-and-examples/building-and-testing/building-and-testing-java-with-maven
+        # https://docs.github.com/actions/use-cases-and-examples/building-and-testing/building-and-testing-java-with-maven
       - name: Set up Java
         uses: actions/setup-java@v4
         with:

@@ -37,40 +37,43 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check source tag
-        id: inspect_source
+      - name: Validate source tag exists
+        id: validate
         run: |
           set -euo pipefail
           IMAGE_REF="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.source_tag }}"
           if ! docker buildx imagetools inspect "${IMAGE_REF}" > /dev/null 2>&1; then
-            echo "Tag '${{ inputs.source_tag }}' not found (image: ${IMAGE_REF})" >&2
+            echo "Source tag '${{ inputs.source_tag }}' not found." >&2
             exit 1
           fi
-          # Extract digest
-          DIGEST=$(docker buildx imagetools inspect "${IMAGE_REF}" | awk '/Digest:/ {print $2; exit}')
-          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          SRC_DIGEST=$(docker buildx imagetools inspect "${IMAGE_REF}" | awk '/Digest:/ {print $2; exit}')
+          echo "src_digest=${SRC_DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Abort if target equals source
         if: ${{ inputs.source_tag == inputs.target_tag }}
-        run: |
-          echo "Source and target tag are identical ('${{ inputs.source_tag }}'). Nothing to do." 
+        run: echo "Source and target tag are identical. Nothing to do."
 
-      - name: Retag (clone manifest)
+      - name: Pull, retag, push
         if: ${{ inputs.source_tag != inputs.target_tag }}
         id: retag
         run: |
           set -euo pipefail
-          SRC="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.source_tag }}"
-          TGT="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.target_tag }}"
-          # Preserve multi-arch manifest by recreating under a new tag
-          docker buildx imagetools create --tag "${TGT}" "${SRC}"
-          NEW_DIGEST=$(docker buildx imagetools inspect "${TGT}" | awk '/Digest:/ {print $2; exit}')
-          echo "new_digest=${NEW_DIGEST}" >> "$GITHUB_OUTPUT"
+          SRC_TAG='${{ inputs.source_tag }}'
+          TGT_TAG='${{ inputs.target_tag }}'
+          IMAGE='${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}'
+          echo "Pulling ${IMAGE}:${SRC_TAG}" >&2
+          docker pull "${IMAGE}:${SRC_TAG}"
+          echo "Tagging ${IMAGE}:${SRC_TAG} as ${IMAGE}:${TGT_TAG}" >&2
+          docker tag "${IMAGE}:${SRC_TAG}" "${IMAGE}:${TGT_TAG}"
+          echo "Pushing ${IMAGE}:${TGT_TAG}" >&2
+          docker push "${IMAGE}:${TGT_TAG}"
+          TGT_DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${TGT_TAG}" | awk '/Digest:/ {print $2; exit}')
+          echo "tgt_digest=${TGT_DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Show result
         run: |
-          echo "Source digest: ${{ steps.inspect_source.outputs.digest }}"
+          echo "Source digest: ${{ steps.validate.outputs.src_digest }}"
           if [ "${{ inputs.source_tag }}" != "${{ inputs.target_tag }}" ]; then
-            echo "Target digest: ${{ steps.retag.outputs.new_digest }}"
+            echo "Target digest: ${{ steps.retag.outputs.tgt_digest }}"
           fi
           echo "Done. Tag '${{ inputs.target_tag }}' now points to version '${{ inputs.source_tag }}'."

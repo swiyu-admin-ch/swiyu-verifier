@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: 2025 Swiss Confederation
+#
+# SPDX-License-Identifier: MIT
+
+name: Retag Docker Image
+run-name: Retag ${{ github.repository }}:${{ inputs.source_tag }} -> ${{ inputs.target_tag || 'latest' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: "Existing tag (version) to use as source"
+        required: true
+        type: string
+      target_tag:
+        description: "Target tag (default: latest)"
+        required: false
+        default: latest
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check source tag
+        id: inspect_source
+        run: |
+          set -euo pipefail
+          IMAGE_REF="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.source_tag }}"
+          if ! docker buildx imagetools inspect "${IMAGE_REF}" > /dev/null 2>&1; then
+            echo "Tag '${{ inputs.source_tag }}' not found (image: ${IMAGE_REF})" >&2
+            exit 1
+          fi
+          # Extract digest
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE_REF}" | awk '/Digest:/ {print $2; exit}')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Abort if target equals source
+        if: ${{ inputs.source_tag == inputs.target_tag }}
+        run: |
+          echo "Source and target tag are identical ('${{ inputs.source_tag }}'). Nothing to do." 
+
+      - name: Retag (clone manifest)
+        if: ${{ inputs.source_tag != inputs.target_tag }}
+        id: retag
+        run: |
+          set -euo pipefail
+          SRC="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.source_tag }}"
+          TGT="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.target_tag }}"
+          # Preserve multi-arch manifest by recreating under a new tag
+          docker buildx imagetools create --tag "${TGT}" "${SRC}"
+          NEW_DIGEST=$(docker buildx imagetools inspect "${TGT}" | awk '/Digest:/ {print $2; exit}')
+          echo "new_digest=${NEW_DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Show result
+        run: |
+          echo "Source digest: ${{ steps.inspect_source.outputs.digest }}"
+          if [ "${{ inputs.source_tag }}" != "${{ inputs.target_tag }}" ]; then
+            echo "Target digest: ${{ steps.retag.outputs.new_digest }}"
+          fi
+          echo "Done. Tag '${{ inputs.target_tag }}' now points to version '${{ inputs.source_tag }}'."

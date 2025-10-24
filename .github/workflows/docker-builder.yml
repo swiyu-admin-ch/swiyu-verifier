@@ -11,10 +11,22 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      publish_latest:
+        description: 'Publish image additionally with tag latest'
+        required: true
+        type: choice
+        options: [ 'true', 'false' ]
+        default: 'false'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Steuerung, ob ein latest Tag erzeugt wird:
+  # - Bei manuellem Dispatch über Input publish_latest
+  # - Bei Release standardmäßig true
+  # - Bei Push auf main false
+  PUBLISH_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_latest || github.event_name == 'release' && 'true' || 'false' }}
 
 # Github documentation
 jobs:
@@ -51,6 +63,14 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Dynamically controlled: latest=true or latest=false (no latest for pre-releases)
+          flavor: |
+            latest=${{ env.PUBLISH_LATEST }}
+          # Additional tags (branch / release tag / commit SHA)
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
       - name: Build and push docker image
         id: push
         uses: docker/build-push-action@v6

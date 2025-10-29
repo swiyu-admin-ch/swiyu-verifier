@@ -11,10 +11,23 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      publish_latest:
+        description: 'Publish image additionally with tag latest'
+        required: true
+        type: choice
+        options: [ 'true', 'false' ]
+        default: 'false'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Control if a latest tag is produced:
+  # - workflow_dispatch: value from input publish_latest
+  # - release (published): only if NOT a pre-release (prerelease == false)
+  # - push on main: never latest
+  # Expression yields 'true' or 'false' as string; parentheses for readability.
+  PUBLISH_LATEST: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_latest) || (github.event_name == 'release' && !github.event.release.prerelease && 'true') || 'false' }}
 
 # Github documentation
 jobs:
@@ -30,7 +43,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        # https://docs.github.com/de/actions/use-cases-and-examples/building-and-testing/building-and-testing-java-with-maven
+        # https://docs.github.com/actions/use-cases-and-examples/building-and-testing/building-and-testing-java-with-maven
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -51,6 +64,14 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Dynamically controlled: latest=true or latest=false (no latest for pre-releases)
+          flavor: |
+            latest=${{ env.PUBLISH_LATEST }}
+          # Additional tags (branch / release tag / commit SHA)
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
       - name: Build and push docker image
         id: push
         uses: docker/build-push-action@v6

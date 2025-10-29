@@ -403,35 +403,16 @@ public class SdJwtVerificationService {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
         }
 
-        List<String> allowedAudiences = getAllowedAudiences(configurationOverride);
 
-        // Exact match only
-        if (!allowedAudiences.contains(aud)) {
-            throw credentialError(HOLDER_BINDING_MISMATCH,
-                    "Holder Binding audience mismatch. Actual: '%s'. Expected one of: %s"
-                            .formatted(aud, allowedAudiences));
-        }
-    }
-
-    /**
-     *
-     * @param configurationOverride override possibly providing
-     * @return an unmodifiable set of all exact allowed audience values
-     */
-    @NotNull
-    private List<String> getAllowedAudiences(ConfigurationOverride configurationOverride) {
-        String effectiveVerifierDid = Optional.ofNullable(configurationOverride.verifierDid())
+        String clientId = Optional.ofNullable(configurationOverride.verifierDid())
                 .orElse(applicationProperties.getClientId());
 
-        String effectiveExternalUrl = Optional.ofNullable(configurationOverride.externalUrl())
-                .orElse(applicationProperties.getExternalUrl());
-
-        // Normalize external URL (remove trailing slash)
-        if (effectiveExternalUrl.endsWith("/")) {
-            effectiveExternalUrl = effectiveExternalUrl.substring(0, effectiveExternalUrl.length() - 1);
+        // Exact match only
+        if (!clientId.equals(aud)) {
+            throw credentialError(HOLDER_BINDING_MISMATCH,
+                    "Holder Binding audience mismatch. Actual: '%s'. Expected: %s"
+                            .formatted(aud, clientId));
         }
-
-        return List.of(effectiveVerifierDid, effectiveExternalUrl);
     }
 
     /**

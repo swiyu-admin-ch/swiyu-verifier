@@ -62,7 +62,7 @@ class StatusListResolverAdapterTest {
         when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(List.of());
 
         var exception = assertThrows(IllegalArgumentException.class, () -> adapter.resolveStatusList(uri));
-        assertTrue(exception.getMessage().contains("does not use HTTPS-Protocol"));
+        assertTrue(exception.getMessage().contains("does not use HTTPS"));
     }
 
     @Test

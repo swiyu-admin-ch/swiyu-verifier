@@ -56,13 +56,13 @@ class StatusListResolverAdapterTest {
     }
 
     @Test
-    void resolveStatusListWithMalformedUrl_throwsException() {
-        String uri = "htt://bad_url";
+    void resolveStatusListWithoutHTTPS_throwsException() {
+        String uri = "http://bad_url";
         when(urlRewriteProperties.getRewrittenUrl(uri)).thenReturn(uri);
         when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(List.of());
 
         var exception = assertThrows(IllegalArgumentException.class, () -> adapter.resolveStatusList(uri));
-        assertTrue(exception.getMessage().contains("Malformed URL"));
+        assertTrue(exception.getMessage().contains("does not use HTTPS-Protocol"));
     }
 
     @Test

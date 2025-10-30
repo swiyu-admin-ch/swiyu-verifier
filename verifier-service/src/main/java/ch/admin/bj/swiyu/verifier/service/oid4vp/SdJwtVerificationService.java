@@ -263,35 +263,85 @@ public class SdJwtVerificationService {
         if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDid, vct, trustAnchors, managementEntity)) {
             return; // We have a valid trust statement for the vct!
         }
+
         throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
     }
 
+    /**
+     * Checks if the issuer has a valid trust statement from any of the provided trust anchors.
+     * Tries direct match first (issuer DID = trust anchor DID), then queries trust registries.
+     *
+     * @param issuerDid the DID of the issuer to verify
+     * @param vct the Verifiable Credential Type
+     * @param trustAnchors the list of trust anchors to check
+     * @param management the management configuration for verification context
+     * @return true if a matching trust statement is found, false otherwise
+     */
     private boolean hasMatchingTrustStatement(String issuerDid, String vct, List<TrustAnchor> trustAnchors, Management management) {
-        if (trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDid))) {
+        // Direct trust: issuer DID matches a trust anchor DID
+        if (isDirectlyTrustedIssuer(issuerDid, trustAnchors)) {
             return true;
         }
 
+        // Indirect trust: issuer is vouched for by a trust anchor via trust statement
+        return isTrustedViaRegistry(issuerDid, vct, trustAnchors, management);
+    }
+
+    /**
+     * Checks if the issuer DID directly matches any trust anchor DID.
+     */
+    private boolean isDirectlyTrustedIssuer(String issuerDid, List<TrustAnchor> trustAnchors) {
+        return trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDid));
+    }
+
+    /**
+     * Queries trust anchors for trust statements that vouch for the issuer.
+     * For each anchor, fetches trust statements for the VCT and validates them.
+     */
+    private boolean isTrustedViaRegistry(String issuerDid, String vct, List<TrustAnchor> trustAnchors, Management management) {
         for (var trustAnchor : trustAnchors) {
-            List<String> rawTrustStatementIssuance = fetchTrustStatementIssuance(vct, trustAnchor);
-            if (rawTrustStatementIssuance.isEmpty()) {
-                // Abort if no trust statement
-                log.debug("Failed to get a response for vct {} from {}", vct, trustAnchor.trustRegistryUri());
+            List<String> trustStatements = fetchTrustStatementIssuance(vct, trustAnchor);
+            if (trustStatements.isEmpty()) {
+                log.debug("Failed to fetch trust statements for vct {} from {}", vct, trustAnchor.trustRegistryUri());
                 continue;
             }
 
-            for (var rawTrustStatement : rawTrustStatementIssuance) {
-                try {
-                    if (isProvidingTrust(issuerDid, vct, trustAnchor, rawTrustStatement, management))
-                        return true;
-                } catch (VerificationException e) {
-                    // This exception will occur if the trust statement can not be verified fully
-                    log.debug("Failed to verify trust statement for vct {} from {} with code {} due to {}", vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
-                } catch (ParseException e) {
-                    log.info("Trust Statement of %s is malformed - missing CanIssue claim");
-                }
+            if (verifyTrustStatements(issuerDid, vct, trustAnchor, trustStatements, management)) {
+                return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Validates a collection of trust statements to find one that vouches for the issuer.
+     */
+    private boolean verifyTrustStatements(String issuerDid, String vct, TrustAnchor trustAnchor,
+                                         List<String> trustStatements, Management management) {
+        for (var rawTrustStatement : trustStatements) {
+            if (validateTrustStatement(issuerDid, vct, trustAnchor, rawTrustStatement, management)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Validates a single trust statement with error handling.
+     * Returns false on verification or parsing errors, allowing iteration to continue.
+     */
+    private boolean validateTrustStatement(String issuerDid, String vct, TrustAnchor trustAnchor,
+                                          String rawTrustStatement, Management management) {
+        try {
+            return isProvidingTrust(issuerDid, vct, trustAnchor, rawTrustStatement, management);
+        } catch (VerificationException e) {
+            log.debug("Failed to verify trust statement for vct {} from {} - {}: {}",
+                    vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
+            return false;
+        } catch (ParseException e) {
+            log.info("Trust statement is malformed - missing canIssue claim");
+            return false;
+        }
     }
 
     private boolean isProvidingTrust(String issuerDid, String vct, TrustAnchor trustAnchor, String rawTrustStatement, Management management) throws ParseException {

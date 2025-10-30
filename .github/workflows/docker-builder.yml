@@ -12,22 +12,21 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      publish_latest:
-        description: 'Publish image additionally with tag latest'
-        required: true
+      environment_tag:
+        description: 'Additional environment tag (dev, staging, rc, stable)'
+        required: false
         type: choice
-        options: [ 'true', 'false' ]
-        default: 'false'
+        options:
+          - 'none'
+          - 'dev'
+          - 'staging'
+          - 'rc'
+          - 'stable'
+        default: 'none'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # Control if a latest tag is produced:
-  # - workflow_dispatch: value from input publish_latest
-  # - release (published): only if NOT a pre-release (prerelease == false)
-  # - push on main: never latest
-  # Expression yields 'true' or 'false' as string; parentheses for readability.
-  PUBLISH_LATEST: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_latest) || (github.event_name == 'release' && !github.event.release.prerelease && 'true') || 'false' }}
 
 # Github documentation
 jobs:
@@ -64,14 +63,16 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # Dynamically controlled: latest=true or latest=false (no latest for pre-releases)
+          # Disable latest tag
           flavor: |
-            latest=${{ env.PUBLISH_LATEST }}
-          # Additional tags (branch / release tag / commit SHA)
+            latest=false
+          # Additional tags (branch / release tag / commit SHA / environment tags)
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=sha
+            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ inputs.environment_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.environment_tag != 'none' }}
       - name: Build and push docker image
         id: push
         uses: docker/build-push-action@v6

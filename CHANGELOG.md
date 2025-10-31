@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Status list resolving does no longer accept http urls for status lists. Only https urls are allowed now.
+
 ## 2.1.0
 
 ### Added

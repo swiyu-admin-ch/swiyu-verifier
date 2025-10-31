@@ -11,7 +11,7 @@ import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
-import ch.admin.eid.didtoolbox.TrustDidWebException;
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +32,7 @@ class IssuerPublicKeyLoaderTest {
     }
 
     @Test
-    void loadPublicKey_MultibaseKey() throws LoadingPublicKeyOfIssuerFailedException, TrustDidWebException, JOSEException {
+    void loadPublicKey_MultibaseKey() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, DidSidekicksException {
         // GIVEN (an issuer registered in the DID registry and an issuer signed SD-JWT)
         var issuerDidDocument = DidDocFixtures.issuerDidDocWithMultikey(
                 "did:example:123",
@@ -52,18 +52,18 @@ class IssuerPublicKeyLoaderTest {
     }
 
     @Test
-    void loadPublicKey_JsonWebKey() throws LoadingPublicKeyOfIssuerFailedException, TrustDidWebException, JOSEException {
+    void loadPublicKey_JsonWebKey() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, DidSidekicksException {
         // GIVEN (an issuer registered in the DID registry and an issuer signed SD-JWT)
         var issuerDidDocument = DidDocFixtures.issuerDidDocWithJsonWebKey(
                 "did:example:123",
                 "did:example:123#key-1",
                 KeyFixtures.issuerPublicKeyAsJsonWebKey());
-        var issuerDidTdw = issuerDidDocument.getId();
+        var issuerDidId = issuerDidDocument.getId();
         var issuerKeyId = issuerDidDocument.getVerificationMethod().getFirst().getId();
-        when(mockedDidResolverAdapter.resolveDid(issuerDidTdw)).thenReturn(issuerDidDocument);
+        when(mockedDidResolverAdapter.resolveDid(issuerDidId)).thenReturn(issuerDidDocument);
 
         // WHEN
-        var publicKey = publicKeyLoader.loadPublicKey(issuerDidTdw, issuerKeyId);
+        var publicKey = publicKeyLoader.loadPublicKey(issuerDidId, issuerKeyId);
 
         // THEN
         assertThat(publicKey.getAlgorithm()).isEqualTo("EC");

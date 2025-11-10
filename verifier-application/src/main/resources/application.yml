@@ -90,9 +90,11 @@ springdoc:
 management:
   endpoint:
     health:
-      enabled: true
       probes:
         enabled: true
+      access: read_only
+      show-components: always
+      show-details: always
   health:
     livenessState:
       enabled: true

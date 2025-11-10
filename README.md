@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 # SWIYU generic verifier service
 
 This software is a web server implementing the technical standards as specified in
-the [Swiss e-ID and trust infrastructure: Initial implementation](https://swiyu-admin-ch.github.io/initial-technology/).
+the [swiyu Trust Infrastructure Interoperability Profile](https://swiyu-admin-ch.github.io/specifications/interoperability-profile/).
 Together with the other generic components provided, this software forms a collection of APIs allowing issuance and
 verification of verifiable credentials without the need of reimplementing the standards.
 
@@ -66,6 +66,36 @@ verifier-agent-management>**/swagger-ui/index.html**
 
 To see more details and examples of the verification process please consult the [documentation](documentation/verification_process.md).
 
+## Digital Credentials Query Language (DCQL) Transition
+
+### Overview
+The verifier service now supports the Digital Credentials Query Language (DCQL) as specified in the OpenID for Verifiable Presentations (OID4VP) Standard 1.0. This replaces the previous DIF Presentation Exchange (PE) specification that was integrated into the "claims" request parameter.
+
+### Why DCQL?
+- **Standards Compliance**: Ensures compliance with the OID4VP Standard 1.0
+- **Enhanced Flexibility**: DCQL provides a JSON-encoded query language for simpler and more flexible presentation requests
+- **Improved Privacy**: Enables precise specification of credential requirements and individual claims, supporting selective disclosure
+- **Complex Scenarios Support**: Allows encoding constraints for credential combinations and expressing various alternatives
+
+### Key Interface Changes
+The service now supports both DCQL and PE formats through:
+- Optional `dcql_query` parameter alongside existing `presentation_definition`
+- API version headers for backward compatibility:
+  - Version "1": Supports OID4VP ID2 with DIF Presentation Exchange
+  - Version "2": Supports OID4VP 1.0 with DCQL
+
+### Verification Flow with DCQL
+1. **Creation**: Business Verifier creates verification request with DCQL query
+2. **Storage**: Verifier Service stores request in database
+3. **Holder Retrieval**: Holder uses Verification URI to get request object containing DCQL query
+4. **Presentation**: Holder's wallet processes DCQL query to identify suitable credentials
+5. **Verification**: Service validates credentials against DCQL query criteria
+6. **Status Update**: Business Verifier receives status and requested data via polling or webhooks
+
+### VP Token Response Encryption
+- Required after transition period
+- Uses client_metadata for encryption information
+
 
 ## Deployment Considerations
 Please note that by default configuration the verifier service is set up in a way to easily gain experience with the verification process,
@@ -92,6 +122,7 @@ flowchart LR
     verint --Get OAuth2.0 Token--> auth
     ver --Validate OAuth2.0 Token--> auth
 ```
+
 
 # Development
 
@@ -330,6 +361,35 @@ The response of this post call contains the URI which has to be provided to the 
 | invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
 | invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |
 
+
+## Docker Image Tagging Strategy
+
+Docker images for this project follow a formalized environment-based tagging approach:
+
+| Tag     | Meaning                  | Description                                                                                       |
+|---------|--------------------------|---------------------------------------------------------------------------------------------------|
+| dev     | Development Build        | Latest commit from the development branch. Automatically generated on every push to `main`.       |
+| staging | Integration Test Build   | Set at the end of a sprint or after completion of a feature for integration testing.              |
+| rc      | Release Candidate        | Frozen state prior to release and penetration testing.                                            |
+| stable  | Verified Production      | Released after successful QA and penetration testing.                                             |
+
+These tags are assigned automatically or manually as part of the CI/CD workflow. This ensures that environments can reliably reference images by their lifecycle stage (e.g., `swiyu-issuer-service:staging`) without requiring manual version management.
+
+### Promotion Workflow
+
+The image promotion process follows these steps:
+
+```text
+[Commit → dev]
+    ↓    build & push :dev
+[Feature completed / Sprint end]
+    ↓    promote → :staging
+[Release candidate created]
+    ↓    promote → :rc
+[QA & penetration test passed]
+    ↓    promote → :stable
+```
+
 ## Release Process and Versioning
 
 ### Semantic Versioning (SemVer)
@@ -378,9 +438,7 @@ The swiyu Public Beta Trust Infrastructure was deliberately released at an early
 
 ## Contributions and feedback
 
-The code for this repository is developed privately and will be released after each sprint. The published code can
-therefore only be a snapshot of the current development and not a thoroughly tested version. However, we welcome any
-feedback on the code regarding both the implementation and security aspects. Please follow the guidelines for
+We welcome any feedback on the code regarding both the implementation and security aspects. Please follow the guidelines for
 contributing found in [CONTRIBUTING.md](/CONTRIBUTING.md).
 
 ## License

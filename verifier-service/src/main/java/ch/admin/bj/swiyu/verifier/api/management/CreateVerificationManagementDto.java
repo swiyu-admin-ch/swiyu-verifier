@@ -50,6 +50,16 @@ public record CreateVerificationManagementDto(
         @JsonProperty("jwt_secured_authorization_request")
         Boolean jwtSecuredAuthorizationRequest,
 
+        @Schema(description = """
+                Requested Response Mode from the wallet to the verifier.
+                <ul>
+                <li>direct_post - the wallet sends a clear text response</li>
+                <li>direct_post.jwt - the wallet sends an encrypted response</li>
+                </ul>""")
+        @JsonProperty(value = "response_mode", defaultValue = "direct_post")
+        // TODO Once the Ecosystem broadly supports JWE, we should use direct_post_jwt as default value
+        ResponseModeTypeDto responseMode,
+
         @Schema(description = "Presentation definition according to " +
                 "https://identity.foundation/presentation-exchange/#presentation-definition")
         @Valid

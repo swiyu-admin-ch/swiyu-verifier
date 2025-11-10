@@ -1,13 +1,15 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
-import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -35,6 +37,7 @@ public abstract class BaseVerificationControllerTest {
     protected static final UUID REQUEST_ID_WITHOUT_ACCEPTED_ISSUER = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee3");
     protected static final UUID REQUEST_DIFFERENT_ALGS = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee4");
     protected static final UUID REQUEST_DIFFERENT_KB_ALGS = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee5");
+    protected static final UUID REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED = UUID.fromString("deadbeef-dead-dead-dead-deaddeaf1337");
 
     protected static final String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
     protected static final String DEFAULT_DCQL_CREDENTIAL_ID = "defaultTestDcqlCredentialId";
@@ -43,7 +46,7 @@ public abstract class BaseVerificationControllerTest {
     protected ManagementRepository managementEntityRepository;
 
     @BeforeEach
-    void setUp() throws JsonProcessingException {
+    void setUp() throws JsonProcessingException, JOSEException {
 
         managementEntityRepository.save(Management.builder()
                 .id(REQUEST_ID_SDJWT_MGMT_NO_SIGNATURE)
@@ -117,6 +120,28 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .build());
+
+
+        var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256).keyID(UUID.randomUUID().toString()).generate();
+        JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
+        managementEntityRepository.save(Management.builder()
+                .id(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .responseSpecification(ResponseSpecification.builder()
+                        .responseModeType(ResponseModeType.DIRECT_POST_JWT)
+                        .jwksPrivate(jwkSet.toString(false))
+                        .jwks(jwkSet.toString(true))
+                        .encryptedResponseEncValuesSupported(List.of("A128GCM"))
+                        .build())
+                .jwtSecuredAuthorizationRequest(true)
+                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
     }
 

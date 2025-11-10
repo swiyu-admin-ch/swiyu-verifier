@@ -7,11 +7,14 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.api.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
@@ -23,10 +26,12 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededEx
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -35,6 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.FieldSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
@@ -58,6 +64,7 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.ge
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -73,6 +80,11 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";
+
+    /**
+     * List of IDS to be used in Parameterized tests with different verification requests
+     */
+    private static final List<UUID> DEFAULT_REQUEST_OBJECT_SOURCE = List.of(REQUEST_ID_SECURED, REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED);
 
     @Autowired
     CacheManager cacheManager;
@@ -179,11 +191,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITHOUT_ACCEPTED_ISSUER))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isOk());
+        sendPresentation(REQUEST_ID_WITHOUT_ACCEPTED_ISSUER, presentationSubmission, vpToken);
     }
 
     @Test
@@ -242,8 +250,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess() throws Exception {
+    @ParameterizedTest
+    @FieldSource("DEFAULT_REQUEST_OBJECT_SOURCE")
+    void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess(UUID requestObjectId) throws Exception {
+        assertThat(requestObjectId).isIn(DEFAULT_REQUEST_OBJECT_SOURCE); // Nonsense Assert to stop linters going insane about unused field
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
@@ -253,15 +263,42 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
-        // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        // WHEN / THEN
+        sendPresentation(requestObjectId, presentationSubmission, vpToken);
+
+        var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
+
+    private void sendPresentation(UUID requestObjectId, String presentationSubmission, String vpToken) throws Exception {
+        var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
+        ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
+        if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST) {
+            mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
+                            .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                            .formField("presentation_submission", presentationSubmission)
+                            .formField("vp_token", vpToken))
+                    .andExpect(status().isOk());
+        }
+        else if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST_JWT) {
+            // JWKS & encryptionMethod are normally provided in Request Object
+            ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
+            var encryptionMethod = EncryptionMethod.parse(responseSpecification.getEncryptedResponseEncValuesSupported().getFirst());
+
+            JWEObject jweObject = new JWEObject(
+                    new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, encryptionMethod)
+                            .keyID(publicKey.getKeyID()).build(),
+                    new JWTClaimsSet.Builder()
+                            .claim("presentation_submission", presentationSubmission)
+                            .claim("vp_token", vpToken).build().toPayload()
+                    );
+            jweObject.encrypt(new ECDHEncrypter(publicKey));
+            mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
+                            .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                            .formField("response", jweObject.serialize()))
+                    .andExpect(status().isOk());
+        }
     }
 
     @ParameterizedTest
@@ -516,11 +553,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isOk());
+        sendPresentation(REQUEST_ID_SECURED, presentationSubmission, vpToken);
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
@@ -540,11 +573,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
-                .andExpect(status().isOk());
+        sendPresentation(REQUEST_ID_SECURED, presentationSubmission, vpToken);
     }
 
     @Test
@@ -769,7 +798,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost:8080");
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
@@ -791,6 +820,26 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .contains("TestLastName");
     }
 
+    @Test
+    void shouldBadRequestForDCQLEndpoint_whenWrongAudience() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost:8080");
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(jsonPath("$.error_description").value("Holder Binding audience mismatch. Actual: 'http://localhost:8080'. Expected: did:example:12345"))
+                .andExpect(jsonPath("$.error_code").value("holder_binding_mismatch"))
+                .andExpect(status().isBadRequest());
+    }
 
     @Test
     void shouldBadRequestForDCQLEndpoint_whenMalformedVpToken_notConsumedPresentationRequest() throws Exception {
@@ -965,5 +1014,40 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // Verify that the management entity remains in pending state
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
+    }
+
+    @Test
+    void shouldGetRequestObjectEncryptionRequired() throws Exception {
+        mock.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
+                        .accept("application/oauth-authz-req+jwt"))
+                .andExpect(status().isOk())
+                .andDo(result -> {
+                    var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
+                    assertThat(responseJwt.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
+                    assertThat(responseJwt.getHeader().getKeyID()).isEqualTo(applicationProperties.getSigningKeyVerificationMethod());
+                    assertThat(responseJwt.verify(new ECDSAVerifier(ECKey.parse(PUBLIC_KEY)))).isTrue();
+
+                    // checking claims
+                    var claims = responseJwt.getJWTClaimsSet();
+                    assertThat(claims.getStringClaim("client_id")).isEqualTo(applicationProperties.getClientId());
+                    assertThat(claims.getStringClaim("client_id_scheme")).isEqualTo(applicationProperties.getClientIdScheme());
+                    assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
+                    assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post.jwt");
+                    assertThat(claims.getStringClaim("nonce")).isNotNull();
+                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED));
+
+                    assertDcqlIsComplete(claims);
+                    assertPresentationDefinition(claims);
+
+                    assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
+                    var metadata = objectMapper.readValue(objectMapper.writeValueAsString(claims.getClaim("client_metadata")), OpenidClientMetadataDto.class);
+                    assertThat(metadata.getJwks()).isNotNull();
+                    assertThat(metadata.getJwks().keys()).isNotEmpty();
+                    assertThat(metadata.getEncryptedResponseEncValuesSupported()).isNotEmpty();
+                    var encryptionKeys = JWKSet.parse(objectMapper.writeValueAsString(metadata.getJwks()));
+                    assertThat(encryptionKeys.containsNonPublicKeys()).isFalse();
+                    assertThat(encryptionKeys.getKeys()).isNotEmpty();
+                });
+
     }
 }

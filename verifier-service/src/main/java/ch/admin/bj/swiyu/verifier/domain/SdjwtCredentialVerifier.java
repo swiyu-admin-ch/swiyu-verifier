@@ -268,7 +268,7 @@ public class SdjwtCredentialVerifier {
         }
     }
 
-    private void validateTrust(String issuerDidTdw, String vct) {
+    private void validateTrust(String issuerDid, String vct) {
         var acceptedIssuerDids = managementEntity.getAcceptedIssuerDids();
         var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
         var trustAnchors = managementEntity.getTrustAnchors();
@@ -278,50 +278,97 @@ public class SdjwtCredentialVerifier {
             return;
         }
 
-
-        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDidTdw)) {
+        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDid)) {
             // Issuer trusted because it is in the accepted issuer dids
             return;
         }
 
-        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDidTdw, vct, trustAnchors))
+        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDid, vct, trustAnchors)) {
             return; // We have a valid trust statement for the vct!
-
+        }
 
         throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
     }
 
-    private boolean hasMatchingTrustStatement(String issuerDidTdw, String vct, List<TrustAnchor> trustAnchors) {
-        if (trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDidTdw))) {
+    /**
+     * Checks if the issuer has a valid trust statement from any of the provided trust anchors.
+     * Tries direct match first (issuer DID = trust anchor DID), then queries trust registries.
+     *
+     * @param issuerDid the DID of the issuer to verify
+     * @param vct the Verifiable Credential Type
+     * @param trustAnchors the list of trust anchors to check
+     * @return true if a matching trust statement is found, false otherwise
+     */
+    private boolean hasMatchingTrustStatement(String issuerDid, String vct, List<TrustAnchor> trustAnchors) {
+        // Direct trust: issuer DID matches a trust anchor DID
+        if (isDirectlyTrustedIssuer(issuerDid, trustAnchors)) {
             return true;
         }
 
+        // Indirect trust: issuer is vouched for by a trust anchor via trust statement
+        return isTrustedViaRegistry(issuerDid, vct, trustAnchors);
+    }
+
+    /**
+     * Checks if the issuer DID directly matches any trust anchor DID.
+     */
+    private boolean isDirectlyTrustedIssuer(String issuerDid, List<TrustAnchor> trustAnchors) {
+        return trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDid));
+    }
+
+    /**
+     * Queries trust anchors for trust statements that vouch for the issuer.
+     * For each anchor, fetches trust statements for the VCT and validates them.
+     */
+    private boolean isTrustedViaRegistry(String issuerDid, String vct, List<TrustAnchor> trustAnchors) {
         for (var trustAnchor : trustAnchors) {
-            List<String> rawTrustStatementIssuance = fetchTrustStatementIssuance(vct, trustAnchor);
-            if (rawTrustStatementIssuance.isEmpty()) {
-                // Abort if no trust statement
-                log.debug("Failed to get a response for vct {} from {}", vct, trustAnchor.trustRegistryUri());
+            List<String> trustStatements = fetchTrustStatementIssuance(vct, trustAnchor);
+            if (trustStatements.isEmpty()) {
+                log.debug("Failed to fetch trust statements for vct {} from {}", vct, trustAnchor.trustRegistryUri());
                 continue;
             }
 
-            for (var rawTrustStatement : rawTrustStatementIssuance) {
-                try {
-                    if (isProvidingTrust(issuerDidTdw, vct, trustAnchor, rawTrustStatement))
-                        return true;
-                } catch (VerificationException e) {
-                    // This exception will occur if the trust statement can not be verified fully
-                    log.debug("Failed to verify trust statement for vct {} from {} with code {} due to {}", vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
-                } catch (ParseException e) {
-                    log.info("Trust Statement of %s is malformed - missing CanIssue claim");
-                }
+            if (verifyTrustStatements(issuerDid, vct, trustAnchor, trustStatements)) {
+                return true;
             }
         }
         return false;
     }
 
-    private boolean isProvidingTrust(String issuerDidTdw, String vct, TrustAnchor trustAnchor, String rawTrustStatement) throws ParseException {
+    /**
+     * Validates a collection of trust statements to find one that vouches for the issuer.
+     */
+    private boolean verifyTrustStatements(String issuerDid, String vct, TrustAnchor trustAnchor,
+                                         List<String> trustStatements) {
+        for (var rawTrustStatement : trustStatements) {
+            if (validateTrustStatement(issuerDid, vct, trustAnchor, rawTrustStatement)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Validates a single trust statement with error handling.
+     * Returns false on verification or parsing errors, allowing iteration to continue.
+     */
+    private boolean validateTrustStatement(String issuerDid, String vct, TrustAnchor trustAnchor,
+                                          String rawTrustStatement) {
+        try {
+            return isProvidingTrust(issuerDid, vct, trustAnchor, rawTrustStatement);
+        } catch (VerificationException e) {
+            log.debug("Failed to verify trust statement for vct {} from {} - {}: {}",
+                    vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
+            return false;
+        } catch (ParseException e) {
+            log.info("Trust statement is malformed - missing canIssue claim");
+            return false;
+        }
+    }
+
+    private boolean isProvidingTrust(String issuerDid, String vct, TrustAnchor trustAnchor, String rawTrustStatement) throws ParseException {
         var trustStatementIssuance = verifySdJwt(rawTrustStatement);
-        return issuerDidTdw.equals(trustStatementIssuance.payload.getSubject())
+        return issuerDid.equals(trustStatementIssuance.payload.getSubject())
                 && trustAnchor.did().equals(trustStatementIssuance.payload.getIssuer())
                 && vct.equals(trustStatementIssuance.payload.getStringClaim("canIssue"));
     }
@@ -405,30 +452,20 @@ public class SdjwtCredentialVerifier {
         var override = managementEntity.getConfigurationOverride();
         String clientId = Optional.ofNullable(override.verifierDid())
                 .orElse(applicationProperties.getClientId());
-        String externalUrl = Optional.ofNullable(override.externalUrl())
-                .orElse(applicationProperties.getExternalUrl());
 
-        externalUrl = normalizeUrl(externalUrl);
-        String normalizedAud = normalizeUrl(aud);
+
+        // Audience MUST be client_id
+        // See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-14.1.2
 
         Set<String> allowed = new HashSet<>();
         if (clientId != null) allowed.add(clientId);
-        if (externalUrl != null) allowed.add(externalUrl);
 
-        if (!allowed.contains(normalizedAud)) {
+        if (!allowed.contains(aud)) {
             throw credentialError(HOLDER_BINDING_MISMATCH,
                     "Holder Binding audience mismatch. Actual: '" + aud + "' Expected one of: " + allowed);
         }
     }
 
-    private String normalizeUrl(String url) {
-        if (url == null) return null;
-        // strip single trailing slash (except root)
-        if (url.endsWith("/") && url.length() > 1) {
-            return url.substring(0, url.length() - 1);
-        }
-        return url;
-    }
 
     private void validateSDHash(JWTClaimsSet keyBindingClaims) {
         // Compute the SD Hash of the VP Token
@@ -541,3 +578,4 @@ public class SdjwtCredentialVerifier {
     private record SdJwtData(JWTClaimsSet payload, List<Disclosure> disclosures) {
     }
 }
+

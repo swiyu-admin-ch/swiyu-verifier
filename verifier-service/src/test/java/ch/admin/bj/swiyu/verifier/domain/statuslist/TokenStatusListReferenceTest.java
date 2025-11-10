@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import com.nimbusds.jose.JOSEException;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,6 +72,6 @@ class TokenStatusListReferenceTest {
                 "DIFFERENT-ISSUER"
                 , 204800);
         var err = assertThrows(VerificationException.class, tokenStatusListReference::verifyStatus);
-        assertTrue(err.getErrorDescription().contains("Failed to verify JWT: Invalid JWT token. JWT iss claim has value TEST_ISSUER_ID, must be DIFFERENT-ISSUER"));
+        Assertions.assertThat(err.getErrorDescription()).contains("Failed to verify JWT: Invalid JWT token. JWT iss claim value rejected");
     }
 }

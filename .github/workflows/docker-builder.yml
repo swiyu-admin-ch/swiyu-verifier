@@ -11,6 +11,18 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      environment_tag:
+        description: 'Additional environment tag (dev, staging, rc, stable)'
+        required: false
+        type: choice
+        options:
+          - 'none'
+          - 'dev'
+          - 'staging'
+          - 'rc'
+          - 'stable'
+        default: 'none'
 
 env:
   REGISTRY: ghcr.io
@@ -30,7 +42,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        # https://docs.github.com/de/actions/use-cases-and-examples/building-and-testing/building-and-testing-java-with-maven
+        # https://docs.github.com/actions/use-cases-and-examples/building-and-testing/building-and-testing-java-with-maven
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -51,6 +63,16 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Disable latest tag
+          flavor: |
+            latest=false
+          # Additional tags (branch / release tag / commit SHA / environment tags)
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ inputs.environment_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.environment_tag != 'none' }}
       - name: Build and push docker image
         id: push
         uses: docker/build-push-action@v6

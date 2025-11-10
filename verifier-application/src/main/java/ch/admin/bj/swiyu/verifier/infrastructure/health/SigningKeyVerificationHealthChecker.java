@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +23,7 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     /** Resolver used to attempt key / DID resolution */
     private final DidResolverAdapter didResolverAdapter;
 
-    @Value("${application.signing-key-verification-method}")
-    private String signingKeyVerificationMethod;
+    private final ApplicationProperties applicationProperties;
 
     /**
      * Performs the health check logic.
@@ -32,6 +32,9 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
      */
     @Override
     protected void performCheck(Health.Builder builder) {
+
+        String signingKeyVerificationMethod = applicationProperties.getSigningKeyVerificationMethod();
+
         List<String> failed = new ArrayList<>();
 
         // Check signing key verification method DID

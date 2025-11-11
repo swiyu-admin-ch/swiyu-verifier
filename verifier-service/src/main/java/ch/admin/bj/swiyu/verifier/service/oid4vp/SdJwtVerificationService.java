@@ -1,10 +1,12 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
@@ -50,14 +52,18 @@ public class SdJwtVerificationService {
     public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
     public static final List<String> SUPPORTED_JWT_ALGORITHMS = List.of("ES256");
 
+    private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
+
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
+    private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
 
 
     /**
      * Test function to ensure parity with DIF PE
+     *
      * @return claims of the vpToken requested in the management as json string
      */
     public String verifyVpTokenPresentationExchange(String vpToken, Management management) {
@@ -112,7 +118,7 @@ public class SdJwtVerificationService {
         // If Key Binding is present, validate that it is correct
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken,
-                    management.getRequestNonce());
+                    management);
         } else if (requiresKeyBinding(vpToken.getClaims())) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
@@ -241,7 +247,7 @@ public class SdJwtVerificationService {
         }
     }
 
-    private void validateTrust(String issuerDidTdw, String vct, Management managementEntity) {
+    private void validateTrust(String issuerDid, String vct, Management managementEntity) {
         var acceptedIssuerDids = managementEntity.getAcceptedIssuerDids();
         var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
         var trustAnchors = managementEntity.getTrustAnchors();
@@ -250,48 +256,98 @@ public class SdJwtVerificationService {
             // -> if both, accepted issuers and trust anchors, are not set or empty, all issuers are allowed
             return;
         }
-        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDidTdw)) {
+        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDid)) {
             // Issuer trusted because it is in the accepted issuer dids
             return;
         }
-        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDidTdw, vct, trustAnchors, managementEntity)) {
+        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDid, vct, trustAnchors, managementEntity)) {
             return; // We have a valid trust statement for the vct!
         }
+
         throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
     }
 
-    private boolean hasMatchingTrustStatement(String issuerDidTdw, String vct, List<TrustAnchor> trustAnchors, Management management) {
-        if (trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDidTdw))) {
+    /**
+     * Checks if the issuer has a valid trust statement from any of the provided trust anchors.
+     * Tries direct match first (issuer DID = trust anchor DID), then queries trust registries.
+     *
+     * @param issuerDid the DID of the issuer to verify
+     * @param vct the Verifiable Credential Type
+     * @param trustAnchors the list of trust anchors to check
+     * @param management the management configuration for verification context
+     * @return true if a matching trust statement is found, false otherwise
+     */
+    private boolean hasMatchingTrustStatement(String issuerDid, String vct, List<TrustAnchor> trustAnchors, Management management) {
+        // Direct trust: issuer DID matches a trust anchor DID
+        if (isDirectlyTrustedIssuer(issuerDid, trustAnchors)) {
             return true;
         }
 
+        // Indirect trust: issuer is vouched for by a trust anchor via trust statement
+        return isTrustedViaRegistry(issuerDid, vct, trustAnchors, management);
+    }
+
+    /**
+     * Checks if the issuer DID directly matches any trust anchor DID.
+     */
+    private boolean isDirectlyTrustedIssuer(String issuerDid, List<TrustAnchor> trustAnchors) {
+        return trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDid));
+    }
+
+    /**
+     * Queries trust anchors for trust statements that vouch for the issuer.
+     * For each anchor, fetches trust statements for the VCT and validates them.
+     */
+    private boolean isTrustedViaRegistry(String issuerDid, String vct, List<TrustAnchor> trustAnchors, Management management) {
         for (var trustAnchor : trustAnchors) {
-            List<String> rawTrustStatementIssuance = fetchTrustStatementIssuance(vct, trustAnchor);
-            if (rawTrustStatementIssuance.isEmpty()) {
-                // Abort if no trust statement
-                log.debug("Failed to get a response for vct {} from {}", vct, trustAnchor.trustRegistryUri());
+            List<String> trustStatements = fetchTrustStatementIssuance(vct, trustAnchor);
+            if (trustStatements.isEmpty()) {
+                log.debug("Failed to fetch trust statements for vct {} from {}", vct, trustAnchor.trustRegistryUri());
                 continue;
             }
 
-            for (var rawTrustStatement : rawTrustStatementIssuance) {
-                try {
-                    if (isProvidingTrust(issuerDidTdw, vct, trustAnchor, rawTrustStatement, management))
-                        return true;
-                } catch (VerificationException e) {
-                    // This exception will occur if the trust statement can not be verified fully
-                    log.debug("Failed to verify trust statement for vct {} from {} with code {} due to {}", vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
-                } catch (ParseException e) {
-                    log.info("Trust Statement of %s is malformed - missing CanIssue claim");
-                }
+            if (verifyTrustStatements(issuerDid, vct, trustAnchor, trustStatements, management)) {
+                return true;
             }
         }
         return false;
     }
 
-    private boolean isProvidingTrust(String issuerDidTdw, String vct, TrustAnchor trustAnchor, String rawTrustStatement, Management management) throws ParseException {
+    /**
+     * Validates a collection of trust statements to find one that vouches for the issuer.
+     */
+    private boolean verifyTrustStatements(String issuerDid, String vct, TrustAnchor trustAnchor,
+                                         List<String> trustStatements, Management management) {
+        for (var rawTrustStatement : trustStatements) {
+            if (validateTrustStatement(issuerDid, vct, trustAnchor, rawTrustStatement, management)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Validates a single trust statement with error handling.
+     * Returns false on verification or parsing errors, allowing iteration to continue.
+     */
+    private boolean validateTrustStatement(String issuerDid, String vct, TrustAnchor trustAnchor,
+                                          String rawTrustStatement, Management management) {
+        try {
+            return isProvidingTrust(issuerDid, vct, trustAnchor, rawTrustStatement, management);
+        } catch (VerificationException e) {
+            log.debug("Failed to verify trust statement for vct {} from {} - {}: {}",
+                    vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
+            return false;
+        } catch (ParseException e) {
+            log.info("Trust statement is malformed - missing canIssue claim");
+            return false;
+        }
+    }
+
+    private boolean isProvidingTrust(String issuerDid, String vct, TrustAnchor trustAnchor, String rawTrustStatement, Management management) throws ParseException {
         var trustStatement = new SdJwt(rawTrustStatement);
         trustStatement = verifyVpToken(trustStatement, management);
-        return issuerDidTdw.equals(trustStatement.getClaims().getSubject())
+        return issuerDid.equals(trustStatement.getClaims().getSubject())
                 && trustAnchor.did().equals(trustStatement.getClaims().getIssuer())
                 && vct.equals(trustStatement.getClaims().getStringClaim("canIssue"));
     }
@@ -318,11 +374,13 @@ public class SdJwtVerificationService {
         return claims.getClaims().containsKey("cnf");
     }
 
-    private void validateKeyBinding(SdJwt sdJwt, String nonce) {
+    private void validateKeyBinding(SdJwt sdJwt, Management management) {
         JWK keyBinding = getHolderKeyBinding(sdJwt.getClaims().getClaims());
         // Validate Holder Binding Proof JWT
-        JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding);
-        validateNonce(keyBindingClaims, nonce);
+        JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding,
+                Optional.ofNullable(management.getConfigurationOverride())
+                        .orElse(new ConfigurationOverride(null, null, null, null, null)));
+        validateNonce(keyBindingClaims, management.getRequestNonce());
         validateSDHash(sdJwt, keyBindingClaims);
     }
 
@@ -343,8 +401,9 @@ public class SdJwtVerificationService {
         }
     }
 
+
     @NotNull
-    private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding) {
+    private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding, ConfigurationOverride configurationOverride) {
         JWTClaimsSet keyBindingClaims;
         try {
             SignedJWT keyBindingJWT = SignedJWT.parse(keyBindingProof);
@@ -356,6 +415,7 @@ public class SdJwtVerificationService {
             }
             validateKeyBindingClaims(keyBindingJWT);
             keyBindingClaims = keyBindingJWT.getJWTClaimsSet();
+            validateHolderBindingAudience(keyBindingClaims.getAudience(), configurationOverride);
         } catch (ParseException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed");
         } catch (JOSEException e) {
@@ -364,6 +424,45 @@ public class SdJwtVerificationService {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding is not a valid JWT");
         }
         return keyBindingClaims;
+    }
+
+
+    /**
+     * Validates if we as verifier are indeed the audience of the holder binding, or whether it was created for another (eg. man in the middle) service.
+     * @param audience the audience as provided in the holder binding JWT
+     * @param configurationOverride possible override values
+     * @throws VerificationException if the audience for the holder binding does not match the expected one
+     */
+    private void validateHolderBindingAudience(List<String> audience,
+                                               ConfigurationOverride configurationOverride) {
+        if (CollectionUtils.isEmpty(audience)){
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding audience (aud)");
+        }
+
+        /*
+         * https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3
+         * The value MUST be a single string that identifies the intended receiver of the Key Binding JWT.
+         */
+        if (audience.size() != MAX_HOLDER_BINDING_AUDIENCES) {
+            throw credentialError(HOLDER_BINDING_MISMATCH,
+                    "Multiple audiences not supported. Expected 1 but was %d: %s".formatted(audience.size(), audience));
+        }
+
+        String aud = audience.getFirst();
+        if (StringUtils.isBlank(aud)) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
+        }
+
+
+        String clientId = Optional.ofNullable(configurationOverride.verifierDid())
+                .orElse(applicationProperties.getClientId());
+
+        // Exact match only
+        if (!clientId.equals(aud)) {
+            throw credentialError(HOLDER_BINDING_MISMATCH,
+                    "Holder Binding audience mismatch. Actual: '%s'. Expected: %s"
+                            .formatted(aud, clientId));
+        }
     }
 
     /**

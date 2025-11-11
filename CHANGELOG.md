@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Latest
+## latest
+
+### Added
+
+### Changed
+
+- Status list resolving does no longer accept http urls for status lists. Only https urls are allowed now.
+
+## 2.1.0
 
 ### Added
 
@@ -15,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Base functionality for DCQL, allowing using OID4VP v1 style along side legacy DIF PE to query credentials. 
   Verifiable presentations are validated and checked according to DCQL "credentials" query. 
   Currently only single credential submissions are supported. To maintain backwards compatibility with old wallet versions using DIF PE remains mandatory.
+- Optional End2End encryption with JWE according to OID4VP 1.0. Default is currently still unencrypted to allow wallets to start supporting it. 
+  Usage be chosen on verification request basis with new `response_mode` json attribute.  
+- Updated didresolver dependency from 2.1.3 to 2.3.0
+
 
 ### Changed
 - Allow both vc+sd-jwt (SD JWT VC Draft 05 and older) dc+sd-jwt (SD JWT VC Draft 06 and newer) for presented VC format 

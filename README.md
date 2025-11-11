@@ -6,12 +6,10 @@ SPDX-License-Identifier: MIT
 
 ![github-banner](https://github.com/swiyu-admin-ch/swiyu-admin-ch.github.io/blob/main/assets/images/github-banner.jpg)
 
-# Warning - This Version is work in progress and NOT PEN-TESTED
-
 # SWIYU generic verifier service
 
 This software is a web server implementing the technical standards as specified in
-the [Swiss e-ID and trust infrastructure: Initial implementation](https://swiyu-admin-ch.github.io/initial-technology/).
+the [swiyu Trust Infrastructure Interoperability Profile](https://swiyu-admin-ch.github.io/specifications/interoperability-profile/).
 Together with the other generic components provided, this software forms a collection of APIs allowing issuance and
 verification of verifiable credentials without the need of reimplementing the standards.
 
@@ -67,6 +65,64 @@ firstName and lastName. The following request can be performed by using the swag
 verifier-agent-management>**/swagger-ui/index.html**
 
 To see more details and examples of the verification process please consult the [documentation](documentation/verification_process.md).
+
+## Digital Credentials Query Language (DCQL) Transition
+
+### Overview
+The verifier service now supports the Digital Credentials Query Language (DCQL) as specified in the OpenID for Verifiable Presentations (OID4VP) Standard 1.0. This replaces the previous DIF Presentation Exchange (PE) specification that was integrated into the "claims" request parameter.
+
+### Why DCQL?
+- **Standards Compliance**: Ensures compliance with the OID4VP Standard 1.0
+- **Enhanced Flexibility**: DCQL provides a JSON-encoded query language for simpler and more flexible presentation requests
+- **Improved Privacy**: Enables precise specification of credential requirements and individual claims, supporting selective disclosure
+- **Complex Scenarios Support**: Allows encoding constraints for credential combinations and expressing various alternatives
+
+### Key Interface Changes
+The service now supports both DCQL and PE formats through:
+- Optional `dcql_query` parameter alongside existing `presentation_definition`
+- API version headers for backward compatibility:
+  - Version "1": Supports OID4VP ID2 with DIF Presentation Exchange
+  - Version "2": Supports OID4VP 1.0 with DCQL
+
+### Verification Flow with DCQL
+1. **Creation**: Business Verifier creates verification request with DCQL query
+2. **Storage**: Verifier Service stores request in database
+3. **Holder Retrieval**: Holder uses Verification URI to get request object containing DCQL query
+4. **Presentation**: Holder's wallet processes DCQL query to identify suitable credentials
+5. **Verification**: Service validates credentials against DCQL query criteria
+6. **Status Update**: Business Verifier receives status and requested data via polling or webhooks
+
+### VP Token Response Encryption
+- Required after transition period
+- Uses client_metadata for encryption information
+
+
+## Deployment Considerations
+Please note that by default configuration the verifier service is set up in a way to easily gain experience with the verification process,
+not as a productive deployment. With the configuration options found below, it can be configured and set up for productive use.
+
+We recommend to not expose the service directly to the web. 
+The focus of the application lies in the functionality of the verification. 
+Using API Gateway or Web Application Firewall can decrease the attack surface significantly.
+
+To prevent misuse, the management endpoints should be protected either by network infrastructure (for example mTLS) or using OAuth.
+
+```mermaid
+flowchart LR
+    verint[\Verifier Business System\]
+    ver(Verifier Service)
+    vdb[(Postgres)]
+    wallet[Wallet]
+    apigw[\API Gateway\]
+    auth[\Authentication Server\]
+    verint --Internal network calls--> ver
+    ver --Cache verification results--> vdb
+    wallet --Web calls--> apigw
+    apigw --Filtered calls--> ver
+    verint --Get OAuth2.0 Token--> auth
+    ver --Validate OAuth2.0 Token--> auth
+```
+
 
 # Development
 
@@ -304,15 +360,85 @@ The response of this post call contains the URI which has to be provided to the 
 | vp_formats_not_supported                    | The Wallet doesn't support any of the formats requested by the Verifier                                                                                                                                                                              |
 | invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
 | invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |
+
+
+## Docker Image Tagging Strategy
+
+Docker images for this project follow a formalized environment-based tagging approach:
+
+| Tag     | Meaning                  | Description                                                                                       |
+|---------|--------------------------|---------------------------------------------------------------------------------------------------|
+| dev     | Development Build        | Latest commit from the development branch. Automatically generated on every push to `main`.       |
+| staging | Integration Test Build   | Set at the end of a sprint or after completion of a feature for integration testing.              |
+| rc      | Release Candidate        | Frozen state prior to release and penetration testing.                                            |
+| stable  | Verified Production      | Released after successful QA and penetration testing.                                             |
+
+These tags are assigned automatically or manually as part of the CI/CD workflow. This ensures that environments can reliably reference images by their lifecycle stage (e.g., `swiyu-issuer-service:staging`) without requiring manual version management.
+
+### Promotion Workflow
+
+The image promotion process follows these steps:
+
+```text
+[Commit → dev]
+    ↓    build & push :dev
+[Feature completed / Sprint end]
+    ↓    promote → :staging
+[Release candidate created]
+    ↓    promote → :rc
+[QA & penetration test passed]
+    ↓    promote → :stable
+```
+
+## Release Process and Versioning
+
+### Semantic Versioning (SemVer)
+This project follows Semantic Versioning (SemVer) to make it easy to understand the impact of a software release just by looking at the version number. Our version numbers follow the format:
+
+```
+MAJOR.MINOR.PATCH[-rc][+BUILD]
+```
+
+### Version Components
+
+#### MAJOR version (X.y.z)
+- Incremented when we Contract the system by removing, changing, or breaking existing features
+- Example: Removing a deprecated endpoint, changing response formats in a non-compatible way
+
+#### MINOR version (x.Y.z)
+- Incremented when we Extend the system with new, backward-compatible functionality
+- Example: Adding a new endpoint, introducing an optional field, or extending valid inputs
+
+#### PATCH version (x.y.Z)
+- Incremented when we Maintain the system with backward-compatible security fixes on Release Branch
+- Example: Security bug fixes or important performance optimizations needed on the last Release
+
+### Release Candidates
+Release Candidates (RCs) are tagged as prereleases to indicate a build that is a candidate for the next official release:
+
+- Format: x.y.z-rc.N (e.g., 1.4.0-rc.1, 1.4.0-rc.2)
+- Used for testing, validation, and final quality assurance
+- Once validated, the RC suffix is dropped for the official release
+- Example: 1.4.0-rc.1, 1.4.0-rc.2 → 1.4.0 (final release)
+
+### Release Workflow
+Our release process follows these principles:
+
+Version Contract: If you upgrade within the same MAJOR version, your existing integrations will continue to work (following the Expand and Migrate Pattern)
+
+GitHub Pre-release Tagging:
+- All versions with -rc.N suffix (e.g., 2.1.0-rc.1) are published as GitHub Prereleases
+- Prereleases are meant for testing, staging, and final validation
+- After validation, we remove the -rc suffix and publish the official release (e.g., 2.1.0)
+- Official releases are not marked as pre-releases on GitHub
+
 ## Missing Features and Known Issues
 
 The swiyu Public Beta Trust Infrastructure was deliberately released at an early stage to enable future ecosystem participants. The [feature roadmap](https://github.com/orgs/swiyu-admin-ch/projects/1/views/7) shows the current discrepancies between Public Beta and the targeted productive Trust Infrastructure. There may still be minor bugs or security vulnerabilities in the test system. These are marked as [‘KnownIssues’](../../issues) in each repository.
 
 ## Contributions and feedback
 
-The code for this repository is developed privately and will be released after each sprint. The published code can
-therefore only be a snapshot of the current development and not a thoroughly tested version. However, we welcome any
-feedback on the code regarding both the implementation and security aspects. Please follow the guidelines for
+We welcome any feedback on the code regarding both the implementation and security aspects. Please follow the guidelines for
 contributing found in [CONTRIBUTING.md](/CONTRIBUTING.md).
 
 ## License

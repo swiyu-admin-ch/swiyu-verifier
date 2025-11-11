@@ -10,6 +10,7 @@ import com.nimbusds.jose.jwk.ECKey;
 import java.security.Provider;
 import java.security.interfaces.ECPrivateKey;
 
+@FunctionalInterface
 public interface IKeyManagementStrategy {
     JWSSigner createSigner(SignatureConfiguration signatureConfiguration) throws KeyStrategyException;
 

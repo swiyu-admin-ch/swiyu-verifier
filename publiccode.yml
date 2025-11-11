@@ -1,0 +1,41 @@
+publiccodeYmlVersion: 0.4.0
+name: swiyu Generic Verifier
+applicationSuite: swiyu Trust Infrastructure
+url: https://github.com/swiyu-admin-ch/swiyu-verifier
+softwareVersion: 2.0.1
+releaseDate: 2025-09-11
+platforms:
+  - linux
+categories:
+  - digital-citizenship
+  - identity-management
+usedBy:
+  - Federal Office of Justice
+  - Federal Office of Information Technology, Systems and Telecommunication
+  - Fedpol
+developmentStatus: beta
+softwareType: standalone/backend
+description:
+  en:
+    localisedName: swiyu Generic Verifier Service
+    shortDescription: Generic Verifier Service for Verifiable Credentials of the swiyu Trust Infrastructure
+    longDescription: This software is a web server implementing the technical
+      standards as specified in the Swiss e-ID Interoperability Profile and is
+      part of other generic components allowing the issuance and verification of
+      verifiable credentials without the need of reimplementing the standards.
+    documentation: https://swiyu-admin-ch.github.io/open-source-components/
+    apiDocumentation: https://swiyu-admin-ch.github.io/cookbooks/onboarding-generic-verifier/
+    features:
+      - Verifying verifiable credentials
+legal:
+  license: MIT
+maintenance:
+  type: internal
+  contacts:
+   - name: Andre Kunz
+     email: info@swiyu.admin.ch
+     affiliation: Federal Office of Justice
+localisation:
+  localisationReady: false
+  availableLanguages:
+    - en

@@ -5,9 +5,13 @@
 
 version: 2
 updates:
-  - package-ecosystem: "maven" # See documentation for possible values
+  - package-ecosystem: "maven"
     directories: 
       - "/verifier-application"
       - "/verifier-service"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"

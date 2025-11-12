@@ -17,8 +17,6 @@ public class VerifierHealthIndicator implements HealthIndicator {
     /** Cached DID / identifier resolution checks. */
     private final SigningKeyVerificationHealthChecker signingKeyVerificationHealthChecker;
 
-
-
     public VerifierHealthIndicator(SigningKeyVerificationHealthChecker signingKeyVerificationHealthChecker) {
         this.signingKeyVerificationHealthChecker = signingKeyVerificationHealthChecker;
     }

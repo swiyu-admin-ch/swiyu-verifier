@@ -261,7 +261,13 @@
                 <version>1.17.6</version>
             </dependency>
             <!-- end fix -->
-
+            <!-- fix CVE-2021-0341 - Force newer okhttp3 version -->
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>4.12.0</version>
+            </dependency>
+            <!-- end fix -->
         </dependencies>
     </dependencyManagement>
 

@@ -38,6 +38,12 @@ public class StatusListResolverAdapter {
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
         log.debug("HTTP Request after url rewrite to status list from {}", rewrittenUrl);
         try {
+            // check if https request otherwise throw exception
+            if (!isHttpsUrl(uri)) {
+                throw new IllegalArgumentException("StatusList %s does not use HTTPS"
+                        .formatted(uri));
+            }
+
             if (!containsValidHost(rewrittenUrl)) {
                 throw new IllegalArgumentException("StatusList %s does not contain a valid host from %s"
                         .formatted(rewrittenUrl, applicationProperties.getAcceptedStatusListHosts()));
@@ -55,6 +61,10 @@ public class StatusListResolverAdapter {
                             .formatted(rewrittenUrl));
                 })
                 .body(String.class);
+    }
+    
+    private boolean isHttpsUrl(String url) {
+        return url.startsWith("https://");
     }
 
     private boolean containsValidHost(String rewrittenUrl) throws MalformedURLException {

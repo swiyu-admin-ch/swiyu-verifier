@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.service.publickey;
 
-import ch.admin.eid.didtoolbox.Jwk;
-import ch.admin.eid.didtoolbox.VerificationMethod;
-import ch.admin.eid.didtoolbox.VerificationType;
+import ch.admin.eid.did_sidekicks.Jwk;
+import ch.admin.eid.did_sidekicks.VerificationMethod;
+import ch.admin.eid.did_sidekicks.VerificationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -90,34 +90,34 @@ public class IssuerPublicKeyLoader {
     }
 
     /**
-     * Loads the DID document of the given <code>issuerDidTdw</code> from the base registry and returns its
+     * Loads the DID document of the given <code>issuerDid</code> from the base registry and returns its
      * <a href="https://www.w3.org/TR/did-core/#verification-method-properties">verification method </a> for the given
      * <code>issuerKeyId</code>. The verification method contains the public key of the issuer.
      *
-     * @param issuerDidTdw the decentralized identifier of the issuer
+     * @param issuerDidId the decentralized identifier of the issuer
      * @param issuerKeyId  the key id (in jwt token header provided as 'kid' attribute) indicating which verification method to use
      * @return The VerificationMethod The base64 encoded public key of the issuer as it is mentioned in the <code>verificationMethod</code> for the given issuerKeyId.
      * @throws DidResolverException  if the DID document could not be resolved
      * @throws IllegalStateException if the DID document does not contain any matching verification method for the given issuerKeyId
      */
-    private VerificationMethod loadVerificationMethod(String issuerDidTdw, String issuerKeyId) throws DidResolverException, IllegalStateException {
-        try (var didDoc = didResolverAdapter.resolveDid(issuerDidTdw)) {
+    private VerificationMethod loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalStateException {
+        try (var didDoc = didResolverAdapter.resolveDid(issuerDidId)) {
             // Step 1: get all verification methods within the document
             var verificationMethods = didDoc.getVerificationMethod();
             if (isEmpty(verificationMethods)) {
                 throw new IllegalStateException(("Could not resolve public key from issuer %s since its resolved DID " +
-                        "document does not contain any verification methods").formatted(issuerDidTdw));
+                        "document does not contain any verification methods").formatted(issuerDidId));
             }
-            log.trace("Resolved did document for issuer {}", issuerDidTdw);
+            log.trace("Resolved did document for issuer {}", issuerDidId);
             // Step 2: find the right method matching the key
             var method = verificationMethods.stream()
                     .filter(m -> m.getId().equals(issuerKeyId))
                     .findFirst();
             if (method.isEmpty()) {
                 throw new IllegalStateException(("Could not resolve public key from issuer %s since its resolved DID " +
-                        "document does not contain any public keys for the key %s").formatted(issuerDidTdw, issuerKeyId));
+                        "document does not contain any public keys for the key %s").formatted(issuerDidId, issuerKeyId));
             }
-            log.trace("Found Verification Method {}", issuerDidTdw);
+            log.trace("Found Verification Method {}", issuerKeyId);
             return method.get();
         }
     }

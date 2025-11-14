@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 name: Retag Docker Image
-run-name: Retag ${{ github.repository }}:${{ inputs.source_tag }} -> ${{ inputs.target_tag || 'latest' }}
+run-name: Retag ${{ github.repository }}:${{ inputs.source_tag }} -> ${{ inputs.target_tag }}
 
 on:
   workflow_dispatch:
@@ -13,10 +13,15 @@ on:
         required: true
         type: string
       target_tag:
-        description: "Target tag (default: latest)"
-        required: false
-        default: latest
-        type: string
+        description: "Target tag"
+        required: true
+        type: choice
+        options:
+          - 'dev'
+          - 'staging'
+          - 'rc'
+          - 'stable'
+        default: 'dev'
 
 env:
   REGISTRY: ghcr.io

@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Currently only single credential submissions are supported. To maintain backwards compatibility with old wallet versions using DIF PE remains mandatory.
 - Optional End2End encryption with JWE according to OID4VP 1.0. Default is currently still unencrypted to allow wallets to start supporting it. 
   Usage be chosen on verification request basis with new `response_mode` json attribute.  
+- Updated didresolver dependency from 2.1.3 to 2.3.0
 
 
 ### Changed

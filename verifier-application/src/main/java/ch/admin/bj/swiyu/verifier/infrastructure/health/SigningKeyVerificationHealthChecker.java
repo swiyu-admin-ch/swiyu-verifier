@@ -106,6 +106,7 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
 
         // Create a test JWT with dummy claims
         SignedJWT testJwt = createTestJwt();
+        testJwt.sign(signerProvider.getSigner());
 
         // Sign the JWT
         signerProvider.getSigner().sign(testJwt.getHeader(), testJwt.getSigningInput());

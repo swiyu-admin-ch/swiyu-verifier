@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Breaking! Either `accepted_issuer_dids` or `trust_anchors must contain` a value. The list itself cannot be empty, as this would implicate that nothing is trusted.
+  This is to improve security by avoiding misconfigurations that would lead to accepting any issuer.
+
 ## 2.1.0
 
 ### Added

@@ -362,6 +362,19 @@ class VerifierManagementControllerIT {
         }
 
         @Test
+        void testCreateOffer_withDcqlQueryWithoutResponseMode_thenSuccess() throws Exception {
+
+                // Build a minimal DCQL query DTO
+                var request = createVerificationManagementWithoutResponseMode(issuerDids, getDcqlQueryDto());
+
+                mvc.perform(post(BASE_URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(new ObjectMapper().writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andReturn();
+        }
+
+        @Test
         void testCreateOffer_withComplexDcqlQuery_thenSuccess() throws Exception {
                 List<Object> nullContainingList = new ArrayList<>();
                 nullContainingList.add("degrees");

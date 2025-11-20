@@ -21,6 +21,8 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.stereotype.Component;
 
 import java.text.ParseException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Health checker that validates the signing capability of the configured verification method.
@@ -139,10 +141,15 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     private boolean verifySignature(SignedJWT signedJwt, DidDoc didDoc, String verificationMethod)
             throws JOSEException, DidSidekicksException, ParseException {        // Extract the JWK from the DID document
         Jwk jwk = didDoc.getKey(verificationMethod);
-
-        // Parse and convert to EC public key
-        JWK publicKey = JWK.parse(jwk.toString()).toECKey();
-
+        
+        final Map<String, Object> map = new HashMap<>();
+        map.put("kty", jwk.getKty());
+        map.put("crv", jwk.getCrv());
+        map.put("x", jwk.getX());
+        map.put("y", jwk.getY());
+        map.put("kid", jwk.getKid());
+        // Convert to EC public key
+        JWK publicKey = JWK.parse(map).toECKey();
         // Create verifier and verify signature
         JWSVerifier verifier = new ECDSAVerifier(publicKey.toECKey());
         return signedJwt.verify(verifier);

@@ -9,8 +9,6 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.CachingConfig;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.infrastructure.config.RestClientConfig;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
@@ -38,7 +36,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 @RestClientTest({StatusListResolverAdapter.class, CachingConfig.class})
-@Import({RestClientConfig.class})
+@Import({StatusListResolverAdapterTestConfig.class})
 class StatusListResolverAdapterIT {
 
     private final String url = "https://example.com/statuslist";
@@ -53,8 +51,7 @@ class StatusListResolverAdapterIT {
     private UrlRewriteProperties urlRewriteProperties;
     @MockitoBean
     private ApplicationProperties applicationProperties;
-    @MockitoBean
-    private VerificationProperties verificationProperties;
+
 
     @BeforeEach
     void setUp() {
@@ -74,14 +71,31 @@ class StatusListResolverAdapterIT {
         assertEquals("Status list size from " + url + " exceeds maximum allowed size", exception.getMessage());
     }
 
+    @Test
+    void testUnresolvableStatusList_thenStatusListException() {
+        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
+                .andRespond(withResourceNotFound().header("Content-Length", String.valueOf(100L)));
+
+        var exception = assertThrows(StatusListFetchFailedException.class, () -> statusListResolverAdapter.resolveStatusList(url));
+        assertEquals("Status list with uri: " + url + " could not be retrieved", exception.getMessage());
+    }
+
+    @Test
+    void testChunkedStatusList_thenIllegalArgumentException() {
+        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess().header("Content-Length", String.valueOf(100L)).header("Transfer-Encoding", "chunked"));
+
+        var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.resolveStatusList(url));
+        assertEquals("Status list size from " + url + " could not be determined (chunked transfer encoding)", exception.getMessage());
+    }
 
     @Test
     void testUnresolvableStatusList_thenStatusListMaxSizeExceededException() {
         this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
                 .andRespond(withResourceNotFound());
 
-        var exception = assertThrows(StatusListFetchFailedException.class, () -> statusListResolverAdapter.resolveStatusList(url));
-        assertEquals("Status list with uri: " + url + " could not be retrieved", exception.getMessage());
+        var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.resolveStatusList(url));
+        assertEquals("Status list size from " + url + " could not be determined", exception.getMessage());
     }
 
     @Test
@@ -100,7 +114,7 @@ class StatusListResolverAdapterIT {
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(differentUrl);
 
         this.mockServer.expect(requestTo(differentUrl)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("statuslist", MediaType.TEXT_PLAIN));
+                .andRespond(withSuccess("statuslist", MediaType.TEXT_PLAIN).header("Content-Length", String.valueOf(100L)));
         statusListResolverAdapter.resolveStatusList(url);
         this.mockServer.verify();
     }
@@ -113,7 +127,7 @@ class StatusListResolverAdapterIT {
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
 
         this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess(expectedCacheValue, MediaType.TEXT_PLAIN));
+                .andRespond(withSuccess(expectedCacheValue, MediaType.TEXT_PLAIN).header("Content-Length", String.valueOf(100L)));
         statusListResolverAdapter.resolveStatusList(url);
 
         assertEquals(expectedCacheValue, cacheManager.getCache(STATUS_LIST_CACHE).get(url).get());
@@ -127,7 +141,7 @@ class StatusListResolverAdapterIT {
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
 
         this.mockServer.expect(ExpectedCount.once(), requestTo(url)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("statusList", MediaType.TEXT_PLAIN));
+                .andRespond(withSuccess("statusList", MediaType.TEXT_PLAIN).header("Content-Length", String.valueOf(100L)));
 
         statusListResolverAdapter.resolveStatusList(url);
 

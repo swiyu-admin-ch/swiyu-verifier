@@ -309,6 +309,31 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
+                .andReturn();
+    }
+
+    @Test
+    void testCreateOffer_withAcceptedIssuerDidsNullValuesAndEmptyTrustAnchors_thenThrowBadRequest()throws Exception {
+        final List<String> issuerDids = new ArrayList<>();
+        issuerDids.add(null);
+
+        var request = CreateVerificationManagementDto.builder()
+                .presentationDefinition(presentationDefinitionDto())
+                .dcqlQuery(getDcqlQueryDto())
+                .trustAnchors(null)
+                .acceptedIssuerDids(issuerDids)
+                .build();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
                 .andReturn();
     }
 
@@ -326,6 +351,9 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
                 .andReturn();
     }
 

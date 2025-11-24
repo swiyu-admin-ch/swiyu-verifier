@@ -87,7 +87,11 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
         when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
-        when(jwk.toString()).thenReturn(testKey.toPublicJWK().toJSONString());
+        when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
+        when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
+        when(jwk.getX()).thenReturn(testKey.getX().toString());
+        when(jwk.getY()).thenReturn(testKey.getY().toString());
+        when(jwk.getKid()).thenReturn(testKey.getKeyID());
         doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
@@ -185,7 +189,11 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
         when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
-        when(jwk.toString()).thenReturn("invalid-json");
+        when(jwk.getKty()).thenReturn("invalid-kty");
+        when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
+        when(jwk.getX()).thenReturn(testKey.getX().toString());
+        when(jwk.getY()).thenReturn(testKey.getY().toString());
+        when(jwk.getKid()).thenReturn(testKey.getKeyID());
 
         Health.Builder builder = Health.up();
 
@@ -208,7 +216,11 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
         when(didDoc.getKey(verificationMethodWithFragment)).thenReturn(jwk);
-        when(jwk.toString()).thenReturn(testKey.toPublicJWK().toJSONString());
+        when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
+        when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
+        when(jwk.getX()).thenReturn(testKey.getX().toString());
+        when(jwk.getY()).thenReturn(testKey.getY().toString());
+        when(jwk.getKid()).thenReturn(testKey.getKeyID());
         doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
@@ -232,7 +244,11 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
         when(didDoc.getKey(verificationMethodWithoutFragment)).thenReturn(jwk);
-        when(jwk.toString()).thenReturn(testKey.toPublicJWK().toJSONString());
+        when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
+        when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
+        when(jwk.getX()).thenReturn(testKey.getX().toString());
+        when(jwk.getY()).thenReturn(testKey.getY().toString());
+        when(jwk.getKid()).thenReturn(testKey.getKeyID());
         doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
@@ -260,7 +276,11 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signerProvider.getSigner()).thenReturn(testSigner);
         when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
         // Return a different public key for verification
-        when(jwk.toString()).thenReturn(differentKey.toPublicJWK().toJSONString());
+        when(jwk.getKty()).thenReturn(differentKey.getKeyType().toString());
+        when(jwk.getCrv()).thenReturn(differentKey.getCurve().getName());
+        when(jwk.getX()).thenReturn(differentKey.getX().toString());
+        when(jwk.getY()).thenReturn(differentKey.getY().toString());
+        when(jwk.getKid()).thenReturn(differentKey.getKeyID());
         doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
@@ -285,7 +305,11 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
         when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
-        when(jwk.toString()).thenReturn(testKey.toPublicJWK().toJSONString());
+        when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
+        when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
+        when(jwk.getX()).thenReturn(testKey.getX().toString());
+        when(jwk.getY()).thenReturn(testKey.getY().toString());
+        when(jwk.getKid()).thenReturn(testKey.getKeyID());
         doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
@@ -306,7 +330,11 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
         when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
-        when(jwk.toString()).thenReturn(testKey.toPublicJWK().toJSONString());
+        when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
+        when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
+        when(jwk.getX()).thenReturn(testKey.getX().toString());
+        when(jwk.getY()).thenReturn(testKey.getY().toString());
+        when(jwk.getKid()).thenReturn(testKey.getKeyID());
         doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
@@ -326,7 +354,11 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
         when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
-        when(jwk.toString()).thenReturn(testKey.toPublicJWK().toJSONString());
+        when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
+        when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
+        when(jwk.getX()).thenReturn(testKey.getX().toString());
+        when(jwk.getY()).thenReturn(testKey.getY().toString());
+        when(jwk.getKid()).thenReturn(testKey.getKeyID());
         doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();

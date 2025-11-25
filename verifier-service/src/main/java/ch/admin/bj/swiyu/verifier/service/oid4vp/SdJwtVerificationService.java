@@ -156,12 +156,9 @@ public class SdJwtVerificationService {
         // If Key Binding is present, validate that it is correct
         var requireKeyBinding = Boolean.TRUE.equals(dcqlCredential.getRequireCryptographicHolderBinding());
 
-        if (requireKeyBinding || vpToken.hasKeyBinding()) {
-            if (!vpToken.hasKeyBinding()) {
-                throw credentialError(HOLDER_BINDING_MISMATCH, MISSING_HOLDER_PROOF_ERROR_DESCRIPTION);
-            }
+        if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken, management);
-        } else if (requiresKeyBinding(vpToken.getClaims())) {
+        } else if (requireKeyBinding || requiresKeyBinding(vpToken.getClaims())) {
             throw credentialError(HOLDER_BINDING_MISMATCH, MISSING_HOLDER_PROOF_ERROR_DESCRIPTION);
         }
         verifyStatus(vpToken.getClaims().getClaims(), management);

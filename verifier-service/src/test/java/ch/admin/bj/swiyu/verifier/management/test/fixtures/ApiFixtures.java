@@ -53,6 +53,10 @@ public class ApiFixtures {
                 .build();
     }
 
+    public static CreateVerificationManagementDto createVerificationManagementWithoutResponseMode(List<String> acceptedIssuerDids, DcqlQueryDto dcqlQueryDto) {
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, presentationDefinitionDto(), null, dcqlQueryDto);
+    }
+
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
         var inputDescriptorMinimal = new InputDescriptorDto(
                 UUID.randomUUID().toString(),

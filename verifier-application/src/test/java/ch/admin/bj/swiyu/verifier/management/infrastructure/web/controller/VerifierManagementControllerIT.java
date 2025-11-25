@@ -168,7 +168,7 @@ class VerifierManagementControllerIT {
 
         @Test
         void testCreateOfferValidation_noInputDescriptorId_thenException() throws Exception {
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto(null));
 
@@ -183,7 +183,7 @@ class VerifierManagementControllerIT {
 
         @Test
         void testCreateOfferValidation_noConstraints_thenException() throws Exception {
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_WithoutConstraints());
 
@@ -199,7 +199,7 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_noFieldPath_thenException() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
                 var emptyFieldDto = FieldDto.builder().build();
                 constraints.fields().clear();
@@ -217,7 +217,7 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_emptyFieldPath_thenException() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
                 constraints.fields().clear();
 
@@ -234,7 +234,7 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_withInvalidAlgorithmFormats_thenExceptionWithMultipleErrors() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_Invalid());
                 request.presentationDefinition().format().clear();
@@ -309,6 +309,31 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
+                .andReturn();
+    }
+
+    @Test
+    void testCreateOffer_withAcceptedIssuerDidsNullValuesAndEmptyTrustAnchors_thenThrowBadRequest()throws Exception {
+        final List<String> issuerDids = new ArrayList<>();
+        issuerDids.add(null);
+
+        var request = CreateVerificationManagementDto.builder()
+                .presentationDefinition(presentationDefinitionDto())
+                .dcqlQuery(getDcqlQueryDto())
+                .trustAnchors(null)
+                .acceptedIssuerDids(issuerDids)
+                .build();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
                 .andReturn();
     }
 
@@ -326,6 +351,9 @@ class VerifierManagementControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
                 .andReturn();
     }
 

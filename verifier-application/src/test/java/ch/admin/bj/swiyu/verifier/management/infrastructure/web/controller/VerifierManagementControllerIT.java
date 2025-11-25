@@ -168,7 +168,7 @@ class VerifierManagementControllerIT {
 
         @Test
         void testCreateOfferValidation_noInputDescriptorId_thenException() throws Exception {
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto(null));
 
@@ -183,7 +183,7 @@ class VerifierManagementControllerIT {
 
         @Test
         void testCreateOfferValidation_noConstraints_thenException() throws Exception {
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_WithoutConstraints());
 
@@ -199,7 +199,7 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_noFieldPath_thenException() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
                 var emptyFieldDto = FieldDto.builder().build();
                 constraints.fields().clear();
@@ -217,7 +217,7 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_emptyFieldPath_thenException() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
                 constraints.fields().clear();
 
@@ -234,7 +234,7 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_withInvalidAlgorithmFormats_thenExceptionWithMultipleErrors() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto(null);
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_Invalid());
                 request.presentationDefinition().format().clear();

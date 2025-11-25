@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.api.management;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.util.List;
+import java.util.Objects;
 
 public class AcceptedIssuerDidsOrTrustAnchorsNotEmptyValidator implements ConstraintValidator<AcceptedIssuerDidsOrTrustAnchorsNotEmpty, CreateVerificationManagementDto> {
     @Override
@@ -13,8 +14,8 @@ public class AcceptedIssuerDidsOrTrustAnchorsNotEmptyValidator implements Constr
         List<?> acceptedIssuerDids = dto.acceptedIssuerDids();
         List<?> trustAnchors = dto.trustAnchors();
 
-        boolean acceptedIssuerDidsEmpty = acceptedIssuerDids != null && acceptedIssuerDids.isEmpty();
-        boolean trustAnchorsEmpty = trustAnchors != null && trustAnchors.isEmpty();
+        boolean acceptedIssuerDIDsValid = acceptedIssuerDids == null || (!acceptedIssuerDids.isEmpty() && acceptedIssuerDids.stream().noneMatch(Objects::isNull));
+        boolean trustAnchorsValid = trustAnchors == null || (!trustAnchors.isEmpty() && trustAnchors.stream().noneMatch(Objects::isNull));
 
         // at least one of the lists must be non-empty
         if (acceptedIssuerDids == null &&  trustAnchors == null) {
@@ -22,6 +23,6 @@ public class AcceptedIssuerDidsOrTrustAnchorsNotEmptyValidator implements Constr
         }
 
         // when list is not null it must not be empty
-        return !acceptedIssuerDidsEmpty && !trustAnchorsEmpty;
+        return acceptedIssuerDIDsValid && trustAnchorsValid;
     }
 }

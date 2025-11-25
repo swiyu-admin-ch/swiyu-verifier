@@ -87,13 +87,19 @@ public class DefaultExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, @NonNull HttpHeaders headers, @NonNull HttpStatusCode status, @NonNull WebRequest request) {
 
-        var errors = ex.getBindingResult().getFieldErrors().stream().map(error -> String.format("%s: %s", error.getField(), error.getDefaultMessage())).sorted().collect(Collectors.joining(", "));
+        var fieldErrors = ex.getBindingResult().getFieldErrors().stream().map(error -> String.format("%s: %s", error.getField(), error.getDefaultMessage())).sorted().collect(Collectors.joining(", "));
 
-        log.info("Received bad request. Details: {}", errors);
+        var globalErrors = ex.getBindingResult().getGlobalErrors().stream().map(error -> String.format("%s: %s", error.getObjectName(), error.getDefaultMessage())).sorted().collect(Collectors.joining(", "));
+
+        var combinedErrors = java.util.stream.Stream.of(fieldErrors, globalErrors)
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.joining(", "));
+
+        log.info("Received bad request. Details: {}", combinedErrors);
 
         var error = ApiErrorDto.builder()
                 .status(BAD_REQUEST)
-                .errorDescription(errors)
+                .errorDescription(combinedErrors)
                 .build();
 
         return new ResponseEntity<>(error, error.getStatus());

@@ -35,8 +35,9 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class SigningKeyVerificationHealthCheckerTest {
 
-    private static final String TEST_VERIFICATION_METHOD = "did:example:123#key-1";
     private static final String TEST_DID = "did:example:123";
+    private static final String TEST_FRAGMENT = "key-1";
+    private static final String TEST_VERIFICATION_METHOD = String.format("%s#%s", TEST_DID, TEST_FRAGMENT);
 
     @Mock
     private DidResolverAdapter didResolverAdapter;
@@ -86,7 +87,7 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
@@ -188,7 +189,7 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn("invalid-kty");
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
@@ -215,7 +216,7 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(verificationMethodWithFragment)).thenReturn(jwk);
+        when(didDoc.getKey("key-1")).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
@@ -230,6 +231,7 @@ class SigningKeyVerificationHealthCheckerTest {
 
         // Then
         verify(didResolverAdapter).resolveDid("did:example:123");
+        verify(didDoc).getKey("key-1");
         Health health = builder.build();
         assertThat(health.getStatus()).isEqualTo(Status.UP);
     }
@@ -258,6 +260,7 @@ class SigningKeyVerificationHealthCheckerTest {
 
         // Then
         verify(didResolverAdapter).resolveDid("did:example:123");
+        verify(didDoc).getKey("did:example:123");
         Health health = builder.build();
         assertThat(health.getStatus()).isEqualTo(Status.UP);
     }
@@ -274,7 +277,7 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         // Return a different public key for verification
         when(jwk.getKty()).thenReturn(differentKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(differentKey.getCurve().getName());
@@ -304,7 +307,7 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
@@ -329,7 +332,7 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
@@ -353,7 +356,7 @@ class SigningKeyVerificationHealthCheckerTest {
         when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());

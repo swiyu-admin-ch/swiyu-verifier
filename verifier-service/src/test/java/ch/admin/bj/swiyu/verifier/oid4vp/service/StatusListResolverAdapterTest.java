@@ -1,12 +1,12 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -26,7 +26,8 @@ class StatusListResolverAdapterTest {
         urlRewriteProperties = mock(UrlRewriteProperties.class);
         restClient = mock(RestClient.class, RETURNS_DEEP_STUBS);
         applicationProperties = mock(ApplicationProperties.class);
-        adapter = new StatusListResolverAdapter(urlRewriteProperties, restClient, applicationProperties);
+        CacheProperties cacheProperties = mock(CacheProperties.class);
+        adapter = new StatusListResolverAdapter(urlRewriteProperties, restClient, applicationProperties, cacheProperties);
     }
 
     @Test
@@ -75,11 +76,6 @@ class StatusListResolverAdapterTest {
         when(restClient.get().uri(uri).retrieve()).thenReturn(retrieve);
         // Simulate onStatus throwing
         when(retrieve.onStatus(any(), any())).thenAnswer(invocation -> {
-            var predicate = invocation.getArgument(0);
-            var handler = invocation.getArgument(1);
-            if ((Boolean) predicate.getClass().cast(predicate).equals((HttpStatus.BAD_REQUEST != HttpStatus.OK))) {
-                handler.getClass(); // just to use handler
-            }
             throw new StatusListFetchFailedException("Status list with uri: %s could not be retrieved".formatted(uri));
         });
 

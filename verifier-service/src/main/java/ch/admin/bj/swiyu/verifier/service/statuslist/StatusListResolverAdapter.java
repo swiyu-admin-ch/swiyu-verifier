@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.service.statuslist;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,9 +32,9 @@ public class StatusListResolverAdapter {
     private final UrlRewriteProperties urlRewriteProperties;
     private final RestClient statusListRestClient;
     private final ApplicationProperties applicationProperties;
+    private final CacheProperties cacheProperties;
 
-
-@Cacheable(value = STATUS_LIST_CACHE, condition = "@environment.getProperty('caching.status-list-cache-ttl', 0) > 0")
+    @Cacheable(value = STATUS_LIST_CACHE, condition = "@cacheProperties.statusListCacheTtl > 0L")
     public String resolveStatusList(String uri) {
 
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);

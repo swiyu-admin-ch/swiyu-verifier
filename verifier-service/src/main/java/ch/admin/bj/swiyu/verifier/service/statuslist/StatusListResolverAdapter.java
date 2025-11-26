@@ -32,7 +32,8 @@ public class StatusListResolverAdapter {
     private final RestClient statusListRestClient;
     private final ApplicationProperties applicationProperties;
 
-    @Cacheable(STATUS_LIST_CACHE)
+
+@Cacheable(value = STATUS_LIST_CACHE, condition = "@environment.getProperty('caching.status-list-cache-ttl', 0) > 0")
     public String resolveStatusList(String uri) {
 
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);

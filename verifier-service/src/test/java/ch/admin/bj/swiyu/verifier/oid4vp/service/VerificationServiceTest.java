@@ -99,14 +99,14 @@ class VerificationServiceTest {
     }
 
     @Test
-    void receiveDcqlVerificationPresentation_thenSuccess() throws JsonProcessingException {
+    void receiveDcqlVerificationPresentation_withoutHolderRequestedHolderBinding_thenSuccess() throws JsonProcessingException {
         var credentialRequestId = "TestIdRequest";
-        var dcqlQuery = getDcqlQuery(credentialRequestId);
+        var dcqlQuery = getDcqlQuery(credentialRequestId, false);
         var vpToken = getVpToken();
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(vpToken)));
         var sdJwt = mockVerifySdJwt(vpToken);
         when(managementEntity.getDcqlQuery()).thenReturn(dcqlQuery);
-        when(sdJwtVerificationService.verifyVpToken(Mockito.any(), Mockito.any())).thenReturn(sdJwt);
+        when(sdJwtVerificationService.verifyVpTokenForDCQLRequest(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(sdJwt);
 
         assertDoesNotThrow(() -> verificationService.receiveVerificationPresentationDCQL(managementId, request));
         var expectedVerificationSucceededData = objectMapper.writeValueAsString(Map.of(credentialRequestId, List.of(sdJwt.getClaims().getClaims())));
@@ -219,7 +219,7 @@ class VerificationServiceTest {
     /**
      * Create a dcql query matching the default vp token
      */
-    private DcqlQuery getDcqlQuery(String dcqlCredentialId) {
+    private DcqlQuery getDcqlQuery(String dcqlCredentialId, boolean requireCryptographicHolderBinding) {
         var requestedCredential = new DcqlCredential(
                 dcqlCredentialId,
                 "dc+sd-jwt",
@@ -227,7 +227,7 @@ class VerificationServiceTest {
                 List.of(
                         new DcqlClaim(null, List.of("birthdate"), null),
                         new DcqlClaim(null, List.of("last_name"), null)),
-                true,
+                requireCryptographicHolderBinding,
                 false);
 
         return new DcqlQuery(List.of(requestedCredential), null);

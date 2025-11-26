@@ -139,8 +139,8 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
      * @return true if signature verification succeeds, false otherwise
      */
     private boolean verifySignature(SignedJWT signedJwt, DidDoc didDoc, String verificationMethod)
-            throws JOSEException, DidSidekicksException, ParseException {        // Extract the JWK from the DID document
-        Jwk jwk = didDoc.getKey(verificationMethod);
+            throws JOSEException, DidSidekicksException, ParseException {
+        final Jwk jwk = didDoc.getKey(extractFragmentFromVerificationMethod(verificationMethod));
         
         final Map<String, Object> map = new HashMap<>();
         map.put("kty", jwk.getKty());
@@ -186,6 +186,21 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     private String extractDidFromVerificationMethod(String verificationMethod) {
         int fragmentIndex = verificationMethod.indexOf('#');
         return fragmentIndex > 0 ? verificationMethod.substring(0, fragmentIndex) : verificationMethod;
+    }
+
+    /**
+     * Extracts the fragment part (key identifier) from a verification method.
+     *
+     * <p>Verification methods may contain a fragment identifier (e.g., "did:example:123#key-1").
+     * This method extracts the fragment value (e.g., "key-1") to obtain the pure key identifier.
+     * If no fragment is present, the original verification method is returned unchanged.
+     *
+     * @param verificationMethod The verification method string
+     * @return The fragment value without the '#' prefix, or the original string if no fragment is found
+     */
+    private String extractFragmentFromVerificationMethod(String verificationMethod) {
+        int fragmentIndex = verificationMethod.indexOf('#');
+        return fragmentIndex > 0 ? verificationMethod.substring(fragmentIndex + 1) : verificationMethod;
     }
 }
 

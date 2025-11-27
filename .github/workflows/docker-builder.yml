@@ -23,6 +23,11 @@ on:
           - 'rc'
           - 'stable'
         default: 'none'
+      version_tag:
+        description: 'Optional version tag to add to the image (e.g., 2.2.0)'
+        required: false
+        type: string
+        default: ''
 
 env:
   REGISTRY: ghcr.io
@@ -73,6 +78,7 @@ jobs:
             type=sha
             type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
             type=raw,value=${{ inputs.environment_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.environment_tag != 'none' }}
+            type=raw,value=${{ inputs.version_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version_tag != '' }}
       - name: Build and push docker image
         id: push
         uses: docker/build-push-action@v6

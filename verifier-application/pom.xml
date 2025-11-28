@@ -207,6 +207,16 @@
             <version>${archunit-junit5.verion}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>au.com.dius.pact.consumer</groupId>
+            <artifactId>junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>au.com.dius.pact.provider</groupId>
+            <artifactId>junit5spring</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Shedlock dependencies -->
         <dependency>
@@ -240,6 +250,12 @@
             <artifactId>swiyu-verifier-service</artifactId>
             <version>2.2.0-SNAPSHOT</version> <!-- Use the same version as the parent pom -->
             <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>au.com.dius.pact</groupId>
+            <artifactId>provider</artifactId>
+            <version>4.6.15</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

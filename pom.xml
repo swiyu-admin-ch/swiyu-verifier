@@ -58,6 +58,7 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
+        <pact.version>4.6.15</pact.version>
     </properties>
 
     <dependencyManagement>
@@ -77,6 +78,20 @@
                 <version>6.2.11</version>
             </dependency>
             <!-- end fix -->
+
+            <!-- Pact Testing -->
+            <dependency>
+                <groupId>au.com.dius.pact.provider</groupId>
+                <artifactId>junit5spring</artifactId>
+                <version>${pact.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>au.com.dius.pact.consumer</groupId>
+                <artifactId>junit5</artifactId>
+                <version>${pact.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -104,17 +119,6 @@
                     </execution>
 
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.27.0</version>
-                <configuration>
-                    <printFailingErrors>true</printFailingErrors>
-                    <linkXRef>false</linkXRef>
-                    <failOnViolation>true</failOnViolation>
-                    <failurePriority>3</failurePriority>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

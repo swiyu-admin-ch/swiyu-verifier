@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.service.publickey;
 
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
 import ch.admin.eid.did_sidekicks.VerificationMethod;
 import ch.admin.eid.did_sidekicks.VerificationType;
@@ -82,9 +83,9 @@ public class IssuerPublicKeyLoader {
     public PublicKey loadPublicKey(String issuer, String kid) throws LoadingPublicKeyOfIssuerFailedException {
         try {
             log.trace("Fetching Public Key {} for issuer {}", kid, issuer);
-            VerificationMethod method = loadVerificationMethod(issuer, kid);
-            return parsePublicKey(method);
-        } catch (RuntimeException e) {
+            Jwk method = loadVerificationMethod(issuer, kid);
+            return parsePublicKeyOfTypeJsonWebKey(method);
+        } catch (RuntimeException | DidSidekicksException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
         }
     }
@@ -100,43 +101,20 @@ public class IssuerPublicKeyLoader {
      * @throws DidResolverException  if the DID document could not be resolved
      * @throws IllegalStateException if the DID document does not contain any matching verification method for the given issuerKeyId
      */
-    private VerificationMethod loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalStateException {
-        try (var didDoc = didResolverAdapter.resolveDid(issuerDidId)) {
-            // Step 1: get all verification methods within the document
-            var verificationMethods = didDoc.getVerificationMethod();
-            if (isEmpty(verificationMethods)) {
-                throw new IllegalStateException(("Could not resolve public key from issuer %s since its resolved DID " +
-                        "document does not contain any verification methods").formatted(issuerDidId));
-            }
-            log.trace("Resolved did document for issuer {}", issuerDidId);
-            // Step 2: find the right method matching the key
-            var method = verificationMethods.stream()
-                    .filter(m -> m.getId().equals(issuerKeyId))
-                    .findFirst();
-            if (method.isEmpty()) {
-                throw new IllegalStateException(("Could not resolve public key from issuer %s since its resolved DID " +
-                        "document does not contain any public keys for the key %s").formatted(issuerDidId, issuerKeyId));
-            }
-            log.trace("Found Verification Method {}", issuerKeyId);
-            return method.get();
+    private Jwk loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalStateException, DidSidekicksException {
+        // extract fragment of key
+        var issuerKeyIdSplit = issuerKeyId.split("#");
+        if (issuerKeyIdSplit.length != 2) {
+            throw new IllegalArgumentException(String.format("Key %s is malformed: missing fragment", issuerKeyId));
         }
-    }
+        var issuerKeyIdFragment = issuerKeyIdSplit[1];
 
-    /**
-     * Generates a public key from the given base64 encoded public key.
-     *
-     * @param method the verification method containing the public key
-     * @return the public key
-     * @throws IllegalArgumentException if the key generation fails due to an invalid key specification,
-     *                                  missing algorithm or unsupported encoding type
-     */
-    private PublicKey parsePublicKey(VerificationMethod method) {
-        return switch (method.getVerificationType()) {
-            case VerificationType.MULTIKEY -> parsePublicKeyOfTypeMultibaseKey(method.getPublicKeyMultibase());
-            case VerificationType.JSON_WEB_KEY2020 -> parsePublicKeyOfTypeJsonWebKey(method.getPublicKeyJwk());
-            default -> throw new IllegalArgumentException("Unsupported encoding type: " + method.getVerificationType() +
-                    ". Only Multikey and JsonWebKey2020 are supported");
-        };
+        try (var didDoc = didResolverAdapter.resolveDid(issuerDidId)) {
+            log.trace("Resolved did document for issuer {}", issuerDidId);
+            var jwk = didDoc.getKey(issuerKeyIdFragment);
+            log.trace("Found Verification Method {}", issuerKeyId);
+            return jwk;
+        }
     }
 
     /**

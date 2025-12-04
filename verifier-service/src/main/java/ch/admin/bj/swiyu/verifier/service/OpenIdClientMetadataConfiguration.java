@@ -15,6 +15,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
@@ -27,6 +28,7 @@ import java.util.Set;
 
 @Configuration
 @Data
+@Slf4j
 @RequiredArgsConstructor
 public class OpenIdClientMetadataConfiguration {
     private final ApplicationProperties applicationProperties;
@@ -57,10 +59,30 @@ public class OpenIdClientMetadataConfiguration {
         if (!violations.isEmpty()) {
             StringBuilder sb = new StringBuilder("Invalid OpenID client metadata: ");
             sb.append(violations.stream()
-                    .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                    // CAUTION The ConstraintViolation object's getPropertyPath() getter would simply return a camel-cased name of
+                    //         the underlying DTO's Java class field, which might not really be useful,
+                    //         as actually preferred here is the value denoted by the DTO class field's @JsonProperty annotation.
+                    //         Assuming this value (JSON property) is always a snake-cased equivalent of DTO's Java class field name,
+                    //         we could just simply employ a proper case-conversion helper.
+                    .map(v -> "'" + camelToSnakeCase(v.getPropertyPath().toString()) + "' " + v.getMessage())
                     .collect(java.util.stream.Collectors.joining(", ")));
+
+            log.error("⚠️ {}", sb);
 
             throw new IllegalStateException(sb.toString());
         }
+    }
+
+    /**
+     * A regex-driven helper to convert one case into another.
+     *
+     * @param camelCaseString to convert. Camel-case assumed.
+     * @return converted snake-case string
+     */
+    private static String camelToSnakeCase(String camelCaseString) {
+        return camelCaseString
+                .replaceAll("([A-Z])(?=[A-Z])", "$1_")
+                .replaceAll("([a-z])([A-Z])", "$1_$2")
+                .toLowerCase();
     }
 }

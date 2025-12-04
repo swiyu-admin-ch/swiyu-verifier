@@ -69,8 +69,8 @@ class OpenIdClientMetadataConfigurationTest {
         });
 
         assertTrue(exception.getMessage().contains("Invalid OpenID client metadata"));
-        assertTrue(exception.getMessage().contains("clientId must not be blank"));
-        assertTrue(exception.getMessage().contains("vpFormats must not be null"));
+        assertTrue(exception.getMessage().contains("'client_id' must not be blank"));
+        assertTrue(exception.getMessage().contains("'vp_formats' must not be null"));
     }
 
     @ParameterizedTest
@@ -88,20 +88,24 @@ class OpenIdClientMetadataConfigurationTest {
     private static Stream<Arguments> invalidMetadataProvider() {
         return Stream.of(
             Arguments.of(
+                    "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\"}",
+                    "'vp_formats' must not be null"
+            ),
+            Arguments.of(
                 "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{}}",
-                "jwtVerifiablePresentation must not be null"
+                "'vp_formats.jwt_verifiable_presentation' must not be null"
             ),
             Arguments.of(
                 "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{}}}",
-                "vpFormats.jwtVerifiablePresentation.algorithms must not be empty"
+                "'vp_formats.jwt_verifiable_presentation.algorithms' must not be empty"
             ),
             Arguments.of(
                 "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[]}}}",
-                "vpFormats.jwtVerifiablePresentation.algorithms must not be empty"
+                "'vp_formats.jwt_verifiable_presentation.algorithms' must not be empty"
             ),
             Arguments.of(
                 "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES384\"]}}}",
-                "algorithms Invalid jwt values provided. Only ES256 is supported"
+                "'vp_formats.jwt_verifiable_presentation.algorithms' Invalid jwt values provided. Only ES256 is supported"
             )
         );
     }

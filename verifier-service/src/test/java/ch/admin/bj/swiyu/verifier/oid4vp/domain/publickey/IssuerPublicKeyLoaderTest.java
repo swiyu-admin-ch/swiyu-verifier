@@ -18,6 +18,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -32,23 +34,18 @@ class IssuerPublicKeyLoaderTest {
     }
 
     @Test
-    void loadPublicKey_MultibaseKey() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, DidSidekicksException {
+    void loadPublicKey_throwsException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, DidSidekicksException {
         // GIVEN (an issuer registered in the DID registry and an issuer signed SD-JWT)
         var issuerDidDocument = DidDocFixtures.issuerDidDocWithMultikey(
                 "did:example:123",
-                "did:example:123#key-1",
+                "did:example:123#key-2",
                 KeyFixtures.issuerPublicKeyAsMultibaseKey());
         var issuerDidTdw = issuerDidDocument.getId();
         var issuerKeyId = issuerDidDocument.getVerificationMethod().getFirst().getId();
         when(mockedDidResolverAdapter.resolveDid(issuerDidTdw)).thenReturn(issuerDidDocument);
 
-        // WHEN
-        var publicKey = publicKeyLoader.loadPublicKey(issuerDidTdw, issuerKeyId);
-
-        // THEN
-        assertThat(publicKey.getAlgorithm()).isEqualTo("EC");
-        assertThat(publicKey.getFormat()).isEqualTo("X.509");
-        assertThat(publicKey.getEncoded()).isEqualTo(KeyFixtures.issuerPublicKeyEncoded());
+        var error = assertThrows(LoadingPublicKeyOfIssuerFailedException.class, () -> publicKeyLoader.loadPublicKey(issuerDidTdw, issuerKeyId));
+        assertEquals("Failed to lookup public key from JWT Token for issuer did:example:123 and kid did:example:123#key-2", error.getMessage());
     }
 
     @Test

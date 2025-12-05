@@ -7,17 +7,18 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.core.io.Resource;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.Arguments;
-import java.util.stream.Stream;
 
 class OpenIdClientMetadataConfigurationTest {
 
@@ -73,6 +74,19 @@ class OpenIdClientMetadataConfigurationTest {
         assertTrue(exception.getMessage().contains("'vp_formats' must not be null"));
     }
 
+    @Test
+    void testInitOpenIdClientMetadataInvalidMetadataFile_throwsException() throws Exception {
+
+        var ioExcMsg = "no such metadata file";
+        when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenThrow(new IOException(ioExcMsg));
+
+        var exc = assertThrowsExactly(IllegalStateException.class, () -> {
+                    config.initOpenIdClientMetadata();
+                }
+        );
+        assertTrue(exc.getMessage().contains(ioExcMsg));
+    }
+
     @ParameterizedTest
     @MethodSource("invalidMetadataProvider")
     void testInitOpenIdClientMetadataInvalidCases_throwsException(String template, String expectedMessage) throws Exception {
@@ -87,26 +101,34 @@ class OpenIdClientMetadataConfigurationTest {
 
     private static Stream<Arguments> invalidMetadataProvider() {
         return Stream.of(
-            Arguments.of(
-                    "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\"}",
-                    "'vp_formats' must not be null"
-            ),
-            Arguments.of(
-                "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{}}",
-                "'vp_formats.jwt_verifiable_presentation' must not be null"
-            ),
-            Arguments.of(
-                "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{}}}",
-                "'vp_formats.jwt_verifiable_presentation.algorithms' must not be empty"
-            ),
-            Arguments.of(
-                "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[]}}}",
-                "'vp_formats.jwt_verifiable_presentation.algorithms' must not be empty"
-            ),
-            Arguments.of(
-                "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES384\"]}}}",
-                "'vp_formats.jwt_verifiable_presentation.algorithms' Invalid jwt values provided. Only ES256 is supported"
-            )
+                Arguments.of(
+                        "",
+                        "No content to map due to end-of-input"
+                ),
+                Arguments.of(
+                        "[]",
+                        "Cannot deserialize value of type `ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto` from Array value"
+                ),
+                Arguments.of(
+                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\"}",
+                        "'vp_formats' must not be null"
+                ),
+                Arguments.of(
+                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{}}",
+                        "'vp_formats.jwt_verifiable_presentation' must not be null"
+                ),
+                Arguments.of(
+                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{}}}",
+                        "'vp_formats.jwt_verifiable_presentation.algorithms' must not be empty"
+                ),
+                Arguments.of(
+                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[]}}}",
+                        "'vp_formats.jwt_verifiable_presentation.algorithms' must not be empty"
+                ),
+                Arguments.of(
+                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES384\"]}}}",
+                        "'vp_formats.jwt_verifiable_presentation.algorithms' Invalid jwt values provided. Only ES256 is supported"
+                )
         );
     }
 }

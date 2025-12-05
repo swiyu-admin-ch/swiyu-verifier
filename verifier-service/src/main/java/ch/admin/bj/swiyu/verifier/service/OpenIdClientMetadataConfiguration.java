@@ -8,6 +8,7 @@ package ch.admin.bj.swiyu.verifier.service;
 
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.ConstraintViolation;
@@ -42,8 +43,17 @@ public class OpenIdClientMetadataConfiguration {
     private OpenidClientMetadataDto openIdClientMetadata;
 
     @PostConstruct
-    public void initOpenIdClientMetadata() throws IOException {
-        var template = clientMetadataResource.getContentAsString(Charset.defaultCharset());
+    public void initOpenIdClientMetadata() {
+
+        String template;
+        try {
+            template = clientMetadataResource.getContentAsString(Charset.defaultCharset());
+        } catch (IOException exc) {
+
+            log.error("⚠️ {} {}", "Failed to load/read metadata file denoted by the 'application.client-metadata-file' property due to:", exc.getMessage());
+
+            throw new IllegalStateException(exc);
+        }
 
         // find and set CLIENT_ID in the template
         Properties prop = new Properties();
@@ -51,13 +61,20 @@ public class OpenIdClientMetadataConfiguration {
         PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
         var loadedTemplate = helper.replacePlaceholders(template, prop);
 
-        openIdClientMetadata = objectMapper.readValue(loadedTemplate, OpenidClientMetadataDto.class);
+        try {
+            openIdClientMetadata = objectMapper.readValue(loadedTemplate, OpenidClientMetadataDto.class);
+        } catch (JsonProcessingException exc) {
+            log.error("⚠️ {} '{}' due to: {}", "Failed to deserialize DTO from JSON config", loadedTemplate, exc.getMessage());
+
+            throw new IllegalStateException(exc);
+        }
+
         openIdClientMetadata.setVersion(applicationProperties.getMetadataVersion());
 
         Set<ConstraintViolation<OpenidClientMetadataDto>> violations = validator.validate(openIdClientMetadata);
 
         if (!violations.isEmpty()) {
-            StringBuilder sb = new StringBuilder("Invalid OpenID client metadata: ");
+            var sb = new StringBuilder("Invalid OpenID client metadata: ");
             sb.append(violations.stream()
                     // CAUTION The ConstraintViolation object's getPropertyPath() getter would simply return a camel-cased name of
                     //         the underlying DTO's Java class field, which might not really be useful,

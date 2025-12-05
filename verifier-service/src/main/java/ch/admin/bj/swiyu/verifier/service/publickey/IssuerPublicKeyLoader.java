@@ -8,8 +8,6 @@ package ch.admin.bj.swiyu.verifier.service.publickey;
 
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
-import ch.admin.eid.did_sidekicks.VerificationMethod;
-import ch.admin.eid.did_sidekicks.VerificationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -18,17 +16,9 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
 import java.util.List;
-
-import static ch.admin.bj.swiyu.verifier.common.base64.Base64Utils.decodeMultibaseKey;
-import static org.springframework.util.CollectionUtils.isEmpty;
-import static org.springframework.util.StringUtils.hasText;
 
 /**
  * This class is responsible for loading the public key of an issuer from a JWT Token. The issuer is identified by its
@@ -51,30 +41,6 @@ public class IssuerPublicKeyLoader {
     private final ObjectMapper objectMapper;
 
     /**
-     * Generates a public key from the given multibase key. The public key is encoded
-     * according to the X.509 standard.
-     *
-     * @param multibaseKey a <a href="https://github.com/multiformats/multibase?tab=readme-ov-file#multibase-table">multibase key</a>
-     * @return the public key encoded according to the X.509 standard
-     * @throws IllegalArgumentException if the key generation fails due to an invalid key specification or missing algorithm
-     */
-    private static PublicKey parsePublicKeyOfTypeMultibaseKey(String multibaseKey) {
-        if (!hasText(multibaseKey)) {
-            throw new IllegalArgumentException("Failed to parse multibase key from verification method since no multibase key was provided");
-        }
-        try {
-            var decodedKey = decodeMultibaseKey(multibaseKey);
-            var keyFactory = KeyFactory.getInstance("EC");
-            var keySpec = new X509EncodedKeySpec(decodedKey);
-            return keyFactory.generatePublic(keySpec);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Failed to generate public key from specification due to missing algorithm", e);
-        } catch (InvalidKeySpecException e) {
-            throw new IllegalArgumentException("Failed to generate public key from specification due to invalid key spec", e);
-        }
-    }
-
-    /**
      * Loads the public key of the issuer with the given <code>issuer</code> and <code>kid</code>.
      *
      * @return The public key of the issuer.
@@ -85,7 +51,7 @@ public class IssuerPublicKeyLoader {
             log.trace("Fetching Public Key {} for issuer {}", kid, issuer);
             Jwk method = loadVerificationMethod(issuer, kid);
             return parsePublicKeyOfTypeJsonWebKey(method);
-        } catch (RuntimeException | DidSidekicksException e) {
+        } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
         }
     }
@@ -99,19 +65,14 @@ public class IssuerPublicKeyLoader {
      * @param issuerKeyId  the key id (in jwt token header provided as 'kid' attribute) indicating which verification method to use
      * @return The VerificationMethod The base64 encoded public key of the issuer as it is mentioned in the <code>verificationMethod</code> for the given issuerKeyId.
      * @throws DidResolverException  if the DID document could not be resolved
-     * @throws IllegalStateException if the DID document does not contain any matching verification method for the given issuerKeyId
+     * @throws IllegalArgumentException if the issuerKeyId is invalid
+     * @throws DidSidekicksException if the DID document does not contain any matching verification method for the given issuerKeyId
      */
-    private Jwk loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalStateException, DidSidekicksException {
-        // extract fragment of key
-        var issuerKeyIdSplit = issuerKeyId.split("#");
-        if (issuerKeyIdSplit.length != 2) {
-            throw new IllegalArgumentException(String.format("Key %s is malformed: missing fragment", issuerKeyId));
-        }
-        var issuerKeyIdFragment = issuerKeyIdSplit[1];
-
+    private Jwk loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalArgumentException, DidSidekicksException {
+        var fragment = extractFragment(issuerKeyId);
         try (var didDoc = didResolverAdapter.resolveDid(issuerDidId)) {
             log.trace("Resolved did document for issuer {}", issuerDidId);
-            var jwk = didDoc.getKey(issuerKeyIdFragment);
+            var jwk = didDoc.getKey(fragment);
             log.trace("Found Verification Method {}", issuerKeyId);
             return jwk;
         }
@@ -146,5 +107,20 @@ public class IssuerPublicKeyLoader {
         log.debug("Resolving trust statement at registry {} for {}", trustRegistryUri, vct);
         var rawTrustStatements = didResolverAdapter.resolveTrustStatement("%s/api/v1/truststatements/issuance", vct);
         return objectMapper.readValue(rawTrustStatements, List.class);
+    }
+
+    /**
+     *
+     * @param keyId reference to a verification method in a did doc
+     * @return fragment of the keyId
+     * @throws IllegalArgumentException if the provided keyId does not have a fragment
+     */
+    private static String extractFragment(String keyId) throws IllegalArgumentException {
+        var keyIdSplit = keyId.split("#"); // should be in the format of <did id>#<fragment>
+        final int expectedLength = 2;
+        if (keyIdSplit.length != expectedLength) {
+            throw new IllegalArgumentException(String.format("Key %s is malformed: missing fragment", keyId));
+        }
+        return keyIdSplit[1];
     }
 }

@@ -56,6 +56,7 @@ public class VerificationMapper {
             case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED ->
                 VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
             case INVALID_PRESENTATION_SUBMISSION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_SUBMISSION;
+            case INVALID_TOKEN_STATUS_LIST -> VerificationErrorResponseCodeDto.INVALID_TOKEN_STATUS_LIST;
             default -> throw new IllegalStateException("Unexpected value: " + source);
         };
     }

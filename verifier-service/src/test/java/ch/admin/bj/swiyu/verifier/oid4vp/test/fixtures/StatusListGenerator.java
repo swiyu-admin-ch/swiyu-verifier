@@ -35,6 +35,7 @@ public class StatusListGenerator {
      */
     public static final String SPEC_STATUS_LIST = "eNo76fITAAPfAgc";
     public static final String SPEC_SUBJECT = "https://example.com/statuslists/1";
+    private final static JWTClaimsSet.Builder JWT_CLAIM_SET_BUILDER = new JWTClaimsSet.Builder().subject(SPEC_SUBJECT);
 
     /**
      * <pre><code>
@@ -56,12 +57,46 @@ public class StatusListGenerator {
      * </code></pre>
      */
     public static String createTokenStatusListTokenVerifiableCredential(String statusList, ECKey signingKey, String issuerId, String keyId) throws JOSEException {
-        var claims = new JWTClaimsSet.Builder()
+        var claims = JWT_CLAIM_SET_BUILDER
                 .issuer(issuerId)
-                .subject(SPEC_SUBJECT)
                 .claim("status_list", new JWTClaimsSet.Builder()
                         .claim("bits", 2)
                         .claim("lst", statusList)
+                        .issueTime(new Date())
+                        .build()
+                        .toJSONObject()).build();
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .type(new JOSEObjectType("statuslist+jwt"))
+                .keyID(keyId)
+                .build();
+        var jwt = new SignedJWT(header, claims);
+        jwt.sign(new ECDSASigner(signingKey));
+        return jwt.serialize();
+    }
+
+    public static String createInvalidTokenStatusListTokenVerifiableCredentialInvalidClaimBits(ECKey signingKey, String issuerId, String keyId) throws JOSEException {
+        var claims = JWT_CLAIM_SET_BUILDER
+                .issuer(issuerId)
+                .claim("status_list", new JWTClaimsSet.Builder()
+                        .claim("bits", "NEITHER_OF_1_2_4_OR_8")
+                        //.claim("lst", statusList)
+                        .issueTime(new Date())
+                        .build()
+                        .toJSONObject()).build();
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .type(new JOSEObjectType("statuslist+jwt"))
+                .keyID(keyId)
+                .build();
+        var jwt = new SignedJWT(header, claims);
+        jwt.sign(new ECDSASigner(signingKey));
+        return jwt.serialize();
+    }
+
+    public static String createInvalidTokenStatusListTokenVerifiableCredentialMissingClaimLst(ECKey signingKey, String issuerId, String keyId) throws JOSEException {
+        var claims = JWT_CLAIM_SET_BUILDER
+                .issuer(issuerId)
+                .claim("status_list", new JWTClaimsSet.Builder()
+                        .claim("bits", 2)
                         .issueTime(new Date())
                         .build()
                         .toJSONObject()).build();

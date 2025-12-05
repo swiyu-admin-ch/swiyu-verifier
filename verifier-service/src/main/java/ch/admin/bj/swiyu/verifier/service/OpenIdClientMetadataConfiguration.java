@@ -44,6 +44,7 @@ public class OpenIdClientMetadataConfiguration {
     private OpenidClientMetadataDto openIdClientMetadata;
 
     @PostConstruct
+    @SuppressWarnings({"PMD.CyclomaticComplexity"})
     public void initOpenIdClientMetadata() {
 
         final String template;
@@ -51,9 +52,8 @@ public class OpenIdClientMetadataConfiguration {
             template = clientMetadataResource.getContentAsString(Charset.defaultCharset());
         } catch (IOException exc) {
 
-            if (log.isErrorEnabled()) {
+            if (log.isErrorEnabled())
                 log.error("⚠️ {} {}", "Failed to load/read metadata file denoted by the 'application.client-metadata-file' property due to:", exc.getMessage());
-            }
 
             throw new IllegalStateException(exc);
         }
@@ -68,9 +68,8 @@ public class OpenIdClientMetadataConfiguration {
             openIdClientMetadata = objectMapper.readValue(loadedTemplate, OpenidClientMetadataDto.class);
         } catch (JsonProcessingException exc) {
 
-            if (log.isErrorEnabled()) {
+            if (log.isErrorEnabled())
                 log.error("⚠️ {} '{}' due to: {}", "Failed to deserialize DTO from JSON config", loadedTemplate, exc.getMessage());
-            }
 
             throw new IllegalStateException(exc);
         }
@@ -93,9 +92,7 @@ public class OpenIdClientMetadataConfiguration {
                     .map(v -> "'" + camelToSnakeCase(v.getPropertyPath().toString()) + "' " + v.getMessage())
                     .collect(java.util.stream.Collectors.joining(", ")));
 
-            if (log.isErrorEnabled()) {
-                log.error("⚠️ {}", strBuilder);
-            }
+            if (log.isErrorEnabled()) log.error("⚠️ {}", strBuilder);
 
             throw new IllegalStateException(strBuilder.toString());
         }

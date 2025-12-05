@@ -53,18 +53,53 @@ class TokenStatusListReference extends StatusListReference {
         super(adapter, statusListReferenceClaims, issuerPublicKeyLoader, referencedTokenIssuer, maxBufferSize);
     }
 
-
     @Override
     public void verifyStatus() {
         try {
             Map<String, Object> statusListVC = getStatusListVC();
             log.trace("Begin unpacking Status List");
             Map<String, Object> statusListData = JsonUtil.getJsonObject(statusListVC.get("status_list"));
-            int statusListBits = Integer.parseInt(statusListData.get("bits").toString());
-            String zippedStatusList = (String) statusListData.get("lst");
+
+            // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2:
+            //         "bits: REQUIRED. JSON Integer specifying the number of bits per Referenced Token in the compressed byte array (lst). The allowed values for bits are 1,2,4 and 8."
+            final Object bitsClaim = statusListData.get("bits");
+            if (bitsClaim == null) {
+                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'bits'");
+            }
+            final String bitsClaimStr = bitsClaim.toString();
+            if (bitsClaimStr.trim().isEmpty() || !bitsClaimStr.matches("[1248]")) {
+                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'bits'");
+            }
+            // At this point (thanks to regex matching above), it should be 'safe' to parse the claim straight away
+            final int statusListBits = Integer.parseInt(bitsClaim.toString());
+
+            // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2:
+            //         "lst: REQUIRED. JSON String that contains the status values for all the Referenced Tokens it conveys statuses for. The value MUST be the base64url-encoded compressed byte array as specified in Section 4.1."
+            final Object lstClaim = statusListData.get("lst");
+            if (lstClaim == null) {
+                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'lst'");
+            }
+            final String zippedStatusList = lstClaim.toString();
+            if (zippedStatusList.trim().isEmpty()) {
+                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'lst'");
+            }
+
             TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(statusListBits, zippedStatusList, getMaxBufferSize());
             log.trace("Unpacked Status List with length {}", statusList.getStatusList().length);
-            int statusListIndex = Integer.parseInt(getStatusListReferenceClaims().get("idx").toString());
+
+            // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-6.2:
+            //         "idx: REQUIRED. The idx (index) claim MUST specify a non-negative Integer that represents the index to check for status information in the Status List for the current Referenced Token."
+            var idxClaim = getStatusListReferenceClaims().get("idx");
+            if (idxClaim == null) {
+                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'idx'");
+            }
+            final String idxClaimStr = idxClaim.toString();
+            if (idxClaimStr.trim().isEmpty() || !idxClaimStr.matches("^?\\d+$")) {
+                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'idx'");
+            }
+            // At this point (thanks to regex matching above), it should be 'safe' to parse the claim straight away
+            int statusListIndex = Integer.parseInt(idxClaimStr);
+
             TokenStatusListBit credentialStatus = TokenStatusListBit.createStatus(statusList.getStatus(statusListIndex));
             log.trace("Fetched credential status");
             switch (credentialStatus) {
@@ -84,7 +119,7 @@ class TokenStatusListReference extends StatusListReference {
         } catch (IllegalArgumentException e) {
             throw VerificationException.credentialError(e, VerificationErrorResponseCode.CREDENTIAL_REVOKED, "Unexpected VC Status!");
         } catch (IndexOutOfBoundsException e) {
-            throw VerificationException.credentialError(e, UNRESOLVABLE_STATUS_LIST, "The VC cannot be validated as the remote list does not contain this VC!");
+            throw VerificationException.credentialError(e, VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST, "The VC cannot be validated as the remote list does not contain this VC!");
         }
     }
 

@@ -16,22 +16,23 @@ public class MonitoringBasicAuthProperties {
     String password;
 
     @PostConstruct
+    @SuppressWarnings({"PMD.CyclomaticComplexity"})
     public void init() {
         if (enabled) {
 
             if (username == null || username.isEmpty()) {
                 var msg = "Property 'monitoring.basic-auth.username' can't be empty if 'monitoring.basic-auth.enabled' is set.";
-                if (log.isErrorEnabled()) {
-                    log.error("⚠️ {}", msg);
-                }
+
+                if (log.isErrorEnabled()) log.error("⚠️ {}", msg);
+
                 throw new IllegalArgumentException(msg);
             }
 
             if (password == null || password.isEmpty()) {
                 var msg = "Property 'monitoring.basic-auth.password' can't be empty if 'monitoring.basic-auth.enabled' is set.";
-                if (log.isErrorEnabled()) {
-                    log.error("⚠️ {}", msg);
-                }
+
+                if (log.isErrorEnabled()) log.error("⚠️ {}", msg);
+
                 throw new IllegalArgumentException(msg);
             }
         }

@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -32,8 +31,6 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
@@ -271,10 +268,10 @@ public class SdJwtVerificationService {
      * Checks if the issuer has a valid trust statement from any of the provided trust anchors.
      * Tries direct match first (issuer DID = trust anchor DID), then queries trust registries.
      *
-     * @param issuerDid the DID of the issuer to verify
-     * @param vct the Verifiable Credential Type
+     * @param issuerDid    the DID of the issuer to verify
+     * @param vct          the Verifiable Credential Type
      * @param trustAnchors the list of trust anchors to check
-     * @param management the management configuration for verification context
+     * @param management   the management configuration for verification context
      * @return true if a matching trust statement is found, false otherwise
      */
     private boolean hasMatchingTrustStatement(String issuerDid, String vct, List<TrustAnchor> trustAnchors, Management management) {
@@ -317,7 +314,7 @@ public class SdJwtVerificationService {
      * Validates a collection of trust statements to find one that vouches for the issuer.
      */
     private boolean verifyTrustStatements(String issuerDid, String vct, TrustAnchor trustAnchor,
-                                         List<String> trustStatements, Management management) {
+                                          List<String> trustStatements, Management management) {
         for (var rawTrustStatement : trustStatements) {
             if (validateTrustStatement(issuerDid, vct, trustAnchor, rawTrustStatement, management)) {
                 return true;
@@ -331,7 +328,7 @@ public class SdJwtVerificationService {
      * Returns false on verification or parsing errors, allowing iteration to continue.
      */
     private boolean validateTrustStatement(String issuerDid, String vct, TrustAnchor trustAnchor,
-                                          String rawTrustStatement, Management management) {
+                                           String rawTrustStatement, Management management) {
         try {
             return isProvidingTrust(issuerDid, vct, trustAnchor, rawTrustStatement, management);
         } catch (VerificationException e) {
@@ -386,14 +383,7 @@ public class SdJwtVerificationService {
 
     private void validateSDHash(SdJwt sdjwt, JWTClaimsSet keyBindingClaims) {
         // Compute the SD Hash of the VP Token
-        String presentation = sdjwt.getPresentation();
-        String hash;
-        try {
-            var hashDigest = MessageDigest.getInstance("sha-256").digest(presentation.getBytes());
-            hash = Base64Utils.encodeBase64(hashDigest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Failed to validate key binding. Loading hash algorithm failed. Please check the configuration.", e);
-        }
+        String hash = sdjwt.getPresentationHash();
         String hashClaim = keyBindingClaims.getClaim("sd_hash").toString();
         if (!hash.equals(hashClaim)) {
             throw credentialError(HOLDER_BINDING_MISMATCH,
@@ -429,13 +419,14 @@ public class SdJwtVerificationService {
 
     /**
      * Validates if we as verifier are indeed the audience of the holder binding, or whether it was created for another (eg. man in the middle) service.
-     * @param audience the audience as provided in the holder binding JWT
+     *
+     * @param audience              the audience as provided in the holder binding JWT
      * @param configurationOverride possible override values
      * @throws VerificationException if the audience for the holder binding does not match the expected one
      */
     private void validateHolderBindingAudience(List<String> audience,
                                                ConfigurationOverride configurationOverride) {
-        if (CollectionUtils.isEmpty(audience)){
+        if (CollectionUtils.isEmpty(audience)) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding audience (aud)");
         }
 

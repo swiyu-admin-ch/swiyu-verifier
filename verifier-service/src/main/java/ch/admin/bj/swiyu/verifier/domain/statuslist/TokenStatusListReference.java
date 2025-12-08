@@ -67,7 +67,7 @@ class TokenStatusListReference extends StatusListReference {
                 throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'bits'");
             }
             final String bitsClaimStr = bitsClaim.toString();
-            if (bitsClaimStr.trim().isEmpty() || !bitsClaimStr.matches("[1248]")) {
+            if (bitsClaimStr.isBlank() || !bitsClaimStr.matches("[1248]")) {
                 throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'bits'");
             }
             // At this point (thanks to regex matching above), it should be 'safe' to parse the claim straight away
@@ -80,7 +80,7 @@ class TokenStatusListReference extends StatusListReference {
                 throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'lst'");
             }
             final String zippedStatusList = lstClaim.toString();
-            if (zippedStatusList.trim().isEmpty()) {
+            if (zippedStatusList.isBlank()) {
                 throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'lst'");
             }
 
@@ -94,7 +94,7 @@ class TokenStatusListReference extends StatusListReference {
                 throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'idx'");
             }
             final String idxClaimStr = idxClaim.toString();
-            if (idxClaimStr.trim().isEmpty() || !idxClaimStr.matches("^?\\d+$")) {
+            if (idxClaimStr.isBlank() || !idxClaimStr.matches("^?\\d+$")) {
                 throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'idx'");
             }
             // At this point (thanks to regex matching above), it should be 'safe' to parse the claim straight away

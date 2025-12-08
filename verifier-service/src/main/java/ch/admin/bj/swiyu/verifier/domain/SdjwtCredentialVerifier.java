@@ -49,7 +49,7 @@ import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.checkC
 import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.getRequestedFormat;
 
 /**
- * Verifies the presentation of a SD-JWT Credential.
+ * Verifies the presentation of a SD-JWT Credential. (old way)
  */
 @AllArgsConstructor
 @Slf4j

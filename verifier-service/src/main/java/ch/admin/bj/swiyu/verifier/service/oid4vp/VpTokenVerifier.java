@@ -15,7 +15,6 @@ import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -41,13 +40,11 @@ import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
-import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.checkCommonPresentationDefinitionCriteria;
-import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.getRequestedFormat;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SdJwtVerificationService {
+public class VpTokenVerifier {
     // We have vc+sd-jwt only for legacy reasons. We only support sd-jwt vc specification, which uses the format dc+sd-jwt
     public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
     public static final List<String> SUPPORTED_JWT_ALGORITHMS = List.of("ES256");
@@ -56,34 +53,9 @@ public class SdJwtVerificationService {
 
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
-    private final ObjectMapper objectMapper;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
 
-
-    /**
-     * Test function to ensure parity with DIF PE
-     *
-     * @return claims of the vpToken requested in the management as json string
-     */
-    public String verifyVpTokenPresentationExchange(String vpToken, Management management) {
-        var sdJwt = new SdJwt(vpToken);
-        sdJwt = verifyVpToken(sdJwt, management);
-        try {
-            // Presentation Exchange requested format check
-            var presentationFormat = sdJwt.getHeader().getType().toString();
-            var requestedFormat = getRequestedFormat(presentationFormat, management);
-            if (requestedFormat == null || !requestedFormat.alg().contains(sdJwt.getHeader().getAlgorithm().toString())) {
-                throw credentialError(INVALID_FORMAT, "Invalid Algorithm: alg must be one of %s, but was %s"
-                        .formatted(management.getRequestedPresentation().format().get(presentationFormat).alg(), sdJwt.getHeader().getAlgorithm()));
-            }
-            var claims = objectMapper.writeValueAsString(sdJwt.getClaims().getClaims());
-            checkCommonPresentationDefinitionCriteria(claims, management);
-            return claims;
-        } catch (JsonProcessingException e) {
-            throw credentialError(e, "An error occurred while parsing SDJWT");
-        }
-    }
 
     /**
      * Verifies the vpToken according to sd-jwt standard, preparing it for validation with the request query

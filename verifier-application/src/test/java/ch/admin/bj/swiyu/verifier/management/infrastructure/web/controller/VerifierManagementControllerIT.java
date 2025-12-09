@@ -9,6 +9,8 @@ package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.api.definition.FieldDto;
 import ch.admin.bj.swiyu.verifier.api.definition.FormatAlgorithmDto;
+import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.api.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlClaimDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
@@ -32,8 +34,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.*;
+import static ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures.presentationDefinitionDto;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -55,9 +59,11 @@ class VerifierManagementControllerIT {
         @Autowired
         private ApplicationProperties applicationProperties;
 
+        private List<String> issuerDids = List.of(UUID.randomUUID().toString());
+
         @Test
         void testCreateOffer_thenSuccess() throws Exception {
-                var request = createVerificationManagementDto();
+                var request = createVerificationManagementDto(issuerDids);
                 var sdJWTFormatType = "vc+sd-jwt";
 
                 var reqDescriptor0 = request.presentationDefinition().inputDescriptors().getFirst();
@@ -162,7 +168,7 @@ class VerifierManagementControllerIT {
 
         @Test
         void testCreateOfferValidation_noInputDescriptorId_thenException() throws Exception {
-                var request = createVerificationManagementDto();
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto(null));
 
@@ -177,7 +183,7 @@ class VerifierManagementControllerIT {
 
         @Test
         void testCreateOfferValidation_noConstraints_thenException() throws Exception {
-                var request = createVerificationManagementDto();
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_WithoutConstraints());
 
@@ -193,10 +199,11 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_noFieldPath_thenException() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto();
+                var request = createVerificationManagementDto(issuerDids);
                 var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
+                var emptyFieldDto = FieldDto.builder().build();
                 constraints.fields().clear();
-                constraints.fields().add(new FieldDto(null, null, null, null, null));
+                constraints.fields().add(emptyFieldDto);
                 // WHEN / THEN
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -210,7 +217,7 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_emptyFieldPath_thenException() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto();
+                var request = createVerificationManagementDto(issuerDids);
                 var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
                 constraints.fields().clear();
 
@@ -227,7 +234,7 @@ class VerifierManagementControllerIT {
         @Test
         void testCreateOfferValidation_withInvalidAlgorithmFormats_thenExceptionWithMultipleErrors() throws Exception {
                 // GIVEN
-                var request = createVerificationManagementDto();
+                var request = createVerificationManagementDto(issuerDids);
                 request.presentationDefinition().inputDescriptors().clear();
                 request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_Invalid());
                 request.presentationDefinition().format().clear();
@@ -276,7 +283,7 @@ class VerifierManagementControllerIT {
         void testCreateOffer_withOnlyDcqlQuery_thenIllegalArgumentException() throws Exception {
 
                 // Build a minimal DCQL query DTO
-                var request = createVerificationManagementWithDcqlQueryDto(null, getDcqlQueryDto());
+                var request = createVerificationManagementWithDcqlQueryDto(null, getDcqlQueryDto(), issuerDids);
 
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -288,12 +295,105 @@ class VerifierManagementControllerIT {
                                 .andReturn();
         }
 
+    @Test
+    void testCreateOffer_withEmptyAcceptedIssuerDidsAndEmptyTrustAnchors_thenThrowBadRequest()throws Exception {
+
+        var request = CreateVerificationManagementDto.builder()
+                .presentationDefinition(presentationDefinitionDto())
+                .dcqlQuery(getDcqlQueryDto())
+                .trustAnchors(List.of())
+                .acceptedIssuerDids(List.of())
+                .build();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
+                .andReturn();
+    }
+
+    @Test
+    void testCreateOffer_withAcceptedIssuerDidsNullValuesAndEmptyTrustAnchors_thenThrowBadRequest()throws Exception {
+        final List<String> issuerDids = new ArrayList<>();
+        issuerDids.add(null);
+
+        var request = CreateVerificationManagementDto.builder()
+                .presentationDefinition(presentationDefinitionDto())
+                .dcqlQuery(getDcqlQueryDto())
+                .trustAnchors(null)
+                .acceptedIssuerDids(issuerDids)
+                .build();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
+                .andReturn();
+    }
+
+    @Test
+    void testCreateOffer_withNullAcceptedIssuerDidsAndNullTrustAnchors_thenThrowBadRequest()throws Exception {
+
+        var request = CreateVerificationManagementDto.builder()
+                .presentationDefinition(presentationDefinitionDto())
+                .dcqlQuery(getDcqlQueryDto())
+                .trustAnchors(null)
+                .acceptedIssuerDids(null)
+                .build();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
+                ))
+                .andReturn();
+    }
+
+    @Test
+    void testCreateOffer_withOnlyTrustAnchors_thenSuccess()throws Exception {
+        TrustAnchorDto trustAnchorDto = new TrustAnchorDto("did:example:12345", null);
+
+        var request = CreateVerificationManagementDto.builder()
+                .presentationDefinition(presentationDefinitionDto())
+                .dcqlQuery(getDcqlQueryDto())
+                .trustAnchors(List.of(trustAnchorDto))
+                .acceptedIssuerDids(null)
+                .build();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+    }
+
         @Test
         void testCreateOffer_withDcqlQuery_thenSuccess() throws Exception {
 
                 // Build a minimal DCQL query DTO
                 var request = createVerificationManagementWithDcqlQueryDto(presentationDefinitionDto(),
-                                getDcqlQueryDto());
+                                getDcqlQueryDto(), issuerDids);
+
+                mvc.perform(post(BASE_URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(new ObjectMapper().writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andReturn();
+        }
+
+        @Test
+        void testCreateOffer_withDcqlQueryWithoutResponseMode_thenSuccess() throws Exception {
+
+                // Build a minimal DCQL query DTO
+                var request = createVerificationManagementWithoutResponseMode(issuerDids, getDcqlQueryDto());
 
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -316,7 +416,7 @@ class VerifierManagementControllerIT {
                                                                                                   // something a bit
                                                                                                   // deeper
                 );
-                var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims));
+                var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims), issuerDids);
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(request)))
@@ -338,7 +438,7 @@ class VerifierManagementControllerIT {
                                                                                                   // something a bit
                                                                                                   // deeper
                 );
-                var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims));
+                var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims), issuerDids);
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(request)))

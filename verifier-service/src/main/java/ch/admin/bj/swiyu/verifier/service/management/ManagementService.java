@@ -11,10 +11,7 @@ import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
-import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
-import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
+import ch.admin.bj.swiyu.verifier.domain.management.*;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -61,7 +58,6 @@ public class ManagementService {
             throw new IllegalArgumentException("PresentationDefinition must be provided");
         }
 
-
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
         var dcqlQueryDto = request.dcqlQuery();
         if (dcqlQueryDto != null) {
@@ -83,7 +79,8 @@ public class ManagementService {
             trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
         }
 
-        var responseSpecificationBuilder = ResponseSpecification.builder().responseModeType(ManagementMapper.toResponseMode(request.responseMode()));
+        var responseModeType = request.responseMode() == null ? ResponseModeType.DIRECT_POST : ManagementMapper.toResponseMode(request.responseMode());
+        var responseSpecificationBuilder = ResponseSpecification.builder().responseModeType(responseModeType);
         if (ResponseModeTypeDto.DIRECT_POST_JWT.equals(request.responseMode())) {
             createEncryptionKeys(responseSpecificationBuilder);
         }

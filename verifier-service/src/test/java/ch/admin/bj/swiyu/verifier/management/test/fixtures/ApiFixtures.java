@@ -20,24 +20,41 @@ import static org.hibernate.internal.util.collections.CollectionHelper.isEmpty;
 @UtilityClass
 public class ApiFixtures {
 
-    public static CreateVerificationManagementDto createVerificationManagementDto() {
-        return createVerificationManagementDto(null, presentationDefinitionDto());
-    }
-
     public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids) {
         return createVerificationManagementDto(acceptedIssuerDids, presentationDefinitionDto());
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids, PresentationDefinitionDto presentationDefinitionDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, ResponseModeTypeDto.DIRECT_POST, presentationDefinitionDto, null, null);
+        return CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(acceptedIssuerDids)
+                .jwtSecuredAuthorizationRequest(false)
+                .responseMode(ResponseModeTypeDto.DIRECT_POST)
+                .presentationDefinition(presentationDefinitionDto)
+                .build();
     }
 
-    public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(PresentationDefinitionDto presentationDefinitionDto, DcqlQueryDto dcqlQueryDto) {
-        return new CreateVerificationManagementDto(null, null, false, ResponseModeTypeDto.DIRECT_POST, presentationDefinitionDto, null, dcqlQueryDto);
+    public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(PresentationDefinitionDto presentationDefinitionDto, DcqlQueryDto dcqlQueryDto, List<String> acceptedIssuerDids) {
+        return CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(acceptedIssuerDids)
+                .jwtSecuredAuthorizationRequest(false)
+                .responseMode(ResponseModeTypeDto.DIRECT_POST)
+                .presentationDefinition(presentationDefinitionDto)
+                .dcqlQuery(dcqlQueryDto)
+                .build();
     }
 
-    public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(DcqlQueryDto dcqlQueryDto) {
-        return new CreateVerificationManagementDto(null, null, false, ResponseModeTypeDto.DIRECT_POST, presentationDefinitionDto(), null, dcqlQueryDto);
+    public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(DcqlQueryDto dcqlQueryDto, List<String> acceptedIssuerDids) {
+        return CreateVerificationManagementDto.builder()
+                .jwtSecuredAuthorizationRequest(false)
+                .responseMode(ResponseModeTypeDto.DIRECT_POST)
+                .presentationDefinition(presentationDefinitionDto())
+                .acceptedIssuerDids(acceptedIssuerDids)
+                .dcqlQuery(dcqlQueryDto)
+                .build();
+    }
+
+    public static CreateVerificationManagementDto createVerificationManagementWithoutResponseMode(List<String> acceptedIssuerDids, DcqlQueryDto dcqlQueryDto) {
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, presentationDefinitionDto(), null, dcqlQueryDto);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
@@ -54,15 +71,15 @@ public class ApiFixtures {
                         new ArrayList<>(List.of(new FieldDto(List.of("string"), null, null, null, null)))
                 )
         );
+
+        PresentationDefinitionDto presentationDefinitionDto = PresentationDefinitionDto.builder()
+                .id(UUID.randomUUID().toString())
+                .inputDescriptors(new ArrayList<>(List.of(inputDescriptorMinimal)))
+                .build();
         return new CreateVerificationManagementDto(
                 List.of("did:example:123"), null,
                 isJWTSecured, ResponseModeTypeDto.DIRECT_POST,
-                new PresentationDefinitionDto(
-                    UUID.randomUUID().toString(),
-                    null,
-                    null,
-                    null,
-                    List.of(inputDescriptorMinimal)),
+                presentationDefinitionDto,
                 null,
                 null
         );

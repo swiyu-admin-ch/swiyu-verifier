@@ -9,6 +9,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -99,7 +100,7 @@ public class SdJwt {
         try {
             this.presentationHash = Base64Utils.encodeBase64(
                     MessageDigest.getInstance("sha-256") // getInstance may throw NoSuchAlgorithmException
-                            .digest(this.presentation.getBytes()));
+                            .digest(this.presentation.getBytes(Charset.defaultCharset())));
         } catch (NoSuchAlgorithmException exc) {
             // CAUTION No VerificationException.credentialError(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, ...)
             //         should be called here, as there must be a provider supporting a MessageDigestSpi implementation

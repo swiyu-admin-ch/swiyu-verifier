@@ -199,7 +199,7 @@ public class SdjwtCredentialVerifier {
     /**
      * Validates the holder binding. From this we will also know how many disclosures there are.
      */
-    private int validateHolderBinding(SdJwt sdJwt, JWTClaimsSet claims, String[] parts) {
+    private int validateHolderBinding(SdJwt sdJwt, JWTClaimsSet claims, String... parts) {
         var payload = claims.getClaims();
         int disclosureLength = parts.length;
 

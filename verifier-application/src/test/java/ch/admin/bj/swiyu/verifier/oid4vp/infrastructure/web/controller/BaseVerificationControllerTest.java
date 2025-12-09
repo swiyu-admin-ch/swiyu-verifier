@@ -38,6 +38,8 @@ public abstract class BaseVerificationControllerTest {
     protected static final UUID REQUEST_DIFFERENT_ALGS = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee4");
     protected static final UUID REQUEST_DIFFERENT_KB_ALGS = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee5");
     protected static final UUID REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED = UUID.fromString("deadbeef-dead-dead-dead-deaddeaf1337");
+    protected static final UUID REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING= UUID.fromString("deadbeef-dead-dead-dead-deaddeaf1338");
+    protected static final UUID REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING= UUID.fromString("deadbeef-dead-dead-dead-deaddeaf1339");
 
     protected static final String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
     protected static final String DEFAULT_DCQL_CREDENTIAL_ID = "defaultTestDcqlCredentialId";
@@ -96,6 +98,30 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
+                .build());
+
+        managementEntityRepository.save(Management.builder()
+                .id(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
+                .jwtSecuredAuthorizationRequest(false)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
+                .build());
+
+        managementEntityRepository.save(Management.builder()
+                .id(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING)
+                .jwtSecuredAuthorizationRequest(false)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(false)))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -211,6 +237,27 @@ public abstract class BaseVerificationControllerTest {
                   ]
                 }
                 """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT);
+    }
+
+    private static String dcqlQueryJsonWithCryptographicHolderBinding(boolean requireCryptographicHolderBinding) {
+        return """
+                {
+                "credentials": [
+                    {
+                      "id": "%s",
+                      "format": "dc+sd-jwt",
+                      "meta": {
+                        "vct_values": [ "%s" ]
+                      },
+                      "require_cryptographic_holder_binding": %s,
+                      "claims": [
+                          {"path": ["last_name"]},
+                          {"path": ["first_name"]}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT, requireCryptographicHolderBinding);
     }
 
     private static String presentationDefinitionJsonDiffAlgs() {

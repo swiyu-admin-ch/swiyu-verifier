@@ -137,15 +137,15 @@ public class SDJWTCredentialMock {
     }
 
     public String createSDJWTMock(boolean useLegacyCnfFormat, String credentialFormat) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, credentialFormat, JWSAlgorithm.ES256);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, credentialFormat, JWSAlgorithm.ES256, false);
     }
 
-    public String createSDJWTMock(String credentialFormat) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, credentialFormat, JWSAlgorithm.ES256);
+    public String createSDJWTMock(boolean skipCnf) {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, "dc+sd-jwt", JWSAlgorithm.ES256, skipCnf);
     }
 
     public String createSDJWTMockWithClaims(Map<String, String> sdClaims) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims, false, "vc+sd-jwt", JWSAlgorithm.ES256);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
     }
 
 
@@ -225,11 +225,11 @@ public class SDJWTCredentialMock {
     }
 
     private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims) {
-        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, "vc+sd-jwt", JWSAlgorithm.ES256);
+        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
     }
 
     // Refactor this as soon as issuer and wallet deliver the correct cnf structure
-    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, Map<String, String> sdClaims, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm) {
+    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, Map<String, String> sdClaims, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
@@ -264,12 +264,14 @@ public class SDJWTCredentialMock {
         }
 
         // Refactor this as soon as issuer and wallet deliver the correct cnf structure
-        if (useLegacyCnfFormat) {
-            builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
-        } else {
-            Map<String, Object> correctCNFClaim = new HashMap<>();
-            correctCNFClaim.put("jwk", holderKey.toPublicJWK().toJSONObject());
-            builder.putClaim("cnf", correctCNFClaim);
+        if (!skipCnf) {
+            if (useLegacyCnfFormat) {
+                builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
+            } else {
+                Map<String, Object> correctCNFClaim = new HashMap<>();
+                correctCNFClaim.put("jwk", holderKey.toPublicJWK().toJSONObject());
+                builder.putClaim("cnf", correctCNFClaim);
+            }
         }
 
         try {

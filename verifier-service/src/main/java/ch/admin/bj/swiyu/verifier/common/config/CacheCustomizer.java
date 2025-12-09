@@ -24,20 +24,10 @@ public class CacheCustomizer implements CacheManagerCustomizer<ConcurrentMapCach
 
     /**
      * This method is scheduled to run at a fixed rate defined by the property
-     * 'caching.spring.statusListCacheTTL'. It clears all entries in the 'statusListCache'.
-     */
-    @CacheEvict(value = STATUS_LIST_CACHE, allEntries = true)
-    @Scheduled(fixedRateString = "${caching.statusListCacheTTL}")
-    public void emptyStatusListCache() {
-        log.debug("emptying status list cache");
-    }
-
-    /**
-     * This method is scheduled to run at a fixed rate defined by the property
      * 'caching.spring.issuerPublicKeyCacheTTL'. It clears all entries in the 'issuerPublicKeyCache'.
      */
     @CacheEvict(value = ISSUER_PUBLIC_KEY_CACHE, allEntries = true)
-    @Scheduled(fixedRateString = "${caching.issuerPublicKeyCacheTTL}")
+    @Scheduled(fixedRateString = "${caching.issuer-public-key-cache-ttl}")
     public void emptyIssuerPublicKeyCache() {
         log.debug("emptying public keys cache");
     }

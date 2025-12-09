@@ -34,7 +34,7 @@ public class Application {
                         ----------------------------------------------------------------------------
                         \t'{}' is running!\s
                         \tProfile(s): \t\t\t\t{}
-                        \tSwaggerUI:   \t\t\t\thttp://localhost:{}/swagger-ui.html
+                        \tSwaggerUI:   \t\t\t\thttp://localhost:{}/swagger-ui/index.html
                         ----------------------------------------------------------------------------""",
                 appName,
                 env.getActiveProfiles(),

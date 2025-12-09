@@ -6,10 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.CachingConfig;
-import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.*;
 import ch.admin.bj.swiyu.verifier.infrastructure.config.RestClientConfig;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
@@ -29,15 +26,14 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.STATUS_LIST_CACHE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class})
+@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class, CacheProperties.class})
 @Import({RestClientConfig.class})
 class StatusListResolverAdapterIT {
 
@@ -55,10 +51,13 @@ class StatusListResolverAdapterIT {
     private ApplicationProperties applicationProperties;
     @MockitoBean
     private VerificationProperties verificationProperties;
+    @MockitoBean
+    private CacheProperties cacheProperties;
 
     @BeforeEach
     void setUp() {
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
         cacheManager.getCache(STATUS_LIST_CACHE).clear();
     }
 
@@ -94,7 +93,7 @@ class StatusListResolverAdapterIT {
     }
 
     @Test
-    void testCorrectRewrittenUrlUsed_thenStatusListMaxSizeExceededException() {
+    void testCorrectRewrittenUrlUsed_thenSuccess() {
 
         var differentUrl = "https://example-different.com/different";
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(differentUrl);
@@ -109,6 +108,7 @@ class StatusListResolverAdapterIT {
     @Test
     void testStatusListCaching_thenSuccess() {
 
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
         var expectedCacheValue = "statusList";
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
 
@@ -122,11 +122,44 @@ class StatusListResolverAdapterIT {
     }
 
     @Test
+    void testDisabledStatusListCaching_thenSuccess() {
+
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
+        var expectedCacheValue = "statusList";
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+
+        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(expectedCacheValue, MediaType.TEXT_PLAIN));
+        statusListResolverAdapter.resolveStatusList(url);
+
+        assertNull(cacheManager.getCache(STATUS_LIST_CACHE).get(url));
+    }
+
+    @Test
     void testStatusIfCachingUsed_thenSuccess() {
+
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
 
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
 
         this.mockServer.expect(ExpectedCount.once(), requestTo(url)).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("statusList", MediaType.TEXT_PLAIN));
+
+        statusListResolverAdapter.resolveStatusList(url);
+
+        statusListResolverAdapter.resolveStatusList(url);
+
+        this.mockServer.verify();
+    }
+
+    @Test
+    void testStatusIfCachingDisabled_thenSuccess() {
+
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
+
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+
+        this.mockServer.expect(ExpectedCount.times(2), requestTo(url)).andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess("statusList", MediaType.TEXT_PLAIN));
 
         statusListResolverAdapter.resolveStatusList(url);

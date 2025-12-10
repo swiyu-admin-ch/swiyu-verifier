@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: MIT
  */
-package ch.admin.bj.swiyu.verifier.service.oid4vp.usecase;
+package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -24,22 +24,24 @@ import java.util.Map;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 
 /**
- * Use case that processes and validates DCQL requests.
- * It verifies VP tokens into SD-JWTs, filters by VCT and validates requested claims.
- * Returns the extracted claims as a JSON string.
+ * Application service that evaluates a DCQL presentation request.
+ * <p>
+ * For each requested credential it verifies VP tokens into {@link SdJwt}, filters by VCT,
+ * validates the requested claims, and returns the extracted claims as a JSON string.
  */
 @Component
 @RequiredArgsConstructor
-public class DcqlVerificationUseCase {
+public class DcqlPresentationVerificationService {
 
     private final PresentationVerifier<SdJwt> sdJwtPresentationVerifier;
     private final DcqlEvaluator dcqlEvaluator;
     private final ObjectMapper objectMapper;
 
     /**
-     * Processes the DCQL presentation request and returns the extracted and validated claims as JSON.
-     *
-     * @throws VerificationException if validation or serialization fails.
+     * Processes the DCQL presentation request and returns the validated claims per credential as JSON.
+     * <p>
+     * Throws a {@link VerificationException} with {@link VerificationErrorResponseCode#INVALID_PRESENTATION_SUBMISSION}
+     * if required VP tokens are missing, do not match the DCQL constraints, or if serialization fails.
      */
     public String process(Management entity, VerificationPresentationDCQLRequestDto request) {
         var requestedCredentials = entity.getDcqlQuery().getCredentials();

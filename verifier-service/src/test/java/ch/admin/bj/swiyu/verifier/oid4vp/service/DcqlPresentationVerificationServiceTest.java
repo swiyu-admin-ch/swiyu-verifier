@@ -1,8 +1,7 @@
-package ch.admin.bj.swiyu.verifier.oid4vp.usecase;
+package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -12,7 +11,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.usecase.DcqlVerificationUseCase;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,19 +23,19 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class DcqlVerificationUseCaseTest {
+class DcqlPresentationVerificationServiceTest {
 
     private PresentationVerifier<SdJwt> sdJwtPresentationVerifier;
     private DcqlEvaluator dcqlEvaluator;
     private ObjectMapper objectMapper;
-    private DcqlVerificationUseCase useCase;
+    private DcqlPresentationVerificationService dcqlPresentationVerificationService;
 
     @BeforeEach
     void setUp() {
         sdJwtPresentationVerifier = mock(PresentationVerifier.class);
         dcqlEvaluator = mock(DcqlEvaluator.class);
         objectMapper = new ObjectMapper();
-        useCase = new DcqlVerificationUseCase(sdJwtPresentationVerifier, dcqlEvaluator, objectMapper);
+        dcqlPresentationVerificationService = new DcqlPresentationVerificationService(sdJwtPresentationVerifier, dcqlEvaluator, objectMapper);
     }
 
     @Test
@@ -66,7 +65,7 @@ class DcqlVerificationUseCaseTest {
         when(sdJwt.getClaims()).thenReturn(claimsObj);
 
         // Act
-        var resultJson = useCase.process(management, request);
+        var resultJson = dcqlPresentationVerificationService.process(management, request);
 
         // Assert
         assertTrue(resultJson.contains("\"" + credentialId + "\""));
@@ -89,7 +88,7 @@ class DcqlVerificationUseCaseTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of()); // missing token for cred-1
 
         // Act + Assert
-        var ex = assertThrows(VerificationException.class, () -> useCase.process(management, request));
-        assertEquals(ex.getErrorType(), VerificationError.INVALID_REQUEST);
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
     }
 }

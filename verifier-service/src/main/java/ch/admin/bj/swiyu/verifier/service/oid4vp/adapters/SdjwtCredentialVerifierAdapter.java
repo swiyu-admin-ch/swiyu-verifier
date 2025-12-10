@@ -12,8 +12,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * Adapter: nutzt den vorhandenen Legacy-SdjwtCredentialVerifier und liefert ein SdJwt
- * mit zusammengeführten Claims zurück, passend zum PresentationVerifier-Port.
+ * Adapter implementation of {@link PresentationVerifier} for SD-JWT based verifiable presentations.
+ * <p>
+ * This class bridges the legacy {@link SdjwtCredentialVerifier} implementation to the
+ * {@link PresentationVerifier} port used by the OID4VP layer. It wires all required collaborators
+ * and delegates the actual verification logic to the legacy verifier.
+ * <p>
+ * Responsibilities:
+ * <ul>
+ *   <li>Accept a VP token and corresponding {@link Management} configuration.</li>
+ *   <li>Instantiate and configure {@link SdjwtCredentialVerifier} with the required dependencies.</li>
+ *   <li>Return the verification result produced by the legacy verifier (a JSON string with merged claims).</li>
+ * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -25,9 +35,18 @@ public class SdjwtCredentialVerifierAdapter implements PresentationVerifier<Stri
     private final VerificationProperties verificationProperties;
     private final ApplicationProperties applicationProperties;
 
+    /**
+     * Verifies the given SD-JWT based verifiable presentation.
+     * <p>
+     * This method constructs a {@link SdjwtCredentialVerifier} with all required collaborators
+     * and delegates the verification to {@link SdjwtCredentialVerifier#verifyPresentation()}.
+     *
+     * @param vpToken   the raw VP token (typically an SD-JWT representation) to verify
+     * @param management the management configuration that defines how the credential must be validated
+     * @return a JSON string containing the merged claims of the verified presentation
+     */
     @Override
     public String verify(String vpToken, Management management) {
-        // Legacy-Verifier erwartet den VP-Token-String und liefert die entschlüsselten Claims als JSON-String.
         var legacy = new SdjwtCredentialVerifier(
                 vpToken,
                 management,

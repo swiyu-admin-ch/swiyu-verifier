@@ -13,7 +13,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DecryptionService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,7 +54,7 @@ public class VerificationController {
 
     private final RequestObjectService requestObjectService;
     private final DecryptionService decryptionService;
-    private final PresentationVerificationService presentationVerificationService;
+    private final PresentationVerificationUsecase presentationVerificationService;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
 
     @Timed

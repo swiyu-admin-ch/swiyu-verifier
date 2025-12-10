@@ -12,7 +12,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -24,11 +23,17 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * Parses and validates a PresentationSubmission JSON using the configured ObjectMapper and Validator.
  */
 @Component
-@RequiredArgsConstructor
 public class PresentationSubmissionService {
 
-    private final ObjectMapper objectMapper;
     private final Validator validator;
+    // Dedicated mapper that tolerates single quotes in JSON input and is independent from the shared ObjectMapper configuration
+    private final ObjectMapper singleQuoteTolerantMapper;
+
+    public PresentationSubmissionService(Validator validator) {
+        this.validator = validator;
+        this.singleQuoteTolerantMapper = new ObjectMapper()
+            .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+    }
 
     /**
      * Parses the given JSON into PresentationSubmissionDto and validates it.
@@ -39,11 +44,8 @@ public class PresentationSubmissionService {
             return null;
         }
 
-        // Allow single quotes as tolerated input for wallets
-        objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-
         try {
-            var dto = objectMapper.readValue(presentationSubmissionJson, PresentationSubmissionDto.class);
+            var dto = singleQuoteTolerantMapper.readValue(presentationSubmissionJson, PresentationSubmissionDto.class);
             validate(dto);
             return dto;
         } catch (JsonProcessingException | IllegalArgumentException e) {

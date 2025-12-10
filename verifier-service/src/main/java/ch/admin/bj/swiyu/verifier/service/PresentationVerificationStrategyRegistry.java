@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: MIT
  */
-package ch.admin.bj.swiyu.verifier.service.oid4vp.config;
+package ch.admin.bj.swiyu.verifier.service;
 
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerificationStrategy;
 import org.springframework.stereotype.Component;

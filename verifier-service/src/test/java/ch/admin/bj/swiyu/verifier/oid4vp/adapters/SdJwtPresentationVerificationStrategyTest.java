@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VerifiableCredentialExtractor;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.SdJwtPresentationVerificationStrategy;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 class SdJwtPresentationVerificationStrategyTest {
 
     @Mock
-    private PresentationVerifier<String> presentationVerifier;
+    private LegacyPresentationVerifier legacyPresentationVerifier;
 
     @InjectMocks
     private SdJwtPresentationVerificationStrategy strategy;
@@ -40,13 +40,13 @@ class SdJwtPresentationVerificationStrategyTest {
         try (MockedStatic<VerifiableCredentialExtractor> extractorMock = mockStatic(VerifiableCredentialExtractor.class)) {
             extractorMock.when(() -> VerifiableCredentialExtractor.extractVerifiableCredential(vpToken, management, submission))
                     .thenReturn(extractedCredential);
-            given(presentationVerifier.verify(extractedCredential, management)).willReturn(expectedResult);
+            given(legacyPresentationVerifier.verify(extractedCredential, management)).willReturn(expectedResult);
 
             String result = strategy.verify(vpToken, management, submission);
 
             assertThat(result).isEqualTo(expectedResult);
             extractorMock.verify(() -> VerifiableCredentialExtractor.extractVerifiableCredential(vpToken, management, submission));
-            verify(presentationVerifier).verify(extractedCredential, management);
+            verify(legacyPresentationVerifier).verify(extractedCredential, management);
         }
     }
 

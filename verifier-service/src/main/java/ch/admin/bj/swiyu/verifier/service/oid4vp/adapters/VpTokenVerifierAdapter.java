@@ -2,20 +2,22 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.adapters;
 
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VpTokenVerifier;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.SdjwtPresentationVerifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 /**
- * Adapter implementation of {@link PresentationVerifier} that delegates VP token verification
+ * Adapter implementation of {@link LegacyPresentationVerifier} that delegates VP token verification
  * to the existing {@link VpTokenVerifier} domain service.
  */
 @Service
 @Primary
 @RequiredArgsConstructor
-public class VpTokenVerifierAdapter implements PresentationVerifier<SdJwt> {
+public class VpTokenVerifierAdapter implements SdjwtPresentationVerifier {
 
     private final VpTokenVerifier delegate;
 
@@ -28,8 +30,8 @@ public class VpTokenVerifierAdapter implements PresentationVerifier<SdJwt> {
      * @return the verified {@link SdJwt} instance
      */
     @Override
-    public SdJwt verify(String vpToken, Management management) {
+    public SdJwt verify(String vpToken, Management management, DcqlCredential dcqlCredential) {
         SdJwt sdJwt = new SdJwt(vpToken);
-        return delegate.verifyVpToken(sdJwt, management);
+        return delegate.verifyVpToken(sdJwt, management, dcqlCredential);
     }
 }

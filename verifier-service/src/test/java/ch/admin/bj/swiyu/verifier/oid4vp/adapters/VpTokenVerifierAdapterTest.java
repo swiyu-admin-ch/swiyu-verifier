@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.adapters;
 
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VpTokenVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.VpTokenVerifierAdapter;
 import org.junit.jupiter.api.Test;
@@ -28,13 +29,14 @@ class VpTokenVerifierAdapterTest {
     void verify_wrapsTokenInSdJwtAndDelegatesToDomainVerifier() {
         String vpToken = "vp-token";
         Management management = new Management();
+        DcqlCredential dcqlCredential = new DcqlCredential();
 
         // Call the adapter
-        adapter.verify(vpToken, management);
+        adapter.verify(vpToken, management, dcqlCredential);
 
         // Capture the SdJwt passed to the delegate
         ArgumentCaptor<SdJwt> sdJwtCaptor = ArgumentCaptor.forClass(SdJwt.class);
-        verify(vpTokenVerifier).verifyVpToken(sdJwtCaptor.capture(), eq(management));
+        verify(vpTokenVerifier).verifyVpToken(sdJwtCaptor.capture(), eq(management), eq(dcqlCredential));
         SdJwt passedToDelegate = sdJwtCaptor.getValue();
 
         // We cannot rely on SdJwt.equals, so we compare its String representation

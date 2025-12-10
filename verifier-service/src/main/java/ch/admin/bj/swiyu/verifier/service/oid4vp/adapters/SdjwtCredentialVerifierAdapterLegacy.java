@@ -5,17 +5,17 @@ import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * Adapter implementation of {@link PresentationVerifier} for SD-JWT based verifiable presentations.
+ * Adapter implementation of {@link LegacyPresentationVerifier} for SD-JWT based verifiable presentations.
  * <p>
  * This class bridges the legacy {@link SdjwtCredentialVerifier} implementation to the
- * {@link PresentationVerifier} port used by the OID4VP layer. It wires all required collaborators
+ * {@link LegacyPresentationVerifier} port used by the OID4VP layer. It wires all required collaborators
  * and delegates the actual verification logic to the legacy verifier.
  * <p>
  * Responsibilities:
@@ -27,7 +27,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
-public class SdjwtCredentialVerifierAdapter implements PresentationVerifier<String> {
+public class SdjwtCredentialVerifierAdapterLegacy implements LegacyPresentationVerifier {
 
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;

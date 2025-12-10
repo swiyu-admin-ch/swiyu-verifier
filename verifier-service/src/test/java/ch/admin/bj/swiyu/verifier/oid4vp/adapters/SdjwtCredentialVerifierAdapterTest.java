@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.SdjwtCredentialVerifierAdapter;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.SdjwtCredentialVerifierAdapterLegacy;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ class SdjwtCredentialVerifierAdapterTest {
     private ApplicationProperties applicationProperties;
 
     @InjectMocks
-    private SdjwtCredentialVerifierAdapter adapter;
+    private SdjwtCredentialVerifierAdapterLegacy adapter;
 
     @Test
     void verify_delegatesToLegacyVerifier() {

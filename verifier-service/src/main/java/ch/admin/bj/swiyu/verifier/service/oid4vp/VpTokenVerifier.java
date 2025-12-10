@@ -86,14 +86,18 @@ public class VpTokenVerifier {
      * @param vpToken    sd-jwt of the vp token to be updated in place
      * @param management verification request management object for ancillary such as nonce and request id
      */
-    public SdJwt verifyVpToken(SdJwt vpToken, Management management) {
+    public SdJwt verifyVpToken(SdJwt vpToken, Management management, DcqlCredential dcqlCredential) {
         // Validate Basic JWT
         verifyVerifiableCredentialJWT(vpToken, management);
+
+        // If Key Binding is present, validate that it is correct
+        var requireKeyBinding = Boolean.TRUE.equals(dcqlCredential.getRequireCryptographicHolderBinding());
+
         // If Key Binding is present, validate that it is correct
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken,
                     management);
-        } else if (requiresKeyBinding(vpToken.getClaims())) {
+        } else if (requireKeyBinding || requiresKeyBinding(vpToken.getClaims())) {
             throw credentialError(HOLDER_BINDING_MISMATCH, MISSING_HOLDER_PROOF_ERROR_DESCRIPTION);
         }
         verifyStatus(vpToken.getClaims().getClaims(), management);

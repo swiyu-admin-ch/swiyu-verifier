@@ -116,9 +116,9 @@ class PresentationVerificationUsecaseTest {
     }
 
     @Test
-    void receiveDcqlVerificationPresentation_thenSuccess() throws JsonProcessingException {
+    void receiveDcqlVerificationPresentation_withoutHolderRequestedHolderBinding_thenSuccess() throws JsonProcessingException {
         var credentialRequestId = "TestIdRequest";
-        var dcqlQuery = getDcqlQuery(credentialRequestId);
+        var dcqlQuery = getDcqlQuery(credentialRequestId, false);
         var vpToken = getVpToken();
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(vpToken)));
         var sdJwt = mockVerifySdJwt(vpToken);
@@ -239,7 +239,7 @@ class PresentationVerificationUsecaseTest {
     /**
      * Create a dcql query matching the default vp token
      */
-    private DcqlQuery getDcqlQuery(String dcqlCredentialId) {
+    private DcqlQuery getDcqlQuery(String dcqlCredentialId, boolean requireCryptographicHolderBinding) {
         var requestedCredential = new DcqlCredential(
                 dcqlCredentialId,
                 "dc+sd-jwt",
@@ -247,7 +247,7 @@ class PresentationVerificationUsecaseTest {
                 List.of(
                         new DcqlClaim(null, List.of("birthdate"), null),
                         new DcqlClaim(null, List.of("last_name"), null)),
-                true,
+                requireCryptographicHolderBinding,
                 false);
 
         return new DcqlQuery(List.of(requestedCredential), null);

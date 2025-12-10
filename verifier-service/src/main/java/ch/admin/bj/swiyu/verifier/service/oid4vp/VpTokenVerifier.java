@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
@@ -50,6 +51,7 @@ public class VpTokenVerifier {
     public static final List<String> SUPPORTED_JWT_ALGORITHMS = List.of("ES256");
 
     private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
+    private static final String MISSING_HOLDER_PROOF_ERROR_DESCRIPTION = "Missing Holder Key Binding Proof";
 
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
@@ -92,7 +94,44 @@ public class VpTokenVerifier {
             validateKeyBinding(vpToken,
                     management);
         } else if (requiresKeyBinding(vpToken.getClaims())) {
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
+            throw credentialError(HOLDER_BINDING_MISMATCH, MISSING_HOLDER_PROOF_ERROR_DESCRIPTION);
+        }
+        verifyStatus(vpToken.getClaims().getClaims(), management);
+        // Resolve Disclosures
+        validateDisclosures(vpToken, management);
+
+        return vpToken;
+    }
+
+    /**
+     * Verifies the SD-JWT VP token for a DCQL credential request.
+     * <ul>
+     *   <li>Validates the basic JWT structure and claims.</li>
+     *   <li>If cryptographic holder binding is required or present, validates the key binding proof.</li>
+     *   <li>Checks the status of the credential.</li>
+     *   <li>Validates and resolves disclosures in the VP token.</li>
+     * </ul>
+     *
+     * References:
+     * <ul>
+     *   <li><a href="https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#section-3.2.2.2">SD-JWT VC 3.2</a></li>
+     * </ul>
+     *
+     * @param vpToken    SD-JWT of the VP token to be updated in place
+     * @param management Verification request management object for ancillary data such as nonce and request id
+     * @param dcqlCredential DCQL credential containing holder binding requirements
+     * @return The verified SD-JWT VP token
+     */
+    public SdJwt verifyVpTokenForDCQLRequest(SdJwt vpToken, Management management, DcqlCredential dcqlCredential) {
+        // Validate Basic JWT
+        verifyVerifiableCredentialJWT(vpToken, management);
+        // If Key Binding is present, validate that it is correct
+        var requireKeyBinding = Boolean.TRUE.equals(dcqlCredential.getRequireCryptographicHolderBinding());
+
+        if (vpToken.hasKeyBinding()) {
+            validateKeyBinding(vpToken, management);
+        } else if (requireKeyBinding || requiresKeyBinding(vpToken.getClaims())) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, MISSING_HOLDER_PROOF_ERROR_DESCRIPTION);
         }
         verifyStatus(vpToken.getClaims().getClaims(), management);
         // Resolve Disclosures

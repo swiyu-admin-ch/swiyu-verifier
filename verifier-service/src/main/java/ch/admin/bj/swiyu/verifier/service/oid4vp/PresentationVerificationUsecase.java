@@ -44,8 +44,17 @@ public class PresentationVerificationUsecase {
     }
 
     /**
-     * Validates the presentation request. If it fails, it will
-     * be marked as failed and can't be used anymore.
+     * Validates the presentation request for the standard OID4VP flow.
+     * <p>
+     * Behaviour on errors:
+     * <ul>
+     *   <li>On {@link VerificationException}, the management entity is marked as failed via
+     *       {@code managementEntity.verificationFailed(...)} and the original exception is rethrown
+     *       unchanged so that the REST layer can propagate the v2 error structure.</li>
+     *   <li>In all cases (success or failure), a callback event is produced via
+     *       {@link CallbackEventProducer#produceEvent(java.util.UUID)} to notify the business verifier
+     *       that the verification attempt is finished.</li>
+     * </ul>
      *
      * @param managementEntityId the id of the Management
      * @param request            the presentation request to verify
@@ -78,11 +87,22 @@ public class PresentationVerificationUsecase {
     }
 
     /**
-     * Validates the presentation request. If it fails, it will
-     * be marked as failed and can't be used anymore.
+     * Validates the presentation request when the client / wallet rejects the verification.
+     * <p>
+     * Behaviour on errors:
+     * <ul>
+     *   <li>If the process is already closed (expired or not pending), a {@link ProcessClosedException}
+     *       is thrown and the verification result is not changed.</li>
+     *   <li>On {@link VerificationException} while marking the process as failed, the entity is updated
+     *       via {@code managementEntity.verificationFailed(...)} and the exception is rethrown unchanged
+     *       (v2 error structure).</li>
+     *   <li>In the happy path, the management entity is marked as failed due to client rejection without
+     *       throwing an exception to the caller.</li>
+     *   <li>In all cases, a callback event is produced to signal completion.</li>
+     * </ul>
      *
      * @param managementEntityId the id of the Management
-     * @param request            the presentation request to verify
+     * @param request            the presentation rejection request from the client
      */
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
@@ -107,8 +127,21 @@ public class PresentationVerificationUsecase {
     }
 
     /**
-     * Validates the DCQL presentation request with VP token as object. If it fails, it will
-     * be marked as failed and can't be used anymore.
+     * Validates the DCQL-based presentation request with VP token as object.
+     * <p>
+     * This method is used for the DCQL flow and differs from
+     * {@link #receiveVerificationPresentation(UUID, VerificationPresentationRequestDto)} in how
+     * {@link VerificationException} is propagated:
+     * <ul>
+     *   <li>On {@link VerificationException}, the management entity is marked as failed via
+     *       {@code managementEntity.verificationFailed(...)}.</li>
+     *   <li>The exception is then wrapped using {@link VerificationException#submissionErrorV1} to
+     *       convert it into the legacy v1 error representation before being rethrown. This ensures
+     *       backward-compatible error contracts for DCQL endpoints.</li>
+     *   <li>In all cases (success or failure), a callback event is produced via
+     *       {@link CallbackEventProducer#produceEvent(java.util.UUID)} to notify the business verifier
+     *       that the DCQL verification attempt is finished.</li>
+     * </ul>
      *
      * @param managementEntityId the id of the Management
      * @param request            the DCQL presentation request to verify

@@ -3,120 +3,131 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
+import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
+import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.VpTokenVerifier;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
-import com.authlete.sd.Disclosure;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.ISSUER_NOT_ACCEPTED;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
 import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_KID_HEADER_VALUE;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link VpTokenVerifier} focusing on trust evaluation and holder binding audience checks.
+ */
 class VpTokenVerifierTest {
 
     private static final String TEST_NONCE = "test-nonce";
+
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
     private StatusListReferenceFactory statusListReferenceFactory;
-    private ObjectMapper objectMapper;
-    private VerificationProperties verificationProperties;
     private ApplicationProperties applicationProperties;
-    private Management managementEntity;
-    private PresentationDefinition presentationDefinition;
-    private VpTokenVerifier verificationService;
+    private VerificationProperties verificationProperties;
+    private Management management;
+
+    private VpTokenVerifier verifier;
 
     @BeforeEach
     void setUp() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
         issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
         statusListReferenceFactory = mock(StatusListReferenceFactory.class);
-        objectMapper = new ObjectMapper();
-        verificationProperties = mock(VerificationProperties.class);
         applicationProperties = mock(ApplicationProperties.class);
-        managementEntity = mock(Management.class);
-        presentationDefinition = getMockedPresentationDefinition("ES256", "ES256", List.of("$.first_name", "$.last_name"));
-        verificationService = new VpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
-        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-        when(applicationProperties.getClientId()).thenReturn("did:example:12345");
-        when(applicationProperties.getExternalUrl()).thenReturn("did:example:12345");
-        when(managementEntity.getId()).thenReturn(UUID.randomUUID());
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(Collections.emptyList());
-        when(managementEntity.getRequestNonce()).thenReturn(TEST_NONCE);
+        verificationProperties = mock(VerificationProperties.class);
+        management = mock(Management.class);
 
-        when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
+        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
+        when(applicationProperties.getClientId()).thenReturn("did:example:verifier");
+        when(management.getId()).thenReturn(UUID.randomUUID());
+        when(management.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
+        when(management.getTrustAnchors()).thenReturn(List.of());
+        when(management.getRequestNonce()).thenReturn(TEST_NONCE);
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
+
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
-        when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
-    }
 
+        // Status list verification is out of scope of this unit, so we simulate "no status entries"
+        when(statusListReferenceFactory.createStatusListReferences(any(), any())).thenReturn(List.of());
+
+        verifier = new VpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+    }
 
     @Test
-    void testCheckPresentationDefinitionCriteriaWithNull() throws NoSuchAlgorithmException, ParseException, JOSEException {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+    void verifyVpToken_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+        // Arrange: VC issued by third party, not directly trusted via acceptedIssuerDids
+        var vcIssuerDid = "did:example:third";
+        var vcIssuerKid = vcIssuerDid + "#key-1";
+        when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+
+        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "did:example:12345");
-        var vpTokenParts = vpToken.split("~");
+        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, applicationProperties.getClientId());
+        var sdJwt = new SdJwt(vpTokenString);
 
-        var jwt = SignedJWT.parse(vpTokenParts[0]);
-        assertTrue(jwt.verify(new ECDSAVerifier(KeyFixtures.issuerKey())), "Should be able to verify JWT");
+        // Trust Statement: separate trust anchor vouches that vcIssuerDid canIssue DEFAULT_VCT
+        var trustRegistryUrl = "https://trust-registry.example.com";
+        var trustIssuerDid = "did:example:trust";
+        var trustIssuerKid = trustIssuerDid + "#key-1";
+        when(issuerPublicKeyLoader.loadPublicKey(trustIssuerDid, trustIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
 
+        // Important: subject of trust statement must match vcIssuerDid so that isProvidingTrust() returns true
+        var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, vcIssuerDid);
+        when(management.getTrustAnchors())
+                .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
+        when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
+                .thenReturn(List.of(trustStatement));
 
-        var payload = jwt.getJWTClaimsSet();
+        // Act
+        SdJwt verified = verifier.verifyVpToken(sdJwt, management);
 
-        List<Disclosure> disclosures = Arrays.stream(Arrays.copyOfRange(vpTokenParts, 1, vpTokenParts.length - 1))
-                .map(Disclosure::parse).toList();
-
-        SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
-        );
-
-        presentationDefinition = getMockedPresentationDefinition("ES384", "ES256", List.of("$.first_name", "$.last_name", "$.not_existing"));
-
-        when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
-        var claims = payload.getClaims();
-        assertThrows(VerificationException.class, () ->
-                verifier.checkPresentationDefinitionCriteria(claims, disclosures)
-        );
+        // Assert
+        // TODO: It should verify that the trust evaluation logic correctly accepted the credential based on the trust
+        //  statement, for example by asserting specific claims or verifying that no exception was thrown due to trust issues.
+        assertThat(verified.getClaims()).isNotNull();
+        assertThat(verified.getHeader()).isNotNull();
     }
 
-    // createField("$.first_name"), createField("$.last_name"), createField("$.not_existing")
-    private PresentationDefinition getMockedPresentationDefinition(String alg, String keyBindingAlg, List<String> requiredFieldPaths) {
-        Map<String, PresentationDefinition.FormatAlgorithm> formatAlgorithms = Map.of(
-                "vc+sd-jwt", new PresentationDefinition.FormatAlgorithm(List.of(alg), List.of(keyBindingAlg))
-        );
+    @Test
+    void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+        // Arrange: valid SD-JWT with key binding, but audience is not our clientId
+        var vcIssuerDid = DEFAULT_ISSUER_ID;
+        var vcIssuerKid = DEFAULT_KID_HEADER_VALUE;
+        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
+        var sdjwt = emulator.createSDJWTMock();
 
-        var fields = requiredFieldPaths.stream()
-                .map(this::createField)
-                .toList();
+        when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
+                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
 
-        PresentationDefinition.Constraint constraint = new PresentationDefinition.Constraint(
-                UUID.randomUUID().toString(), "test-constraint", "Test Constraint", formatAlgorithms, fields);
+        // Audience intentionally mismatched
+        var wrongAudience = "did:example:someone-else";
+        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, wrongAudience);
+        var sdJwt = new SdJwt(vpTokenString);
 
-        PresentationDefinition.InputDescriptor inputDescriptor = new PresentationDefinition.InputDescriptor(UUID.randomUUID().toString(), "test-input-descriptor", "Test Input Descriptor", formatAlgorithms, constraint);
-
-        return new PresentationDefinition(
-                "test-pd", "Test Presentation Definition", "Test Purpose", formatAlgorithms, List.of(inputDescriptor)
-        );
-    }
-
-    private PresentationDefinition.Field createField(String fieldPath) {
-        return new PresentationDefinition.Field(
-                List.of(fieldPath), "test-field", "Test Field", "purpose", null);
+        // Act & Assert
+        VerificationException ex = assertThrows(VerificationException.class, () -> verifier.verifyVpToken(sdJwt, management));
+        assertEquals(HOLDER_BINDING_MISMATCH, ex.getErrorResponseCode());
     }
 }

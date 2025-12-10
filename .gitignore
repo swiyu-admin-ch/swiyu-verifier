@@ -37,3 +37,15 @@ build/
 .vscode/
 /codeql/
 /swiyu-verifier-codeql-db/
+
+### Pact ###
+# Pact files should not be committed - use Pact Broker instead
+**/target/pacts/
+pacts/
+# Pact logs
+**/pact.log
+# Pact Broker standalone
+pact/
+# But keep the helper script
+!run-pact-tests.sh
+

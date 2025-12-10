@@ -54,7 +54,7 @@ public class VerificationController {
 
     private final RequestObjectService requestObjectService;
     private final DecryptionService decryptionService;
-    private final PresentationVerificationUsecase presentationVerificationService;
+    private final PresentationVerificationUsecase presentationVerificationUsecase;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
 
     @Timed
@@ -186,7 +186,7 @@ public class VerificationController {
             // Handle rejection
             log.debug("Processing rejection for request_id: {}", requestId);
             var rejectionDto = decrypted.toRejection();
-            presentationVerificationService.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
+            presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
             return;
         }
 
@@ -195,12 +195,12 @@ public class VerificationController {
         if (version == VPApiVersion.ID2) {// Handle DIF Presentation Exchange presentation
             log.debug("Processing DIF presentation exchange presentation for request_id: {}", requestId);
             var standardDto = decrypted.toStandardPresentation();
-            presentationVerificationService.receiveVerificationPresentation(requestId, standardDto);
+            presentationVerificationUsecase.receiveVerificationPresentation(requestId, standardDto);
         } else if (version == VPApiVersion.V1) {
             if (decrypted.isDcqlPresentation()) {
                 log.debug("Processing DCQL presentation for request_id: {}", requestId);
                 var dcqlDto = decrypted.toDcqlPresentation();
-                presentationVerificationService.receiveVerificationPresentationDCQL(requestId, dcqlDto);
+                presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, dcqlDto);
             } else {
                 log.debug("Incomplete submission");
                 throw submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, "Incomplete submission, must contain only vp_token or response");

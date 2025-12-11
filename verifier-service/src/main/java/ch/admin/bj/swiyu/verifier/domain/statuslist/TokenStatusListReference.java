@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.domain.statuslist;
 
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
@@ -28,8 +28,6 @@ import java.text.ParseException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
 
 
 /**
@@ -53,38 +51,67 @@ class TokenStatusListReference extends StatusListReference {
         super(adapter, statusListReferenceClaims, issuerPublicKeyLoader, referencedTokenIssuer, maxBufferSize);
     }
 
+    private static JWSVerifier toJwsVerifier(PublicKey publicKey) throws JOSEException {
+        if (publicKey instanceof ECPublicKey ecPublicKey) {
+            return new ECDSAVerifier(ecPublicKey);
+        }
+        throw new IllegalArgumentException("Unsupported public key type: " + publicKey.getClass().getName());
+    }
+
+    /**
+     * A helper in charge of extracting <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2">bits</a> claim
+     * from a supplied <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-5.1">"status_list"</a> map.
+     *
+     * @param statusListVC to extract "bits" claim from
+     * @return "bits" claim
+     */
+    private static int getBitsClaim(Map<String, Object> statusListVC) {
+        // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2:
+        //         "bits: REQUIRED. JSON Integer specifying the number of bits per Referenced Token in the compressed byte array (lst). The allowed values for bits are 1,2,4 and 8."
+        final Object bitsClaim = JsonUtil.getJsonObject(statusListVC.get("status_list")).get("bits");
+        if (bitsClaim == null) {
+            throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'bits'");
+        }
+        final String bitsClaimStr = bitsClaim.toString();
+        if (bitsClaimStr.isBlank() || !bitsClaimStr.matches("[1248]")) {
+            throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'bits'");
+        }
+        // At this point (thanks to regex matching above), it should be 'safe' to parse the claim straight away
+        return Integer.parseInt(bitsClaim.toString());
+    }
+
+    /**
+     * A helper in charge of extracting <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2">lst</a> claim
+     * from a supplied <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-5.1">"status_list"</a> map.
+     *
+     * @param statusListVC to extract "lst" claim from
+     * @return "lst" claim
+     */
+    private static String getLstClaim(Map<String, Object> statusListVC) {
+        // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2:
+        //         "lst: REQUIRED. JSON String that contains the status values for all the Referenced Tokens it conveys statuses for. The value MUST be the base64url-encoded compressed byte array as specified in Section 4.1."
+        final Object lstClaim = JsonUtil.getJsonObject(statusListVC.get("status_list")).get("lst");
+        if (lstClaim == null) {
+            throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'lst'");
+        }
+        final String zippedStatusList = lstClaim.toString();
+        if (zippedStatusList.isBlank()) {
+            throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'lst'");
+        }
+
+        return zippedStatusList;
+    }
+
     @Override
     public void verifyStatus() {
         try {
             Map<String, Object> statusListVC = getStatusListVC();
             log.trace("Begin unpacking Status List");
-            Map<String, Object> statusListData = JsonUtil.getJsonObject(statusListVC.get("status_list"));
-
-            // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2:
-            //         "bits: REQUIRED. JSON Integer specifying the number of bits per Referenced Token in the compressed byte array (lst). The allowed values for bits are 1,2,4 and 8."
-            final Object bitsClaim = statusListData.get("bits");
-            if (bitsClaim == null) {
-                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'bits'");
-            }
-            final String bitsClaimStr = bitsClaim.toString();
-            if (bitsClaimStr.isBlank() || !bitsClaimStr.matches("[1248]")) {
-                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'bits'");
-            }
-            // At this point (thanks to regex matching above), it should be 'safe' to parse the claim straight away
-            final int statusListBits = Integer.parseInt(bitsClaim.toString());
-
-            // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2:
-            //         "lst: REQUIRED. JSON String that contains the status values for all the Referenced Tokens it conveys statuses for. The value MUST be the base64url-encoded compressed byte array as specified in Section 4.1."
-            final Object lstClaim = statusListData.get("lst");
-            if (lstClaim == null) {
-                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'lst'");
-            }
-            final String zippedStatusList = lstClaim.toString();
-            if (zippedStatusList.isBlank()) {
-                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'lst'");
-            }
-
-            TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(statusListBits, zippedStatusList, getMaxBufferSize());
+            TokenStatusListToken statusList = TokenStatusListToken.loadTokenStatusListToken(
+                    getBitsClaim(statusListVC),
+                    getLstClaim(statusListVC),
+                    getMaxBufferSize()
+            );
             log.trace("Unpacked Status List with length {}", statusList.getStatusList().length);
 
             // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-6.2:
@@ -156,13 +183,6 @@ class TokenStatusListReference extends StatusListReference {
         } catch (BadJWTException e) {
             throw statusListError(String.format("Failed to verify JWT: Invalid JWT token. %s", e.getMessage()), e);
         }
-    }
-
-    private static JWSVerifier toJwsVerifier(PublicKey publicKey) throws JOSEException {
-        if (publicKey instanceof ECPublicKey ecPublicKey) {
-            return new ECDSAVerifier(ecPublicKey);
-        }
-        throw new IllegalArgumentException("Unsupported public key type: " + publicKey.getClass().getName());
     }
 
 }

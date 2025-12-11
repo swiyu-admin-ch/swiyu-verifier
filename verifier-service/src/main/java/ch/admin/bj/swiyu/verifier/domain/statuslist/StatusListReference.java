@@ -18,6 +18,7 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
@@ -105,6 +106,9 @@ public abstract class StatusListReference {
         } catch (StatusListMaxSizeExceededException e) {
             log.warn("Could not retrieve status list vc from %s: %s", uri, e.getMessage());
             throw credentialError(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST, e.getMessage());
+        } catch (WebClientResponseException e) {
+            log.warn("Statuslist could not be retrieved from %s. HTTP status: %s", uri, e.getStatusCode());
+            throw statusListError(String.format("Statuslist could not be retrieved from %s", uri), e);
         } catch (RuntimeException e) {
             log.warn("Could not retrieve status list vc.", e);
             throw statusListError(String.format("Could not retrieve status list vc from %s", uri));

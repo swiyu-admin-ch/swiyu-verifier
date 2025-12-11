@@ -34,6 +34,10 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
@@ -240,6 +244,22 @@
             <artifactId>swiyu-verifier-service</artifactId>
             <version>2.2.0-SNAPSHOT</version> <!-- Use the same version as the parent pom -->
             <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers MockServer -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-mockserver</artifactId>
+            <version>2.0.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- MockServer client API -->
+        <dependency>
+            <groupId>org.mock-server</groupId>
+            <artifactId>mockserver-client-java</artifactId>
+            <version>5.15.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

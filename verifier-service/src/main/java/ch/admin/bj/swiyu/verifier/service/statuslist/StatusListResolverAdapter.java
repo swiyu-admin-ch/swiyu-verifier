@@ -15,6 +15,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -30,6 +32,7 @@ public class StatusListResolverAdapter {
 
     private final UrlRewriteProperties urlRewriteProperties;
     private final RestClient statusListRestClient;
+    private final WebClient statusListWebClient;
     private final ApplicationProperties applicationProperties;
 
     @Cacheable(STATUS_LIST_CACHE)
@@ -52,15 +55,24 @@ public class StatusListResolverAdapter {
             throw new IllegalArgumentException("Malformed URL %s in StatusList".formatted(rewrittenUrl), e);
         }
 
-
-        return statusListRestClient.get()
-                .uri(rewrittenUrl)
-                .retrieve()
-                .onStatus(status -> status != HttpStatus.OK, (request, response) -> {
-                    throw new StatusListFetchFailedException("Status list with uri: %s could not be retrieved"
-                            .formatted(rewrittenUrl));
-                })
-                .body(String.class);
+            return statusListWebClient
+                    .get()
+                    .uri(rewrittenUrl)
+                    .retrieve()
+                    .onStatus(status -> status != HttpStatus.OK, response ->
+                            reactor.core.publisher.Mono.error(new StatusListFetchFailedException(
+                                    "Status list with uri: %s could not be retrieved".formatted(rewrittenUrl))))
+                    .bodyToMono(String.class)
+                    .onErrorResume(WebClientResponseException.class, ex -> {
+                        if (ex.getCause().toString().contains("DataBufferLimitException")) {
+                            return reactor.core.publisher.Mono.error(new StatusListMaxSizeExceededException(
+                                    "Status list size from %s exceeds maximum allowed size".formatted(rewrittenUrl)));
+                        }
+                        log.error("Error while fetching status list from {}: {}", rewrittenUrl, ex.getMessage());
+                        return reactor.core.publisher.Mono.error(new StatusListFetchFailedException(
+                                "Status list with uri: %s could not be retrieved".formatted(rewrittenUrl)));
+                    })
+                    .block();
     }
     
     private boolean isHttpsUrl(String url) {

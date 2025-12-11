@@ -60,14 +60,15 @@ class TokenStatusListReference extends StatusListReference {
 
     /**
      * A helper in charge of extracting <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2">bits</a> claim
-     * from a supplied <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-5.1">"status_list"</a> map.
+     * from a supplied <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-5.1">"status_list"</a> map:
+     * <pre>
+     *     bits: REQUIRED. JSON Integer specifying the number of bits per Referenced Token in the compressed byte array (lst). The allowed values for bits are 1,2,4 and 8.
+     * </pre>
      *
      * @param statusListVC to extract "bits" claim from
      * @return "bits" claim
      */
     private static int getBitsClaim(Map<String, Object> statusListVC) {
-        // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2:
-        //         "bits: REQUIRED. JSON Integer specifying the number of bits per Referenced Token in the compressed byte array (lst). The allowed values for bits are 1,2,4 and 8."
         final Object bitsClaim = JsonUtil.getJsonObject(statusListVC.get("status_list")).get("bits");
         if (bitsClaim == null) {
             throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'bits'");
@@ -82,14 +83,16 @@ class TokenStatusListReference extends StatusListReference {
 
     /**
      * A helper in charge of extracting <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2">lst</a> claim
-     * from a supplied <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-5.1">"status_list"</a> map.
+     * from a supplied <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-5.1">"status_list"</a> map:
+     * <pre>
+     *     lst: REQUIRED. JSON String that contains the status values for all the Referenced Tokens it conveys statuses for. The value MUST be the base64url-encoded compressed byte array as specified in Section 4.1.
+     * </pre>
      *
      * @param statusListVC to extract "lst" claim from
      * @return "lst" claim
      */
     private static String getLstClaim(Map<String, Object> statusListVC) {
-        // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-4.2:
-        //         "lst: REQUIRED. JSON String that contains the status values for all the Referenced Tokens it conveys statuses for. The value MUST be the base64url-encoded compressed byte array as specified in Section 4.1."
+
         final Object lstClaim = JsonUtil.getJsonObject(statusListVC.get("status_list")).get("lst");
         if (lstClaim == null) {
             throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'lst'");
@@ -100,6 +103,28 @@ class TokenStatusListReference extends StatusListReference {
         }
 
         return zippedStatusList;
+    }
+
+    /**
+     * A helper in charge of extracting <a href="https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-6.2">idx</a> claim:
+     * <pre>
+     *     idx: REQUIRED. The idx (index) claim MUST specify a non-negative Integer that represents the index to check for status information in the Status List for the current Referenced Token.
+     * </pre>
+     *
+     * @return "idx" claim
+     */
+    private int getIdxClaim() {
+
+        var idxClaim = getStatusListReferenceClaims().get("idx");
+        if (idxClaim == null) {
+            throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'idx'");
+        }
+        final String idxClaimStr = idxClaim.toString();
+        if (idxClaimStr.isBlank() || !idxClaimStr.matches("^?\\d+$")) {
+            throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'idx'");
+        }
+        // At this point (thanks to regex matching above), it should be 'safe' to parse the claim straight away
+        return Integer.parseInt(idxClaimStr);
     }
 
     @Override
@@ -114,20 +139,7 @@ class TokenStatusListReference extends StatusListReference {
             );
             log.trace("Unpacked Status List with length {}", statusList.getStatusList().length);
 
-            // CAUTION According to https://drafts.oauth.net/draft-ietf-oauth-status-list/draft-ietf-oauth-status-list.html#section-6.2:
-            //         "idx: REQUIRED. The idx (index) claim MUST specify a non-negative Integer that represents the index to check for status information in the Status List for the current Referenced Token."
-            var idxClaim = getStatusListReferenceClaims().get("idx");
-            if (idxClaim == null) {
-                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Missing REQUIRED claim 'idx'");
-            }
-            final String idxClaimStr = idxClaim.toString();
-            if (idxClaimStr.isBlank() || !idxClaimStr.matches("^?\\d+$")) {
-                throw VerificationException.credentialError(VerificationErrorResponseCode.INVALID_TOKEN_STATUS_LIST, "Invalid REQUIRED claim 'idx'");
-            }
-            // At this point (thanks to regex matching above), it should be 'safe' to parse the claim straight away
-            int statusListIndex = Integer.parseInt(idxClaimStr);
-
-            TokenStatusListBit credentialStatus = TokenStatusListBit.createStatus(statusList.getStatus(statusListIndex));
+            TokenStatusListBit credentialStatus = TokenStatusListBit.createStatus(statusList.getStatus(getIdxClaim()));
             log.trace("Fetched credential status");
             switch (credentialStatus) {
                 case TokenStatusListBit.VALID:

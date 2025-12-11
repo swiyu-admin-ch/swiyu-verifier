@@ -23,6 +23,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * Parses and validates a PresentationSubmission JSON using the configured ObjectMapper and Validator.
  */
 @Component
+@Deprecated(since="OID4VP 1.0")
 public class PresentationSubmissionService {
 
     private final Validator validator;

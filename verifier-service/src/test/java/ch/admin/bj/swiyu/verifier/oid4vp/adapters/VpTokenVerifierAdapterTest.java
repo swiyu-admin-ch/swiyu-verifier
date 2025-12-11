@@ -36,7 +36,7 @@ class VpTokenVerifierAdapterTest {
 
         // Capture the SdJwt passed to the delegate
         ArgumentCaptor<SdJwt> sdJwtCaptor = ArgumentCaptor.forClass(SdJwt.class);
-        verify(vpTokenVerifier).verifyVpToken(sdJwtCaptor.capture(), eq(management), eq(dcqlCredential));
+        verify(vpTokenVerifier).verifyVpTokenForDCQLRequest(sdJwtCaptor.capture(), eq(management), eq(dcqlCredential));
         SdJwt passedToDelegate = sdJwtCaptor.getValue();
 
         // We cannot rely on SdJwt.equals, so we compare its String representation

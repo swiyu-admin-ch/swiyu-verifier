@@ -18,6 +18,7 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationSubmissionService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import ch.admin.bj.swiyu.verifier.service.PresentationVerificationStrategyRegistry;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerificationStrategy;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationService;
@@ -52,8 +53,8 @@ class PresentationVerificationUsecaseTest {
 
     private Management managementEntity;
     private UUID managementId;
-    private LegacyPresentationVerifier stringLegacyPresentationVerifier;
-    private SdjwtPresentationVerifier sdJwtLegacyPresentationVerifier;
+    private LegacyPresentationVerifier legacyPresentationVerifier;
+    private SdjwtPresentationVerifier sdjwtPresentationVerifier;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
     private PresentationVerificationService presentationVerificationService;
     private ObjectMapper objectMapper;
@@ -65,8 +66,8 @@ class PresentationVerificationUsecaseTest {
         ManagementRepository managementRepository = mock(ManagementRepository.class);
         objectMapper = new ObjectMapper();
         callbackEventProducer = mock(CallbackEventProducer.class);
-        stringLegacyPresentationVerifier = mock(LegacyPresentationVerifier.class);
-        sdJwtLegacyPresentationVerifier = mock(SdjwtPresentationVerifier.class);
+        legacyPresentationVerifier = mock(LegacyPresentationVerifier.class);
+        sdjwtPresentationVerifier = mock(SdjwtPresentationVerifier.class);
         dcqlPresentationVerificationService = mock(DcqlPresentationVerificationService.class);
         strategyRegistry = mock(PresentationVerificationStrategyRegistry.class);
         // provide a real Validator to the submissionService to avoid NPE
@@ -99,12 +100,12 @@ class PresentationVerificationUsecaseTest {
         var vpToken = getVpToken();
         var mockRequest = getMockRequest(vpToken, getPresentationSubmissionString(UUID.randomUUID()));
 
-        when(stringLegacyPresentationVerifier.verify(vpToken, managementEntity)).thenReturn("credential-data");
+        when(legacyPresentationVerifier.verify(vpToken, managementEntity)).thenReturn("credential-data");
         // stub registry with a strategy delegating to stringPresentationVerifier
         when(strategyRegistry.getStrategy(anyString())).thenReturn(new PresentationVerificationStrategy() {
             @Override
             public String verify(String vpToken, Management managementEntity, ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto presentationSubmission) {
-                return stringLegacyPresentationVerifier.verify(vpToken, managementEntity);
+                return legacyPresentationVerifier.verify(vpToken, managementEntity);
             }
             @Override
             public String getSupportedFormat() { return "vc+sd-jwt"; }
@@ -124,7 +125,11 @@ class PresentationVerificationUsecaseTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(vpToken)));
         var sdJwt = mockVerifySdJwt(vpToken);
         when(managementEntity.getDcqlQuery()).thenReturn(dcqlQuery);
-        when(sdJwtLegacyPresentationVerifier.verify(Mockito.anyString(), Mockito.eq(managementEntity))).thenReturn(sdJwt);
+
+        // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
+        var requestedCredential = dcqlQuery.getCredentials().getFirst();
+        when(sdjwtPresentationVerifier.verify(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential)))
+                .thenReturn(sdJwt);
 
         var expectedVerificationSucceededData = objectMapper.writeValueAsString(Map.of(credentialRequestId, List.of(sdJwt.getClaims().getClaims())));
 

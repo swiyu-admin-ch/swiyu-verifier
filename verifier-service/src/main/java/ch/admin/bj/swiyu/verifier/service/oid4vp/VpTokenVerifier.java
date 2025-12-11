@@ -86,18 +86,16 @@ public class VpTokenVerifier {
      * @param vpToken    sd-jwt of the vp token to be updated in place
      * @param management verification request management object for ancillary such as nonce and request id
      */
-    public SdJwt verifyVpToken(SdJwt vpToken, Management management, DcqlCredential dcqlCredential) {
+    public SdJwt verifyVpTokenLegacy(SdJwt vpToken, Management management) {
         // Validate Basic JWT
         verifyVerifiableCredentialJWT(vpToken, management);
 
-        // If Key Binding is present, validate that it is correct
-        var requireKeyBinding = Boolean.TRUE.equals(dcqlCredential.getRequireCryptographicHolderBinding());
 
         // If Key Binding is present, validate that it is correct
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken,
                     management);
-        } else if (requireKeyBinding || requiresKeyBinding(vpToken.getClaims())) {
+        } else if (requiresKeyBinding(vpToken.getClaims())) {
             throw credentialError(HOLDER_BINDING_MISMATCH, MISSING_HOLDER_PROOF_ERROR_DESCRIPTION);
         }
         verifyStatus(vpToken.getClaims().getClaims(), management);
@@ -361,7 +359,7 @@ public class VpTokenVerifier {
 
     private boolean isProvidingTrust(String issuerDid, String vct, TrustAnchor trustAnchor, String rawTrustStatement, Management management) throws ParseException {
         var trustStatement = new SdJwt(rawTrustStatement);
-        trustStatement = verifyVpToken(trustStatement, management);
+        trustStatement = verifyVpTokenLegacy(trustStatement, management);
         return issuerDid.equals(trustStatement.getClaims().getSubject())
                 && trustAnchor.did().equals(trustStatement.getClaims().getIssuer())
                 && vct.equals(trustStatement.getClaims().getStringClaim("canIssue"));

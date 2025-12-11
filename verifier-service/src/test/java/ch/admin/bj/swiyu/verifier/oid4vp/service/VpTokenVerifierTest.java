@@ -74,7 +74,7 @@ class VpTokenVerifierTest {
     }
 
     @Test
-    void verifyVpToken_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+    void verifyVpToken_Legacy_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
         // Arrange: VC issued by third party, not directly trusted via acceptedIssuerDids
         var vcIssuerDid = "did:example:third";
         var vcIssuerKid = vcIssuerDid + "#key-1";
@@ -101,7 +101,7 @@ class VpTokenVerifierTest {
                 .thenReturn(List.of(trustStatement));
 
         // Act
-        SdJwt verified = verifier.verifyVpToken(sdJwt, management);
+        SdJwt verified = verifier.verifyVpTokenLegacy(sdJwt, management);
 
         // Assert
         // TODO: It should verify that the trust evaluation logic correctly accepted the credential based on the trust
@@ -127,7 +127,7 @@ class VpTokenVerifierTest {
         var sdJwt = new SdJwt(vpTokenString);
 
         // Act & Assert
-        VerificationException ex = assertThrows(VerificationException.class, () -> verifier.verifyVpToken(sdJwt, management));
+        VerificationException ex = assertThrows(VerificationException.class, () -> verifier.verifyVpTokenLegacy(sdJwt, management));
         assertEquals(HOLDER_BINDING_MISMATCH, ex.getErrorResponseCode());
     }
 }

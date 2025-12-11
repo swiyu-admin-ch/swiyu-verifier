@@ -11,7 +11,6 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.SdjwtPresentationVerifier;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +33,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 @RequiredArgsConstructor
 public class DcqlPresentationVerificationService {
 
-    private final SdjwtPresentationVerifier sdJwtLegacyPresentationVerifier;
+    private final SdjwtPresentationVerifier sdjwtPresentationVerifier;
     private final DcqlEvaluator dcqlEvaluator;
     private final ObjectMapper objectMapper;
 
@@ -58,7 +57,7 @@ public class DcqlPresentationVerificationService {
             }
 
             var sdJwts = requestedVpTokens.stream()
-                    .map(token -> sdJwtLegacyPresentationVerifier.verify(token, entity, requestedCredential))
+                    .map(token -> sdjwtPresentationVerifier.verify(token, entity, requestedCredential))
                     .toList();
             sdJwts = dcqlEvaluator.filterByVct(sdJwts, requestedCredential.getMeta());
             if (sdJwts.isEmpty()) {

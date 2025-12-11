@@ -61,6 +61,7 @@ public class PresentationVerificationUsecase {
      */
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
+    @Deprecated(since="OID4VP 1.0")
     public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
         log.debug("Received verification presentation for management id {}", managementEntityId);
         var managementEntity = managementEntityRepository.findById(managementEntityId)

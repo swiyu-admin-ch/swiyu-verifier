@@ -23,7 +23,7 @@ public class VpTokenVerifierAdapter implements SdjwtPresentationVerifier {
 
     /**
      * Wraps the given VP token into an {@link SdJwt} value object and delegates the
-     * verification to {@link VpTokenVerifier#verifyVpTokenLegacy(SdJwt, Management)}.
+     * verification to {@link VpTokenVerifier#verifyVpTokenForDCQLRequest(SdJwt, Management, DcqlCredential)}.
      *
      * @param vpToken   the raw VP token to be verified
      * @param management the management configuration used to control verification rules

@@ -86,7 +86,7 @@ public class VpTokenVerifier {
      * @param vpToken    sd-jwt of the vp token to be updated in place
      * @param management verification request management object for ancillary such as nonce and request id
      */
-    public SdJwt verifyVpTokenLegacy(SdJwt vpToken, Management management) {
+    SdJwt verifyVpTokenLegacy(SdJwt vpToken, Management management) {
         // Validate Basic JWT
         verifyVerifiableCredentialJWT(vpToken, management);
 
@@ -126,6 +126,7 @@ public class VpTokenVerifier {
      */
     public SdJwt verifyVpTokenForDCQLRequest(SdJwt vpToken, Management management, DcqlCredential dcqlCredential) {
         // Validate Basic JWT
+        // --> problems here?
         verifyVerifiableCredentialJWT(vpToken, management);
         // If Key Binding is present, validate that it is correct
         var requireKeyBinding = Boolean.TRUE.equals(dcqlCredential.getRequireCryptographicHolderBinding());

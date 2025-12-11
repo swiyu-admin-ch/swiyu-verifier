@@ -15,6 +15,7 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.SdjwtPresentationVerifier
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
  * For each requested credential it verifies VP tokens into {@link SdJwt}, filters by VCT,
  * validates the requested claims, and returns the extracted claims as a JSON string.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DcqlPresentationVerificationService {
@@ -80,6 +82,7 @@ public class DcqlPresentationVerificationService {
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
+            log.error("Failed to serialize object to string", e);
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Failed to serialize object to string");
         }
     }

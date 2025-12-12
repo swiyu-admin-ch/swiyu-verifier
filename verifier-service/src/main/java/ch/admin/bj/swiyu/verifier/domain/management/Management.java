@@ -143,6 +143,14 @@ public class Management {
     }
 
     /**
+     * Returns {@code true} if the verification process is still open
+     * (not expired and still pending), {@code false} otherwise.
+     */
+    public boolean isProcessStillOpen() {
+        return !isExpired() && isVerificationPending();
+    }
+
+    /**
      * Reset the timestamp at which this object will count as expired with the <code>expirationInSeconds</code>
      * @return this object for daisy chaining
      */

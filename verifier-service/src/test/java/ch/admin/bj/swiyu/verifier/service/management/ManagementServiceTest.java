@@ -34,6 +34,7 @@ import static org.mockito.Mockito.*;
 class ManagementServiceTest {
 
     private ManagementRepository repository;
+    private ManagementTransactionalService managementTransactionalService;
     private ApplicationProperties applicationProperties;
     private ManagementService service;
     private UUID id;
@@ -43,7 +44,8 @@ class ManagementServiceTest {
         id = UUID.randomUUID();
         repository = mock(ManagementRepository.class);
         applicationProperties = mock(ApplicationProperties.class);
-        service = new ManagementService(repository, applicationProperties);
+        managementTransactionalService = new ManagementTransactionalService(repository, applicationProperties);
+        service = new ManagementService(applicationProperties, managementTransactionalService);
     }
 
     @Test

@@ -4,33 +4,38 @@ import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
-import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
-import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.bj.swiyu.verifier.service.callback.WebhookService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.SdJwtVerificationService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationService;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementTransactionalService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationSubmissionService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
+import ch.admin.bj.swiyu.verifier.service.PresentationVerificationStrategyRegistry;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerificationStrategy;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 
 import java.util.List;
@@ -43,36 +48,47 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.ge
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class VerificationServiceTest {
+class PresentationVerificationUsecaseTest {
 
-    private VerificationService verificationService;
-    private WebhookService webhookService;
+    private PresentationVerificationUsecase presentationVerificationUsecase;
+    private CallbackEventProducer callbackEventProducer;
 
     private Management managementEntity;
     private UUID managementId;
-    private SdJwtVerificationService sdJwtVerificationService;
+    private LegacyPresentationVerifier legacyPresentationVerifier;
+    private PresentationVerifier presentationVerifier;
+    private DcqlPresentationVerificationService dcqlPresentationVerificationService;
+    private PresentationVerificationService presentationVerificationService;
     private ObjectMapper objectMapper;
+    private PresentationVerificationStrategyRegistry strategyRegistry; // Registry für Format-Strategien
+    private PresentationSubmissionService submissionService;
 
     @BeforeEach
     void setUp() {
-        VerificationProperties verificationProperties = mock(VerificationProperties.class);
-        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
         ManagementRepository managementRepository = mock(ManagementRepository.class);
-        IssuerPublicKeyLoader issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
-        StatusListReferenceFactory statusListReferenceFactory = mock(StatusListReferenceFactory.class);
-        objectMapper = new ObjectMapper();
-        webhookService = mock(WebhookService.class);
-        sdJwtVerificationService = mock(SdJwtVerificationService.class);
+        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
+        ManagementTransactionalService managementTransactionalService = new ManagementTransactionalService(managementRepository, applicationProperties);
+        ManagementService managementService = new ManagementService(applicationProperties, managementTransactionalService);
 
-        verificationService = new VerificationService(
-                verificationProperties,
-                applicationProperties,
-                managementRepository,
-                issuerPublicKeyLoader,
-                statusListReferenceFactory,
-                objectMapper,
-                webhookService,
-                sdJwtVerificationService
+        objectMapper = new ObjectMapper();
+        callbackEventProducer = mock(CallbackEventProducer.class);
+        legacyPresentationVerifier = mock(LegacyPresentationVerifier.class);
+        presentationVerifier = mock(PresentationVerifier.class);
+        dcqlPresentationVerificationService = mock(DcqlPresentationVerificationService.class);
+        strategyRegistry = mock(PresentationVerificationStrategyRegistry.class);
+        // provide a real Validator to the submissionService to avoid NPE
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        submissionService = new PresentationSubmissionService(validator);
+        presentationVerificationService = new PresentationVerificationService(
+                strategyRegistry,
+                submissionService
+        );
+
+        presentationVerificationUsecase = new PresentationVerificationUsecase(
+                callbackEventProducer,
+                dcqlPresentationVerificationService,
+                presentationVerificationService,
+                managementService
         );
 
         managementEntity = mock(Management.class);
@@ -82,20 +98,29 @@ class VerificationServiceTest {
         when(managementEntity.isExpired()).thenReturn(false);
         when(managementEntity.isVerificationPending()).thenReturn(true);
         when(managementEntity.getId()).thenReturn(managementId);
+        when(managementEntity.isProcessStillOpen()).thenReturn(true);
     }
 
     @Test
     void receiveVerificationPresentation_thenSuccess() throws JsonProcessingException {
+        var vpToken = getVpToken();
+        var mockRequest = getMockRequest(vpToken, getPresentationSubmissionString(UUID.randomUUID()));
 
-        var mockRequest = getMockRequest(getVpToken(), getPresentationSubmissionString(UUID.randomUUID()));
+        when(legacyPresentationVerifier.verify(vpToken, managementEntity)).thenReturn("credential-data");
+        // stub registry with a strategy delegating to stringPresentationVerifier
+        when(strategyRegistry.getStrategy(anyString())).thenReturn(new PresentationVerificationStrategy() {
+            @Override
+            public String verify(String vpToken, Management managementEntity, ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto presentationSubmission) {
+                return legacyPresentationVerifier.verify(vpToken, managementEntity);
+            }
+            @Override
+            public String getSupportedFormat() { return "vc+sd-jwt"; }
+        });
 
-        try (MockedConstruction<SdjwtCredentialVerifier> mocked = mockConstruction(SdjwtCredentialVerifier.class,
-                (mock, context) -> when(mock.verifyPresentation()).thenReturn("credential-data"))) {
-            verificationService.receiveVerificationPresentation(managementId, mockRequest);
+        presentationVerificationUsecase.receiveVerificationPresentation(managementId, mockRequest);
 
-            verify(managementEntity).verificationSucceeded("credential-data");
-            verify(webhookService).produceEvent(managementId);
-        }
+        verify(managementEntity).verificationSucceeded("credential-data");
+        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     @Test
@@ -106,12 +131,19 @@ class VerificationServiceTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(vpToken)));
         var sdJwt = mockVerifySdJwt(vpToken);
         when(managementEntity.getDcqlQuery()).thenReturn(dcqlQuery);
-        when(sdJwtVerificationService.verifyVpTokenForDCQLRequest(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(sdJwt);
 
-        assertDoesNotThrow(() -> verificationService.receiveVerificationPresentationDCQL(managementId, request));
+        // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
+        var requestedCredential = dcqlQuery.getCredentials().getFirst();
+        when(presentationVerifier.verify(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential)))
+                .thenReturn(sdJwt);
+
         var expectedVerificationSucceededData = objectMapper.writeValueAsString(Map.of(credentialRequestId, List.of(sdJwt.getClaims().getClaims())));
+
+        when(dcqlPresentationVerificationService.process(Mockito.eq(managementEntity), Mockito.eq(request))).thenReturn(expectedVerificationSucceededData);
+
+        assertDoesNotThrow(() -> presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));
         verify(managementEntity).verificationSucceeded(expectedVerificationSucceededData);
-        verify(webhookService).produceEvent(managementId);
+        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     @Test
@@ -119,21 +151,22 @@ class VerificationServiceTest {
         VerificationPresentationRejectionDto request = mock(VerificationPresentationRejectionDto.class);
         when(request.getErrorDescription()).thenReturn("User cancelled");
 
-        verificationService.receiveVerificationPresentationClientRejection(managementId, request);
+        presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, request);
 
         verify(managementEntity).verificationFailedDueToClientRejection("User cancelled");
-        verify(webhookService).produceEvent(managementId);
+        verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationSucceeded(any());
     }
 
     @Test
     void receiveVerificationPresentation_processClosed() {
         when(managementEntity.isExpired()).thenReturn(true);
+        when(managementEntity.isProcessStillOpen()).thenReturn(false);
         VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
 
         assertThrows(ProcessClosedException.class, () ->
-                verificationService.receiveVerificationPresentation(managementId, request));
-        verify(webhookService).produceEvent(managementId);
+                presentationVerificationUsecase.receiveVerificationPresentation(managementId, request));
+        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     @Test
@@ -141,12 +174,12 @@ class VerificationServiceTest {
         var mockRequest = getMockRequestNoVpToken();
 
         var exception = assertThrows(VerificationException.class, () ->
-                verificationService.receiveVerificationPresentation(managementId, mockRequest));
+                presentationVerificationUsecase.receiveVerificationPresentation(managementId, mockRequest));
 
         assertEquals(AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, exception.getErrorResponseCode());
 
         verify(managementEntity).verificationFailed(any(), any());
-        verify(webhookService).produceEvent(managementId);
+        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     @ParameterizedTest
@@ -156,36 +189,38 @@ class VerificationServiceTest {
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn(errorDescription);
 
-        verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
+        presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
 
         verify(managementEntity).verificationFailedDueToClientRejection(errorDescription);
-        verify(webhookService).produceEvent(managementId);
+        verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationSucceeded(any());
     }
 
     @Test
     void receiveVerificationPresentationClientRejection_processClosed_thenThrowsException() {
         when(managementEntity.isExpired()).thenReturn(true);
+        when(managementEntity.isProcessStillOpen()).thenReturn(false);
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
         assertThrows(ProcessClosedException.class, () ->
-                verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+                presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
 
-        verify(webhookService).produceEvent(managementId);
+        verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
     }
 
     @Test
     void receiveVerificationPresentationClientRejection_verificationNotPending_thenThrowsException() {
         when(managementEntity.isVerificationPending()).thenReturn(false);
+        when(managementEntity.isProcessStillOpen()).thenReturn(false);
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
         assertThrows(ProcessClosedException.class, () ->
-                verificationService.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+                presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
 
-        verify(webhookService).produceEvent(managementId);
+        verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
     }
 

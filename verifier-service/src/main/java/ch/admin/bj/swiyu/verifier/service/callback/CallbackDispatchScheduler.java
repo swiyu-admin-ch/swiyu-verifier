@@ -13,28 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.time.Instant;
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class WebhookService {
+public class CallbackDispatchScheduler {
+
     private final WebhookProperties webhookProperties;
     private final CallbackEventRepository callbackEventRepository;
     private final RestClient restClient;
-
-    @Transactional
-    public void produceEvent(UUID verificationId) {
-        if (StringUtils.isBlank(webhookProperties.getCallbackUri())) {
-            return;
-        }
-        var event = CallbackEvent.builder()
-                .verificationId(verificationId)
-                .timestamp(Instant.now())
-                .build();
-        callbackEventRepository.save(event);
-    }
 
     @Scheduled(initialDelay = 0, fixedDelayString = "${webhook.callback-interval}")
     @Transactional
@@ -44,13 +30,17 @@ public class WebhookService {
             return;
         }
         var events = callbackEventRepository.findAll();
-        events.forEach(event -> processCallbackEvent(event, webhookProperties.getCallbackUri(), webhookProperties.getApiKeyHeader(), webhookProperties.getApiKeyValue()));
+        events.forEach(event -> processCallbackEvent(
+                event,
+                webhookProperties.getCallbackUri(),
+                webhookProperties.getApiKeyHeader(),
+                webhookProperties.getApiKeyValue()
+        ));
     }
 
     private void processCallbackEvent(CallbackEvent event, String callbackUri, String authHeader, String authValue) {
         // Send the event
-        var request = restClient.post()
-                .uri(callbackUri);
+        var request = restClient.post().uri(callbackUri);
         if (!StringUtils.isBlank(authHeader)) {
             request = request.header(authHeader, authValue);
         }
@@ -64,7 +54,13 @@ public class WebhookService {
         } catch (RestClientResponseException e) {
             // Note; If delivery failed we will keep retrying to send the message ad-infinitum.
             // This is intended behaviour as we have to guarantee an at-least-once delivery.
-            log.error("Callback to {} failed with status code {} with message {}", webhookProperties.getCallbackUri(), e.getStatusCode(), e.getMessage());
+            log.error(
+                    "Callback to {} failed with status code {} with message {}",
+                    webhookProperties.getCallbackUri(),
+                    e.getStatusCode(),
+                    e.getMessage()
+            );
         }
     }
 }
+

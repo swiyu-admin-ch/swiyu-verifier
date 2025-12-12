@@ -1,0 +1,216 @@
+@startuml
+
+/' diagram meta data start
+config=StructureConfiguration;
+{
+  "projectClassification": {
+    "searchMode": "OpenProject", // OpenProject, AllProjects
+    "includedProjects": "",
+    "pathEndKeywords": "*.impl",
+    "isClientPath": "",
+    "isClientName": "",
+    "isTestPath": "",
+    "isTestName": "",
+    "isMappingPath": "",
+    "isMappingName": "",
+    "isDataAccessPath": "",
+    "isDataAccessName": "",
+    "isDataStructurePath": "",
+    "isDataStructureName": "",
+    "isInterfaceStructuresPath": "",
+    "isInterfaceStructuresName": "",
+    "isEntryPointPath": "",
+    "isEntryPointName": "",
+    "treatFinalFieldsAsMandatory": false
+  },
+  "graphRestriction": {
+    "classPackageExcludeFilter": "",
+    "classPackageIncludeFilter": "",
+    "classNameExcludeFilter": "Management;VerificationException;WebhookProperties;SdJwt;CallbackEvent;",
+    "classNameIncludeFilter": "",
+    "methodNameExcludeFilter": "",
+    "methodNameIncludeFilter": "",
+    "removeByInheritance": "", // inheritance/annotation based filtering is done in a second step
+    "removeByAnnotation": "",
+    "removeByClassPackage": "", // cleanup the graph after inheritance/annotation based filtering is done
+    "removeByClassName": "",
+    "cutMappings": false,
+    "cutEnum": true,
+    "cutTests": true,
+    "cutClient": true,
+    "cutDataAccess": true,
+    "cutInterfaceStructures": true,
+    "cutDataStructures": true,
+    "cutGetterAndSetter": true,
+    "cutConstructors": true
+  },
+  "graphTraversal": {
+    "forwardDepth": 3,
+    "backwardDepth": 3,
+    "classPackageExcludeFilter": "",
+    "classPackageIncludeFilter": "",
+    "classNameExcludeFilter": "",
+    "classNameIncludeFilter": "",
+    "methodNameExcludeFilter": "",
+    "methodNameIncludeFilter": "",
+    "hideMappings": false,
+    "hideDataStructures": false,
+    "hidePrivateMethods": true,
+    "hideInterfaceCalls": true, // indirection: implementation -> interface (is hidden) -> implementation
+    "onlyShowApplicationEntryPoints": false, // root node is included
+    "useMethodCallsForStructureDiagram": "ForwardOnly" // ForwardOnly, BothDirections, No
+  },
+  "details": {
+    "aggregation": "GroupByClass", // ByClass, GroupByClass, None
+    "showClassGenericTypes": true,
+    "showMethods": true,
+    "showMethodParameterNames": true,
+    "showMethodParameterTypes": true,
+    "showMethodReturnType": true,
+    "showPackageLevels": 5,
+    "showDetailedClassStructure": false
+  },
+  "rootClass": "ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase",
+  "extensionCallbackMethod": "Verification Controller \u0026 PresentationVerificationUsecase" // qualified.class.name#methodName - signature: public static String method(String)
+}
+diagram meta data end '/
+
+
+
+digraph g {
+    rankdir="TB"
+    splines=polyline
+    
+
+'nodes 
+subgraph cluster_92668751 { 
+   	label=admin
+	labeljust=l
+	fillcolor="#ececec"
+	style=filled
+   
+   subgraph cluster_969162937 { 
+   	label=bj
+	labeljust=l
+	fillcolor="#d8d8d8"
+	style=filled
+   
+   subgraph cluster_1256842502 { 
+   	label=swiyu
+	labeljust=l
+	fillcolor="#c4c4c4"
+	style=filled
+   
+   subgraph cluster_699682998 { 
+   	label=verifier
+	labeljust=l
+	fillcolor="#bababa"
+	style=filled
+   
+   subgraph cluster_1846759225 { 
+   	label=infrastructure
+	labeljust=l
+	fillcolor="#b0b0b0"
+	style=filled
+   
+   VerificationController833771012[
+	label="(C)VerificationController"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+} 
+
+subgraph cluster_531536913 { 
+   	label=service
+	labeljust=l
+	fillcolor="#b0b0b0"
+	style=filled
+   
+   CallbackEventProducer639409387[
+	label="(C)CallbackEventProducer"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+DcqlEvaluatorAdapter1052614248[
+	label="(C)DcqlEvaluatorAdapter"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+DcqlPresentationVerificationService958183926[
+	label="(C)DcqlPresentationVerificationService"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+PresentationSubmissionService958183926[
+	label="(C)PresentationSubmissionService"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+PresentationVerificationService958183926[
+	label="(C)PresentationVerificationService"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+PresentationVerificationStrategyRegistry1531399816[
+	label="(C)PresentationVerificationStrategyRegistry"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+PresentationVerificationUsecase958183926[
+	label="(C)PresentationVerificationUsecase"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+SdJwtPresentationVerificationStrategy1052614248[
+	label="(C)SdJwtPresentationVerificationStrategy"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+SdjwtPresentationVerifierAdapter1052614248[
+	label="(C)SdjwtPresentationVerifierAdapter"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+} 
+} 
+} 
+} 
+} 
+
+'edges    
+DcqlPresentationVerificationService958183926 -> DcqlEvaluatorAdapter1052614248[arrowhead=none];
+DcqlPresentationVerificationService958183926 -> SdjwtPresentationVerifierAdapter1052614248[arrowhead=none];
+PresentationVerificationService958183926 -> PresentationSubmissionService958183926[label="submissionService
+[0..1]"];
+PresentationVerificationService958183926 -> PresentationVerificationStrategyRegistry1531399816[label="strategyRegistry
+[0..1]"];
+PresentationVerificationService958183926 -> SdJwtPresentationVerificationStrategy1052614248[arrowhead=none];
+PresentationVerificationUsecase958183926 -> CallbackEventProducer639409387[label="callbackEventProducer
+[0..1]"];
+PresentationVerificationUsecase958183926 -> DcqlPresentationVerificationService958183926[label="dcqlPresentationVerificationService
+[0..1]"];
+PresentationVerificationUsecase958183926 -> PresentationVerificationService958183926[label="presentationVerificationService
+[0..1]"];
+VerificationController833771012 -> PresentationVerificationUsecase958183926[label="presentationVerificationUsecase
+[0..1]"];
+    
+}
+@enduml

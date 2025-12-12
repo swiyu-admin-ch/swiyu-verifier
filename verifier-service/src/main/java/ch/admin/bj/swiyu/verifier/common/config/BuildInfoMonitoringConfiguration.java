@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Statistic;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -19,6 +20,7 @@ import java.util.Collections;
 
 @Configuration
 @Slf4j
+@ConditionalOnBean(BuildProperties.class)
 public class BuildInfoMonitoringConfiguration {
 
     /**

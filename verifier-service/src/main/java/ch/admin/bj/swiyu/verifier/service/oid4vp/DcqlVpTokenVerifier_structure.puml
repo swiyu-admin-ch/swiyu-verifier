@@ -26,7 +26,7 @@ config=StructureConfiguration;
   "graphRestriction": {
     "classPackageExcludeFilter": "",
     "classPackageIncludeFilter": "",
-    "classNameExcludeFilter": "Management;VerificationException;WebhookProperties;SdJwt;CallbackEvent;",
+    "classNameExcludeFilter": "TrustAnchor;ConfigurationOverride;StatusListReferenceFactory;ApplicationProperties;JsonUtil;VerificationProperties;Base64Utils;VerificationException",
     "classNameIncludeFilter": "",
     "methodNameExcludeFilter": "",
     "methodNameIncludeFilter": "",
@@ -70,7 +70,7 @@ config=StructureConfiguration;
     "showPackageLevels": 5,
     "showDetailedClassStructure": false
   },
-  "rootClass": "ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase",
+  "rootClass": "ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlVpTokenVerifier",
   "extensionCallbackMethod": "Verification Controller \u0026 PresentationVerificationUsecase" // qualified.class.name#methodName - signature: public static String method(String)
 }
 diagram meta data end '/
@@ -107,63 +107,35 @@ subgraph cluster_92668751 {
 	fillcolor="#bababa"
 	style=filled
    
-   subgraph cluster_1846759225 { 
-   	label=infrastructure
-	labeljust=l
-	fillcolor="#b0b0b0"
-	style=filled
-   
-   VerificationController833771012[
-	label="(C)VerificationController"
-	style=filled
-	shape=rect
-	fillcolor="#FFFFFF"
-];
-} 
-
-subgraph cluster_531536913 { 
+   subgraph cluster_531536913 { 
    	label=service
 	labeljust=l
 	fillcolor="#b0b0b0"
 	style=filled
    
-   CallbackEventProducer639409387[
-	label="(C)CallbackEventProducer"
-	style=filled
-	shape=rect
-	fillcolor="#FFFFFF"
-];
-
-DcqlEvaluatorAdapter1052614248[
-	label="(C)DcqlEvaluatorAdapter"
-	style=filled
-	shape=rect
-	fillcolor="#FFFFFF"
-];
-
-DcqlPresentationVerificationService958183926[
+   DcqlPresentationVerificationService958183926[
 	label="(C)DcqlPresentationVerificationService"
 	style=filled
 	shape=rect
 	fillcolor="#FFFFFF"
 ];
 
-PresentationSubmissionService958183926[
-	label="(C)PresentationSubmissionService"
+DcqlVpTokenVerifier958183926[
+	label="(C)DcqlVpTokenVerifier"
 	style=filled
 	shape=rect
 	fillcolor="#FFFFFF"
 ];
 
-PresentationVerificationService958183926[
-	label="(C)PresentationVerificationService"
+IssuerPublicKeyLoader837648240[
+	label="(C)IssuerPublicKeyLoader"
 	style=filled
 	shape=rect
 	fillcolor="#FFFFFF"
 ];
 
-PresentationVerificationStrategyRegistry1531399816[
-	label="(C)PresentationVerificationStrategyRegistry"
+IssuerTrustValidator958183926[
+	label="(C)IssuerTrustValidator"
 	style=filled
 	shape=rect
 	fillcolor="#FFFFFF"
@@ -176,8 +148,8 @@ PresentationVerificationUsecase958183926[
 	fillcolor="#FFFFFF"
 ];
 
-SdJwtPresentationVerificationStrategy1052614248[
-	label="(C)SdJwtPresentationVerificationStrategy"
+SdJwtVpTokenVerifier958183926[
+	label="(C)SdJwtVpTokenVerifier"
 	style=filled
 	shape=rect
 	fillcolor="#FFFFFF"
@@ -196,20 +168,21 @@ SdjwtPresentationVerifierAdapter1052614248[
 } 
 
 'edges    
-DcqlPresentationVerificationService958183926 -> DcqlEvaluatorAdapter1052614248[arrowhead=none];
-DcqlPresentationVerificationService958183926 -> SdjwtPresentationVerifierAdapter1052614248[arrowhead=none];
-PresentationVerificationService958183926 -> PresentationSubmissionService958183926[label="submissionService
+DcqlPresentationVerificationService958183926 -> SdjwtPresentationVerifierAdapter1052614248[label="presentationVerifier
+[0..1]", arrowhead=none];
+DcqlVpTokenVerifier958183926 -> IssuerTrustValidator958183926[label="issuerTrustValidator
 [0..1]"];
-PresentationVerificationService958183926 -> PresentationVerificationStrategyRegistry1531399816[label="strategyRegistry
+DcqlVpTokenVerifier958183926 -> SdJwtVpTokenVerifier958183926[label="sdJwtVpTokenVerifier
 [0..1]"];
-PresentationVerificationService958183926 -> SdJwtPresentationVerificationStrategy1052614248[arrowhead=none];
-PresentationVerificationUsecase958183926 -> CallbackEventProducer639409387[label="callbackEventProducer
+IssuerTrustValidator958183926 -> IssuerPublicKeyLoader837648240[label="issuerPublicKeyLoader
+[0..1]"];
+IssuerTrustValidator958183926 -> SdJwtVpTokenVerifier958183926[label="sdJwtVpTokenVerifier
 [0..1]"];
 PresentationVerificationUsecase958183926 -> DcqlPresentationVerificationService958183926[label="dcqlPresentationVerificationService
 [0..1]"];
-PresentationVerificationUsecase958183926 -> PresentationVerificationService958183926[label="presentationVerificationService
+SdJwtVpTokenVerifier958183926 -> IssuerPublicKeyLoader837648240[label="issuerPublicKeyLoader
 [0..1]"];
-VerificationController833771012 -> PresentationVerificationUsecase958183926[label="presentationVerificationUsecase
+SdjwtPresentationVerifierAdapter1052614248 -> DcqlVpTokenVerifier958183926[label="delegate
 [0..1]"];
     
 }

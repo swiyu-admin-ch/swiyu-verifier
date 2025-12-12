@@ -82,7 +82,7 @@ public class DcqlPresentationVerificationService {
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize object to string", e);
+            log.error("Failed to serialize object to string. Message: {}", e.getMessage());
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Failed to serialize object to string");
         }
     }

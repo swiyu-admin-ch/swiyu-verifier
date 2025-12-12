@@ -51,12 +51,8 @@ public class IssuerTrustValidator {
 
     private boolean hasMatchingTrustStatement(String issuerDid, String vct, List<TrustAnchor> trustAnchors, Management management) {
         // Direct trust: issuer DID matches a trust anchor DID
-        if (isDirectlyTrustedIssuer(issuerDid, trustAnchors)) {
-            return true;
-        }
-
-        // Indirect trust: issuer is vouched for by a trust anchor via trust statement
-        return isTrustedViaRegistry(issuerDid, vct, trustAnchors, management);
+        return isDirectlyTrustedIssuer(issuerDid, trustAnchors)
+                || isTrustedViaRegistry(issuerDid, vct, trustAnchors, management);
     }
 
     private boolean isDirectlyTrustedIssuer(String issuerDid, List<TrustAnchor> trustAnchors) {

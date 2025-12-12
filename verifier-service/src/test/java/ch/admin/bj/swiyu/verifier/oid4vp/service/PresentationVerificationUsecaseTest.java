@@ -18,11 +18,10 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationSubmissionService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import ch.admin.bj.swiyu.verifier.service.PresentationVerificationStrategyRegistry;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerificationStrategy;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.SdjwtPresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -54,7 +53,7 @@ class PresentationVerificationUsecaseTest {
     private Management managementEntity;
     private UUID managementId;
     private LegacyPresentationVerifier legacyPresentationVerifier;
-    private SdjwtPresentationVerifier sdjwtPresentationVerifier;
+    private PresentationVerifier presentationVerifier;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
     private PresentationVerificationService presentationVerificationService;
     private ObjectMapper objectMapper;
@@ -67,7 +66,7 @@ class PresentationVerificationUsecaseTest {
         objectMapper = new ObjectMapper();
         callbackEventProducer = mock(CallbackEventProducer.class);
         legacyPresentationVerifier = mock(LegacyPresentationVerifier.class);
-        sdjwtPresentationVerifier = mock(SdjwtPresentationVerifier.class);
+        presentationVerifier = mock(PresentationVerifier.class);
         dcqlPresentationVerificationService = mock(DcqlPresentationVerificationService.class);
         strategyRegistry = mock(PresentationVerificationStrategyRegistry.class);
         // provide a real Validator to the submissionService to avoid NPE
@@ -128,7 +127,7 @@ class PresentationVerificationUsecaseTest {
 
         // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
         var requestedCredential = dcqlQuery.getCredentials().getFirst();
-        when(sdjwtPresentationVerifier.verify(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential)))
+        when(presentationVerifier.verify(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential)))
                 .thenReturn(sdJwt);
 
         var expectedVerificationSucceededData = objectMapper.writeValueAsString(Map.of(credentialRequestId, List.of(sdJwt.getClaims().getClaims())));

@@ -3,8 +3,8 @@ package ch.admin.bj.swiyu.verifier.oid4vp.adapters;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.VpTokenVerifier;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.VpTokenVerifierAdapter;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.VpTokenDCQLVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.SdjwtPresentationVerifierAdapter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -17,13 +17,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class VpTokenVerifierAdapterTest {
+class SdjwtPresentationVerifierAdapterTest {
 
     @Mock
-    private VpTokenVerifier vpTokenVerifier;
+    private VpTokenDCQLVerifier vpTokenVerifier;
 
     @InjectMocks
-    private VpTokenVerifierAdapter adapter;
+    private SdjwtPresentationVerifierAdapter adapter;
 
     @Test
     void verify_wrapsTokenInSdJwtAndDelegatesToDomainVerifier() {

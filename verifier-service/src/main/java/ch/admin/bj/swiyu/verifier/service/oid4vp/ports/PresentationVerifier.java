@@ -9,6 +9,6 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
  * Implementations can return different types (e.g., SdJwt or String).
  */
 @FunctionalInterface
-public interface SdjwtPresentationVerifier {
+public interface PresentationVerifier {
     SdJwt verify(String vpToken, Management management, DcqlCredential dcqlCredential);
 }

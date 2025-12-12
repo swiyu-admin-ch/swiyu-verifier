@@ -9,9 +9,6 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
-import ch.admin.bj.swiyu.verifier.common.doc.FlowDiagramAction;
-import ch.admin.bj.swiyu.verifier.common.doc.FlowDiagramCondition;
-import ch.admin.bj.swiyu.verifier.common.doc.FlowDiagramTerminal;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -40,7 +37,7 @@ public class PresentationVerificationUsecase {
     private final DcqlPresentationVerificationService dcqlPresentationVerificationService; // use case injection
     private final PresentationVerificationService presentationVerificationService;
 
-    @FlowDiagramAction
+
     private static void verifyProcessNotClosed(Management entity) {
         if (entity.isExpired() || !entity.isVerificationPending()) {
             throw new ProcessClosedException();
@@ -62,15 +59,14 @@ public class PresentationVerificationUsecase {
      *
      * @param managementEntityId the id of the Management
      * @param request            the presentation request to verify
+     *
+     * @Deprecated legacy methode for receiveVerificationPresentation
      */
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
-    @FlowDiagramTerminal
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
     @Deprecated(since="OID4VP 1.0")
     public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
         log.debug("Received verification presentation for management id {}", managementEntityId);
-        @FlowDiagramCondition(branch = "not OK", alternativeBranch = "proceed with main logic")
-        @FlowDiagramAction("throw error")
         var managementEntity = managementEntityRepository.findById(managementEntityId)
             .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
         try {
@@ -80,7 +76,6 @@ public class PresentationVerificationUsecase {
 
             // 3. verifiy the presentation submission
             log.debug("Starting submission verification for {}", managementEntityId);
-            @FlowDiagramAction
             var credentialSubjectData = presentationVerificationService.verify(managementEntity, request);
             log.trace("Submission verification completed for {}", managementEntityId);
             managementEntity.verificationSucceeded(credentialSubjectData);
@@ -114,7 +109,6 @@ public class PresentationVerificationUsecase {
      * @param request            the presentation rejection request from the client
      */
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
-    @FlowDiagramTerminal
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
     public void receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto request) {
         log.debug("Received verification presentation for management id {}", managementEntityId);
@@ -156,7 +150,6 @@ public class PresentationVerificationUsecase {
      * @param managementEntityId the id of the Management
      * @param request            the DCQL presentation request to verify
      */
-    @FlowDiagramTerminal
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     public void receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
         log.debug("Received DCQL verification presentation for management id {}", managementEntityId);

@@ -10,9 +10,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.SdjwtPresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,14 +25,14 @@ import static org.mockito.Mockito.*;
 
 class DcqlPresentationVerificationServiceTest {
 
-    private SdjwtPresentationVerifier sdJwtLegacyPresentationVerifier;
+    private PresentationVerifier sdJwtLegacyPresentationVerifier;
     private DcqlEvaluator dcqlEvaluator;
     private ObjectMapper objectMapper;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
 
     @BeforeEach
     void setUp() {
-        sdJwtLegacyPresentationVerifier = mock(SdjwtPresentationVerifier.class);
+        sdJwtLegacyPresentationVerifier = mock(PresentationVerifier.class);
         dcqlEvaluator = mock(DcqlEvaluator.class);
         objectMapper = new ObjectMapper();
         dcqlPresentationVerificationService = new DcqlPresentationVerificationService(sdJwtLegacyPresentationVerifier, dcqlEvaluator, objectMapper);

@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.adapters;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.VpTokenDCQLVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlVpTokenVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.SdjwtPresentationVerifierAdapter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verify;
 class SdjwtPresentationVerifierAdapterTest {
 
     @Mock
-    private VpTokenDCQLVerifier vpTokenVerifier;
+    private DcqlVpTokenVerifier vpTokenVerifier;
 
     @InjectMocks
     private SdjwtPresentationVerifierAdapter adapter;

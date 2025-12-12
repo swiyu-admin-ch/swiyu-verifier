@@ -8,13 +8,11 @@ import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.authlete.sd.Disclosure;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -28,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.security.MessageDigest;
@@ -38,11 +37,22 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.INVALID_FORMAT;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.JWT_EXPIRED;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.JWT_PREMATURE;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.MALFORMED_CREDENTIAL;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.MISSING_NONCE;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
-@RequiredArgsConstructor
+/**
+ * Verifies SD-JWT trust statements (which are themselves VP tokens) using the
+ * same core verification logic as regular VP tokens, but with trust-specific
+ * semantics.
+ */
+@Service
 @Slf4j
-public abstract class VpTokenVerifier {
+@RequiredArgsConstructor
+public class SdJwtVpTokenVerifier {
 
     // We have vc+sd-jwt only for legacy reasons. We only support sd-jwt vc specification, which uses the format dc+sd-jwt
     public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
@@ -50,13 +60,29 @@ public abstract class VpTokenVerifier {
 
     private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
 
-    protected final IssuerPublicKeyLoader issuerPublicKeyLoader;
-    protected final StatusListReferenceFactory statusListReferenceFactory;
-    protected final ApplicationProperties applicationProperties;
-    protected final VerificationProperties verificationProperties;
+    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
+    private final StatusListReferenceFactory statusListReferenceFactory;
+    private final ApplicationProperties applicationProperties;
+    private final VerificationProperties verificationProperties;
+
+    public SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management) {
+        // Re-use the shared verification building blocks
+        verifyVerifiableCredentialJWT(vpToken, management);
+
+        if (vpToken.hasKeyBinding()) {
+            validateKeyBinding(vpToken, management);
+        } else if (requiresKeyBinding(vpToken.getClaims())) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
+        }
+
+        verifyStatus(vpToken.getClaims().getClaims(), management);
+        validateDisclosures(vpToken, management);
+
+        return vpToken;
+    }
 
     /**
-     * Verifies the given jwt according to basic JWT requirements (header, times, signature) and if issuer is trusted
+     * Verifies the given jwt according to basic JWT requirements (header, times, signature).
      *
      * @param sdJwt to be verified, without resolving selective disclosures. Will be updated to have jws header and jwt claims
      */
@@ -66,9 +92,7 @@ public abstract class VpTokenVerifier {
             var header = nimbusJwt.getHeader();
             validateHeader(header);
             var claims = nimbusJwt.getJWTClaimsSet();
-            // SWIYU injection ==> We want to ensure we trust the issuer
-            validateTrust(claims.getIssuer(), claims.getStringClaim("vct"), managementEntity);
-            // We trust the issuer (or everybody)
+            // Only technical verification here; issuer trust is validated at service layer
             var publicKey = issuerPublicKeyLoader.loadPublicKey(claims.getIssuer(), header.getKeyID());
             log.trace("Loaded issuer public key for id {}", managementEntity.getId());
             // Verify the JWS signature of the JWT
@@ -171,15 +195,15 @@ public abstract class VpTokenVerifier {
         }
     }
 
-    protected void verifyStatus(Map<String, Object> vcClaims, Management managementEntity) {
+    void verifyStatus(Map<String, Object> vcClaims, Management managementEntity) {
         statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
     }
 
-    protected boolean requiresKeyBinding(JWTClaimsSet claims) {
+    boolean requiresKeyBinding(JWTClaimsSet claims) {
         return claims.getClaims().containsKey("cnf");
     }
 
-    protected void validateKeyBinding(SdJwt sdJwt, Management management) {
+    void validateKeyBinding(SdJwt sdJwt, Management management) {
         JWK keyBinding = getHolderKeyBinding(sdJwt.getClaims().getClaims());
         // Validate Holder Binding Proof JWT
         JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding,
@@ -332,107 +356,5 @@ public abstract class VpTokenVerifier {
         }
     }
 
-    /**
-     * Trust / trust-statement related helpers
-     */
-    protected void validateTrust(String issuerDid, String vct, Management managementEntity) {
-        var acceptedIssuerDids = managementEntity.getAcceptedIssuerDids();
-        var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
-        var trustAnchors = managementEntity.getTrustAnchors();
-        var trustAnchorsEmpty = trustAnchors == null || trustAnchors.isEmpty();
-        if (acceptedIssuersEmpty && trustAnchorsEmpty) {
-            // -> if both, accepted issuers and trust anchors, are not set or empty, all issuers are allowed
-            return;
-        }
-        if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDid)) {
-            // Issuer trusted because it is in the accepted issuer dids
-            return;
-        }
-        if (!trustAnchorsEmpty && hasMatchingTrustStatement(issuerDid, vct, trustAnchors, managementEntity)) {
-            return; // We have a valid trust statement for the vct!
-        }
-
-        throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
-    }
-
-    private boolean hasMatchingTrustStatement(String issuerDid, String vct, List<TrustAnchor> trustAnchors, Management management) {
-        // Direct trust: issuer DID matches a trust anchor DID
-        if (isDirectlyTrustedIssuer(issuerDid, trustAnchors)) {
-            return true;
-        }
-
-        // Indirect trust: issuer is vouched for by a trust anchor via trust statement
-        return isTrustedViaRegistry(issuerDid, vct, trustAnchors, management);
-    }
-
-    private boolean isDirectlyTrustedIssuer(String issuerDid, List<TrustAnchor> trustAnchors) {
-        return trustAnchors.stream().anyMatch(trustAnchor -> trustAnchor.did().equals(issuerDid));
-    }
-
-    private boolean isTrustedViaRegistry(String issuerDid, String vct, List<TrustAnchor> trustAnchors, Management management) {
-        for (var trustAnchor : trustAnchors) {
-            List<String> trustStatements = fetchTrustStatementIssuance(vct, trustAnchor);
-            if (trustStatements.isEmpty()) {
-                log.debug("Failed to fetch trust statements for vct {} from {}", vct, trustAnchor.trustRegistryUri());
-                continue;
-            }
-
-            if (verifyTrustStatements(issuerDid, vct, trustAnchor, trustStatements, management)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean verifyTrustStatements(String issuerDid, String vct, TrustAnchor trustAnchor,
-                                          List<String> trustStatements, Management management) {
-        for (var rawTrustStatement : trustStatements) {
-            if (validateTrustStatement(issuerDid, vct, trustAnchor, rawTrustStatement, management)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean validateTrustStatement(String issuerDid, String vct, TrustAnchor trustAnchor,
-                                           String rawTrustStatement, Management management) {
-        try {
-            return isProvidingTrust(issuerDid, vct, trustAnchor, rawTrustStatement, management);
-        } catch (VerificationException e) {
-            log.debug("Failed to verify trust statement for vct {} from {} - {}: {}",
-                    vct, trustAnchor.trustRegistryUri(), e.getErrorResponseCode(), e.getErrorDescription());
-            return false;
-        } catch (ParseException e) {
-            log.info("Trust statement is malformed - missing canIssue claim");
-            return false;
-        }
-    }
-
-    private boolean isProvidingTrust(String issuerDid, String vct, TrustAnchor trustAnchor, String rawTrustStatement, Management management) throws ParseException {
-        var trustStatement = new SdJwt(rawTrustStatement);
-        trustStatement = verifyVpTokenTrustStatement(trustStatement, management);
-        return issuerDid.equals(trustStatement.getClaims().getSubject())
-                && trustAnchor.did().equals(trustStatement.getClaims().getIssuer())
-                && vct.equals(trustStatement.getClaims().getStringClaim("canIssue"));
-    }
-
-    @NotNull
-    private List<String> fetchTrustStatementIssuance(String vct, TrustAnchor trustAnchor) {
-        if (StringUtils.isBlank(vct)) {
-            return List.of();
-        }
-        List<String> rawTrustStatementIssuance;
-        try {
-            rawTrustStatementIssuance = issuerPublicKeyLoader.loadTrustStatement(trustAnchor.trustRegistryUri(), vct);
-        } catch (JsonProcessingException e) {
-            return List.of();
-        }
-        return rawTrustStatementIssuance;
-    }
-
-    /**
-     * Template method to be implemented by subclasses for trust-statement verification,
-     * used internally by trust validation helpers.
-     */
-    protected abstract SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management);
 }
+

@@ -10,8 +10,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.VpTokenDCQLVerifier;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.VpTokenTrustStatementVerifier;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.SdJwtVpTokenVerifier;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -35,9 +34,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link VpTokenDCQLVerifier} focusing on trust evaluation and holder binding audience checks.
+ * Unit tests for {@link SdJwtVpTokenVerifier} focusing on trust evaluation and holder binding audience checks.
  */
-class VpTokenDCQLVerifierTest {
+class SdJwtVpTokenVerifierTest {
 
     private static final String TEST_NONCE = "test-nonce";
 
@@ -47,7 +46,7 @@ class VpTokenDCQLVerifierTest {
     private VerificationProperties verificationProperties;
     private Management management;
 
-    private VpTokenTrustStatementVerifier verifier;
+    private SdJwtVpTokenVerifier verifier;
 
     @BeforeEach
     void setUp() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
@@ -71,7 +70,7 @@ class VpTokenDCQLVerifierTest {
         // Status list verification is out of scope of this unit, so we simulate "no status entries"
         when(statusListReferenceFactory.createStatusListReferences(any(), any())).thenReturn(List.of());
 
-        verifier = new VpTokenTrustStatementVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
     }
 
     @Test

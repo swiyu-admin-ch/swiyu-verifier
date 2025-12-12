@@ -1,0 +1,32 @@
+name: Nightly Trivy Scan
+on:
+  schedule:
+    - cron: 20 4 * * *  # Runs daily at 04:20 UTC
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+permissions:
+  contents: read # Allow reading of SARIF file to upload it
+  security-events: write # Allow write to code ql
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image-tag: [ stable ]
+    steps:
+      - name: Checkout code with .trivyignore
+        uses: actions/checkout@v4
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: ghcr.io/swiyu-admin-ch/swiyu-verifier:${{ matrix.image-tag }}
+          severity: 'CRITICAL,HIGH'
+          exit-code: 0 # Do not abort with error, so upload will be done if scan fails
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-results.sarif
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif

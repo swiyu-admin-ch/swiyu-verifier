@@ -77,7 +77,9 @@ public class PresentationVerificationUsecase {
             // 4b. Persist failed verification result in a dedicated short transaction
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
-            throw e; // rethrow since client gets notified of the error (v2 structure)
+
+            // NOPMD - ExceptionAsFlowControl
+            throw e; //PMD: rethrow since client gets notified of the error (v2 structure)
         } finally {
             // 5. Notify Business Verifier that this verification is done (non-transactional)
             callbackEventProducer.produceEvent(managementEntityId);
@@ -111,7 +113,9 @@ public class PresentationVerificationUsecase {
             // 1a. Persist failed verification result in a dedicated short transaction
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
-            throw e; // rethrow since client gets notified of the error (v2 structure)
+
+            // NOPMD - ExceptionAsFlowControl
+            throw e; //PMD: rethrow since client gets notified of the error (v2 structure)
         } finally {
             // 2. Notify Business Verifier that this verification is done (non-transactional)
             callbackEventProducer.produceEvent(managementEntityId);
@@ -162,6 +166,9 @@ public class PresentationVerificationUsecase {
             // 4a. Persist failed verification result in a dedicated short transaction
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed DCQL verification result for {}", managementEntityId);
+
+            // PMD: we intentionally convert v2 -> v1 error contract here
+            // NOPMD - ExceptionAsFlowControl
             throw submissionErrorV1(e, e.getErrorResponseCode(), e.getErrorDescription()); // rethrow as v1
         } finally {
             // 5. Notify Business Verifier that this verification is done.

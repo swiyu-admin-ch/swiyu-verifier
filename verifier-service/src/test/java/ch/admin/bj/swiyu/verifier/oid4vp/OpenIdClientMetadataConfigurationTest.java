@@ -1,3 +1,4 @@
+
 package ch.admin.bj.swiyu.verifier.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -26,7 +28,7 @@ class OpenIdClientMetadataConfigurationTest {
     private final String clientId = "test-client-id";
     private final String metadataVersion = "1.0.0";
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private Resource clientMetadataResource;
     private OpenIdClientMetadataConfiguration config;
@@ -44,7 +46,7 @@ class OpenIdClientMetadataConfigurationTest {
     }
 
     @Test
-    void testInitOpenIdClientMetadataWithValidMetadata_thenSuccess() throws Exception {
+    void initOpenIdClientMetadata_withValidMetadata_setsMetadata() throws IOException {
         String template = "{\"client_id\":\"${VERIFIER_DID}\",\"logo\":\"logo\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES256\"]}}}";
 
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
@@ -53,61 +55,63 @@ class OpenIdClientMetadataConfigurationTest {
 
         var metadata = config.getOpenIdClientMetadata();
 
-        assertEquals(metadata.getClientId(), clientId);
-        assertEquals(metadata.getVersion(), metadataVersion);
-        assertEquals("ES256", metadata.getVpFormats().jwtVerifiablePresentation().algorithms().getFirst());
-        assertEquals("logo", metadata.getAdditionalProperties().get("logo"));
+        assertThat(metadata.getClientId()).isEqualTo(clientId);
+        assertThat(metadata.getVersion()).isEqualTo(metadataVersion);
+        assertThat(metadata.getVpFormats().jwtVerifiablePresentation().algorithms())
+                .first()
+                .isEqualTo("ES256");
+        assertThat(metadata.getAdditionalProperties())
+                .containsEntry("logo", "logo");
     }
 
     @Test
-    void testInitOpenIdClientMetadataNoClientIdAndVpFormats_throwsException() throws Exception {
+    void initOpenIdClientMetadata_withoutClientIdAndVpFormats_throwsException() throws IOException {
         String template = "{\"other\":\"value\"}";
 
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
 
-        var exception = assertThrows(IllegalStateException.class, () -> {
-            config.initOpenIdClientMetadata();
-        });
+        var exception = assertThrows(IllegalStateException.class, config::initOpenIdClientMetadata);
 
-        assertTrue(exception.getMessage().contains("Invalid OpenID client metadata"));
-        assertTrue(exception.getMessage().contains("'client_id' must not be blank"));
-        assertTrue(exception.getMessage().contains("'vp_formats' must not be null"));
+        assertThat(exception)
+                .hasMessageContaining("Invalid OpenID client metadata")
+                .hasMessageContaining("'client_id' must not be blank")
+                .hasMessageContaining("'vp_formats' must not be null");
     }
 
     @Test
-    void testInitOpenIdClientMetadataInvalidMetadataFile_throwsException() throws Exception {
+    void initOpenIdClientMetadata_invalidMetadataFile_throwsException() throws IOException {
+        var ioExcMsg = "Unable to load OpenID client metadata file";
+        when(clientMetadataResource.getContentAsString(Charset.defaultCharset()))
+                .thenThrow(new IOException(ioExcMsg));
 
-        var ioExcMsg = "no such metadata file";
-        when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenThrow(new IOException(ioExcMsg));
+        var exc = assertThrowsExactly(IllegalStateException.class, config::initOpenIdClientMetadata);
 
-        var exc = assertThrowsExactly(IllegalStateException.class, () -> {
-                    config.initOpenIdClientMetadata();
-                }
-        );
-        assertTrue(exc.getMessage().contains(ioExcMsg));
+        assertThat(exc)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(ioExcMsg);
     }
 
     @ParameterizedTest
     @MethodSource("invalidMetadataProvider")
-    void testInitOpenIdClientMetadataInvalidCases_throwsException(String template, String expectedMessage) throws Exception {
+    void initOpenIdClientMetadata_invalidCases_throwsException(String template, String expectedMessage) throws IOException {
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
 
-        var exception = assertThrows(IllegalStateException.class, () -> {
-            config.initOpenIdClientMetadata();
-        });
+        var exception = assertThrows(IllegalStateException.class, config::initOpenIdClientMetadata);
 
-        assertTrue(exception.getMessage().contains(expectedMessage));
+        assertThat(exception)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(expectedMessage);
     }
 
     private static Stream<Arguments> invalidMetadataProvider() {
         return Stream.of(
                 Arguments.of(
                         "",
-                        "No content to map due to end-of-input"
+                        "Unable to parse OpenID client metadata JSON"
                 ),
                 Arguments.of(
                         "[]",
-                        "Cannot deserialize value of type `ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto` from Array value"
+                        "Unable to parse OpenID client metadata JSON"
                 ),
                 Arguments.of(
                         "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\"}",

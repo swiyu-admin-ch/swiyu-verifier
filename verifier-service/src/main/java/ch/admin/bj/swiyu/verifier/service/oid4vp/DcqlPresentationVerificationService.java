@@ -84,8 +84,8 @@ public class DcqlPresentationVerificationService {
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize object to string. Message: {}", e.getMessage());
 
-            // NOPMD - ExceptionAsFlowControl
-            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Failed to serialize object to string");
+
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Failed to serialize object to string"); // NOPMD - ExceptionAsFlowControl
         }
     }
 }

@@ -85,16 +85,6 @@ public class SdJwt {
             this.keyBinding = Optional.empty();
         }
 
-        /* TODO Refactor getDisclosures() logic here, e.g.
-        int disclosureLength = parts.length;
-        if (this.keyBinding.isPresent()) {
-            // Last entry in parts is key binding
-            disclosureLength -= 1;
-        }
-        this.disclosures = Arrays.stream(Arrays.copyOfRange(this.parts, 1, disclosureLength))
-                .map(Disclosure::parse).toList();
-         */
-
         this.presentation = rawSdJwt.substring(0, rawSdJwt.lastIndexOf(JWT_PART_DELINEATION_CHARACTER) + 1);
 
         try {

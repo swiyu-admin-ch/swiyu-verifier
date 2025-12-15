@@ -17,6 +17,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -93,7 +94,11 @@ public class ManagementTransactionalService {
     /**
      * Persists a successful verification result in its own short-lived transaction.
      */
-    @Transactional(noRollbackFor = VerificationException.class, timeout = 10)
+    @Transactional(
+            propagation = Propagation.REQUIRES_NEW,
+            noRollbackFor = VerificationException.class,
+            timeout = 10
+    )
     public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
         var managementEntity = repository.findById(managementEntityId)
             .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
@@ -104,7 +109,11 @@ public class ManagementTransactionalService {
     /**
      * Persists a failed verification result in its own short-lived transaction.
      */
-    @Transactional(noRollbackFor = VerificationException.class, timeout = 10)
+    @Transactional(
+            propagation = Propagation.REQUIRES_NEW,
+            noRollbackFor = VerificationException.class,
+            timeout = 10
+    )
     public void markVerificationFailed(UUID managementEntityId, VerificationException e) {
         var managementEntity = repository.findById(managementEntityId)
             .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
@@ -116,7 +125,11 @@ public class ManagementTransactionalService {
      * Persists a failed verification result due to an explicit client/wallet rejection
      * in its own short-lived transaction.
      */
-    @Transactional(noRollbackFor = VerificationException.class, timeout = 10)
+    @Transactional(
+            propagation = Propagation.REQUIRES_NEW,
+            noRollbackFor = VerificationException.class,
+            timeout = 10
+    )
     public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
         var managementEntity = repository.findById(managementEntityId)
             .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,

@@ -44,58 +44,62 @@ public class OpenIdClientMetadataConfiguration {
     private OpenidClientMetadataDto openIdClientMetadata;
 
     @PostConstruct
-    @SuppressWarnings({"PMD.CyclomaticComplexity"})
     public void initOpenIdClientMetadata() {
+        final String resolvedJson = loadAndResolveTemplate();
+        this.openIdClientMetadata = parseMetadata(resolvedJson);
+        this.openIdClientMetadata.setVersion(applicationProperties.getMetadataVersion());
+        validateMetadata(this.openIdClientMetadata);
+    }
+
+    private String loadAndResolveTemplate() {
+        if (clientMetadataResource == null) {
+            throw new IllegalStateException("Property 'application.client-metadata-file' must be configured");
+        }
 
         final String template;
         try {
             template = clientMetadataResource.getContentAsString(Charset.defaultCharset());
         } catch (IOException exc) {
-
-            if (log.isErrorEnabled())
-                log.error("⚠️ {} {}", "Failed to load/read metadata file denoted by the 'application.client-metadata-file' property due to:", exc.getMessage());
-
-            throw new IllegalStateException(exc);
+            log.error("Failed to load/read metadata file denoted by 'application.client-metadata-file': {}",
+                    exc.getMessage());
+            throw new IllegalStateException("Unable to load OpenID client metadata file", exc);
         }
 
-        // find and set CLIENT_ID in the template
-        final Properties prop = new Properties();
-        prop.setProperty("VERIFIER_DID", applicationProperties.getClientId());
+        final Properties props = new Properties();
+        props.setProperty("VERIFIER_DID", applicationProperties.getClientId());
         final PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
-        final String loadedTemplate = helper.replacePlaceholders(template, prop);
+        return helper.replacePlaceholders(template, props);
+    }
 
+    private OpenidClientMetadataDto parseMetadata(final String json) {
         try {
-            openIdClientMetadata = objectMapper.readValue(loadedTemplate, OpenidClientMetadataDto.class);
+            return objectMapper.readValue(json, OpenidClientMetadataDto.class);
         } catch (JsonProcessingException exc) {
+            log.error("Failed to deserialize DTO from JSON config OpenidClientMetadata : {}", exc.getMessage());
+            throw new IllegalStateException("Unable to parse OpenID client metadata JSON", exc);
+        }
+    }
 
-            if (log.isErrorEnabled())
-                log.error("⚠️ {} '{}' due to: {}", "Failed to deserialize DTO from JSON config", loadedTemplate, exc.getMessage());
-
-            throw new IllegalStateException(exc);
+    private void validateMetadata(final OpenidClientMetadataDto metadata) {
+        final Set<ConstraintViolation<OpenidClientMetadataDto>> violations = validator.validate(metadata);
+        if (violations.isEmpty()) {
+            return;
         }
 
-        openIdClientMetadata.setVersion(applicationProperties.getMetadataVersion());
+        // CAUTION The ConstraintViolation object's getPropertyPath() getter
+        //         would simply return a camel-cased name of the underlying DTO's Java class field,
+        //         which might not really be useful,
+        //         as actually preferred here is the value denoted by the
+        //         DTO class field's @JsonProperty annotation.
+        //         Assuming this value (JSON property) is always a snake-cased equivalent
+        //         of DTO's Java class field name,
+        //         we could just simply employ a proper case-conversion helper.
+        final String message = "Invalid OpenID client metadata: " + violations.stream()
+                .map(v -> "'" + camelToSnakeCase(v.getPropertyPath().toString()) + "' " + v.getMessage())
+                .collect(java.util.stream.Collectors.joining(", "));
 
-        final Set<ConstraintViolation<OpenidClientMetadataDto>> violations = validator.validate(openIdClientMetadata);
-
-        if (!violations.isEmpty()) {
-            final StringBuilder strBuilder = new StringBuilder("Invalid OpenID client metadata: ");
-            strBuilder.append(violations.stream()
-                    // CAUTION The ConstraintViolation object's getPropertyPath() getter
-                    //         would simply return a camel-cased name of the underlying DTO's Java class field,
-                    //         which might not really be useful,
-                    //         as actually preferred here is the value denoted by the
-                    //         DTO class field's @JsonProperty annotation.
-                    //         Assuming this value (JSON property) is always a snake-cased equivalent
-                    //         of DTO's Java class field name,
-                    //         we could just simply employ a proper case-conversion helper.
-                    .map(v -> "'" + camelToSnakeCase(v.getPropertyPath().toString()) + "' " + v.getMessage())
-                    .collect(java.util.stream.Collectors.joining(", ")));
-
-            if (log.isErrorEnabled()) log.error("⚠️ {}", strBuilder);
-
-            throw new IllegalStateException(strBuilder.toString());
-        }
+        log.error(message);
+        throw new IllegalStateException(message);
     }
 
     /**
@@ -108,6 +112,6 @@ public class OpenIdClientMetadataConfiguration {
         return camelCaseString
                 .replaceAll("([A-Z])(?=[A-Z])", "$1_")
                 .replaceAll("([a-z])([A-Z])", "$1_$2")
-                .toLowerCase(Locale.getDefault()); // although equivalent to toLowerCase(), it makes PMD way much happier
+                .toLowerCase(Locale.ROOT); // although equivalent to toLowerCase(), it makes PMD way much happier
     }
 }

@@ -259,7 +259,7 @@ public class VerificationService {
                 throw new IllegalArgumentException("Expected only 1 vp token for " + requestedCredential.getId());
             }
             var sdJwts = requestedVpTokens.stream().map(SdJwt::new).toList();
-            sdJwts = sdJwts.stream().map(sdjwt -> sdJwtVerificationService.verifyVpToken(sdjwt, entity)).toList();
+            sdJwts = sdJwts.stream().map(sdjwt -> sdJwtVerificationService.verifyVpTokenForDCQLRequest(sdjwt, entity, requestedCredential)).toList();
             sdJwts = DcqlUtil.filterByVct(sdJwts, requestedCredential.getMeta());
             DcqlUtil.validateRequestedClaims(sdJwts.getFirst(), requestedCredential.getClaims());
             // Extract claims from SdJwt list and put into verifiedResponses

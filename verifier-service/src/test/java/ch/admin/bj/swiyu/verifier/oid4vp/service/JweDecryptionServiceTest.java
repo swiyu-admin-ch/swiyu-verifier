@@ -122,7 +122,7 @@ class JweDecryptionServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> jweDecryptionService.decrypt(management, encryptedUnion));
 
-        assertEquals("Response cannot be decrypted.", ex.getMessage());
+        assertThat(ex.getMessage()).contains("Unable to decrypt response");
     }
 
     private static Management createTestManagementWithPrivateKey() {

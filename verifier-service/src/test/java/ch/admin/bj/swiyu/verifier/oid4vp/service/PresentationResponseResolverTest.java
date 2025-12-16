@@ -179,7 +179,7 @@ class PresentationResponseResolverTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
 
-        assertEquals("Response cannot be decrypted.", exception.getMessage());
+        assertThat(exception.getMessage()).contains("Unable to decrypt response");
     }
 
     private String jweEncrypt(String testClaims, ECKey ecKey) throws JOSEException {

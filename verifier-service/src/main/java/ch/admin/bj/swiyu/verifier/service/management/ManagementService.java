@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto
 import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import com.nimbusds.jose.JOSEException;
@@ -25,6 +26,7 @@ import org.springframework.util.CollectionUtils;
 import java.util.List;
 import java.util.UUID;
 
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toManagementResponseDto;
 import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toPresentationDefinition;
 import static java.util.Objects.requireNonNullElse;
@@ -36,6 +38,13 @@ public class ManagementService {
 
     private final ManagementRepository repository;
     private final ApplicationProperties applicationProperties;
+
+    @Transactional
+    public Management getManagementById(UUID requestId) {
+        return repository.findById(requestId)
+                .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
+                        "Management entity not found: " + requestId));
+    }
 
     @Transactional
     public ManagementResponseDto getManagement(UUID id) {

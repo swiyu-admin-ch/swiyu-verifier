@@ -41,26 +41,26 @@ public class VerificationPresentationUnionDto {
                     """,
             oneOf = {String.class, Map.class}
     )
-    private Object vp_token;
+    protected Object vp_token;
 
     @Schema(
             description = "The presentation submission as defined in DIF presentation submission (used for Standard and PE presentations)",
             example = "{\"id\":\"a30e3b91-fb77-4d22-95fa-871689c322e2\",\"definition_id\":\"32f54163-7166-48f1-93d8-ff217bdb0653\"}"
     )
-    private String presentation_submission;
+    protected String presentation_submission;
 
     // From VerificationPresentationRejectionDto
     @Schema(
             description = "Error code for rejection (used for REJECTION)",
             example = "client_rejected"
     )
-    private VerificationClientErrorDto error;
+    protected VerificationClientErrorDto error;
 
     @Schema(
             description = "Error description for rejection (used for REJECTION)",
             example = "The owner has declined the verification request."
     )
-    private String error_description;
+    protected String error_description;
 
 
     // From VerificationPresentationDCQLRequestEncryptedDto
@@ -68,7 +68,7 @@ public class VerificationPresentationUnionDto {
             description = "Encrypted response JWE string (used for DCQLE)",
             example = "eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0..."
     )
-    private String response;
+    protected String response;
 
     // Helper methods to determine the type of request
     @JsonIgnore

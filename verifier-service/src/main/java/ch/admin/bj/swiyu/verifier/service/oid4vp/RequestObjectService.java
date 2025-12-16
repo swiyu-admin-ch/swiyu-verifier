@@ -64,7 +64,7 @@ public class RequestObjectService {
      * 4. If signing is desired, sign and return the JWT string, otherwise return the DTO.
      */
     @Transactional(readOnly = true)
-    public Object assembleRequestObject(UUID managementEntityId) {
+    public RequestObjectResult assembleRequestObject(UUID managementEntityId) {
 
         log.debug("Prepare request object for mgmt-id {}", managementEntityId);
 
@@ -79,10 +79,11 @@ public class RequestObjectService {
 
         log.trace("If signing is desired, sign and return the JWT string, otherwise return the DTO");
         if (isSigningDesired(managementEntity)) {
-            return signRequestObject(requestObject, managementEntity, effectiveConfig);
+            String jwt = signRequestObject(requestObject, managementEntity, effectiveConfig);
+            return new RequestObjectResult.Signed(jwt);
         } else {
             // if signing is not desired return the plain request object DTO
-            return requestObject;
+            return new RequestObjectResult.Unsigned(requestObject);
         }
     }
 
@@ -234,3 +235,4 @@ public class RequestObjectService {
     }
 
 }
+

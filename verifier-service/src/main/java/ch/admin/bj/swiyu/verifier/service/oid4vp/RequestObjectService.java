@@ -91,7 +91,7 @@ public class RequestObjectService {
      * Decides whether the request object should be signed based on the
      * Management configuration flag.
      */
-    private static boolean isSigningDesired(Management managementEntity) {
+    private static boolean isSigningRequested(Management managementEntity) {
         return Boolean.TRUE.equals(managementEntity.getJwtSecuredAuthorizationRequest());
     }
 

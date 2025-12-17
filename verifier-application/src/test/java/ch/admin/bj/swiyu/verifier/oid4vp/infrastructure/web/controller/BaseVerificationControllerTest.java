@@ -176,8 +176,6 @@ public abstract class BaseVerificationControllerTest {
     @AfterEach
     void cleanup() {
         managementEntityRepository.deleteAll();
-//        cacheManager.getCacheNames()
-//                .forEach(name -> cacheManager.getCache(name).clear());
     }
 
     private PresentationDefinition presentationDefinition(String presentationDefinitionJson) throws JsonProcessingException {

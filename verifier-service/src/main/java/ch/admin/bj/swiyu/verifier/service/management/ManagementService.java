@@ -33,7 +33,6 @@ import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toP
 public class ManagementService {
 
     private final ApplicationProperties applicationProperties;
-
     private final ManagementTransactionalService managementTransactionalService;
 
     public ManagementResponseDto getManagement(UUID id) {

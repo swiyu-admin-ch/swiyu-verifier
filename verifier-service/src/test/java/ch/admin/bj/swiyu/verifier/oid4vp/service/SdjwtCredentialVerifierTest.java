@@ -90,8 +90,6 @@ class SdjwtCredentialVerifierTest {
                 verifier.checkPresentationDefinitionCriteria(claims, disclosures)
         );
     }
-
-    // createField("$.first_name"), createField("$.last_name"), createField("$.not_existing")
     private PresentationDefinition getMockedPresentationDefinition(String alg, String keyBindingAlg, List<String> requiredFieldPaths) {
         Map<String, PresentationDefinition.FormatAlgorithm> formatAlgorithms = Map.of(
                 "vc+sd-jwt", new PresentationDefinition.FormatAlgorithm(List.of(alg), List.of(keyBindingAlg))

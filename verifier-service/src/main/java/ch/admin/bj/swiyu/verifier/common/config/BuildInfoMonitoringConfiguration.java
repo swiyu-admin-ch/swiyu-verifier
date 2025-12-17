@@ -20,6 +20,8 @@ import java.util.Collections;
 
 @Configuration
 @Slf4j
+// Only create this configuration if BuildProperties is available.
+// This avoids startup failures when build info is not configured because of missing maven build
 @ConditionalOnBean(BuildProperties.class)
 public class BuildInfoMonitoringConfiguration {
 

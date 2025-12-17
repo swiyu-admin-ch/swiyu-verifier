@@ -24,9 +24,12 @@ import org.springframework.stereotype.Service;
  *   <li>Instantiate and configure {@link SdjwtCredentialVerifier} with the required dependencies.</li>
  *   <li>Return the verification result produced by the legacy verifier (a JSON string with merged claims).</li>
  * </ul>
+ *
+ * @Deprecated Class is deprecated and will be removed in future versions when all OID4VP verifications use the new adapter-based approach.
  */
 @Service
 @RequiredArgsConstructor
+@Deprecated(since="OID4VP 1.0")
 public class SdjwtCredentialVerifierAdapterLegacy implements LegacyPresentationVerifier {
 
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;

@@ -120,7 +120,7 @@ public class ManagementMapper {
         return source.stream().map(ManagementMapper::toInputDescriptorDto).toList();
     }
 
-    private static InputDescriptorDto toInputDescriptorDto(PresentationDefinition.InputDescriptor source) {
+    private static InputDescriptorDto toInputDescriptorDto(InputDescriptor source) {
         if (source == null) {
             return null;
         }
@@ -330,6 +330,7 @@ public class ManagementMapper {
             case INVALID_PRESENTATION_DEFINITION_REFERENCE ->
                     VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION_REFERENCE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
+            case INVALID_TOKEN_STATUS_LIST -> VerificationErrorResponseCodeDto.INVALID_TOKEN_STATUS_LIST;
         };
     }
 

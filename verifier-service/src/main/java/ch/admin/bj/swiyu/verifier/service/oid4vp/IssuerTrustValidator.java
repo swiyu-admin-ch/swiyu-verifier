@@ -50,10 +50,6 @@ public class IssuerTrustValidator {
         var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
         var trustAnchors = management.getTrustAnchors();
         var trustAnchorsEmpty = trustAnchors == null || trustAnchors.isEmpty();
-        if (acceptedIssuersEmpty && trustAnchorsEmpty) {
-            // -> if both, accepted issuers and trust anchors, are not set or empty, all issuers are allowed
-            return;
-        }
         if (!acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDid)) {
             // Issuer trusted because it is in the accepted issuer dids
             return;

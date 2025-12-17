@@ -45,7 +45,8 @@ public enum VerificationErrorResponseCode {
     VP_FORMATS_NOT_SUPPORTED("vp_formats_not_supported"),
     INVALID_PRESENTATION_DEFINITION_URI("invalid_presentation_definition_uri"),
     INVALID_PRESENTATION_DEFINITION_REFERENCE("invalid_presentation_definition_reference"),
-    JWT_PREMATURE("jwt_premature");
+    JWT_PREMATURE("jwt_premature"),
+    INVALID_TOKEN_STATUS_LIST("invalid_token_status_list");
 
     // the value as it is written to json -> only needed because we already have data like this
     // stored in the db (would be a breaking change to simplify it).

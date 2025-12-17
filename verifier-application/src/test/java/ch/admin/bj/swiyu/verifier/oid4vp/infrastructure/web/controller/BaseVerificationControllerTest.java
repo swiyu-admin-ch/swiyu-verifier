@@ -112,6 +112,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -124,6 +125,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(false)))
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .build());
 
         managementEntityRepository.save(Management.builder()

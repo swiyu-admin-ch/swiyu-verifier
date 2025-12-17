@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationUnionDto;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -25,6 +26,8 @@ import org.springframework.stereotype.Service;
 import java.text.ParseException;
 import java.util.Optional;
 
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationError.INVALID_REQUEST;
+
 /**
  * Technical service responsible solely for JWE decryption of verification responses.
  *
@@ -42,12 +45,14 @@ public class JweDecryptionService {
         try {
             JWEObject jwe = JWEObject.parse(verificationResponse.getResponse());
             String keyId = Optional.ofNullable(jwe.getHeader().getKeyID())
-                    .orElseThrow(() -> new IllegalArgumentException("Missing keyId. Unable to decrypt response."));
+                    .orElseThrow(() -> VerificationException.submissionError(
+                            INVALID_REQUEST,
+                            "Missing keyId. Unable to decrypt response."));
             JWEDecrypter decrypter = createJweDecryptor(managementEntity, keyId);
             jwe.decrypt(decrypter);
             return objectMapper.readValue(jwe.getPayload().toString(), VerificationPresentationUnionDto.class);
         } catch (ParseException | JOSEException | JsonProcessingException e) {
-            throw new IllegalArgumentException("Response cannot be decrypted.", e);
+            throw VerificationException.credentialError(e, "Response cannot be decrypted.");
         }
     }
 
@@ -65,4 +70,3 @@ public class JweDecryptionService {
         return new ECDHDecrypter(privateKey);
     }
 }
-

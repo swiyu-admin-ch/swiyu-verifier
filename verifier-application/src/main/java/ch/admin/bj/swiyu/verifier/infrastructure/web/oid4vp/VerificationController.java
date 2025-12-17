@@ -202,7 +202,7 @@ public class VerificationController {
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
 
             // Processing DIF presentation exchange presentation
-            case Standard(var standardDto) ->
+            case PresentationExchange(var standardDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentation(requestId, standardDto);
 
             // Processing DCQL presentation

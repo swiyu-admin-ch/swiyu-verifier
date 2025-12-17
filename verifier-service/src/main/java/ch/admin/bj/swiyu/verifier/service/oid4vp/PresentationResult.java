@@ -15,12 +15,12 @@ import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
  * verification presentation in a type-safe way
  */
 public sealed interface PresentationResult
-        permits PresentationResult.Standard, PresentationResult.Dcql, PresentationResult.EncryptedDcql, PresentationResult.Rejection {
+        permits PresentationResult.PresentationExchange, PresentationResult.Dcql, PresentationResult.EncryptedDcql, PresentationResult.Rejection {
 
     /**
-     * Standard / PE presentation (OID4VP ID2) with vp_token string and presentation_submission.
+     * Old / PE presentation (OID4VP ID2) with vp_token string and presentation_submission.
      */
-    record Standard(VerificationPresentationRequestDto request) implements PresentationResult {
+    record PresentationExchange(VerificationPresentationRequestDto request) implements PresentationResult {
     }
 
     /**

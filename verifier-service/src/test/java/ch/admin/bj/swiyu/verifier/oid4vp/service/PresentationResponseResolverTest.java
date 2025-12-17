@@ -62,8 +62,8 @@ class PresentationResponseResolverTest {
         PresentationResult result = assertDoesNotThrow(
                 () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.ID2, union));
 
-        assertThat(result).isInstanceOf(PresentationResult.Standard.class);
-        var standard = (PresentationResult.Standard) result;
+        assertThat(result).isInstanceOf(PresentationResult.PresentationExchange.class);
+        var standard = (PresentationResult.PresentationExchange) result;
         assertEquals("vp-token-jwt", standard.request().getVpToken());
         assertEquals("{}", standard.request().getPresentationSubmission());
     }
@@ -87,8 +87,8 @@ class PresentationResponseResolverTest {
         PresentationResult result = assertDoesNotThrow(
                 () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.ID2, union));
 
-        assertThat(result).isInstanceOf(PresentationResult.Standard.class);
-        var standard = (PresentationResult.Standard) result;
+        assertThat(result).isInstanceOf(PresentationResult.PresentationExchange.class);
+        var standard = (PresentationResult.PresentationExchange) result;
         assertEquals("plain-vp-token", standard.request().getVpToken());
     }
 

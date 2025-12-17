@@ -77,12 +77,12 @@ public class PresentationResponseResolver {
     }
 
     private PresentationResult mapId2Payload(VerificationPresentationUnionDto payload) {
-        if (!payload.isStandardPresentation()) {
+        if (!payload.isPresentationExchange()) {
             throw submissionError(
                     VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM,
                     "Incomplete submission for ID2, must contain vp_token and presentation_submission");
         }
-        return new PresentationResult.Standard(payload.toStandardPresentation());
+        return new PresentationResult.PresentationExchange(payload.toStandardPresentation());
     }
 
     private PresentationResult mapV1Payload(VerificationPresentationUnionDto payload) {

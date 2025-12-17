@@ -72,7 +72,7 @@ public class VerificationPresentationUnionDto {
 
     // Helper methods to determine the type of request
     @JsonIgnore
-    public boolean isStandardPresentation() {
+    public boolean isPresentationExchange() {
         return vp_token instanceof String && presentation_submission != null;
     }
 
@@ -98,7 +98,7 @@ public class VerificationPresentationUnionDto {
     // Factory methods to extract specific DTOs from Union DTO
     @JsonIgnore
     public VerificationPresentationRequestDto toStandardPresentation() {
-        if (!isStandardPresentation()) {
+        if (!isPresentationExchange()) {
             throw new IllegalArgumentException("Union DTO does not contain standard presentation data");
         }
         var dto = new VerificationPresentationRequestDto();

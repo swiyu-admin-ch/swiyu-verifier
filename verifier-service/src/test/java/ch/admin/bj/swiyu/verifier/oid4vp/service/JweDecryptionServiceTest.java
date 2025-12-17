@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationUnionDto;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
@@ -82,10 +83,10 @@ class JweDecryptionServiceTest {
                 .response(jweWithoutKeyId)
                 .build();
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        VerificationException ex = assertThrows(VerificationException.class,
                 () -> jweDecryptionService.decrypt(management, encryptedUnion));
 
-        assertEquals("Missing keyId. Unable to decrypt response.", ex.getMessage());
+        assertEquals("Missing keyId. Unable to decrypt response.", ex.getErrorDescription());
     }
 
     @Test

@@ -54,7 +54,7 @@ public class PresentationVerificationUsecase {
      */
     @Deprecated(since = "OID4VP 1.0")
     public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
-        log.debug("Received verification presentation for management id {}", managementEntityId);
+        log.debug("Processing DIF presentation exchange presentation for request_id: {}", managementEntityId);
         // 1. Load management entity in a short transaction
         Management managementEntity = managementService.loadManagementEntityForUpdate(managementEntityId);
         try {
@@ -105,7 +105,8 @@ public class PresentationVerificationUsecase {
      * @param request            the presentation rejection request from the client
      */
     public void receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto request) {
-        log.debug("Received verification presentation client rejection for management id {}", managementEntityId);
+        log.debug("Processing rejection for request_id: {}", managementEntityId);
+
         try {
             // 1. Mark as failed due to client rejection in its own short-lived transaction
             managementService.markVerificationFailedDueToClientRejection(managementEntityId, request.getErrorDescription());
@@ -144,10 +145,9 @@ public class PresentationVerificationUsecase {
      * @param request            the DCQL presentation request to verify
      */
     public void receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
-        log.debug("Received DCQL verification presentation for management id {}", managementEntityId);
+        log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
         // 1. Load management entity in a short transaction
         Management managementEntity = managementService.loadManagementEntityForUpdate(managementEntityId);
-
         try {
             // 2. Check if the process is still pending and not expired
             log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);

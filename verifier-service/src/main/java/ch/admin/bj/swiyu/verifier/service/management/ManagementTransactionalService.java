@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
@@ -141,4 +142,8 @@ public class ManagementTransactionalService {
         managementEntity.verificationFailedDueToClientRejection(errorDescription);
     }
 
+    @Transactional
+    public Optional<Management> findById(UUID requestId) {
+        return repository.findById(requestId);
+    }
 }

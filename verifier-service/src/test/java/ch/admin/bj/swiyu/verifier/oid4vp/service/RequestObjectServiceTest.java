@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.SignatureService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSSigner;
@@ -74,11 +75,13 @@ class RequestObjectServiceTest {
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
 
-        Object result = service.assembleRequestObject(mgmtId);
+        RequestObjectResult result = service.assembleRequestObject(mgmtId);
 
-        assertThat(result).isInstanceOf(String.class);
+        assertThat(result).isInstanceOf(RequestObjectResult.Signed.class);
+        assertThat(result.isSigned()).isTrue();
 
-        SignedJWT jwt = SignedJWT.parse((String) result);
+        String jwtString = ((RequestObjectResult.Signed) result).jwt();
+        SignedJWT jwt = SignedJWT.parse(jwtString);
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(clientId);
     }
@@ -95,11 +98,13 @@ class RequestObjectServiceTest {
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
 
-        Object result = service.assembleRequestObject(mgmtId);
+        RequestObjectResult result = service.assembleRequestObject(mgmtId);
 
-        assertThat(result).isInstanceOf(String.class);
+        assertThat(result).isInstanceOf(RequestObjectResult.Signed.class);
+        assertThat(result.isSigned()).isTrue();
 
-        SignedJWT jwt = SignedJWT.parse((String) result);
+        String jwtString = ((RequestObjectResult.Signed) result).jwt();
+        SignedJWT jwt = SignedJWT.parse(jwtString);
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(verificationMethod, jwt.getHeader().getKeyID());
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(overrideDid);
@@ -111,10 +116,12 @@ class RequestObjectServiceTest {
     void assembleRequestObjectUnsigned_thenSuccess() {
         mockManagement(false);
 
-        Object result = service.assembleRequestObject(mgmtId);
+        RequestObjectResult result = service.assembleRequestObject(mgmtId);
 
-        assertThat(result).isInstanceOf(RequestObjectDto.class);
-        RequestObjectDto dto = (RequestObjectDto) result;
+        assertThat(result).isInstanceOf(RequestObjectResult.Unsigned.class);
+        assertThat(result.isSigned()).isFalse();
+
+        RequestObjectDto dto = ((RequestObjectResult.Unsigned) result).requestObject();
         assertThat(dto.getClientId()).isEqualTo(clientId);
     }
 
@@ -125,10 +132,13 @@ class RequestObjectServiceTest {
         var management = mockManagement(false);
         var override = new ConfigurationOverride(externalUrl, overrideDid, null, null, null);
         when(management.getConfigurationOverride()).thenReturn(override);
-        Object result = service.assembleRequestObject(mgmtId);
 
-        assertThat(result).isInstanceOf(RequestObjectDto.class);
-        RequestObjectDto dto = (RequestObjectDto) result;
+        RequestObjectResult result = service.assembleRequestObject(mgmtId);
+
+        assertThat(result).isInstanceOf(RequestObjectResult.Unsigned.class);
+        assertThat(result.isSigned()).isFalse();
+
+        RequestObjectDto dto = ((RequestObjectResult.Unsigned) result).requestObject();
         assertEquals(overrideDid, dto.getClientId());
         assertThat(dto.getResponseUri()).startsWith(externalUrl);
 

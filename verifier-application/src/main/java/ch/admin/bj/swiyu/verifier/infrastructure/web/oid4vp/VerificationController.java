@@ -9,11 +9,16 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 import ch.admin.bj.swiyu.verifier.api.*;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.DecryptionService;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResponseResolver;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Unsigned;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Signed;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.*;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,9 +58,10 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 public class VerificationController {
 
     private final RequestObjectService requestObjectService;
-    private final DecryptionService decryptionService;
-    private final VerificationService verificationService;
+    private final PresentationResponseResolver presentationResponseResolver;
+    private final PresentationVerificationUsecase presentationVerificationUsecase;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
+    private final ManagementService managementService;
 
     @Timed
     @GetMapping(value = {"openid-client-metadata.json"})
@@ -92,7 +98,7 @@ public class VerificationController {
     @GetMapping(value = {"request-object/{request_id}"}, produces = {"application/oauth-authz-req+jwt", MediaType.APPLICATION_JSON_VALUE})
     @Operation(
             summary = "Get Request Object",
-            description = "Can return a RequestObjectDto as JSON Object or a SignedJwt String depending of JAR (JWT secured authorization request) flag in verifier management",
+            description = "Can return a RequestObjectDto as JSON Object or a SignedJWT String depending on JAR (JWT secured authorization request) flag in verifier management",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -109,16 +115,20 @@ public class VerificationController {
             }
     )
     public ResponseEntity<Object> getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
-        var requestObject = requestObjectService.assembleRequestObject(requestId);
-        var responseBuilder = ResponseEntity.ok();
-        if (requestObject instanceof String) {
+        RequestObjectResult result = requestObjectService.assembleRequestObject(requestId);
+
+        return switch (result) {
             // JWT Request Object
-            responseBuilder.contentType(new MediaType("application", "oauth-authz-req+jwt"));
-        } else {
+            case Signed(var jwt) -> ResponseEntity
+                    .ok()
+                    .contentType(new MediaType("application", "oauth-authz-req+jwt"))
+                    .body(jwt);
             // Unsecured Request Object
-            responseBuilder.contentType(MediaType.APPLICATION_JSON);
-        }
-        return responseBuilder.body(requestObject);
+            case Unsigned(var requestObject) -> ResponseEntity
+                    .ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestObject);
+        };
     }
 
     @Timed
@@ -179,33 +189,32 @@ public class VerificationController {
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationUnionDto unionDto) {
 
-
         log.info("Received verification presentation for request_id: {} with version: {}", requestId, versionString);
-        VerificationPresentationUnionDto decrypted = decryptionService.decrypt(requestId, unionDto);
-        if (decrypted.isRejection()) {
-            // Handle rejection
-            log.debug("Processing rejection for request_id: {}", requestId);
-            var rejectionDto = decrypted.toRejection();
-            verificationService.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
-            return;
-        }
-
         VPApiVersion version = VPApiVersion.fromValue(versionString);
 
-        if (version == VPApiVersion.ID2) {// Handle DIF Presentation Exchange presentation
-            log.debug("Processing DIF presentation exchange presentation for request_id: {}", requestId);
-            var standardDto = decrypted.toStandardPresentation();
-            verificationService.receiveVerificationPresentation(requestId, standardDto);
-        } else if (version == VPApiVersion.V1) {
-            if (decrypted.isDcqlPresentation()) {
-                log.debug("Processing DCQL presentation for request_id: {}", requestId);
-                var dcqlDto = decrypted.toDcqlPresentation();
-                verificationService.receiveVerificationPresentationDCQL(requestId, dcqlDto);
-            } else {
-                log.debug("Incomplete submission");
-                throw submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, "Incomplete submission, must contain only vp_token or response");
-            }
+        var managementEntity = managementService.getManagementById(requestId);
+
+        PresentationResult result = presentationResponseResolver.mapToPresentationResult(managementEntity, version, unionDto);
+
+        switch (result) {
+            // Processing rejection
+            case Rejection(var rejectionDto) ->
+                presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
+
+            // Processing DIF presentation exchange presentation
+            case PresentationExchange(var standardDto) ->
+                presentationVerificationUsecase.receiveVerificationPresentation(requestId, standardDto);
+
+            // Processing DCQL presentation
+            case Dcql(var dcqlDto) ->
+                presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, dcqlDto);
+
+            // Processing encrypted DCQL presentation
+            case EncryptedDcql(var encryptedDcqlDto) ->
+                presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, encryptedDcqlDto);
+
         }
+
         log.info("Successfully processed verification presentation for request_id: {}", requestId);
 
     }

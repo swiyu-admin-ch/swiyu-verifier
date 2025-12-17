@@ -48,6 +48,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -64,7 +66,6 @@ import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.ge
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -794,7 +795,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void shouldSucceedForDCQLEndpoint() throws Exception {
+    void testDCQLEndpoint_thenSuccess() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
@@ -819,6 +820,152 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .contains("last_name")
                 .contains("TestLastName");
     }
+
+    @Test
+    void testDCQLEndpoint_withKeybinding_thenSuccess() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
+
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isOk());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
+
+    @Test
+    void testDCQLEndpoint_withKeybindingButNotRequested_thenSuccess() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isOk());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
+
+    @Test
+    void testDCQLEndpoint_withoutKeybinding_thenSuccess() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock(true);
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isOk());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
+
+    @Test
+    void testDCQLEndpoint_missingHolderBinding_thenBadRequest() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isBadRequest());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+    }
+
+    @Test
+    void testDCQLEndpoint_noHolderBindingRequestedButNeededForCredential_thenBadRequest() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isBadRequest());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+    }
+
+    @Test
+    void testDCQLEndpoint_invalidHolderBinding_thenBadRequest() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "incorrect-audience");
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isBadRequest());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+    }
+
+    @Test
+    void testDCQLEndpoint_holderBindingRequestedButNotPossible_thenBadRequest() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock(true);
+
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isBadRequest());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+    }
+
 
     @Test
     void shouldBadRequestForDCQLEndpoint_whenWrongAudience() throws Exception {

@@ -6,7 +6,6 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 
 /**
  * Port: verifies a presented VP token and returns a verified result.
- * Implementations can return different types (e.g., SdJwt or String).
  */
 @FunctionalInterface
 public interface PresentationVerifier {

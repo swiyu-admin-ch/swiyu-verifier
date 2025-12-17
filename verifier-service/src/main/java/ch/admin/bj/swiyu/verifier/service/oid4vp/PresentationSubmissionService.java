@@ -55,7 +55,12 @@ public class PresentationSubmissionService {
     }
 
     /**
-     * Validates the PresentationSubmission and throws IllegalArgumentException on constraint violations.
+     * Validates the given PresentationSubmissionDto
+     * <p>
+     * Throws an IllegalArgumentException if any constraint violations are found
+     *
+     * @param presentationSubmission the presentation submission to validate
+     * @throws IllegalArgumentException if validation fails
      */
     public void validate(PresentationSubmissionDto presentationSubmission) {
         Set<ConstraintViolation<PresentationSubmissionDto>> violations = validator.validate(presentationSubmission);

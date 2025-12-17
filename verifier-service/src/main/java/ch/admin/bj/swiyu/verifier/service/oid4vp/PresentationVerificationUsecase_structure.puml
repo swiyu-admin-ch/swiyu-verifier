@@ -24,9 +24,9 @@ config=StructureConfiguration;
     "treatFinalFieldsAsMandatory": false
   },
   "graphRestriction": {
-    "classPackageExcludeFilter": "",
+    "classPackageExcludeFilter": "*domain.*;*api.*;*common.*",
     "classPackageIncludeFilter": "",
-    "classNameExcludeFilter": "Management;VerificationException;WebhookProperties;SdJwt;CallbackEvent;",
+    "classNameExcludeFilter": "Management;VerificationException;WebhookProperties;SdJwt;CallbackEvent;*Mapper;*Util",
     "classNameIncludeFilter": "",
     "methodNameExcludeFilter": "",
     "methodNameIncludeFilter": "",
@@ -148,6 +148,27 @@ DcqlPresentationVerificationService958183926[
 	fillcolor="#FFFFFF"
 ];
 
+DcqlVpTokenVerifier958183926[
+	label="(C)DcqlVpTokenVerifier"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+ManagementService787112809[
+	label="(C)ManagementService"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+ManagementTransactionalService787112809[
+	label="(C)ManagementTransactionalService"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
 PresentationSubmissionService958183926[
 	label="(C)PresentationSubmissionService"
 	style=filled
@@ -183,8 +204,22 @@ SdJwtPresentationVerificationStrategy1052614248[
 	fillcolor="#FFFFFF"
 ];
 
+SdjwtCredentialVerifierAdapterLegacy1052614248[
+	label="(C)SdjwtCredentialVerifierAdapterLegacy"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
 SdjwtPresentationVerifierAdapter1052614248[
 	label="(C)SdjwtPresentationVerifierAdapter"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+VerifiableCredentialExtractor958183926[
+	label="(C)VerifiableCredentialExtractor"
 	style=filled
 	shape=rect
 	fillcolor="#FFFFFF"
@@ -198,6 +233,8 @@ SdjwtPresentationVerifierAdapter1052614248[
 'edges    
 DcqlPresentationVerificationService958183926 -> DcqlEvaluatorAdapter1052614248[arrowhead=none];
 DcqlPresentationVerificationService958183926 -> SdjwtPresentationVerifierAdapter1052614248[arrowhead=none];
+ManagementService787112809 -> ManagementTransactionalService787112809[label="managementTransactionalService
+[0..1]"];
 PresentationVerificationService958183926 -> PresentationSubmissionService958183926[label="submissionService
 [0..1]"];
 PresentationVerificationService958183926 -> PresentationVerificationStrategyRegistry1531399816[label="strategyRegistry
@@ -207,7 +244,13 @@ PresentationVerificationUsecase958183926 -> CallbackEventProducer639409387[label
 [0..1]"];
 PresentationVerificationUsecase958183926 -> DcqlPresentationVerificationService958183926[label="dcqlPresentationVerificationService
 [0..1]"];
+PresentationVerificationUsecase958183926 -> ManagementService787112809[label="managementService
+[0..1]"];
 PresentationVerificationUsecase958183926 -> PresentationVerificationService958183926[label="presentationVerificationService
+[0..1]"];
+SdJwtPresentationVerificationStrategy1052614248 -> SdjwtCredentialVerifierAdapterLegacy1052614248[arrowhead=none];
+SdJwtPresentationVerificationStrategy1052614248 -> VerifiableCredentialExtractor958183926[label="verify() -> extractVerifiableCredential()"];
+SdjwtPresentationVerifierAdapter1052614248 -> DcqlVpTokenVerifier958183926[label="delegate
 [0..1]"];
 VerificationController833771012 -> PresentationVerificationUsecase958183926[label="presentationVerificationUsecase
 [0..1]"];

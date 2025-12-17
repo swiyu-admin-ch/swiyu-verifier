@@ -29,6 +29,22 @@ public class IssuerTrustValidator {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final SdJwtVpTokenVerifier sdJwtVpTokenVerifier;
 
+    /**
+     * Validates whether the given issuer is trusted according to the provided management configuration.
+     * <p>
+     * Trust is established if:
+     * <ul>
+     *   <li>Both accepted issuer DIDs and trust anchors are empty (all issuers allowed), or</li>
+     *   <li>The issuer DID is in the list of accepted issuer DIDs, or</li>
+     *   <li>The issuer is directly or indirectly trusted via a trust anchor and a valid trust statement.</li>
+     * </ul>
+     * If none of these conditions are met, a {@link VerificationException} is thrown.
+     *
+     * @param issuerDid the DID of the issuer to validate
+     * @param vct the credential type (vct) to check trust for
+     * @param management the management configuration containing accepted issuers and trust anchors
+     * @throws VerificationException if the issuer is not trusted
+     */
     public void validateTrust(String issuerDid, String vct, Management management) {
         var acceptedIssuerDids = management.getAcceptedIssuerDids();
         var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();

@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
@@ -14,6 +15,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementTransactionalService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationSubmissionService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
@@ -63,6 +66,10 @@ class PresentationVerificationUsecaseTest {
     @BeforeEach
     void setUp() {
         ManagementRepository managementRepository = mock(ManagementRepository.class);
+        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
+        ManagementTransactionalService managementTransactionalService = new ManagementTransactionalService(managementRepository, applicationProperties);
+        ManagementService managementService = new ManagementService(applicationProperties, managementTransactionalService);
+
         objectMapper = new ObjectMapper();
         callbackEventProducer = mock(CallbackEventProducer.class);
         legacyPresentationVerifier = mock(LegacyPresentationVerifier.class);
@@ -78,11 +85,10 @@ class PresentationVerificationUsecaseTest {
         );
 
         presentationVerificationUsecase = new PresentationVerificationUsecase(
-                managementRepository,
                 callbackEventProducer,
                 dcqlPresentationVerificationService,
-                presentationVerificationService
-
+                presentationVerificationService,
+                managementService
         );
 
         managementEntity = mock(Management.class);
@@ -92,6 +98,7 @@ class PresentationVerificationUsecaseTest {
         when(managementEntity.isExpired()).thenReturn(false);
         when(managementEntity.isVerificationPending()).thenReturn(true);
         when(managementEntity.getId()).thenReturn(managementId);
+        when(managementEntity.isProcessStillOpen()).thenReturn(true);
     }
 
     @Test
@@ -154,6 +161,7 @@ class PresentationVerificationUsecaseTest {
     @Test
     void receiveVerificationPresentation_processClosed() {
         when(managementEntity.isExpired()).thenReturn(true);
+        when(managementEntity.isProcessStillOpen()).thenReturn(false);
         VerificationPresentationRequestDto request = mock(VerificationPresentationRequestDto.class);
 
         assertThrows(ProcessClosedException.class, () ->
@@ -191,6 +199,7 @@ class PresentationVerificationUsecaseTest {
     @Test
     void receiveVerificationPresentationClientRejection_processClosed_thenThrowsException() {
         when(managementEntity.isExpired()).thenReturn(true);
+        when(managementEntity.isProcessStillOpen()).thenReturn(false);
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
@@ -204,6 +213,7 @@ class PresentationVerificationUsecaseTest {
     @Test
     void receiveVerificationPresentationClientRejection_verificationNotPending_thenThrowsException() {
         when(managementEntity.isVerificationPending()).thenReturn(false);
+        when(managementEntity.isProcessStillOpen()).thenReturn(false);
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 

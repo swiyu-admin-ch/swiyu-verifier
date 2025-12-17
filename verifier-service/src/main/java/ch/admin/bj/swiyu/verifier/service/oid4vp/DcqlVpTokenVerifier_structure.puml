@@ -1,0 +1,189 @@
+@startuml
+
+/' diagram meta data start
+config=StructureConfiguration;
+{
+  "projectClassification": {
+    "searchMode": "OpenProject", // OpenProject, AllProjects
+    "includedProjects": "",
+    "pathEndKeywords": "*.impl",
+    "isClientPath": "",
+    "isClientName": "",
+    "isTestPath": "",
+    "isTestName": "",
+    "isMappingPath": "",
+    "isMappingName": "",
+    "isDataAccessPath": "",
+    "isDataAccessName": "",
+    "isDataStructurePath": "",
+    "isDataStructureName": "",
+    "isInterfaceStructuresPath": "",
+    "isInterfaceStructuresName": "",
+    "isEntryPointPath": "",
+    "isEntryPointName": "",
+    "treatFinalFieldsAsMandatory": false
+  },
+  "graphRestriction": {
+    "classPackageExcludeFilter": "",
+    "classPackageIncludeFilter": "",
+    "classNameExcludeFilter": "TrustAnchor;ConfigurationOverride;StatusListReferenceFactory;ApplicationProperties;JsonUtil;VerificationProperties;Base64Utils;VerificationException",
+    "classNameIncludeFilter": "",
+    "methodNameExcludeFilter": "",
+    "methodNameIncludeFilter": "",
+    "removeByInheritance": "", // inheritance/annotation based filtering is done in a second step
+    "removeByAnnotation": "",
+    "removeByClassPackage": "", // cleanup the graph after inheritance/annotation based filtering is done
+    "removeByClassName": "",
+    "cutMappings": false,
+    "cutEnum": true,
+    "cutTests": true,
+    "cutClient": true,
+    "cutDataAccess": true,
+    "cutInterfaceStructures": true,
+    "cutDataStructures": true,
+    "cutGetterAndSetter": true,
+    "cutConstructors": true
+  },
+  "graphTraversal": {
+    "forwardDepth": 3,
+    "backwardDepth": 3,
+    "classPackageExcludeFilter": "",
+    "classPackageIncludeFilter": "",
+    "classNameExcludeFilter": "",
+    "classNameIncludeFilter": "",
+    "methodNameExcludeFilter": "",
+    "methodNameIncludeFilter": "",
+    "hideMappings": false,
+    "hideDataStructures": false,
+    "hidePrivateMethods": true,
+    "hideInterfaceCalls": true, // indirection: implementation -> interface (is hidden) -> implementation
+    "onlyShowApplicationEntryPoints": false, // root node is included
+    "useMethodCallsForStructureDiagram": "ForwardOnly" // ForwardOnly, BothDirections, No
+  },
+  "details": {
+    "aggregation": "GroupByClass", // ByClass, GroupByClass, None
+    "showClassGenericTypes": true,
+    "showMethods": true,
+    "showMethodParameterNames": true,
+    "showMethodParameterTypes": true,
+    "showMethodReturnType": true,
+    "showPackageLevels": 5,
+    "showDetailedClassStructure": false
+  },
+  "rootClass": "ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlVpTokenVerifier",
+  "extensionCallbackMethod": "Verification Controller \u0026 PresentationVerificationUsecase" // qualified.class.name#methodName - signature: public static String method(String)
+}
+diagram meta data end '/
+
+
+
+digraph g {
+    rankdir="TB"
+    splines=polyline
+    
+
+'nodes 
+subgraph cluster_92668751 { 
+   	label=admin
+	labeljust=l
+	fillcolor="#ececec"
+	style=filled
+   
+   subgraph cluster_969162937 { 
+   	label=bj
+	labeljust=l
+	fillcolor="#d8d8d8"
+	style=filled
+   
+   subgraph cluster_1256842502 { 
+   	label=swiyu
+	labeljust=l
+	fillcolor="#c4c4c4"
+	style=filled
+   
+   subgraph cluster_699682998 { 
+   	label=verifier
+	labeljust=l
+	fillcolor="#bababa"
+	style=filled
+   
+   subgraph cluster_531536913 { 
+   	label=service
+	labeljust=l
+	fillcolor="#b0b0b0"
+	style=filled
+   
+   DcqlPresentationVerificationService958183926[
+	label="(C)DcqlPresentationVerificationService"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+DcqlVpTokenVerifier958183926[
+	label="(C)DcqlVpTokenVerifier"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+IssuerPublicKeyLoader837648240[
+	label="(C)IssuerPublicKeyLoader"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+IssuerTrustValidator958183926[
+	label="(C)IssuerTrustValidator"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+PresentationVerificationUsecase958183926[
+	label="(C)PresentationVerificationUsecase"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+SdJwtVpTokenVerifier958183926[
+	label="(C)SdJwtVpTokenVerifier"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+
+SdjwtPresentationVerifierAdapter1052614248[
+	label="(C)SdjwtPresentationVerifierAdapter"
+	style=filled
+	shape=rect
+	fillcolor="#FFFFFF"
+];
+} 
+} 
+} 
+} 
+} 
+
+'edges    
+DcqlPresentationVerificationService958183926 -> SdjwtPresentationVerifierAdapter1052614248[label="presentationVerifier
+[0..1]", arrowhead=none];
+DcqlVpTokenVerifier958183926 -> IssuerTrustValidator958183926[label="issuerTrustValidator
+[0..1]"];
+DcqlVpTokenVerifier958183926 -> SdJwtVpTokenVerifier958183926[label="sdJwtVpTokenVerifier
+[0..1]"];
+IssuerTrustValidator958183926 -> IssuerPublicKeyLoader837648240[label="issuerPublicKeyLoader
+[0..1]"];
+IssuerTrustValidator958183926 -> SdJwtVpTokenVerifier958183926[label="sdJwtVpTokenVerifier
+[0..1]"];
+PresentationVerificationUsecase958183926 -> DcqlPresentationVerificationService958183926[label="dcqlPresentationVerificationService
+[0..1]"];
+SdJwtVpTokenVerifier958183926 -> IssuerPublicKeyLoader837648240[label="issuerPublicKeyLoader
+[0..1]"];
+SdjwtPresentationVerifierAdapter1052614248 -> DcqlVpTokenVerifier958183926[label="delegate
+[0..1]"];
+    
+}
+@enduml

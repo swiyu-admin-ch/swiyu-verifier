@@ -10,11 +10,13 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -28,7 +30,7 @@ import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PE
 @AutoConfigureMockMvc
 @Testcontainers
 @ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
-@Transactional
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 public abstract class BaseVerificationControllerTest {
 
     protected static final UUID REQUEST_ID_SECURED = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
@@ -110,6 +112,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -122,6 +125,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(false)))
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -169,6 +173,11 @@ public abstract class BaseVerificationControllerTest {
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
+    }
+
+    @AfterEach
+    void cleanup() {
+        managementEntityRepository.deleteAll();
     }
 
     private PresentationDefinition presentationDefinition(String presentationDefinitionJson) throws JsonProcessingException {

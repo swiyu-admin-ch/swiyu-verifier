@@ -12,8 +12,11 @@ import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DecryptionService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Unsigned;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Signed;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.VerificationService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,7 +57,7 @@ public class VerificationController {
 
     private final RequestObjectService requestObjectService;
     private final DecryptionService decryptionService;
-    private final VerificationService verificationService;
+    private final PresentationVerificationUsecase presentationVerificationUsecase;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
 
     @Timed
@@ -109,16 +112,20 @@ public class VerificationController {
             }
     )
     public ResponseEntity<Object> getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
-        var requestObject = requestObjectService.assembleRequestObject(requestId);
-        var responseBuilder = ResponseEntity.ok();
-        if (requestObject instanceof String) {
+        RequestObjectResult result = requestObjectService.assembleRequestObject(requestId);
+
+        return switch (result) {
             // JWT Request Object
-            responseBuilder.contentType(new MediaType("application", "oauth-authz-req+jwt"));
-        } else {
+            case Signed(var jwt) -> ResponseEntity
+                    .ok()
+                    .contentType(new MediaType("application", "oauth-authz-req+jwt"))
+                    .body(jwt);
             // Unsecured Request Object
-            responseBuilder.contentType(MediaType.APPLICATION_JSON);
-        }
-        return responseBuilder.body(requestObject);
+            case Unsigned(var requestObject) -> ResponseEntity
+                    .ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestObject);
+        };
     }
 
     @Timed
@@ -186,7 +193,7 @@ public class VerificationController {
             // Handle rejection
             log.debug("Processing rejection for request_id: {}", requestId);
             var rejectionDto = decrypted.toRejection();
-            verificationService.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
+            presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
             return;
         }
 
@@ -195,12 +202,12 @@ public class VerificationController {
         if (version == VPApiVersion.ID2) {// Handle DIF Presentation Exchange presentation
             log.debug("Processing DIF presentation exchange presentation for request_id: {}", requestId);
             var standardDto = decrypted.toStandardPresentation();
-            verificationService.receiveVerificationPresentation(requestId, standardDto);
+            presentationVerificationUsecase.receiveVerificationPresentation(requestId, standardDto);
         } else if (version == VPApiVersion.V1) {
             if (decrypted.isDcqlPresentation()) {
                 log.debug("Processing DCQL presentation for request_id: {}", requestId);
                 var dcqlDto = decrypted.toDcqlPresentation();
-                verificationService.receiveVerificationPresentationDCQL(requestId, dcqlDto);
+                presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, dcqlDto);
             } else {
                 log.debug("Incomplete submission");
                 throw submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, "Incomplete submission, must contain only vp_token or response");

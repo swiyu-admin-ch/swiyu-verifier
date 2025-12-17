@@ -66,7 +66,7 @@ public class PresentationVerificationUsecase {
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
     @Deprecated(since="OID4VP 1.0")
     public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
-        log.debug("Received verification presentation for management id {}", managementEntityId);
+        log.debug("Processing DIF presentation exchange presentation for request_id: {}", managementEntityId);
         var managementEntity = managementEntityRepository.findById(managementEntityId)
             .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
         try {
@@ -111,7 +111,7 @@ public class PresentationVerificationUsecase {
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
     public void receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto request) {
-        log.debug("Received verification presentation for management id {}", managementEntityId);
+        log.debug("Processing rejection for request_id: {}", managementEntityId);
         var managementEntity = managementEntityRepository.findById(managementEntityId)
             .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
         try {
@@ -152,7 +152,7 @@ public class PresentationVerificationUsecase {
      */
     @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     public void receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
-        log.debug("Received DCQL verification presentation for management id {}", managementEntityId);
+        log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
         var managementEntity = managementEntityRepository.findById(managementEntityId)
             .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
         try {

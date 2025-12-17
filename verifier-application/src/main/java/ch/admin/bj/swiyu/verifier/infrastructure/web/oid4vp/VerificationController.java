@@ -17,6 +17,7 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Unsigned;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Signed;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.*;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
@@ -188,7 +189,6 @@ public class VerificationController {
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationUnionDto unionDto) {
 
-
         log.info("Received verification presentation for request_id: {} with version: {}", requestId, versionString);
         VPApiVersion version = VPApiVersion.fromValue(versionString);
 
@@ -197,22 +197,22 @@ public class VerificationController {
         PresentationResult result = presentationResponseResolver.mapToPresentationResult(managementEntity, version, unionDto);
 
         switch (result) {
-            case PresentationResult.Rejection(var rejectionDto) -> {
-                log.debug("Processing rejection for request_id: {}", requestId);
+            // Processing rejection
+            case Rejection(var rejectionDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
-            }
-            case PresentationResult.Standard(var standardDto) -> {
-                log.debug("Processing DIF presentation exchange presentation for request_id: {}", requestId);
+
+            // Processing DIF presentation exchange presentation
+            case Standard(var standardDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentation(requestId, standardDto);
-            }
-            case PresentationResult.Dcql(var dcqlDto) -> {
-                log.debug("Processing DCQL presentation for request_id: {}", requestId);
+
+            // Processing DCQL presentation
+            case Dcql(var dcqlDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, dcqlDto);
-            }
-            case PresentationResult.EncryptedDcql(var encryptedDcqlDto) -> {
-                log.debug("Processing encrypted DCQL presentation for request_id: {}", requestId);
+
+            // Processing encrypted DCQL presentation
+            case EncryptedDcql(var encryptedDcqlDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, encryptedDcqlDto);
-            }
+
         }
 
         log.info("Successfully processed verification presentation for request_id: {}", requestId);

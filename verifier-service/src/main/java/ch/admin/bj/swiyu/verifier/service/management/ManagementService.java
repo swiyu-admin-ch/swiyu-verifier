@@ -39,14 +39,12 @@ public class ManagementService {
 
     private final ManagementTransactionalService managementTransactionalService;
 
-    @Transactional
     public Management getManagementById(UUID requestId) {
-        return repository.findById(requestId)
+        return managementTransactionalService.findById(requestId)
                 .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
                         "Management entity not found: " + requestId));
     }
 
-    @Transactional
     public ManagementResponseDto getManagement(UUID id) {
         log.debug("requested verification for id: {}", id);
         var management = managementTransactionalService.findAndHandleExpiration(id);

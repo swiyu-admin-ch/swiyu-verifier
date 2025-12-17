@@ -1,8 +1,9 @@
-package ch.admin.bj.swiyu.verifier.service.callback;
+package ch.admin.bj.swiyu.verifier.infrastructure.scheduler;
 
 import ch.admin.bj.swiyu.verifier.common.config.WebhookProperties;
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEvent;
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEventRepository;
+import ch.admin.bj.swiyu.verifier.service.callback.CallbackMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

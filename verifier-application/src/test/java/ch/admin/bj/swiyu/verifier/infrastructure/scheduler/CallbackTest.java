@@ -1,9 +1,8 @@
-package ch.admin.bj.swiyu.verifier.oid4vp.service;
+package ch.admin.bj.swiyu.verifier.infrastructure.scheduler;
 
 import ch.admin.bj.swiyu.verifier.common.config.WebhookProperties;
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEvent;
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEventRepository;
-import ch.admin.bj.swiyu.verifier.service.callback.CallbackDispatchScheduler;
 import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +20,6 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.never;
 
 class CallbackTest {
     @Mock

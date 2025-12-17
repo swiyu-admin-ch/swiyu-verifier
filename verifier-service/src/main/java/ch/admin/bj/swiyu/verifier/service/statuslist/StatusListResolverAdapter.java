@@ -32,7 +32,6 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 public class StatusListResolverAdapter {
 
     private final UrlRewriteProperties urlRewriteProperties;
-    private final RestClient statusListRestClient;
     private final WebClient statusListWebClient;
     private final ApplicationProperties applicationProperties;
     private final CacheProperties cacheProperties;

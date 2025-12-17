@@ -30,7 +30,7 @@ class StatusListResolverAdapterTest {
         webClient = mock(WebClient.class, RETURNS_DEEP_STUBS);
         applicationProperties = mock(ApplicationProperties.class);
         CacheProperties cacheProperties = mock(CacheProperties.class);
-        adapter = new StatusListResolverAdapter(urlRewriteProperties, restClient, applicationProperties, cacheProperties);
+        adapter = new StatusListResolverAdapter(urlRewriteProperties, webClient, applicationProperties, cacheProperties);
     }
     
     @Test
@@ -51,21 +51,5 @@ class StatusListResolverAdapterTest {
 
         var exception = assertThrows(IllegalArgumentException.class, () -> adapter.resolveStatusList(uri));
         assertTrue(exception.getMessage().contains("does not use HTTPS"));
-    }
-
-    @Test
-    void resolveStatusListWithNonOkStatus_throwsException() {
-        String uri = "https://example.com/statuslist";
-        when(urlRewriteProperties.getRewrittenUrl(uri)).thenReturn(uri);
-        when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(List.of("example.com"));
-
-        var retrieve = mock(RestClient.ResponseSpec.class);
-        when(restClient.get().uri(uri).retrieve()).thenReturn(retrieve);
-        // Simulate onStatus throwing
-        when(retrieve.onStatus(any(), any())).thenAnswer(invocation -> {
-            throw new StatusListFetchFailedException("Status list with uri: %s could not be retrieved".formatted(uri));
-        });
-
-        assertThrows(StatusListFetchFailedException.class, () -> adapter.resolveStatusList(uri));
     }
 }

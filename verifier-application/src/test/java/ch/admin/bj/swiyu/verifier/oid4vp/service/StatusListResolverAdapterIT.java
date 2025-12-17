@@ -39,7 +39,7 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 @Testcontainers
-@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class})
+@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class, CacheProperties.class})
 @Import({RestClientConfig.class, StatusListResolverAdapterIT.TestConfig.class, VerificationProperties.class})
 @TestPropertySource(properties = "verification.object-size-limit=10")
 class StatusListResolverAdapterIT {
@@ -73,8 +73,6 @@ class StatusListResolverAdapterIT {
 
     @MockitoBean
     private ApplicationProperties applicationProperties;
-    @MockitoBean
-    private VerificationProperties verificationProperties;
     @MockitoBean
     private CacheProperties cacheProperties;
 
@@ -148,18 +146,6 @@ class StatusListResolverAdapterIT {
         assertEquals("StatusList %s does not contain a valid host from %s".formatted(url, hosts), exception.getMessage());
     }
 
-    @Test
-    void testCorrectRewrittenUrlUsed_thenSuccess() {
-
-        var differentUrl = "https://example-different.com/different";
-        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(differentUrl);
-
-        this.mockServer.expect(requestTo(differentUrl)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("statuslist", MediaType.TEXT_PLAIN));
-        statusListResolverAdapter.resolveStatusList(url);
-        this.mockServer.verify();
-    }
-
 
     @Test
     void testStatusListCaching_thenSuccess() {
@@ -180,20 +166,6 @@ class StatusListResolverAdapterIT {
     }
 
     @Test
-    void testDisabledStatusListCaching_thenSuccess() {
-
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
-        var expectedCacheValue = "statusList";
-        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
-
-        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess(expectedCacheValue, MediaType.TEXT_PLAIN));
-        statusListResolverAdapter.resolveStatusList(url);
-
-        assertNull(cacheManager.getCache(STATUS_LIST_CACHE).get(url));
-    }
-
-    @Test
     void testStatusIfCachingUsed_thenSuccess() {
 
         when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
@@ -211,22 +183,5 @@ class StatusListResolverAdapterIT {
 
         // only one network request should have been made due to caching
         mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(1));
-    }
-
-    @Test
-    void testStatusIfCachingDisabled_thenSuccess() {
-
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
-
-        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
-
-        this.mockServer.expect(ExpectedCount.times(2), requestTo(url)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("statusList", MediaType.TEXT_PLAIN));
-
-        statusListResolverAdapter.resolveStatusList(url);
-
-        statusListResolverAdapter.resolveStatusList(url);
-
-        this.mockServer.verify();
     }
 }

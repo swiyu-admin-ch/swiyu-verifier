@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
@@ -14,6 +15,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorRespo
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class DcqlVpTokenVerifier {
 
@@ -30,6 +32,7 @@ public class DcqlVpTokenVerifier {
         try {
             issuerTrustValidator.validateTrust(claims.getIssuer(), claims.getStringClaim("vct"), management);
         } catch (ParseException e) {
+            log.error("Failed to extract vct claim from JWT token", e);
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
         }
 

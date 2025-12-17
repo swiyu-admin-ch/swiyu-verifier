@@ -78,7 +78,7 @@ public class RequestObjectService {
         var requestObject = buildRequestObject(managementEntity, effectiveConfig, managementEntityId);
 
         log.trace("If signing is desired, sign and return the JWT string, otherwise return the DTO");
-        if (isSigningDesired(managementEntity)) {
+        if (isSigningRequested(managementEntity)) {
             String jwt = signRequestObject(requestObject, managementEntity, effectiveConfig);
             return new RequestObjectResult.Signed(jwt);
         } else {
@@ -91,7 +91,7 @@ public class RequestObjectService {
      * Decides whether the request object should be signed based on the
      * Management configuration flag.
      */
-    private static boolean isSigningDesired(Management managementEntity) {
+    private static boolean isSigningRequested(Management managementEntity) {
         return Boolean.TRUE.equals(managementEntity.getJwtSecuredAuthorizationRequest());
     }
 
@@ -200,7 +200,7 @@ public class RequestObjectService {
      */
     private Management loadAndValidateManagementEntity(UUID managementEntityId) {
         var managementEntity = managementRepository.findById(managementEntityId)
-                .orElseThrow();
+                .orElseThrow(() -> new NoSuchElementException("Verification Request with id " + managementEntityId + " not found"));
 
         if (!managementEntity.isVerificationPending()) {
             log.debug("Management with id {} is requested after already processing it", managementEntityId);

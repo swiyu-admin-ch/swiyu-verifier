@@ -10,19 +10,16 @@ import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionErrorV1;
 
 @Slf4j
@@ -31,18 +28,11 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 public class PresentationVerificationUsecase {
 
     private static final String LOADED_MANAGEMENT_ENTITY_FOR = "Loaded management entity for ";
-    private static final String MANAGEMENT_ENTITY_NOT_FOUND = "Management entity not found: ";
-    private final ManagementRepository managementEntityRepository;
     private final CallbackEventProducer callbackEventProducer;
     private final DcqlPresentationVerificationService dcqlPresentationVerificationService; // use case injection
     private final PresentationVerificationService presentationVerificationService;
+    private final ManagementService managementService;
 
-
-    private static void verifyProcessNotClosed(Management entity) {
-        if (entity.isExpired() || !entity.isVerificationPending()) {
-            throw new ProcessClosedException();
-        }
-    }
 
     /**
      * Validates the presentation request for the standard OID4VP flow.
@@ -60,32 +50,38 @@ public class PresentationVerificationUsecase {
      * @param managementEntityId the id of the Management
      * @param request            the presentation request to verify
      *
-     * @Deprecated legacy methode for receiveVerificationPresentation
+     * @deprecated legacy methode for receiveVerificationPresentation
      */
-    @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
-    // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
-    @Deprecated(since="OID4VP 1.0")
+    @Deprecated(since = "OID4VP 1.0")
     public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
         log.debug("Processing DIF presentation exchange presentation for request_id: {}", managementEntityId);
-        var managementEntity = managementEntityRepository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        // 1. Load management entity in a short transaction
+        Management managementEntity = managementService.loadManagementEntityForUpdate(managementEntityId);
         try {
-            // 1. Check if the process is still pending and not expired
+            // 2. Check if the process is still pending and not expired
             log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-            verifyProcessNotClosed(managementEntity);
+            if (!managementEntity.isProcessStillOpen()) {
+                throw new ProcessClosedException();
+            }
 
-            // 3. verifiy the presentation submission
+            // 3. Perform the potentially long‑running remote verification outside of any DB transaction
+            // verifiy the presentation submission
             log.debug("Starting submission verification for {}", managementEntityId);
             var credentialSubjectData = presentationVerificationService.verify(managementEntity, request);
             log.trace("Submission verification completed for {}", managementEntityId);
-            managementEntity.verificationSucceeded(credentialSubjectData);
+
+            // 4a. Persist successful verification result in a dedicated short transaction
+            managementService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
             log.debug("Saved successful verification result for {}", managementEntityId);
         } catch (VerificationException e) {
-            managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
+            // 4b. Persist failed verification result in a dedicated short transaction
+            managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
-            throw e; // rethrow since client get notified of the error
+
+            //PMD: rethrow since client gets notified of the error (v2 structure)
+            throw e; // NOPMD - ExceptionAsFlowControl
         } finally {
-            // Notify Business Verifier that this verification is done
+            // 5. Notify Business Verifier that this verification is done (non-transactional)
             callbackEventProducer.produceEvent(managementEntityId);
         }
     }
@@ -108,24 +104,22 @@ public class PresentationVerificationUsecase {
      * @param managementEntityId the id of the Management
      * @param request            the presentation rejection request from the client
      */
-    @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
-    // Timeout in case the verification process gets somewhere stuck, eg including fetching did document or status entries
     public void receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto request) {
         log.debug("Processing rejection for request_id: {}", managementEntityId);
-        var managementEntity = managementEntityRepository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+
         try {
-            // 1. Check if the process is still pending and not expired
-            log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-            verifyProcessNotClosed(managementEntity);
-            // 2. If the client / wallet aborted the verification -> mark as failed without throwing exception
-            managementEntity.verificationFailedDueToClientRejection(request.getErrorDescription());
+            // 1. Mark as failed due to client rejection in its own short-lived transaction
+            managementService.markVerificationFailedDueToClientRejection(managementEntityId, request.getErrorDescription());
         } catch (VerificationException e) {
-            managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
+            // 1a. Persist failed verification result in a dedicated short transaction
+            managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
-            throw e; // rethrow since client get notified of the error
+
+
+            //PMD: rethrow since client gets notified of the error (v2 structure)
+            throw e; // NOPMD - ExceptionAsFlowControl
         } finally {
-            // Notify Business Verifier that this verification is done
+            // 2. Notify Business Verifier that this verification is done (non-transactional)
             callbackEventProducer.produceEvent(managementEntityId);
         }
     }
@@ -150,28 +144,34 @@ public class PresentationVerificationUsecase {
      * @param managementEntityId the id of the Management
      * @param request            the DCQL presentation request to verify
      */
-    @Transactional(noRollbackFor = VerificationException.class, timeout = 60)
     public void receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
         log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
-        var managementEntity = managementEntityRepository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND, MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        // 1. Load management entity in a short transaction
+        Management managementEntity = managementService.loadManagementEntityForUpdate(managementEntityId);
         try {
-            // 1. Check if the process is still pending and not expired
+            // 2. Check if the process is still pending and not expired
             log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-            verifyProcessNotClosed(managementEntity);
+            if (!managementEntity.isProcessStillOpen()) {
+                throw new ProcessClosedException();
+            }
 
-            // 2. Verify the DCQL presentation submission
+            // 3. Perform the potentially long‑running remote/DCQL verification **outside** of any DB transaction
             log.debug("Starting DCQL submission verification for {}", managementEntityId);
             var credentialSubjectData = dcqlPresentationVerificationService.process(managementEntity, request);
             log.trace("DCQL submission verification completed for {}", managementEntityId);
-            managementEntity.verificationSucceeded(credentialSubjectData);
+
+            // 4. Persist successful verification result in a dedicated short transaction
+            managementService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
         } catch (VerificationException e) {
-            managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
+            // 4a. Persist failed verification result in a dedicated short transaction
+            managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed DCQL verification result for {}", managementEntityId);
-            throw submissionErrorV1(e, e.getErrorResponseCode(), e.getErrorDescription()); // rethrow as v1
+
+            // PMD: we intentionally convert v2 -> v1 error contract here
+            throw submissionErrorV1(e, e.getErrorResponseCode(), e.getErrorDescription()); // NOPMD - ExceptionAsFlowControl - rethrow as v1
         } finally {
-            // Notify Business Verifier that this verification is done
+            // 5. Notify Business Verifier that this verification is done.
             callbackEventProducer.produceEvent(managementEntityId);
         }
     }

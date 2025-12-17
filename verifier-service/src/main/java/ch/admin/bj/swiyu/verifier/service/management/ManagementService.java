@@ -11,7 +11,7 @@ import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
@@ -29,15 +29,15 @@ import java.util.UUID;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toManagementResponseDto;
 import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toPresentationDefinition;
-import static java.util.Objects.requireNonNullElse;
 
 @Service
 @AllArgsConstructor
 @Slf4j
 public class ManagementService {
 
-    private final ManagementRepository repository;
     private final ApplicationProperties applicationProperties;
+
+    private final ManagementTransactionalService managementTransactionalService;
 
     @Transactional
     public Management getManagementById(UUID requestId) {
@@ -49,15 +49,10 @@ public class ManagementService {
     @Transactional
     public ManagementResponseDto getManagement(UUID id) {
         log.debug("requested verification for id: {}", id);
-        var management = repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
-        if (management.isExpired()) {
-            repository.deleteById(id);
-            log.info("Deleted management for id since it is expired: {}", management.getId());
-        }
+        var management = managementTransactionalService.findAndHandleExpiration(id);
         return toManagementResponseDto(management, applicationProperties);
     }
 
-    @Transactional
     public ManagementResponseDto createVerificationManagement(CreateVerificationManagementDto request) {
         if (request == null) {
             throw new IllegalArgumentException("CreateVerificationManagement is null");
@@ -94,18 +89,13 @@ public class ManagementService {
             createEncryptionKeys(responseSpecificationBuilder);
         }
 
-        var management = repository.save(Management.builder()
-                .expirationInSeconds(applicationProperties.getVerificationTTL())
-                .requestedPresentation(presentationDefinition)
-                .dcqlQuery(dcqlQuery)
-                .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
-                .responseSpecification(responseSpecificationBuilder.build())
-                .acceptedIssuerDids(request.acceptedIssuerDids())
-                .trustAnchors(trustAnchors)
-                .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
-                .build()
-                .resetExpiresAt());
-
+        var management = managementTransactionalService.saveNewManagement(
+                presentationDefinition,
+                dcqlQuery,
+                request,
+                trustAnchors,
+                responseSpecificationBuilder
+        );
         log.info("Created pending verification for id: {}", management.getId());
         return toManagementResponseDto(management, applicationProperties);
     }
@@ -125,10 +115,24 @@ public class ManagementService {
         }
     }
 
-
-    @Transactional
     public void removeExpiredManagements() {
         log.info("Start scheduled removing of expired managements");
-        repository.deleteByExpiresAtIsBefore(System.currentTimeMillis());
+        managementTransactionalService.deleteExpiredManagements();
+    }
+
+    public Management loadManagementEntityForUpdate(UUID managementEntityId) {
+        return managementTransactionalService.loadManagementEntityForUpdate(managementEntityId);
+    }
+
+    public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
+        managementTransactionalService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
+    }
+
+    public void markVerificationFailed(UUID managementEntityId, VerificationException e) {
+        managementTransactionalService.markVerificationFailed(managementEntityId, e);
+    }
+
+    public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
+        managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, errorDescription);
     }
 }

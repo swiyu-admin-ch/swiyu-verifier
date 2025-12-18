@@ -10,8 +10,12 @@ import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto
 import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
-import ch.admin.bj.swiyu.verifier.domain.management.*;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
+import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -19,36 +23,36 @@ import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.UUID;
 
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toManagementResponseDto;
 import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toPresentationDefinition;
-import static java.util.Objects.requireNonNullElse;
 
 @Service
 @AllArgsConstructor
 @Slf4j
 public class ManagementService {
 
-    private final ManagementRepository repository;
     private final ApplicationProperties applicationProperties;
 
-    @Transactional
+    private final ManagementTransactionalService managementTransactionalService;
+
+    public Management getManagementById(UUID requestId) {
+        return managementTransactionalService.findById(requestId)
+                .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
+                        "Management entity not found: " + requestId));
+    }
+
     public ManagementResponseDto getManagement(UUID id) {
         log.debug("requested verification for id: {}", id);
-        var management = repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
-        if (management.isExpired()) {
-            repository.deleteById(id);
-            log.info("Deleted management for id since it is expired: {}", management.getId());
-        }
+        var management = managementTransactionalService.findAndHandleExpiration(id);
         return toManagementResponseDto(management, applicationProperties);
     }
 
-    @Transactional
     public ManagementResponseDto createVerificationManagement(CreateVerificationManagementDto request) {
         if (request == null) {
             throw new IllegalArgumentException("CreateVerificationManagement is null");
@@ -85,18 +89,13 @@ public class ManagementService {
             createEncryptionKeys(responseSpecificationBuilder);
         }
 
-        var management = repository.save(Management.builder()
-                .expirationInSeconds(applicationProperties.getVerificationTTL())
-                .requestedPresentation(presentationDefinition)
-                .dcqlQuery(dcqlQuery)
-                .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
-                .responseSpecification(responseSpecificationBuilder.build())
-                .acceptedIssuerDids(request.acceptedIssuerDids())
-                .trustAnchors(trustAnchors)
-                .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
-                .build()
-                .resetExpiresAt());
-
+        var management = managementTransactionalService.saveNewManagement(
+                presentationDefinition,
+                dcqlQuery,
+                request,
+                trustAnchors,
+                responseSpecificationBuilder
+        );
         log.info("Created pending verification for id: {}", management.getId());
         return toManagementResponseDto(management, applicationProperties);
     }
@@ -116,10 +115,24 @@ public class ManagementService {
         }
     }
 
-
-    @Transactional
     public void removeExpiredManagements() {
         log.info("Start scheduled removing of expired managements");
-        repository.deleteByExpiresAtIsBefore(System.currentTimeMillis());
+        managementTransactionalService.deleteExpiredManagements();
+    }
+
+    public Management loadManagementEntityForUpdate(UUID managementEntityId) {
+        return managementTransactionalService.loadManagementEntityForUpdate(managementEntityId);
+    }
+
+    public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
+        managementTransactionalService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
+    }
+
+    public void markVerificationFailed(UUID managementEntityId, VerificationException e) {
+        managementTransactionalService.markVerificationFailed(managementEntityId, e);
+    }
+
+    public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
+        managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, errorDescription);
     }
 }

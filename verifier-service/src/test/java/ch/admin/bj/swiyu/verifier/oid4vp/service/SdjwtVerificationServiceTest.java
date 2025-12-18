@@ -3,7 +3,6 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
@@ -285,10 +284,8 @@ class SdjwtVerificationServiceTest {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
         // duplicate disclosures
-        var parts = sdjwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
-        sdjwt = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER
-                + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER
-                + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER; // DUPLICATE!!!
+        var parts = sdjwt.split("~");
+        sdjwt = parts[0] + "~" + parts[1] + "~" + parts[1] + "~";
         var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "did:example:12345");
         var exception = assertThrows(VerificationException.class, () -> verificationService.verifyVpTokenPresentationExchange(vpToken, managementEntity));
 
@@ -301,10 +298,11 @@ class SdjwtVerificationServiceTest {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, "did:example:12345");
-        var vpTokenParts = new SdJwt(vpToken).getParts();
+        var vpTokenParts = vpToken.split("~");
 
         var jwt = SignedJWT.parse(vpTokenParts[0]);
         assertTrue(jwt.verify(new ECDSAVerifier(KeyFixtures.issuerKey())), "Should be able to verify JWT");
+
 
         var payload = jwt.getJWTClaimsSet();
 

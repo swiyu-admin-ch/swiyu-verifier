@@ -6,82 +6,132 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.CachingConfig;
-import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.*;
 import ch.admin.bj.swiyu.verifier.infrastructure.config.RestClientConfig;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockserver.client.MockServerClient;
+import org.mockserver.verify.VerificationTimes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.client.ExpectedCount;
-import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mockserver.MockServerContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.STATUS_LIST_CACHE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
 
-@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class})
-@Import({RestClientConfig.class})
+@Testcontainers
+@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class, CacheProperties.class})
+@Import({RestClientConfig.class, StatusListResolverAdapterIT.TestConfig.class, VerificationProperties.class})
+@TestPropertySource(properties = "verification.object-size-limit=10")
 class StatusListResolverAdapterIT {
 
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        VerificationProperties verificationProperties() {
+            var mimi = new VerificationProperties();
+            mimi.setObjectSizeLimit(10);
+            return mimi;
+        }
+    }
+
     private final String url = "https://example.com/statuslist";
+    private String rewrittenUrl;
+
     @Autowired
-    MockRestServiceServer mockServer;
+    WebClient statusListWebClient;
     @Autowired
     StatusListResolverAdapter statusListResolverAdapter;
     @Autowired
     CacheManager cacheManager;
 
+    // mocked collaborators provided to the slice test
     @MockitoBean
     private UrlRewriteProperties urlRewriteProperties;
+
+    @Autowired
+    private VerificationProperties verificationProperties;
+
     @MockitoBean
     private ApplicationProperties applicationProperties;
     @MockitoBean
-    private VerificationProperties verificationProperties;
+    private CacheProperties cacheProperties;
+
+    // Start MockServerContainer statically so it is available before Spring context initialization
+    @Container
+    private static final MockServerContainer mockServerContainer =
+            new MockServerContainer(DockerImageName.parse("mockserver/mockserver:latest"));
+
+    private MockServerClient mockServerClient;
 
     @BeforeEach
     void setUp() {
+      
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
+      
         cacheManager.getCache(STATUS_LIST_CACHE).clear();
+
+        mockServerClient = new MockServerClient(mockServerContainer.getHost(), mockServerContainer.getServerPort());
+
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+
+        mockServerClient.clear(request().withMethod("GET").withPath("/statuslist"));
+
+        rewrittenUrl = "http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist";
+
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(rewrittenUrl);
     }
 
     @Test
     void testValidateStatusListSize_ExceedsMaxSize() {
 
-        // Check with content size of 10 MB
-        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("Status list content", MediaType.TEXT_PLAIN)
-                        .header("Content-Length", String.valueOf(10485760L)));
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn("http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist");
+
+        mockServerClient
+                .when(request().withMethod("GET").withPath("/statuslist"))
+                .respond(response()
+                        .withStatusCode(200)
+                        .withHeader("Content-Type", MediaType.TEXT_PLAIN_VALUE)
+                        .withBody("Status list content sadjajdhjkashdjkhasjdkhasjdhjashdjaskdhasjdhasjhdajskhdjashdjhasdjhasjkdhashdjh"));
 
         var exception = assertThrows(StatusListMaxSizeExceededException.class, () -> statusListResolverAdapter.resolveStatusList(url));
-        assertEquals("Status list size from " + url + " exceeds maximum allowed size", exception.getMessage());
+        assertEquals("Status list size from " + rewrittenUrl + " exceeds maximum allowed size", exception.getMessage());
+
+        // ensure request was received
+        mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.atLeast(1));
     }
 
 
     @Test
     void testUnresolvableStatusList_thenStatusListMaxSizeExceededException() {
-        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
-                .andRespond(withResourceNotFound());
+        mockServerClient
+                .when(request().withMethod("GET").withPath("/statuslist"))
+                .respond(response().withStatusCode(404));
 
         var exception = assertThrows(StatusListFetchFailedException.class, () -> statusListResolverAdapter.resolveStatusList(url));
-        assertEquals("Status list with uri: " + url + " could not be retrieved", exception.getMessage());
+        assertEquals("Status list with uri: " + rewrittenUrl + " could not be retrieved", exception.getMessage());
+
+        mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.atLeast(1));
     }
 
     @Test
@@ -89,50 +139,49 @@ class StatusListResolverAdapterIT {
         var hosts = List.of("not_example.com");
         when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(hosts);
 
+        // For this test we want the rewritten URL to be the original URL so that the domain check runs
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+
         var exception = assertThrows(IllegalArgumentException.class, () -> statusListResolverAdapter.resolveStatusList(url));
         assertEquals("StatusList %s does not contain a valid host from %s".formatted(url, hosts), exception.getMessage());
-    }
-
-    @Test
-    void testCorrectRewrittenUrlUsed_thenStatusListMaxSizeExceededException() {
-
-        var differentUrl = "https://example-different.com/different";
-        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(differentUrl);
-
-        this.mockServer.expect(requestTo(differentUrl)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("statuslist", MediaType.TEXT_PLAIN));
-        statusListResolverAdapter.resolveStatusList(url);
-        this.mockServer.verify();
     }
 
 
     @Test
     void testStatusListCaching_thenSuccess() {
 
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
         var expectedCacheValue = "statusList";
-        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn("http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist");
 
-        this.mockServer.expect(requestTo(url)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess(expectedCacheValue, MediaType.TEXT_PLAIN));
+        mockServerClient
+                .when(request().withMethod("GET").withPath("/statuslist"))
+                .respond(response().withStatusCode(200).withBody(expectedCacheValue).withHeader("Content-Type", MediaType.TEXT_PLAIN_VALUE));
+
         statusListResolverAdapter.resolveStatusList(url);
 
         assertEquals(expectedCacheValue, cacheManager.getCache(STATUS_LIST_CACHE).get(url).get());
 
-        this.mockServer.verify();
+        mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(1));
     }
 
     @Test
     void testStatusIfCachingUsed_thenSuccess() {
 
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
+
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn("http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist");
 
-        this.mockServer.expect(ExpectedCount.once(), requestTo(url)).andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("statusList", MediaType.TEXT_PLAIN));
+        mockServerClient
+                .when(request().withMethod("GET").withPath("/statuslist"))
+                .respond(response().withStatusCode(200).withBody("1").withHeader("Content-Type", MediaType.TEXT_PLAIN_VALUE));
 
         statusListResolverAdapter.resolveStatusList(url);
 
         statusListResolverAdapter.resolveStatusList(url);
 
-        this.mockServer.verify();
+        // only one network request should have been made due to caching
+        mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(1));
     }
 }

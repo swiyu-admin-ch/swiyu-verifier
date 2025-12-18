@@ -50,9 +50,12 @@ import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.getReq
 
 /**
  * Verifies the presentation of a SD-JWT Credential.
+ *
+ * @deprecated: class is deprecated and will be removed in future versions when all OID4VP verifications use the new adapter-based approach.
  */
 @AllArgsConstructor
 @Slf4j
+@Deprecated(since="OID4VP 1.0")
 public class SdjwtCredentialVerifier {
 
     public static final String CREDENTIAL_FORMAT = "vc+sd-jwt";

@@ -1,9 +1,9 @@
-package ch.admin.bj.swiyu.verifier.oid4vp.service;
+package ch.admin.bj.swiyu.verifier.infrastructure.scheduler;
 
 import ch.admin.bj.swiyu.verifier.common.config.WebhookProperties;
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEvent;
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEventRepository;
-import ch.admin.bj.swiyu.verifier.service.callback.WebhookService;
+import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -20,9 +20,8 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.never;
 
-class WebhookServiceTest {
+class CallbackTest {
     @Mock
     private WebhookProperties webhookProperties;
     @Mock
@@ -37,7 +36,10 @@ class WebhookServiceTest {
     private RestClient.ResponseSpec responseSpec;
 
     @InjectMocks
-    private WebhookService webhookService;
+    private CallbackEventProducer callbackEventProducer;
+
+    @InjectMocks
+    private CallbackDispatchScheduler callbackDispatchScheduler;
 
     @BeforeEach
     void setUp() {
@@ -50,7 +52,7 @@ class WebhookServiceTest {
     @Test
     void produceEvent_savesEvent() {
         UUID id = UUID.randomUUID();
-        webhookService.produceEvent(id);
+        callbackEventProducer.produceEvent(id);
         verify(callbackEventRepository).save(any(CallbackEvent.class));
     }
 
@@ -74,7 +76,7 @@ class WebhookServiceTest {
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(null);
 
-        webhookService.triggerProcessCallback();
+        callbackDispatchScheduler.triggerProcessCallback();
 
         verify(restClient).post();
         verify(callbackEventRepository).delete(event);
@@ -100,7 +102,7 @@ class WebhookServiceTest {
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenThrow(mock(RestClientResponseException.class));
 
-        webhookService.triggerProcessCallback();
+        callbackDispatchScheduler.triggerProcessCallback();
 
         verify(callbackEventRepository, never()).delete(event);
     }

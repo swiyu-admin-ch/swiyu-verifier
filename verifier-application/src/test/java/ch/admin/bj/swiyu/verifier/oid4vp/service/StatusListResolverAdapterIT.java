@@ -6,10 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.CachingConfig;
-import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.*;
 import ch.admin.bj.swiyu.verifier.infrastructure.config.RestClientConfig;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
@@ -36,14 +33,13 @@ import org.testcontainers.utility.DockerImageName;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.STATUS_LIST_CACHE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 @Testcontainers
-@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class})
+@RestClientTest({StatusListResolverAdapter.class, CachingConfig.class, CacheProperties.class})
 @Import({RestClientConfig.class, StatusListResolverAdapterIT.TestConfig.class, VerificationProperties.class})
 @TestPropertySource(properties = "verification.object-size-limit=10")
 class StatusListResolverAdapterIT {
@@ -77,6 +73,8 @@ class StatusListResolverAdapterIT {
 
     @MockitoBean
     private ApplicationProperties applicationProperties;
+    @MockitoBean
+    private CacheProperties cacheProperties;
 
     // Start MockServerContainer statically so it is available before Spring context initialization
     @Container
@@ -87,7 +85,10 @@ class StatusListResolverAdapterIT {
 
     @BeforeEach
     void setUp() {
-
+      
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
+      
         cacheManager.getCache(STATUS_LIST_CACHE).clear();
 
         mockServerClient = new MockServerClient(mockServerContainer.getHost(), mockServerContainer.getServerPort());
@@ -145,9 +146,11 @@ class StatusListResolverAdapterIT {
         assertEquals("StatusList %s does not contain a valid host from %s".formatted(url, hosts), exception.getMessage());
     }
 
+
     @Test
     void testStatusListCaching_thenSuccess() {
 
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
         var expectedCacheValue = "statusList";
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn("http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist");
 
@@ -165,6 +168,9 @@ class StatusListResolverAdapterIT {
     @Test
     void testStatusIfCachingUsed_thenSuccess() {
 
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
+
+        when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn("http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist");
 
         mockServerClient

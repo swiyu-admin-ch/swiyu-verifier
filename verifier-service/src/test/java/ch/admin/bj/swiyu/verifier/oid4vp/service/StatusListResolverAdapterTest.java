@@ -1,12 +1,12 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -29,7 +29,8 @@ class StatusListResolverAdapterTest {
         restClient = mock(RestClient.class, RETURNS_DEEP_STUBS);
         webClient = mock(WebClient.class, RETURNS_DEEP_STUBS);
         applicationProperties = mock(ApplicationProperties.class);
-        adapter = new StatusListResolverAdapter(urlRewriteProperties, restClient, webClient, applicationProperties);
+        CacheProperties cacheProperties = mock(CacheProperties.class);
+        adapter = new StatusListResolverAdapter(urlRewriteProperties, webClient, applicationProperties, cacheProperties);
     }
     
     @Test

@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlVpTokenVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.SdjwtPresentationVerifierAdapter;
+import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -27,7 +28,8 @@ class SdjwtPresentationVerifierAdapterTest {
 
     @Test
     void verify_wrapsTokenInSdJwtAndDelegatesToDomainVerifier() {
-        String vpToken = "vp-token";
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        String vpToken = emulator.createSDJWTMock();
         Management management = new Management();
         DcqlCredential dcqlCredential = new DcqlCredential();
 
@@ -39,7 +41,7 @@ class SdjwtPresentationVerifierAdapterTest {
         verify(vpTokenVerifier).verifyVpTokenForDCQLRequest(sdJwtCaptor.capture(), eq(management), eq(dcqlCredential));
         SdJwt passedToDelegate = sdJwtCaptor.getValue();
 
-        // We cannot rely on SdJwt.equals, so we compare its String representation
-        assertThat(passedToDelegate.getJwt()).contains(vpToken);
+        // We cannot rely on SdJwt.equals, so we compare its presentation
+        assertThat(passedToDelegate.getPresentation()).isEqualTo(vpToken);
     }
 }

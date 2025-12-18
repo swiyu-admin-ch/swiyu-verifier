@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.DcqlEvaluatorAdapter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
@@ -26,14 +27,14 @@ class DcqlEvaluatorAdapterTest {
         try (MockedStatic<DcqlUtil> utilities = mockStatic(DcqlUtil.class)) {
             List<SdJwt> input = Collections.emptyList();
             DcqlCredentialMeta meta = new DcqlCredentialMeta();
-            List<SdJwt> expected = List.of(new SdJwt("dummy"));
+            List<SdJwt> expected = List.of(Mockito.mock(SdJwt.class));
 
             utilities.when(() -> DcqlUtil.filterByVct(input, meta))
                     .thenReturn(expected);
 
             List<SdJwt> result = adapter.filterByVct(input, meta);
 
-            assertThat(result).isEqualTo(expected);
+            assertThat(result).isSameAs(expected);
             utilities.verify(() -> DcqlUtil.filterByVct(input, meta));
         }
     }
@@ -41,7 +42,7 @@ class DcqlEvaluatorAdapterTest {
     @Test
     void validateRequestedClaims_delegatesToDcqlUtil() {
         try (MockedStatic<DcqlUtil> utilities = mockStatic(DcqlUtil.class)) {
-            SdJwt sdJwt = new SdJwt("dummy");
+            SdJwt sdJwt = Mockito.mock(SdJwt.class);
             List<DcqlClaim> claims = Collections.emptyList();
 
             adapter.validateRequestedClaims(sdJwt, claims);
@@ -50,4 +51,3 @@ class DcqlEvaluatorAdapterTest {
         }
     }
 }
-

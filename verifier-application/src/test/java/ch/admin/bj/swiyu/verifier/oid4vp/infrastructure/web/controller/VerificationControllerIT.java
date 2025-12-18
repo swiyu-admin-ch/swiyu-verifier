@@ -12,6 +12,7 @@ import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
@@ -281,8 +282,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                             .formField("presentation_submission", presentationSubmission)
                             .formField("vp_token", vpToken))
                     .andExpect(status().isOk());
-        }
-        else if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST_JWT) {
+        } else if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST_JWT) {
             // JWKS & encryptionMethod are normally provided in Request Object
             ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
             var encryptionMethod = EncryptionMethod.parse(responseSpecification.getEncryptedResponseEncValuesSupported().getFirst());
@@ -293,7 +293,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     new JWTClaimsSet.Builder()
                             .claim("presentation_submission", presentationSubmission)
                             .claim("vp_token", vpToken).build().toPayload()
-                    );
+            );
             jweObject.encrypt(new ECDHEncrypter(publicKey));
             mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
                             .contentType(APPLICATION_FORM_URLENCODED_VALUE)
@@ -317,10 +317,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 );
 
         var sdJWT = emulator.createSDJWTMock(statusListIndex);
-        var parts = sdJWT.split("~");
+        var parts = sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
-        var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~";
+        var newCred = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER + StringUtils.join(sd, SdJwt.JWT_PART_DELINEATION_CHARACTER) + SdJwt.JWT_PART_DELINEATION_CHARACTER;
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "did:example:12345");
         String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
@@ -353,10 +353,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 );
 
         var sdJWT = emulator.createSDJWTMock(index);
-        var parts = sdJWT.split("~");
+        var parts = sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
-        var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~";
+        var newCred = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER + StringUtils.join(sd, SdJwt.JWT_PART_DELINEATION_CHARACTER) + SdJwt.JWT_PART_DELINEATION_CHARACTER;
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "did:example:12345");
         String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
@@ -382,10 +382,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
         var sdJWT = emulator.createSDJWTMock();
-        var parts = sdJWT.split("~");
+        var parts = sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
-        var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~" + StringUtils.join(sd, "~") + "~";
+        var newCred = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + StringUtils.join(sd, SdJwt.JWT_PART_DELINEATION_CHARACTER) + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + StringUtils.join(sd, SdJwt.JWT_PART_DELINEATION_CHARACTER) + SdJwt.JWT_PART_DELINEATION_CHARACTER;
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "did:example:12345");
 
         String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
@@ -519,7 +521,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
         var additionalDisclosure = new Disclosure("additional", "definetly_wrong");
-        var newCred = sdJWT + additionalDisclosure + "~";
+        var newCred = sdJWT + additionalDisclosure + SdJwt.JWT_PART_DELINEATION_CHARACTER;
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "did:example:12345");
 
         String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
@@ -593,10 +595,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         });
 
         var sdJWT = emulator.createSDJWTMock(statusListIndex);
-        var parts = sdJWT.split("~");
+        var parts = sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
 
         var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
-        var newCred = parts[0] + "~" + StringUtils.join(sd, "~") + "~";
+        var newCred = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER + StringUtils.join(sd, SdJwt.JWT_PART_DELINEATION_CHARACTER) + SdJwt.JWT_PART_DELINEATION_CHARACTER;
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "did:example:12345");
         String presentationSubmission = getPresentationSubmissionString(UUID.randomUUID());
 
@@ -1017,8 +1019,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var unsignedSdJwt = emulator.createSDJWTMock();
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
         // Split jwt, disclosures & binding proof
-        var parts = sdJwt.split("~");
-        sdJwt = parts[0] + "~" + parts[1] + "~" + parts[parts.length - 1];
+        var parts = sdJwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
+        sdJwt = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER + parts[parts.length - 1];
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
@@ -1043,9 +1045,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
         // Split jwt, disclosures
-        var parts = unsignedSdJwt.split("~");
+        var parts = unsignedSdJwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
         // Only have the first claim (first_name) as disclosure
-        unsignedSdJwt = parts[0] + "~" + parts[1] + "~";
+        unsignedSdJwt = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER;
         // Sign the presentation
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
 

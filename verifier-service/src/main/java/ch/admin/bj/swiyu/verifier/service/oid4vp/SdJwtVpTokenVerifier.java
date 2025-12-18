@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -29,8 +28,6 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
@@ -215,14 +212,7 @@ public class SdJwtVpTokenVerifier {
 
     private void validateSDHash(SdJwt sdjwt, JWTClaimsSet keyBindingClaims) {
         // Compute the SD Hash of the VP Token
-        String presentation = sdjwt.getPresentation();
-        String hash;
-        try {
-            var hashDigest = MessageDigest.getInstance("sha-256").digest(presentation.getBytes());
-            hash = Base64Utils.encodeBase64(hashDigest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Failed to validate key binding. Loading hash algorithm failed. Please check the configuration.", e);
-        }
+        String hash = sdjwt.getPresentationHash();
         String hashClaim = keyBindingClaims.getClaim("sd_hash").toString();
         if (!hash.equals(hashClaim)) {
             throw credentialError(HOLDER_BINDING_MISMATCH,
@@ -280,6 +270,7 @@ public class SdJwtVpTokenVerifier {
         if (StringUtils.isBlank(aud)) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
         }
+
 
         String clientId = Optional.ofNullable(configurationOverride.verifierDid())
                 .orElse(applicationProperties.getClientId());
@@ -355,6 +346,4 @@ public class SdJwtVpTokenVerifier {
                             actualNonce));
         }
     }
-
 }
-

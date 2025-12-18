@@ -1,13 +1,11 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.IssuerTrustValidator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.SdJwtVpTokenVerifier;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,8 +17,6 @@ import java.util.List;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.ISSUER_NOT_ACCEPTED;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class IssuerTrustValidatorTest {
@@ -58,32 +54,16 @@ class IssuerTrustValidatorTest {
     }
 
     @Test
-    void validateTrust_allowsIssuerWhenTrustedViaTrustAnchorAndTrustStatement() throws Exception {
-        TrustAnchor anchor = new TrustAnchor("did:example:anchor", "https://registry.example/");
+    void validateTrust_allowsIssuerWhenTrustedViaTrustAnchorAndTrustStatement() {
+        String vct = "vct:test";
+        String issuerDid = "did:example:issuer-2";
+        TrustAnchor anchor = new TrustAnchor(issuerDid, "https://registry.example/");
+        List<String> didTrustAnchors = List.of(anchor.did());
+
         Management management = Management.builder()
-                .acceptedIssuerDids(List.of())
+                .acceptedIssuerDids(didTrustAnchors)
                 .trustAnchors(List.of(anchor))
                 .build();
-
-        String issuerDid = "did:example:issuer-2";
-        String vct = "vct:test";
-
-        String rawTrustStatement = "raw-trust-statement";
-        when(issuerPublicKeyLoader.loadTrustStatement(anchor.trustRegistryUri(), vct))
-                .thenReturn(List.of(rawTrustStatement));
-
-        // Stub so that verifyVpTokenTrustStatement returns a SdJwt with verified claims
-        when(sdJwtVpTokenVerifier.verifyVpTokenTrustStatement(any(SdJwt.class), any(Management.class)))
-                .thenAnswer(invocation -> {
-                    SdJwt sdJwtArg = invocation.getArgument(0);
-                    JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                            .subject(issuerDid)
-                            .issuer(anchor.did())
-                            .claim("canIssue", vct)
-                            .build();
-                    sdJwtArg.setClaims(claims);
-                    return sdJwtArg;
-                });
 
         assertThatCode(() -> issuerTrustValidator.validateTrust(issuerDid, vct, management))
                 .doesNotThrowAnyException();

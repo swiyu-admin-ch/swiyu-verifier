@@ -37,7 +37,7 @@ class VerificationControllerNoKeyIT extends BaseVerificationControllerTest {
         });
 
         // Verify the exception message
-        assertThat(exception.getMessage()).isEqualTo("Presentation was configured to be signed, but no signing key was configured.");
+        assertThat(exception.getMessage()).isEqualTo("Failed to sign request object");
     }
 
     @Test

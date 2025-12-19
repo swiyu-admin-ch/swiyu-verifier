@@ -23,6 +23,7 @@ be accessible by the wallet.
 
 - [Deployment](#deployment)
 - [Development](#development)
+  - [Note on container runtimes](#note-on-container-runtimes)
 - [Usage](#usage)
 - [Missing Features and Known Issues](#missing-features-and-known-issues)
 - [Contributions and feedback](#contributions-and-feedback)
@@ -128,6 +129,24 @@ flowchart LR
 
 > Please be aware that this section **focus on the development of the verifier service**. For the deployment of
 > the component please consult [deployment section](#Deployment).
+
+## Note on container runtimes
+
+For the purpose of integration testing, `@Testcontainers` annotation is used broadly in this repo.
+Needless to say, to run [Testcontainers](https://java.testcontainers.org)-based tests, you would need a Docker-API compatible container runtime.
+As Docker has made a few changes to its licensing in the past,
+[alternative container runtimes](https://java.testcontainers.org/supported_docker_environment/) started gaining on popularity.
+
+In general, switching the container runtime from Docker to any other (such as Podman/[Podman Desktop](https://podman-desktop.io))
+for [Testcontainers in Java](https://java.testcontainers.org) usually requires awareness of socket configuration, cleanup mechanisms,
+permissions, and underlying differences. So, [customizing Docker host detection](https://java.testcontainers.org/features/configuration/#customizing-docker-host-detection)
+would be more or less all it takes to make it work.
+
+Luckily, one of the quite popular Docker alternatives featuring pretty seamless integration is [Podman Desktop](https://podman-desktop.io).
+Although the [official manual](https://podman-desktop.io/tutorial/testcontainers-with-podman) suggests otherwise,
+from our experience on macOS, it would be sufficient to enable the [Docker Compatibility](https://podman-desktop.io/docs/migrating-from-docker/managing-docker-compatibility)
+feature and the tests would all run through. Furthermore, running `mvn clean install` for the first time would even implicitly create
+a minimalistic [`$HOME/.testcontainers.properties`](https://java.testcontainers.org/features/configuration/), if not found in your home directory.
 
 ## Single service development
 

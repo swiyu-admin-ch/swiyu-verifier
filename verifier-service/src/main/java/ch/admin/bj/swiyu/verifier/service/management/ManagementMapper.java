@@ -66,6 +66,13 @@ public class ManagementMapper {
         );
     }
 
+    public static List<TrustAnchor> toTrustAnchors(List<TrustAnchorDto> trustAnchorDtos) {
+        if (trustAnchorDtos == null) {
+            return List.of();
+        }
+        return trustAnchorDtos.stream().map(ManagementMapper::toTrustAnchor).toList();
+    }
+
     private static String buildVerificationDeeplink(String requestUri, String clientId, String deeplinkSchema) {
         return UriComponentsBuilder.newInstance()
                 .scheme(deeplinkSchema)

@@ -15,7 +15,6 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
-import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -23,7 +22,6 @@ import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -41,53 +39,41 @@ public class ManagementService {
 
     private final ManagementTransactionalService managementTransactionalService;
 
+    /**
+     * Retrieves a management entity by its ID.
+     * @param requestId the UUID of the management entity
+     * @return the Management entity
+     * @throws VerificationException if the entity is not found
+     */
     public Management getManagementById(UUID requestId) {
         return managementTransactionalService.findById(requestId)
                 .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
                         "Management entity not found: " + requestId));
     }
 
-    public ManagementResponseDto getManagement(UUID id) {
+    /**
+     * Retrieves and returns a management response DTO by ID, handling expiration.
+     * @param id the UUID of the management
+     * @return the ManagementResponseDto
+     */
+    public ManagementResponseDto getManagementResponseDto(UUID id) {
         log.debug("requested verification for id: {}", id);
         var management = managementTransactionalService.findAndHandleExpiration(id);
         return toManagementResponseDto(management, applicationProperties);
     }
 
+    /**
+     * Creates a new verification management based on the provided request.
+     * @param request the DTO containing creation details
+     * @return the ManagementResponseDto for the created management
+     */
     public ManagementResponseDto createVerificationManagement(CreateVerificationManagementDto request) {
-        if (request == null) {
-            throw new IllegalArgumentException("CreateVerificationManagement is null");
-        }
-        if (request.presentationDefinition() == null) {
-            // Until the wallet is migrated we MUST provide a presentation definition.
-            throw new IllegalArgumentException("PresentationDefinition must be provided");
-        }
+        CreateVerificationManagementValidator.validate(request);
 
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
-        var dcqlQueryDto = request.dcqlQuery();
-        if (dcqlQueryDto != null) {
-            if (dcqlQueryDto.credentials().stream().anyMatch(cred -> Boolean.TRUE.equals(cred.multiple()))) {
-                // Currently supporting only 1 vp token per credential query
-                throw new IllegalArgumentException("multiple credentials in response for a single query not supported");
-            }
-            if (!CollectionUtils.isEmpty(dcqlQueryDto.credentialSets())) {
-                // Not yet supporting credential sets
-                throw new IllegalArgumentException("credential sets not yet supported");
-            }
-            if (dcqlQueryDto.credentials().stream().anyMatch(cred -> cred.meta().vctValues().isEmpty())) {
-                throw new IllegalArgumentException("vct_values is required");
-            }
-        }
-        var dcqlQuery = DcqlMapper.toDcqlQuery(dcqlQueryDto);
-        List<TrustAnchor> trustAnchors = null;
-        if (request.trustAnchors() != null) {
-            trustAnchors = request.trustAnchors().stream().map(ManagementMapper::toTrustAnchor).toList();
-        }
-
-        var responseModeType = request.responseMode() == null ? ResponseModeType.DIRECT_POST : ManagementMapper.toResponseMode(request.responseMode());
-        var responseSpecificationBuilder = ResponseSpecification.builder().responseModeType(responseModeType);
-        if (ResponseModeTypeDto.DIRECT_POST_JWT.equals(request.responseMode())) {
-            createEncryptionKeys(responseSpecificationBuilder);
-        }
+        var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
+        var trustAnchors = ManagementMapper.toTrustAnchors(request.trustAnchors());
+        var responseSpecificationBuilder = buildResponseSpecification(request.responseMode());
 
         var management = managementTransactionalService.saveNewManagement(
                 presentationDefinition,
@@ -98,6 +84,16 @@ public class ManagementService {
         );
         log.info("Created pending verification for id: {}", management.getId());
         return toManagementResponseDto(management, applicationProperties);
+    }
+
+
+    private ResponseSpecification.ResponseSpecificationBuilder buildResponseSpecification(ResponseModeTypeDto responseMode) {
+        var responseModeType = responseMode == null ? ResponseModeType.DIRECT_POST : ManagementMapper.toResponseMode(responseMode);
+        var responseSpecificationBuilder = ResponseSpecification.builder().responseModeType(responseModeType);
+        if (ResponseModeTypeDto.DIRECT_POST_JWT.equals(responseMode)) {
+            createEncryptionKeys(responseSpecificationBuilder);
+        }
+        return responseSpecificationBuilder;
     }
 
     private static void createEncryptionKeys(ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder) {
@@ -115,23 +111,45 @@ public class ManagementService {
         }
     }
 
+    /**
+     * Removes all expired managements from the system.
+     */
     public void removeExpiredManagements() {
-        log.info("Start scheduled removing of expired managements");
         managementTransactionalService.deleteExpiredManagements();
     }
 
+    /**
+     * Loads a management entity for update operations.
+     * @param managementEntityId the UUID of the management entity
+     * @return the Management entity
+     */
     public Management loadManagementEntityForUpdate(UUID managementEntityId) {
         return managementTransactionalService.loadManagementEntityForUpdate(managementEntityId);
     }
 
+    /**
+     * Marks the verification as succeeded with the provided data.
+     * @param managementEntityId the UUID of the management entity
+     * @param credentialSubjectData the data from the credential subject
+     */
     public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
         managementTransactionalService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
     }
 
+    /**
+     * Marks the verification as failed with the provided exception.
+     * @param managementEntityId the UUID of the management entity
+     * @param e the VerificationException containing error details
+     */
     public void markVerificationFailed(UUID managementEntityId, VerificationException e) {
         managementTransactionalService.markVerificationFailed(managementEntityId, e);
     }
 
+    /**
+     * Marks the verification as failed due to client rejection.
+     * @param managementEntityId the UUID of the management entity
+     * @param errorDescription the description of the error
+     */
     public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
         managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, errorDescription);
     }

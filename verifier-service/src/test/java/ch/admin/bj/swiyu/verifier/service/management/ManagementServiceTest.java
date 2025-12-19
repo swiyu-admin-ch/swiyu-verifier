@@ -141,7 +141,7 @@ class ManagementServiceTest {
     }
 
     @Test
-    void getManagement_thenSuccess() {
+    void getManagement_ResponseDto_thenSuccess() {
         var management = mock(Management.class);
         when(management.isExpired()).thenReturn(false);
         when(repository.findById(id)).thenReturn(Optional.of(management));
@@ -150,7 +150,7 @@ class ManagementServiceTest {
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties))
                     .thenReturn(mock(ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto.class));
 
-            service.getManagement(id);
+            service.getManagementResponseDto(id);
             managementMapper.verify(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties), times(1));
         }
 
@@ -158,19 +158,19 @@ class ManagementServiceTest {
     }
 
     @Test
-    void getManagement_throwsException() {
+    void getManagement_ResponseDto_throwsException() {
         when(repository.findById(id)).thenReturn(Optional.empty());
-        assertThrows(VerificationNotFoundException.class, () -> service.getManagement(id));
+        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id));
     }
 
     @Test
-    void getManagementWithExpired_shouldDelete() {
+    void getManagementResponseDtoWithExpired_shouldDelete() {
         var management = mock(Management.class);
         when(management.isExpired()).thenReturn(true);
         when(management.getId()).thenReturn(id);
         when(repository.findById(id)).thenReturn(Optional.of(management));
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
-        service.getManagement(id);
+        service.getManagementResponseDto(id);
         verify(repository).deleteById(id);
     }
 

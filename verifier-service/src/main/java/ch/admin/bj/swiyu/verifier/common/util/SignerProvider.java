@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package ch.admin.bj.swiyu.verifier.common.config;
+package ch.admin.bj.swiyu.verifier.common.util;
 
 import com.nimbusds.jose.JWSSigner;
 import lombok.Getter;

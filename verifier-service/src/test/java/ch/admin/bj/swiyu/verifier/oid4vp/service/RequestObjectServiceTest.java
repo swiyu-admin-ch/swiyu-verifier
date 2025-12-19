@@ -3,18 +3,20 @@ package ch.admin.bj.swiyu.verifier.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.SignerProvider;
+import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
-import ch.admin.bj.swiyu.verifier.service.SignatureService;
+import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,14 +41,15 @@ class RequestObjectServiceTest {
     private ManagementRepository managementRepository;
     private SignerProvider signerProvider;
     private RequestObjectService service;
+    private JwtSigningService jwtSigningService;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         var applicationProperties = mock(ApplicationProperties.class);
         var openIdClientMetadataConfiguration = mock(OpenIdClientMetadataConfiguration.class);
 
         managementRepository = mock(ManagementRepository.class);
-        SignatureService signatureService = mock(SignatureService.class);
+        jwtSigningService = mock(JwtSigningService.class);
         signerProvider = mock(SignerProvider.class);
 
         service = new RequestObjectService(
@@ -54,7 +57,7 @@ class RequestObjectServiceTest {
                 openIdClientMetadataConfiguration,
                 managementRepository,
                 objectMapper,
-                signatureService
+                jwtSigningService
         );
 
         // Mock application configurations
@@ -64,7 +67,6 @@ class RequestObjectServiceTest {
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("did:example:123#key1");
         when(openIdClientMetadataConfiguration.getOpenIdClientMetadata()).thenReturn(openidClientMetadataDto);
-        when(signatureService.createDefaultSignerProvider()).thenReturn(signerProvider);
     }
 
     @Test
@@ -74,6 +76,21 @@ class RequestObjectServiceTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
+        when(jwtSigningService.signJwt(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq("did:example:123#key1")
+        )).thenAnswer(invocation -> {
+            var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
+            JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
+                    .keyID("did:example:123#key1")
+                    .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
+                    .build();
+            SignedJWT signedJwt = new SignedJWT(header, claimsSet);
+            signedJwt.sign(jwsSigner);
+            return signedJwt;
+        });
 
         RequestObjectResult result = service.assembleRequestObject(mgmtId);
 
@@ -97,6 +114,21 @@ class RequestObjectServiceTest {
         when(signerProvider.canProvideSigner()).thenReturn(true);
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
+        when(jwtSigningService.signJwt(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq("did:override#key1")
+        )).thenAnswer(invocation -> {
+            var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
+            JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
+                    .keyID("did:override#key1")
+                    .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
+                    .build();
+            SignedJWT signedJwt = new SignedJWT(header, claimsSet);
+            signedJwt.sign(jwsSigner);
+            return signedJwt;
+        });
 
         RequestObjectResult result = service.assembleRequestObject(mgmtId);
 
@@ -179,7 +211,7 @@ class RequestObjectServiceTest {
 
         assertThatThrownBy(() -> service.assembleRequestObject(mgmtId))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("no signing key");
+                .hasMessageContaining("Failed to sign request object");
     }
 
     private Management mockManagement(boolean needsJwsAuthorizationRequest) {

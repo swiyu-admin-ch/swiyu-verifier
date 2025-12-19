@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.api.management.dcql.*;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.*;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.*;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;

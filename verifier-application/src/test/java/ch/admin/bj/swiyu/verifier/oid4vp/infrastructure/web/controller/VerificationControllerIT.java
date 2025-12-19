@@ -786,10 +786,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
-            when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithMultikey(
+            when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
                     sdjwt.getIssuerId(),
                     sdjwt.getKidHeaderValue(),
-                    KeyFixtures.issuerPublicKeyAsMultibaseKey()));
+                    KeyFixtures.issuerPublicKeyAsJsonWebKey()));
         } catch (DidResolverException e) {
             throw new AssertionError(e);
         }

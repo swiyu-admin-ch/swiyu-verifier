@@ -2,8 +2,8 @@ package ch.admin.bj.swiyu.verifier.domain.statuslist;
 
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
@@ -17,7 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.StatusListGenerator.*;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;

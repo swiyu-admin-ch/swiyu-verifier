@@ -7,7 +7,7 @@
 package ch.admin.bj.swiyu.verifier.domain.statuslist;
 
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
+import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;

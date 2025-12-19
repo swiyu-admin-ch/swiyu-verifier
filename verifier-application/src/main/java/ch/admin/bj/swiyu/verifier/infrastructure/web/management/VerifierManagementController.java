@@ -6,10 +6,10 @@
 
 package ch.admin.bj.swiyu.verifier.infrastructure.web.management;
 
-import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
-import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
-import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
@@ -78,7 +78,7 @@ public class VerifierManagementController {
             }
     )
     public ManagementResponseDto getVerification(@PathVariable UUID verificationId) {
-        return presentationService.getManagement(verificationId);
+        return presentationService.getManagementResponseDto(verificationId);
     }
 
     @ExceptionHandler(VerificationNotFoundException.class)

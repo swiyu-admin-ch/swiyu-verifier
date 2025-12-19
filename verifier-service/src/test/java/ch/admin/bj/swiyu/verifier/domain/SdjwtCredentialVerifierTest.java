@@ -8,8 +8,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
-import ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.authlete.sd.Disclosure;
@@ -30,8 +30,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
-import static ch.admin.bj.swiyu.verifier.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_KID_HEADER_VALUE;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_KID_HEADER_VALUE;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -66,7 +66,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getId()).thenReturn(UUID.randomUUID());
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(Collections.emptyList());
         when(managementEntity.getRequestNonce()).thenReturn(testNonce);
-        when(managementEntity.getConfigurationOverride()).thenReturn(new  ConfigurationOverride(null, null, null, null, null));
+        when(managementEntity.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
 
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
@@ -78,7 +78,7 @@ class SdjwtCredentialVerifierTest {
     void verifyPresentationWithTrustStatement_whenNotCanIssue_thenVerificationException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException, NoSuchAlgorithmException, ParseException, JsonProcessingException {
         // Issuer not in Accepted Issuer dids
         var vcIssuerDid = "did:example:third";
-        var vcIssuerKid = vcIssuerDid+"#key-1";
+        var vcIssuerKid = vcIssuerDid + "#key-1";
         when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
@@ -88,7 +88,7 @@ class SdjwtCredentialVerifierTest {
         // Trust Statement for default vc type
         var trustRegistryUrl = "https://trust-registry.example.com";
         var trustIssuerDid = "did:example:other";
-        var trustIssuerKid = trustIssuerDid+"#key-1";
+        var trustIssuerKid = trustIssuerDid + "#key-1";
         when(issuerPublicKeyLoader.loadPublicKey(trustIssuerDid, trustIssuerKid))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, DEFAULT_ISSUER_ID);
@@ -104,13 +104,13 @@ class SdjwtCredentialVerifierTest {
         assertEquals(ISSUER_NOT_ACCEPTED, ex.getErrorResponseCode());
         assertEquals("Issuer not in list of accepted issuers or connected to trust anchor", ex.getErrorDescription());
     }
-    
+
     @ParameterizedTest
     @ValueSource(strings = {"did:example:12345"})
     void verifyPresentationWithTrustStatement_thenSuccess(String audience) throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
         // Issuer not in Accepted Issuer dids
         var vcIssuerDid = "did:example:third";
-        var vcIssuerKid = vcIssuerDid+"#key-1";
+        var vcIssuerKid = vcIssuerDid + "#key-1";
         when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
@@ -120,7 +120,7 @@ class SdjwtCredentialVerifierTest {
         // Trust Statement for default vc type
         var trustRegistryUrl = "https://trust-registry.example.com";
         var trustIssuerDid = "did:example:other";
-        var trustIssuerKid = trustIssuerDid+"#key-1";
+        var trustIssuerKid = trustIssuerDid + "#key-1";
         when(issuerPublicKeyLoader.loadPublicKey(trustIssuerDid, trustIssuerKid))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid);
@@ -358,13 +358,37 @@ class SdjwtCredentialVerifierTest {
     }
 
     @Test
+    void verifyPresentationMultipleTildaChars_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdjwt = emulator.createSDJWTMock();
+
+        var parts = sdjwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
+        sdjwt = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + parts[2] + SdJwt.JWT_PART_DELINEATION_CHARACTER + SdJwt.JWT_PART_DELINEATION_CHARACTER; // MULTIPLE TILDA CHARS!!!
+
+        var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, applicationProperties.getClientId());
+
+        SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
+                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
+        );
+        var exception = assertThrows(VerificationException.class, verifier::verifyPresentation);
+
+        assertEquals(MALFORMED_CREDENTIAL, exception.getErrorResponseCode());
+        assertEquals("The compact serialized format for the SD-JWT is the concatenation of each part delineated with a single tilde ('~') character",
+                exception.getErrorDescription());
+    }
+
+    @Test
     void verifyPresentationDuplicates_throwsException() throws JOSEException, NoSuchAlgorithmException, ParseException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
 
         // duplicate disclosures
-        var parts = sdjwt.split("~");
-        sdjwt = parts[0] + "~" + parts[1] + "~" + parts[1] + "~";
+        var parts = sdjwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
+        sdjwt = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER; // DUPLICATE!!!
 
         var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, applicationProperties.getClientId());
 
@@ -383,8 +407,10 @@ class SdjwtCredentialVerifierTest {
         var sdjwt = emulator.createSDJWTMock();
 
         // duplicate disclosures
-        var parts = sdjwt.split("~");
-        sdjwt = parts[0] + "~" + parts[1] + "~" + parts[1] + "~";
+        var parts = sdjwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
+        sdjwt = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + parts[1] + SdJwt.JWT_PART_DELINEATION_CHARACTER; // DUPLICATE!!!
 
         var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, "http://example.com");
 
@@ -402,7 +428,7 @@ class SdjwtCredentialVerifierTest {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdjwt = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdjwt, testNonce, applicationProperties.getExternalUrl());
-        var vpTokenParts = vpToken.split("~");
+        var vpTokenParts = vpToken.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
 
         var jwt = SignedJWT.parse(vpTokenParts[0]);
         assertTrue(jwt.verify(new ECDSAVerifier(KeyFixtures.issuerKey())), "Should be able to verify JWT");
@@ -422,7 +448,7 @@ class SdjwtCredentialVerifierTest {
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
 
         assertThrows(VerificationException.class, () ->
-            verifier.checkPresentationDefinitionCriteria(payload.getClaims(), disclosures)
+                verifier.checkPresentationDefinitionCriteria(payload.getClaims(), disclosures)
         );
     }
 

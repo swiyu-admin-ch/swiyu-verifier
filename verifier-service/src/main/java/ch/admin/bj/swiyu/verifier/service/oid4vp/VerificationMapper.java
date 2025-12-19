@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorTypeDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -56,6 +56,7 @@ public class VerificationMapper {
             case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED ->
                 VerificationErrorResponseCodeDto.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;
             case INVALID_PRESENTATION_SUBMISSION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_SUBMISSION;
+            case INVALID_TOKEN_STATUS_LIST -> VerificationErrorResponseCodeDto.INVALID_TOKEN_STATUS_LIST;
             default -> throw new IllegalStateException("Unexpected value: " + source);
         };
     }

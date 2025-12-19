@@ -1,4 +1,4 @@
-publiccodeYmlVersion: 0.4.0
+publiccodeYmlVersion: 0.5.0
 name: swiyu Generic Verifier
 applicationSuite: swiyu Trust Infrastructure
 url: https://github.com/swiyu-admin-ch/swiyu-verifier
@@ -15,6 +15,9 @@ usedBy:
   - Fedpol
 developmentStatus: beta
 softwareType: standalone/backend
+organisation:
+  uri: https://ld.admin.ch/office/III.1.2
+  name: Bundesamt für Justiz
 description:
   en:
     localisedName: swiyu Generic Verifier Service
@@ -32,9 +35,9 @@ legal:
 maintenance:
   type: internal
   contacts:
-   - name: Andre Kunz
-     email: info@swiyu.admin.ch
-     affiliation: Federal Office of Justice
+    - name: Andre Kunz
+      email: info@swiyu.admin.ch
+      affiliation: Federal Office of Justice
 localisation:
   localisationReady: false
   availableLanguages:

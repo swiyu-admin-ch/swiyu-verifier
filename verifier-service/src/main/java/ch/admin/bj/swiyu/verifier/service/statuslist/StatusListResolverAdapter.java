@@ -7,6 +7,7 @@
 package ch.admin.bj.swiyu.verifier.service.statuslist;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,6 +16,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -29,10 +32,11 @@ import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 public class StatusListResolverAdapter {
 
     private final UrlRewriteProperties urlRewriteProperties;
-    private final RestClient statusListRestClient;
+    private final WebClient statusListWebClient;
     private final ApplicationProperties applicationProperties;
+    private final CacheProperties cacheProperties;
 
-    @Cacheable(STATUS_LIST_CACHE)
+    @Cacheable(value = STATUS_LIST_CACHE, condition = "@cacheProperties.statusListCacheTtl > 0L")
     public String resolveStatusList(String uri) {
 
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
@@ -52,15 +56,24 @@ public class StatusListResolverAdapter {
             throw new IllegalArgumentException("Malformed URL %s in StatusList".formatted(rewrittenUrl), e);
         }
 
-
-        return statusListRestClient.get()
-                .uri(rewrittenUrl)
-                .retrieve()
-                .onStatus(status -> status != HttpStatus.OK, (request, response) -> {
-                    throw new StatusListFetchFailedException("Status list with uri: %s could not be retrieved"
-                            .formatted(rewrittenUrl));
-                })
-                .body(String.class);
+            return statusListWebClient
+                    .get()
+                    .uri(rewrittenUrl)
+                    .retrieve()
+                    .onStatus(status -> status != HttpStatus.OK, response ->
+                            reactor.core.publisher.Mono.error(new StatusListFetchFailedException(
+                                    "Status list with uri: %s could not be retrieved".formatted(rewrittenUrl))))
+                    .bodyToMono(String.class)
+                    .onErrorResume(WebClientResponseException.class, ex -> {
+                        if (ex.getCause().toString().contains("DataBufferLimitException")) {
+                            return reactor.core.publisher.Mono.error(new StatusListMaxSizeExceededException(
+                                    "Status list size from %s exceeds maximum allowed size".formatted(rewrittenUrl)));
+                        }
+                        log.error("Error while fetching status list from {}: {}", rewrittenUrl, ex.getMessage());
+                        return reactor.core.publisher.Mono.error(new StatusListFetchFailedException(
+                                "Status list with uri: %s could not be retrieved".formatted(rewrittenUrl)));
+                    })
+                    .block();
     }
     
     private boolean isHttpsUrl(String url) {

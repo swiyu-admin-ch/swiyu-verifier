@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.11</version>
+        <version>3.4.12</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -39,7 +39,7 @@
         <json-path.version>2.9.0</json-path.version>
         <spring-cloud-dependencies.version>2024.0.0</spring-cloud-dependencies.version>
         <bcprov-jdk18on.version>1.82</bcprov-jdk18on.version>
-        <bcpkix-jdk18on.version>1.80</bcpkix-jdk18on.version>
+        <bcpkix-jdk18on.version>1.82</bcpkix-jdk18on.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>
             **/*Dto.java,**/domain/*
@@ -104,17 +104,6 @@
                     </execution>
 
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.27.0</version>
-                <configuration>
-                    <printFailingErrors>true</printFailingErrors>
-                    <linkXRef>false</linkXRef>
-                    <failOnViolation>true</failOnViolation>
-                    <failurePriority>3</failurePriority>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

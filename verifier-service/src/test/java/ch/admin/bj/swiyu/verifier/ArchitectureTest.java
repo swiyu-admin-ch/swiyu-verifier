@@ -47,8 +47,8 @@ public class ArchitectureTest {
     private static Architectures.LayeredArchitecture getArchitectureLayers() {
         return layeredArchitecture()
                 .consideringAllDependencies()
-                .layer(Layer.API.layerName)
-                .definedBy(Layer.API.packageIdentifiers)
+                .layer(Layer.DTO.layerName)
+                .definedBy(Layer.DTO.packageIdentifiers)
                 .layer(Layer.DOMAIN.layerName)
                 .definedBy(Layer.DOMAIN.packageIdentifiers)
                 .layer(Layer.SERVICE.layerName)
@@ -65,7 +65,7 @@ public class ArchitectureTest {
     enum Layer {
         DOMAIN("Domain", "..domain.."),
         SERVICE("Service", "..service.."),
-        API("Api", "..api.."),
+        DTO("Dto", "..dto.."),
         WEB("Web"),
         COMMON("Common", "..common..");
 
@@ -161,7 +161,7 @@ public class ArchitectureTest {
 
         @ArchTest
         static final ArchRule architecture_is_respected = getArchitectureLayers()
-                .whereLayer(Layer.API.layerName)
+                .whereLayer(Layer.DTO.layerName)
                 .mayOnlyBeAccessedByLayers(
                         Layer.SERVICE.layerName
                 )

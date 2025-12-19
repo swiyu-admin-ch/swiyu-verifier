@@ -6,10 +6,10 @@
 
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.api.definition.*;
-import ch.admin.bj.swiyu.verifier.api.management.*;
-import ch.admin.bj.swiyu.verifier.api.metadata.JwkSetDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.dto.definition.*;
+import ch.admin.bj.swiyu.verifier.dto.management.*;
+import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
@@ -66,6 +66,13 @@ public class ManagementMapper {
         );
     }
 
+    public static List<TrustAnchor> toTrustAnchors(List<TrustAnchorDto> trustAnchorDtos) {
+        if (trustAnchorDtos == null) {
+            return List.of();
+        }
+        return trustAnchorDtos.stream().map(ManagementMapper::toTrustAnchor).toList();
+    }
+
     private static String buildVerificationDeeplink(String requestUri, String clientId, String deeplinkSchema) {
         return UriComponentsBuilder.newInstance()
                 .scheme(deeplinkSchema)
@@ -120,7 +127,7 @@ public class ManagementMapper {
         return source.stream().map(ManagementMapper::toInputDescriptorDto).toList();
     }
 
-    private static InputDescriptorDto toInputDescriptorDto(PresentationDefinition.InputDescriptor source) {
+    private static InputDescriptorDto toInputDescriptorDto(InputDescriptor source) {
         if (source == null) {
             return null;
         }
@@ -330,6 +337,7 @@ public class ManagementMapper {
             case INVALID_PRESENTATION_DEFINITION_REFERENCE ->
                     VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION_REFERENCE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
+            case INVALID_TOKEN_STATUS_LIST -> VerificationErrorResponseCodeDto.INVALID_TOKEN_STATUS_LIST;
         };
     }
 

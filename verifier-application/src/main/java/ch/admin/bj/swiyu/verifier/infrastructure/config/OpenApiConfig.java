@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.infrastructure.config;
 
-import ch.admin.bj.swiyu.verifier.api.callback.WebhookCallbackDto;
+import ch.admin.bj.swiyu.verifier.dto.callback.WebhookCallbackDto;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.oas.models.OpenAPI;
 import lombok.AllArgsConstructor;

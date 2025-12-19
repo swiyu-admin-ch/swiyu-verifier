@@ -6,11 +6,11 @@
 
 package ch.admin.bj.swiyu.verifier.domain;
 
-import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
+import ch.admin.bj.swiyu.verifier.common.util.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
+import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
@@ -50,9 +50,12 @@ import static ch.admin.bj.swiyu.verifier.domain.CredentialVerifierSupport.getReq
 
 /**
  * Verifies the presentation of a SD-JWT Credential.
+ *
+ * @deprecated: class is deprecated and will be removed in future versions when all OID4VP verifications use the new adapter-based approach.
  */
 @AllArgsConstructor
 @Slf4j
+@Deprecated(since="OID4VP 1.0")
 public class SdjwtCredentialVerifier {
 
     public static final String CREDENTIAL_FORMAT = "vc+sd-jwt";
@@ -130,11 +133,13 @@ public class SdjwtCredentialVerifier {
     @NotNull
     private SdJwtData verifySdJwt(String fullSdJwt) {
 
-        String[] parts = fullSdJwt.split("~");
+        SdJwt sdJwt = new SdJwt(fullSdJwt);
+        String[] parts = sdJwt.getParts();
+
         var claims = validateJwtClaims(parts[0]);
 
         // Step 7 (SD-JWT spec 8.3): Key Binding Verification
-        int disclosureLength = validateHolderBinding(fullSdJwt, claims, parts);
+        int disclosureLength = validateHolderBinding(sdJwt, claims, parts);
 
         List<Disclosure> disclosures = getValidatedDisclosures(parts, disclosureLength, claims);
 
@@ -197,10 +202,17 @@ public class SdjwtCredentialVerifier {
     /**
      * Validates the holder binding. From this we will also know how many disclosures there are.
      */
-    private int validateHolderBinding(String fullSdJwt, JWTClaimsSet claims, String[] parts) {
+    private int validateHolderBinding(SdJwt sdJwt, JWTClaimsSet claims, String... parts) {
         var payload = claims.getClaims();
         int disclosureLength = parts.length;
-        if (hasKeyBinding(fullSdJwt, payload)) {
+
+        boolean keyBindingProofPresent = sdJwt.hasKeyBinding();
+        if (payload.containsKey("cnf") && !keyBindingProofPresent) {
+            // There is a Holder Key Binding, but we did not receive a proof for it!
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
+        }
+
+        if (keyBindingProofPresent) {
             disclosureLength -= 1;
             log.trace("Verifying holder keybinding of id {}", managementEntity.getId());
             validateKeyBinding(payload, parts[parts.length - 1]);
@@ -294,8 +306,8 @@ public class SdjwtCredentialVerifier {
      * Checks if the issuer has a valid trust statement from any of the provided trust anchors.
      * Tries direct match first (issuer DID = trust anchor DID), then queries trust registries.
      *
-     * @param issuerDid the DID of the issuer to verify
-     * @param vct the Verifiable Credential Type
+     * @param issuerDid    the DID of the issuer to verify
+     * @param vct          the Verifiable Credential Type
      * @param trustAnchors the list of trust anchors to check
      * @return true if a matching trust statement is found, false otherwise
      */
@@ -339,7 +351,7 @@ public class SdjwtCredentialVerifier {
      * Validates a collection of trust statements to find one that vouches for the issuer.
      */
     private boolean verifyTrustStatements(String issuerDid, String vct, TrustAnchor trustAnchor,
-                                         List<String> trustStatements) {
+                                          List<String> trustStatements) {
         for (var rawTrustStatement : trustStatements) {
             if (validateTrustStatement(issuerDid, vct, trustAnchor, rawTrustStatement)) {
                 return true;
@@ -353,7 +365,7 @@ public class SdjwtCredentialVerifier {
      * Returns false on verification or parsing errors, allowing iteration to continue.
      */
     private boolean validateTrustStatement(String issuerDid, String vct, TrustAnchor trustAnchor,
-                                          String rawTrustStatement) {
+                                           String rawTrustStatement) {
         try {
             return isProvidingTrust(issuerDid, vct, trustAnchor, rawTrustStatement);
         } catch (VerificationException e) {
@@ -412,15 +424,6 @@ public class SdjwtCredentialVerifier {
         statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
     }
 
-    private boolean hasKeyBinding(String fullSdJwt, Map<String, Object> payload) {
-        boolean keyBindingProofPresent = !fullSdJwt.endsWith("~");
-        if (payload.containsKey("cnf") && !keyBindingProofPresent) {
-            // There is a Holder Key Binding, but we did not receive a proof for it!
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
-        }
-        return keyBindingProofPresent;
-    }
-
     private void validateKeyBinding(Map<String, Object> payload, String keyBindingProof) {
         JWK keyBinding = getHolderKeyBinding(payload);
         // Validate Holder Binding Proof JWT
@@ -469,7 +472,7 @@ public class SdjwtCredentialVerifier {
 
     private void validateSDHash(JWTClaimsSet keyBindingClaims) {
         // Compute the SD Hash of the VP Token
-        String sdjwt = vpToken.substring(0, vpToken.lastIndexOf("~") + 1);
+        String sdjwt = vpToken.substring(0, vpToken.lastIndexOf(SdJwt.JWT_PART_DELINEATION_CHARACTER) + 1);
         String hash;
         try {
             var hashDigest = MessageDigest.getInstance("sha-256").digest(sdjwt.getBytes());

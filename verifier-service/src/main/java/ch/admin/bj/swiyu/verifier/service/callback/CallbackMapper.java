@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.callback;
 
-import ch.admin.bj.swiyu.verifier.api.callback.WebhookCallbackDto;
+import ch.admin.bj.swiyu.verifier.dto.callback.WebhookCallbackDto;
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEvent;
 import lombok.experimental.UtilityClass;
 

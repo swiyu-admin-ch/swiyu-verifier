@@ -1,11 +1,11 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
-import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.api.management.TrustAnchorDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlCredentialDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlCredentialMetaDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
+import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialMetaDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

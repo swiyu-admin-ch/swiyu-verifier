@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorTypeDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;

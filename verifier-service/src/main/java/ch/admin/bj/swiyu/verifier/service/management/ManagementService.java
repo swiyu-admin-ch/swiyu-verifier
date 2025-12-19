@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -73,7 +73,7 @@ public class ManagementService {
         var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
         var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
         var trustAnchors = ManagementMapper.toTrustAnchors(request.trustAnchors());
-        var responseSpecificationBuilder = buildResponseSpecification(request.responseMode());
+        var responseSpecificationBuilder = createResponseSpecificationBuilder(request.responseMode());
 
         var management = managementTransactionalService.saveNewManagement(
                 presentationDefinition,
@@ -87,7 +87,7 @@ public class ManagementService {
     }
 
 
-    private ResponseSpecification.ResponseSpecificationBuilder buildResponseSpecification(ResponseModeTypeDto responseMode) {
+    private ResponseSpecification.ResponseSpecificationBuilder createResponseSpecificationBuilder(ResponseModeTypeDto responseMode) {
         var responseModeType = responseMode == null ? ResponseModeType.DIRECT_POST : ManagementMapper.toResponseMode(responseMode);
         var responseSpecificationBuilder = ResponseSpecification.builder().responseModeType(responseModeType);
         if (ResponseModeTypeDto.DIRECT_POST_JWT.equals(responseMode)) {

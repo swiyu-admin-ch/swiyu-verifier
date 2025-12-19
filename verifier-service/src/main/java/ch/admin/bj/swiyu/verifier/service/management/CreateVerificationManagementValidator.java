@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 

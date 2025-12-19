@@ -6,10 +6,10 @@
 
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.api.definition.*;
-import ch.admin.bj.swiyu.verifier.api.management.*;
-import ch.admin.bj.swiyu.verifier.api.metadata.JwkSetDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.dto.definition.*;
+import ch.admin.bj.swiyu.verifier.dto.management.*;
+import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;

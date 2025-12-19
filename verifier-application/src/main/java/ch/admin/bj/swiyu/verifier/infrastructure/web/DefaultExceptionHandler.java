@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.infrastructure.web;
 
-import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import jakarta.servlet.http.HttpServletRequest;

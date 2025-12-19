@@ -38,6 +38,7 @@ public class JwtSigningService {
      */
     public SignedJWT signJwt(JWTClaimsSet claimsSet, String keyId, String keyPin, String verificationMethod)
             throws IllegalArgumentException, JOSEException {
+
         SignerProvider signerProvider;
         try {
             if (keyId != null && keyPin != null) {
@@ -86,6 +87,9 @@ public class JwtSigningService {
      * @throws KeyStrategyException     if key strategy creation fails
      */
     private SignerProvider createSignerProvider(String keyId, String keyPin) throws IllegalArgumentException, KeyStrategyException {
+        if (keyId == null ^ keyPin == null) {
+            throw new IllegalArgumentException("expected both keyId and keyPin, but only one was provided.");
+        }
         var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);
         defaultSignatureConfiguration.getHsm().setKeyId(keyId);
         defaultSignatureConfiguration.getHsm().setKeyPin(keyPin);

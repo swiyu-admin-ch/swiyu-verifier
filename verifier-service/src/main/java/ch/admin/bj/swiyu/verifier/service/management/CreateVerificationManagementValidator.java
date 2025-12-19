@@ -17,7 +17,7 @@ public class CreateVerificationManagementValidator {
      */
     public void validate(CreateVerificationManagementDto request) {
         if (request == null) {
-            throw new IllegalArgumentException("CreateVerificationManagement is null");
+            throw new IllegalArgumentException("CreateVerificationManagement must not be null");
         }
         if (request.presentationDefinition() == null) {
             // Until the wallet is migrated we MUST provide a presentation definition.

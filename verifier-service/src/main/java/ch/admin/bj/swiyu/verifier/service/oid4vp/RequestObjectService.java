@@ -8,7 +8,6 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -16,7 +15,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
-import ch.admin.bj.swiyu.verifier.service.SignatureService;
+import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,7 +44,7 @@ public class RequestObjectService {
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementRepository managementRepository;
     private final ObjectMapper objectMapper;
-    private final SignatureService signatureService;
+    private final JwtSigningService jwtSigningService;
 
     /**
      * Aggregated view of the effective configuration for a single request object.
@@ -146,40 +145,14 @@ public class RequestObjectService {
                                      Management managementEntity,
                                      EffectiveRequestObjectConfig effectiveConfig) {
         var override = managementEntity.getConfigurationOverride();
-        SignerProvider signerProvider;
+
         try {
-            // Prefer explicitly configured key if present, otherwise fall back to default signer
-            if (override.keyId() != null) {
-                signerProvider = signatureService.createSignerProvider(override.keyId(), override.keyPin());
-            } else {
-                signerProvider = signatureService.createDefaultSignerProvider();
-            }
+            SignedJWT signedJwt = jwtSigningService.signJwt(createJWTClaimsSet(effectiveConfig.clientId(), requestObject),
+                    override.keyId(), override.keyPin(), effectiveConfig.verificationMethod());
+            return signedJwt.serialize();
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize signature provider. This is probably because the key could not be loaded.", e);
+            throw new IllegalStateException("Failed to sign request object", e);
         }
-
-        if (!signerProvider.canProvideSigner()) {
-            log.error("Upstream system error. Upstream system requested presentation to be signed despite the verifier not being configured for it");
-            throw new IllegalStateException("Presentation was configured to be signed, but no signing key was configured.");
-        }
-
-        JWSSigner signer = signerProvider.getSigner();
-
-        var jwsHeader = new JWSHeader
-                .Builder(USED_JWS_ALGORITHM)
-                .keyID(effectiveConfig.verificationMethod())
-                // As specified in https://www.rfc-editor.org/rfc/rfc9101.html#section-10.8
-                .type(new JOSEObjectType("oauth-authz-req+jwt"))
-                .build();
-        var signedJwt = new SignedJWT(jwsHeader, createJWTClaimsSet(effectiveConfig.clientId(), requestObject));
-
-        try {
-            signedJwt.sign(signer);
-        } catch (JOSEException e) {
-            throw new IllegalStateException("Error signing JWT", e);
-        }
-
-        return signedJwt.serialize();
     }
 
     /**

@@ -2,15 +2,13 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.service.SignatureService;
+import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
 import ch.admin.eid.did_sidekicks.DidDoc;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
@@ -50,7 +48,7 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     private final ApplicationProperties applicationProperties;
 
     /** Service used to create signers for JWT signing */
-    private final SignatureService signatureService;
+    private final JwtSigningService jwtSigningService;
 
     /**
      * Performs the health check by validating the signing capability.
@@ -97,37 +95,20 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
      * @param verificationMethod The verification method identifier
      * @param didDoc The resolved DID document
      * @return true if signing and verification succeed, false otherwise
-     * @throws Exception if any error occurs during signing or verification
      */
-    private boolean verifySigningCapability(String verificationMethod, DidDoc didDoc) throws Exception {
-        // Create and validate signer provider
-        var signerProvider = signatureService.createDefaultSignerProvider();
-        if (!signerProvider.canProvideSigner()) {
-            return false;
-        }
+    private boolean verifySigningCapability(String verificationMethod, DidDoc didDoc) throws IllegalArgumentException, JOSEException ,DidSidekicksException, ParseException {
 
-        // Create a test JWT with dummy claims
-        SignedJWT testJwt = createTestJwt();
-        testJwt.sign(signerProvider.getSigner());
-
-        // Sign the JWT
-        signerProvider.getSigner().sign(testJwt.getHeader(), testJwt.getSigningInput());
-
-        // Extract public key from DID document and verify signature
-        return verifySignature(testJwt, didDoc, verificationMethod);
-    }
-
-    /**
-     * Creates a test JWT with a dummy header and payload.
-     *
-     * @return A new SignedJWT instance for testing
-     */
-    private SignedJWT createTestJwt() {
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).build();
-        JWTClaimsSet payload = new JWTClaimsSet.Builder()
+        // Create a test JWT claims set
+        JWTClaimsSet testClaims = new JWTClaimsSet.Builder()
                 .subject(TEST_JWT_SUBJECT)
                 .build();
-        return new SignedJWT(header, payload);
+
+        // Use the unified signing method
+        SignedJWT signedJwt = jwtSigningService.signJwt(testClaims, null, null, verificationMethod);
+
+
+        // Extract public key from DID document and verify signature
+        return verifySignature(signedJwt, didDoc, verificationMethod);
     }
 
     /**

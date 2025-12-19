@@ -7,9 +7,6 @@
 package ch.admin.bj.swiyu.verifier;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
-import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.definition.ConstraintDto;
 import ch.admin.bj.swiyu.verifier.dto.definition.InputDescriptorDto;
 import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
@@ -18,7 +15,6 @@ import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationStatusDto;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.SdjwtPresentationVerifierAdapter;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
@@ -48,14 +44,14 @@ import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -81,29 +77,24 @@ class BlackboxIT {
 
     @Autowired
     private ApplicationProperties applicationProperties;
-    @Autowired
-    private VerificationProperties verificationProperties;
     @MockitoBean
     private DidResolverAdapter didResolverAdapter;
-
-    @MockitoBean
-    private SdjwtCredentialVerifier aoeu;
 
     @Test
     void testVerificationFlow_walletSendsValidCredential() throws Exception {
         var createDto = createDtoAsContentBody();
-        var createResponse = createVerificationRequest(createDto);
+        var createResponseDto = createVerificationRequest(createDto);
 
-        var nonce = createResponse.requestNonce();
-        var requestId = createResponse.id().toString();
+        var nonce = createResponseDto.requestNonce();
+        var requestId = createResponseDto.id().toString();
 
         // Check status, should be pending
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.PENDING));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet retrieves Verifier Request
         getVerificationRequestForWallet(requestId, nonce);
 
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.PENDING));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet checks verifier metadata
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
@@ -114,7 +105,7 @@ class BlackboxIT {
                 .andExpect(jsonPath("$.version").value(applicationProperties.getMetadataVersion()))
                 .andReturn());
         // Check status, should still be pending
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.PENDING));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet sends valid credential
         var vpToken = createMockCredential(nonce);
@@ -125,7 +116,7 @@ class BlackboxIT {
                         .formField("vp_token", vpToken))
                 .andExpect(status().isOk())
         );
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.SUCCESS));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
 
         // Wallet sends error response, status should not change
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
@@ -133,25 +124,25 @@ class BlackboxIT {
                         .formField("error_description", "I really don't want to"))
                 .andExpect(status().isGone())
         );
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.SUCCESS));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
     }
 
 
     @Test
     void testVerificationFlow_walletSendsError() throws Exception {
         var createDto = createDtoAsContentBody();
-        var createResponse = createVerificationRequest(createDto);
+        var createResponseDto = createVerificationRequest(createDto);
 
-        var nonce = createResponse.requestNonce();
-        var requestId = createResponse.id().toString();
+        var nonce = createResponseDto.requestNonce();
+        var requestId = createResponseDto.id().toString();
 
         // Check status, should be pending
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.PENDING));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet retrieves Verifier Request
         getVerificationRequestForWallet(requestId, nonce);
 
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.PENDING));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet checks verifier metadata
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
@@ -162,7 +153,7 @@ class BlackboxIT {
                 .andExpect(jsonPath("$.version").value(applicationProperties.getMetadataVersion()))
                 .andReturn());
         // Check status, should still be pending
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.PENDING));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet sends error response
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
@@ -170,7 +161,7 @@ class BlackboxIT {
                         .formField("error_description", "I really don't want to"))
                 .andExpect(status().isOk())
         );
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.FAILED));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
 
         // Wallet sends valid credential, should be rejected
         var vpToken = createMockCredential(nonce);
@@ -182,7 +173,7 @@ class BlackboxIT {
                 .andExpect(status().isGone())
         );
         // Status should not have changed, status should not change
-        assert (hasStatus(createResponse.id().toString(), VerificationStatusDto.FAILED));
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
     }
 
     private boolean hasStatus(String requestObjectId, VerificationStatusDto status) {
@@ -254,13 +245,13 @@ class BlackboxIT {
         // TODO@MP when(issuer) // mock public key loader
         //when(didResolverAdapter.)
          */
-        mockDidResolverRespnsoe(emulator);
+        mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
         return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
     }
 
-    private void mockDidResolverRespnsoe(SDJWTCredentialMock sdjwt) {
+    private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
             when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
                     sdjwt.getIssuerId(),

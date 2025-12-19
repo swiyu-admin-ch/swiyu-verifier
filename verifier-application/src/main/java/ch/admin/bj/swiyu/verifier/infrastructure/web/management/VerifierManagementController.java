@@ -78,7 +78,7 @@ public class VerifierManagementController {
             }
     )
     public ManagementResponseDto getVerification(@PathVariable UUID verificationId) {
-        return presentationService.getManagement(verificationId);
+        return presentationService.getManagementResponseDto(verificationId);
     }
 
     @ExceptionHandler(VerificationNotFoundException.class)

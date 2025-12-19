@@ -1,8 +1,7 @@
 package ch.admin.bj.swiyu.verifier;
 
-import ch.admin.bj.swiyu.verifier.api.ApiErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.infrastructure.web.DefaultExceptionHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;

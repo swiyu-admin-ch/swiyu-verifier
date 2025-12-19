@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.test.mock;
 
-import ch.admin.bj.swiyu.verifier.api.submission.DescriptorDto;
-import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.dto.submission.DescriptorDto;
+import ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import com.authlete.sd.Disclosure;

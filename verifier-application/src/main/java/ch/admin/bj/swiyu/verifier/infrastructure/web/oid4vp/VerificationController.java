@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.*;
-import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
-import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
+import ch.admin.bj.swiyu.verifier.dto.*;
+import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResponseResolver;

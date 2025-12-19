@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.service;
 
-import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;

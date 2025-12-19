@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures;
 
-import ch.admin.bj.swiyu.verifier.api.submission.DescriptorDto;
-import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.dto.submission.DescriptorDto;
+import ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;

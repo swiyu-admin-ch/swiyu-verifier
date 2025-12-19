@@ -5,7 +5,7 @@
  */
 package ch.admin.bj.swiyu.verifier.service.oid4vp.ports;
 
-import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 
 /**

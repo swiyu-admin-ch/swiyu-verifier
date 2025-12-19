@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
-import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
+import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;

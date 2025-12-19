@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.domain;
 
-import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
+import ch.admin.bj.swiyu.verifier.common.util.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import com.authlete.sd.Disclosure;

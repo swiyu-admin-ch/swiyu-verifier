@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.infrastructure.web.controller;
 
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
+import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.VerificationController;
 import org.junit.jupiter.api.Test;

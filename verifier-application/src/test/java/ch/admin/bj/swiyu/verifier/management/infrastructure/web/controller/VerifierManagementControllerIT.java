@@ -7,11 +7,11 @@
 package ch.admin.bj.swiyu.verifier.management.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
-import ch.admin.bj.swiyu.verifier.api.definition.FieldDto;
-import ch.admin.bj.swiyu.verifier.api.definition.FormatAlgorithmDto;
-import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.api.management.TrustAnchorDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlClaimDto;
+import ch.admin.bj.swiyu.verifier.dto.definition.FieldDto;
+import ch.admin.bj.swiyu.verifier.dto.definition.FormatAlgorithmDto;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.management.test.fixtures.ApiFixtures;

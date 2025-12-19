@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.definition.*;
+import ch.admin.bj.swiyu.verifier.dto.definition.*;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import lombok.experimental.UtilityClass;
 

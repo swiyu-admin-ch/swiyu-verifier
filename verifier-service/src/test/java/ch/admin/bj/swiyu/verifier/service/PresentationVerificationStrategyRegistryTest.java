@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service;
 
-import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerificationStrategy;
 import org.junit.jupiter.api.Test;

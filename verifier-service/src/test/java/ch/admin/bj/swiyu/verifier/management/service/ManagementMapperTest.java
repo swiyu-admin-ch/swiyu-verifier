@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.management.service;
 
-import ch.admin.bj.swiyu.verifier.api.definition.*;
+import ch.admin.bj.swiyu.verifier.dto.definition.*;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import org.junit.jupiter.api.BeforeEach;

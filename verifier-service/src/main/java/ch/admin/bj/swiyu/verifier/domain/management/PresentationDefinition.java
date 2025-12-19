@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.domain.management;
 
-import ch.admin.bj.swiyu.verifier.common.json.ValidJsonPath;
+import ch.admin.bj.swiyu.verifier.common.util.json.ValidJsonPath;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

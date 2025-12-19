@@ -6,9 +6,9 @@
 
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRequestDto;
 
 /**
  * Result type that models the four mutually exclusive variants of an incoming

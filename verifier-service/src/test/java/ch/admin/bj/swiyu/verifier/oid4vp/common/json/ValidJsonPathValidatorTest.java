@@ -6,7 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.common.json;
 
-import ch.admin.bj.swiyu.verifier.common.json.ValidJsonPathValidator;
+import ch.admin.bj.swiyu.verifier.common.util.json.ValidJsonPathValidator;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectMapper;
 import jakarta.validation.ConstraintValidatorContext;

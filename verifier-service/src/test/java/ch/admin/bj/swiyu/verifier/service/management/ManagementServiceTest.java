@@ -1,11 +1,11 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.api.definition.PresentationDefinitionDto;
-import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.DcqlQueryDto;
+import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
@@ -68,7 +68,7 @@ class ManagementServiceTest {
             managementMapper.when(() -> ManagementMapper.toPresentationDefinition(any(PresentationDefinitionDto.class)))
                     .thenReturn(presentationDefinition);
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(any(Management.class), any()))
-                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto.class));
+                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto.class));
 
             service.createVerificationManagement(requestDto);
 
@@ -101,7 +101,7 @@ class ManagementServiceTest {
             managementMapper.when(() -> ManagementMapper.toPresentationDefinition(any(PresentationDefinitionDto.class)))
                     .thenReturn(presentationDefinition);
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(any(Management.class), any()))
-                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto.class));
+                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto.class));
             try (MockedStatic<DcqlMapper> dcqlMapper = mockStatic(DcqlMapper.class)) {
                 dcqlMapper.when(() -> DcqlMapper.toDcqlQuery(any(DcqlQueryDto.class)))
                         .thenReturn(dcqlQuery);
@@ -148,7 +148,7 @@ class ManagementServiceTest {
 
         try (MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties))
-                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto.class));
+                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto.class));
 
             service.getManagementResponseDto(id);
             managementMapper.verify(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties), times(1));
@@ -203,7 +203,7 @@ class ManagementServiceTest {
             managementMapper.when(() -> ManagementMapper.toPresentationDefinition(any(PresentationDefinitionDto.class)))
                     .thenReturn(presentationDefinition);
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(any(Management.class), any()))
-                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.api.management.ManagementResponseDto.class));
+                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto.class));
             try (MockedStatic<DcqlMapper> dcqlMapper = mockStatic(DcqlMapper.class)) {
                 dcqlMapper.when(() -> DcqlMapper.toDcqlQuery(any(DcqlQueryDto.class)))
                         .thenReturn(dcqlQuery);

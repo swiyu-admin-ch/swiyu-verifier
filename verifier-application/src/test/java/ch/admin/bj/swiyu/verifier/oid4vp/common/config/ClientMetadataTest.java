@@ -7,7 +7,7 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.common.config;
 
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
-import ch.admin.bj.swiyu.verifier.api.metadata.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

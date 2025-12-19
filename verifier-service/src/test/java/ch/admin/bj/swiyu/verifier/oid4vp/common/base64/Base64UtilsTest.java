@@ -6,11 +6,11 @@
 
 package ch.admin.bj.swiyu.verifier.oid4vp.common.base64;
 
-import ch.admin.bj.swiyu.verifier.common.base64.Base64Utils;
+import ch.admin.bj.swiyu.verifier.common.util.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.oid4vp.test.fixtures.KeyFixtures;
 import org.junit.jupiter.api.Test;
 
-import static ch.admin.bj.swiyu.verifier.common.base64.Base64Utils.encodeBase64;
+import static ch.admin.bj.swiyu.verifier.common.util.base64.Base64Utils.encodeBase64;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class Base64UtilsTest {

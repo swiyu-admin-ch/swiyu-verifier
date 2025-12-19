@@ -6,10 +6,10 @@
 
 package ch.admin.bj.swiyu.verifier.management.test.fixtures;
 
-import ch.admin.bj.swiyu.verifier.api.definition.*;
-import ch.admin.bj.swiyu.verifier.api.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.api.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.api.management.dcql.*;
+import ch.admin.bj.swiyu.verifier.dto.definition.*;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.*;
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
 

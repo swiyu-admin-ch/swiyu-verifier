@@ -5,7 +5,7 @@
  */
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.requestobject.RequestObjectDto;
+import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 
 /**
  * Result type for {@link RequestObjectService#assembleRequestObject(java.util.UUID)}.

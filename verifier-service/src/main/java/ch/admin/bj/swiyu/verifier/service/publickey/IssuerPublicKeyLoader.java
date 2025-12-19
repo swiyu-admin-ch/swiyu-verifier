@@ -25,7 +25,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
 import java.util.List;
 
-import static ch.admin.bj.swiyu.verifier.common.base64.Base64Utils.decodeMultibaseKey;
+import static ch.admin.bj.swiyu.verifier.common.util.base64.Base64Utils.decodeMultibaseKey;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static org.springframework.util.StringUtils.hasText;
 

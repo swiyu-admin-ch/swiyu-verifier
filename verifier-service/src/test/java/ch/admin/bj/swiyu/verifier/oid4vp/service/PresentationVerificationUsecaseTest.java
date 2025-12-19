@@ -1,8 +1,8 @@
 package ch.admin.bj.swiyu.verifier.oid4vp.service;
 
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationDCQLRequestDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRejectionDto;
-import ch.admin.bj.swiyu.verifier.api.VerificationPresentationRequestDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRequestDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -110,7 +110,7 @@ class PresentationVerificationUsecaseTest {
         // stub registry with a strategy delegating to stringPresentationVerifier
         when(strategyRegistry.getStrategy(anyString())).thenReturn(new PresentationVerificationStrategy() {
             @Override
-            public String verify(String vpToken, Management managementEntity, ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto presentationSubmission) {
+            public String verify(String vpToken, Management managementEntity, ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto presentationSubmission) {
                 return legacyPresentationVerifier.verify(vpToken, managementEntity);
             }
             @Override

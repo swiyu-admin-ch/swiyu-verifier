@@ -6,8 +6,8 @@
 
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.api.submission.DescriptorDto;
-import ch.admin.bj.swiyu.verifier.api.submission.PresentationSubmissionDto;
+import ch.admin.bj.swiyu.verifier.dto.submission.DescriptorDto;
+import ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import com.jayway.jsonpath.Configuration;
@@ -16,7 +16,7 @@ import lombok.experimental.UtilityClass;
 
 import java.util.*;
 
-import static ch.admin.bj.swiyu.verifier.common.base64.Base64Utils.decodeBase64;
+import static ch.admin.bj.swiyu.verifier.common.util.base64.Base64Utils.decodeBase64;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED;

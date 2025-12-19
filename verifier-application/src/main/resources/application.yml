@@ -122,5 +122,5 @@ monitoring:
     password: "${MONITORING_BASIC_AUTH_PASSWORD:}"
 
 caching:
-  statusListCacheTTL: ${STATUS_LIST_CACHE_TTL_MILLI:900000} # 15 min
-  issuerPublicKeyCacheTTL: ${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000} # 1 hour
+  status-list-cache-ttl: ${STATUS_LIST_CACHE_TTL_MILLI:0} # is not cached by default if set to 0, caching is disabled
+  issuer-public-key-cache-ttl: ${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000} # 1 hour

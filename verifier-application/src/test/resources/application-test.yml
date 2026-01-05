@@ -13,6 +13,11 @@ spring:
     compose:
       enabled: false
 
+  datasource:
+    hikari:
+      leak-detection-threshold: 2000
+
+
 application:
   external-url: "http://localhost:8080"
   client_id: "did:example:12345"

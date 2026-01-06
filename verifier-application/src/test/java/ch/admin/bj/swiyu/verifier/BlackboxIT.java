@@ -7,13 +7,12 @@
 package ch.admin.bj.swiyu.verifier;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.definition.ConstraintDto;
 import ch.admin.bj.swiyu.verifier.dto.definition.InputDescriptorDto;
 import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
-import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
-import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.dto.management.VerificationStatusDto;
+import ch.admin.bj.swiyu.verifier.dto.management.*;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
@@ -21,14 +20,19 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,7 +48,9 @@ import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -66,8 +72,6 @@ class BlackboxIT {
     private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
     private static final String ACCEPTED_ISSUER = "did:example:12345";
 
-    protected static final String DEFAULT_DCQL_CREDENTIAL_ID = "defaultTestDcqlCredentialId";
-
     private static final String MANAGEMENT_BASE_URL = "/management/api/verifications";
     private static final String OID4VP_API_BASE_URL = "/oid4vp/api/request-object";
     @Autowired
@@ -79,10 +83,13 @@ class BlackboxIT {
     private ApplicationProperties applicationProperties;
     @MockitoBean
     private DidResolverAdapter didResolverAdapter;
+    @Autowired
+    private ManagementRepository managementEntityRepository;
 
-    @Test
-    void testVerificationFlow_walletSendsValidCredential() throws Exception {
-        var createDto = createDtoAsContentBody();
+    @ParameterizedTest
+    @MethodSource("provideCreateDtosDirectPost")
+    void testVerificationFlow_walletSendsValidCredential(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+        var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
         var createResponseDto = createVerificationRequest(createDto);
 
         var nonce = createResponseDto.requestNonce();
@@ -120,6 +127,7 @@ class BlackboxIT {
 
         // Wallet sends error response, status should not change
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really don't want to"))
                 .andExpect(status().isGone())
@@ -127,10 +135,10 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
     }
 
-
-    @Test
-    void testVerificationFlow_walletSendsError() throws Exception {
-        var createDto = createDtoAsContentBody();
+    @ParameterizedTest
+    @MethodSource("provideCreateDtosDirectPost")
+    void testVerificationFlow_walletSendsError(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+        var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
         var createResponseDto = createVerificationRequest(createDto);
 
         var nonce = createResponseDto.requestNonce();
@@ -143,7 +151,6 @@ class BlackboxIT {
         getVerificationRequestForWallet(requestId, nonce);
 
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
-
         // Wallet checks verifier metadata
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
@@ -175,6 +182,52 @@ class BlackboxIT {
         // Status should not have changed, status should not change
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
     }
+
+
+    @ParameterizedTest
+    @MethodSource("provideCreateDtosDirectPostJwt")
+    void testVerificationFlowDirectPostJWT_walletSendsError(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+        var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
+        var createResponseDto = createVerificationRequest(createDto);
+
+        var nonce = createResponseDto.requestNonce();
+        var requestId = createResponseDto.id().toString();
+
+        // Check status, should be pending
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
+
+
+        // Wallet checks verifier metadata
+        assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
+                        .contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
+                .andExpect(jsonPath("$.version").value(applicationProperties.getMetadataVersion()))
+                .andReturn());
+        // Check status, should still be pending
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
+
+        // Wallet sends error response
+        assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("response", buildJWTResponse(Map.of("error", "vp_formats_not_supported","error_description", "I don't want to"), createResponseDto.id())))
+                .andExpect(status().isOk())
+        );
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
+
+        // Wallet sends valid credential, should be rejected
+        var vpToken = createMockCredential(nonce);
+        var presentationSubmission = SDJWTCredentialMock.getPresentationSubmissionString(UUID.randomUUID());
+        assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("response", buildJWTResponse(Map.of("presentation_submission", presentationSubmission,"vp_token", vpToken), createResponseDto.id())))
+                .andExpect(status().isGone()));
+
+        // Status should not have changed, status should not change
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
+    }
+
 
     private boolean hasStatus(String requestObjectId, VerificationStatusDto status) {
         MvcResult requestObjectResult = assertDoesNotThrow(() -> (mvc.perform(get(String.format("%s/%s", MANAGEMENT_BASE_URL, requestObjectId))
@@ -215,11 +268,11 @@ class BlackboxIT {
         return assertDoesNotThrow(() -> objectMapper.readValue(createVerificationResult.getResponse().getContentAsString(), ManagementResponseDto.class));
     }
 
-    private String createDtoAsContentBody() {
-        var dto = CreateVerificationManagementDto.builder()
+    private static CreateVerificationManagementDto createDtoAsContentBody(ResponseModeTypeDto responseModeTypeDto) {
+        return CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
                 .jwtSecuredAuthorizationRequest(true)
-                .responseMode(ResponseModeTypeDto.DIRECT_POST)
+                .responseMode(responseModeTypeDto)
                 .presentationDefinition(PresentationDefinitionDto.builder()
                         .inputDescriptors(List.of(new InputDescriptorDto(
                                 UUID.randomUUID().toString(),
@@ -231,20 +284,45 @@ class BlackboxIT {
                         .id(UUID.randomUUID().toString())
                         .format(ApiFixtures.formatAlgorithmDtoMap())
                         .build()).build();
+    }
 
-        return assertDoesNotThrow(() -> objectMapper.writeValueAsString(dto));
+    private static CreateVerificationManagementDto createDtoAsContentBodyWithDCQL(ResponseModeTypeDto responseModeTypeDto) {
+        return CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
+                .jwtSecuredAuthorizationRequest(true)
+                .responseMode(responseModeTypeDto)
+                .presentationDefinition(
+                        PresentationDefinitionDto.builder()
+                        .inputDescriptors(List.of(new InputDescriptorDto(
+                                UUID.randomUUID().toString(),
+                                "input_description_name",
+                                "input_description_purpose",
+                                ApiFixtures.formatAlgorithmDtoMap(),
+                                // .first_name field in constraints as at least one is required.
+                                new ConstraintDto(UUID.randomUUID().toString(), null, null, ApiFixtures.formatAlgorithmDtoMap(), List.of(ApiFixtures.fieldDto(List.of(".first_name"))))
+                        )))
+                        .id(UUID.randomUUID().toString())
+                        .format(ApiFixtures.formatAlgorithmDtoMap())
+                        .build()
+                ).dcqlQuery(ApiFixtures.getDcqlQueryDto()).build();
+    }
+
+    private static Stream<Arguments> provideCreateDtosDirectPost() {
+        return Stream.of(
+                Arguments.of(createDtoAsContentBody(ResponseModeTypeDto.DIRECT_POST)),
+                Arguments.of(createDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST))
+        );
+    }
+
+    private static Stream<Arguments> provideCreateDtosDirectPostJwt() {
+        return Stream.of(
+                Arguments.of(createDtoAsContentBody(ResponseModeTypeDto.DIRECT_POST_JWT)),
+                Arguments.of(createDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST_JWT))
+        );
     }
 
     private String createMockCredential(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, "some_issuer_id#key-1");
-        /*
-        assertDoesNotThrow(() -> when(didResolverAdapter.resolveDid(emulator.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithMultikey(
-                emulator.getIssuerId(),
-                emulator.getKidHeaderValue(),
-                KeyFixtures.issuerPublicKeyAsMultibaseKey())));
-        // TODO@MP when(issuer) // mock public key loader
-        //when(didResolverAdapter.)
-         */
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
@@ -260,5 +338,25 @@ class BlackboxIT {
         } catch (DidResolverException e) {
             throw new AssertionError(e);
         }
+    }
+
+    private String buildJWTResponse(Map<String,String> fields, UUID requestId) throws ParseException, JOSEException {
+        var managementEntity = managementEntityRepository.findById(requestId).orElseThrow();
+        var responseSpecification = managementEntity.getResponseSpecification();
+        Assertions.assertNotNull(responseSpecification.getJwks());
+        ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
+        var encryptionMethod = EncryptionMethod.parse(responseSpecification.getEncryptedResponseEncValuesSupported().getFirst());
+
+        var claims = new JWTClaimsSet.Builder();
+        fields.forEach(claims::claim);
+
+
+        JWEObject jweObject = new JWEObject(
+                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, encryptionMethod)
+                        .keyID(publicKey.getKeyID()).build(),
+                claims.build().toPayload()
+        );
+        jweObject.encrypt(new ECDHEncrypter(publicKey));
+        return jweObject.serialize();
     }
 }

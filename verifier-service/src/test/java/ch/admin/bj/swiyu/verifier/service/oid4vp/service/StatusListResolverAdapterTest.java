@@ -3,11 +3,9 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
@@ -18,16 +16,13 @@ import static org.mockito.Mockito.*;
 class StatusListResolverAdapterTest {
 
     private UrlRewriteProperties urlRewriteProperties;
-    private RestClient restClient;
-    private WebClient webClient;
     private ApplicationProperties applicationProperties;
     private StatusListResolverAdapter adapter;
 
     @BeforeEach
     void setUp() {
         urlRewriteProperties = mock(UrlRewriteProperties.class);
-        restClient = mock(RestClient.class, RETURNS_DEEP_STUBS);
-        webClient = mock(WebClient.class, RETURNS_DEEP_STUBS);
+        WebClient webClient = mock(WebClient.class, RETURNS_DEEP_STUBS);
         applicationProperties = mock(ApplicationProperties.class);
         CacheProperties cacheProperties = mock(CacheProperties.class);
         adapter = new StatusListResolverAdapter(urlRewriteProperties, webClient, applicationProperties, cacheProperties);

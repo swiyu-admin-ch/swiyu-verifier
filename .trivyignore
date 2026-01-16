@@ -7,3 +7,7 @@ CVE-2025-6020
 CVE-2025-8941
 # expat: libexpat in Expat allows attackers to trigger large dynamic memory allocations. Problem in eclipse-temurin:21-jre-ubi9-minimal. No fix at the moment.
 CVE-2025-59375
+# We do not use the LIBPNG library - Need to be fixed in the base image
+CVE-2025-64720
+CVE-2025-65018
+CVE-2025-66293

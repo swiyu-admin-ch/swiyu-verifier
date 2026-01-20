@@ -12,7 +12,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.ISSUER_PUBLIC_KEY_CACHE;
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.TRUST_STATEMENT_CACHE;
@@ -23,10 +23,10 @@ import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.TRUST_STATE
  */
 @Service
 @AllArgsConstructor
-public class DidResolverRestClient {
+public class DidResolverWebClient {
 
     private final UrlRewriteProperties urlRewriteProperties;
-    private final RestClient restClient;
+    private final WebClient webClient;
 
 
     /**
@@ -37,7 +37,7 @@ public class DidResolverRestClient {
      */
     @Cacheable(ISSUER_PUBLIC_KEY_CACHE)
     public String retrieveDidLog(String didUrl) {
-        return restClient.get().uri(urlRewriteProperties.getRewrittenUrl(didUrl)).retrieve().body(String.class);
+        return webClient.get().uri(urlRewriteProperties.getRewrittenUrl(didUrl)).retrieve().bodyToMono(String.class).block();
     }
 
     /**
@@ -45,12 +45,13 @@ public class DidResolverRestClient {
      */
     @Cacheable(TRUST_STATEMENT_CACHE)
     public String retrieveDidTrustStatement(String trustRegistryIssuanceUrl, String vct) throws HttpClientErrorException, HttpServerErrorException {
-        return restClient.get()
+        return webClient.get()
                 .uri(uriBuilder ->
                         uriBuilder.path(urlRewriteProperties.getRewrittenUrl(trustRegistryIssuanceUrl))
                             .queryParam("vcSchemaId", vct)
                             .build())
                 .retrieve()
-                .body(String.class);
+                .bodyToMono(String.class)
+                .block();
     }
 }

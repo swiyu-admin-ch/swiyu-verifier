@@ -30,7 +30,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationError.INVA
 
 /**
  * Technical service responsible solely for JWE decryption of verification responses.
- *
+ * <p>
  * It does not contain any business logic related to VP API versions or payload mapping.
  */
 @Service
@@ -51,8 +51,12 @@ public class JweDecryptionService {
             JWEDecrypter decrypter = createJweDecryptor(managementEntity, keyId);
             jwe.decrypt(decrypter);
             return objectMapper.readValue(jwe.getPayload().toString(), VerificationPresentationUnionDto.class);
-        } catch (ParseException | JOSEException | JsonProcessingException e) {
+        } catch (ParseException e) {
+            throw VerificationException.credentialError(e, "Failed to parse response.");
+        } catch (JOSEException e) {
             throw VerificationException.credentialError(e, "Response cannot be decrypted.");
+        } catch (JsonProcessingException e) {
+            throw VerificationException.credentialError(e, e.getOriginalMessage());
         }
     }
 

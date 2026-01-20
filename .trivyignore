@@ -2,8 +2,14 @@
 CVE-2025-7425
 # We do not use rar in our application and no attacker should have access to the deployed pod CLI
 CVE-2025-5914
-# We do not allow any filesystem path operations
+# Does not apply (directory Traversal)
 CVE-2025-6020
 CVE-2025-8941
-# expat: libexpat in Expat allows attackers to trigger large dynamic memory allocations. Problem in eclipse-temurin:21-jre-ubi9-minimal. No fix at the moment.
+# Java has its own XML parsing API and does not rely on libexpat
 CVE-2025-59375
+# We do not use the LIBPNG library - Need to be fixed in the base image
+CVE-2025-64720 exp:2026-03-01
+CVE-2025-65018 exp:2026-03-01
+CVE-2025-66293 exp:2026-03-01
+# Comes from base image, need to be fixed there (redhat/ubi9-minimal:latest)
+CVE-2025-68973 exp:2026-03-01

@@ -11,8 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class CallbackDispatchScheduler {
 
     private final WebhookProperties webhookProperties;
     private final CallbackEventRepository callbackEventRepository;
-    private final RestClient restClient;
+    private final WebClient webClient;
 
     @Scheduled(initialDelay = 0, fixedDelayString = "${webhook.callback-interval}")
     @Transactional
@@ -41,18 +41,19 @@ public class CallbackDispatchScheduler {
 
     private void processCallbackEvent(CallbackEvent event, String callbackUri, String authHeader, String authValue) {
         // Send the event
-        var request = restClient.post().uri(callbackUri);
+        var request =   webClient.post().uri(callbackUri);
         if (!StringUtils.isBlank(authHeader)) {
             request = request.header(authHeader, authValue);
         }
         try {
             request
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(CallbackMapper.toWebhookCallbackDto(event))
+                    .bodyValue(CallbackMapper.toWebhookCallbackDto(event))
                     .retrieve()
-                    .toBodilessEntity();
+                    .toBodilessEntity()
+                    .block();
             callbackEventRepository.delete(event);
-        } catch (RestClientResponseException e) {
+        } catch (WebClientResponseException e) {
             // Note; If delivery failed we will keep retrying to send the message ad-infinitum.
             // This is intended behaviour as we have to guarantee an at-least-once delivery.
             log.error(
@@ -64,4 +65,3 @@ public class CallbackDispatchScheduler {
         }
     }
 }
-

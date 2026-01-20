@@ -37,6 +37,8 @@ import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,12 +52,17 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import javax.sql.DataSource;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto.INVALID_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
@@ -96,6 +103,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private ApplicationProperties applicationProperties;
     @Autowired
     private VerificationProperties verificationProperties;
+    @Autowired
+    private DataSource dataSource;
     @MockitoBean
     private DidResolverAdapter didResolverAdapter;
     @MockitoBean
@@ -298,6 +307,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                             .formField("response", jweObject.serialize()))
                     .andExpect(status().isOk());
         }
+    }
+
+    private HikariPoolMXBean hikariPool() {
+        return ((HikariDataSource) dataSource).getHikariPoolMXBean();
     }
 
     @ParameterizedTest
@@ -1196,5 +1209,117 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     assertThat(encryptionKeys.getKeys()).isNotEmpty();
                 });
 
+    }
+
+    @Test
+    void shouldHandleConcurrentVerificationRequests_whenExternalDependencyBlocks() throws Exception {
+
+        final SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        final String sdJwt = emulator.createSDJWTMock();
+        String vpToken = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, "did:example:12345");
+        vpToken = SDJWTCredentialMock.createMultipleVPTokenMock(vpToken);
+
+        final String presentationSubmission =
+                SDJWTCredentialMock.getMultiplePresentationSubmissionString(UUID.randomUUID());
+
+        final CountDownLatch didCallStarted = new CountDownLatch(1);
+
+        // Simulate did resolution blocking
+        when(didResolverAdapter.resolveDid(emulator.getIssuerId()))
+                .thenAnswer(invocation -> {
+                    didCallStarted.countDown();
+                    Thread.sleep(Long.MAX_VALUE);
+                    return null;
+                });
+
+        final HikariPoolMXBean pool = hikariPool();
+
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        final String finalVpToken = vpToken;
+        executor.submit(() -> {
+            try {
+                mock.perform(
+                        post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                                .formField("presentation_submission", presentationSubmission)
+                                .formField("vp_token", finalVpToken)
+                );
+            } catch (Exception ignored) {}
+        });
+
+        assertThat(didCallStarted.await(5, TimeUnit.SECONDS)).isTrue();
+
+        final int activeConnections = pool.getActiveConnections();
+
+        assertThat(activeConnections)
+                .as("No JDBC connection must be leaked even if external call never returns")
+                .isZero();
+
+        executor.shutdownNow();
+    }
+
+    @Test
+    void shouldNotDeadlockVerificationFlow_whenExternalDependencyBlocks() throws Exception {
+        final int concurrentRequests = 5;
+        final SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        final String sdJwt = emulator.createSDJWTMock();
+        String vpToken = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, "did:example:12345");
+        vpToken = SDJWTCredentialMock.createMultipleVPTokenMock(vpToken);
+
+        final String presentationSubmission =
+                SDJWTCredentialMock.getMultiplePresentationSubmissionString(UUID.randomUUID());
+
+        final CountDownLatch didCallStarted = new CountDownLatch(concurrentRequests);
+        final CountDownLatch allowDidToFinish = new CountDownLatch(concurrentRequests);
+
+        // Simulate did resolution blocking
+        when(didResolverAdapter.resolveDid(emulator.getIssuerId()))
+                .thenAnswer(invocation -> {
+                    didCallStarted.countDown();
+                    try {
+                        allowDidToFinish.await(30, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return DidDocFixtures.issuerDidDocWithJsonWebKey(
+                            emulator.getIssuerId(),
+                            emulator.getKidHeaderValue(),
+                            KeyFixtures.issuerPublicKeyAsJsonWebKey()
+                    );
+                });
+
+        final HikariPoolMXBean pool = hikariPool();
+
+        final ExecutorService executor = Executors.newFixedThreadPool(5);
+
+        for (int i = 0; i < concurrentRequests; i++) {
+            final String finalVpToken = vpToken;
+            executor.submit(() -> {
+                try {
+                    mock.perform(
+                            post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                                    .formField("presentation_submission", presentationSubmission)
+                                    .formField("vp_token", finalVpToken)
+                    );
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+
+        assertThat(didCallStarted.await(5, TimeUnit.SECONDS))
+                .as("DID resolver must have been called")
+                .isTrue();
+
+        final int activeConnections = pool.getActiveConnections();
+
+        assertThat(activeConnections)
+                .as("Concurrent blocked requests must not exhaust JDBC pool")
+                .isZero();
+
+        allowDidToFinish.countDown();
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 }

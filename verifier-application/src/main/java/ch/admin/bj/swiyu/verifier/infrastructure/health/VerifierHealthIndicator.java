@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.actuate.health.Status;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -35,7 +36,7 @@ public class VerifierHealthIndicator implements HealthIndicator {
 
         checks.forEach((name, health) -> {
             builder.withDetail(name, health.getDetails());
-            if (!health.getStatus().equals(Health.up().build().getStatus())) {
+            if (health.getStatus().equals(Status.DOWN)) {
                 builder.status(health.getStatus());
             }
         });

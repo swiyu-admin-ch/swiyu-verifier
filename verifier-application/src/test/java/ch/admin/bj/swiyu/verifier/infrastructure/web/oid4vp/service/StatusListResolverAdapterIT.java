@@ -7,7 +7,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.config.*;
-import ch.admin.bj.swiyu.verifier.infrastructure.config.RestClientConfig;
+import ch.admin.bj.swiyu.verifier.infrastructure.config.WebClientConfig;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
@@ -40,7 +40,7 @@ import static org.mockserver.model.HttpResponse.response;
 
 @Testcontainers
 @RestClientTest({StatusListResolverAdapter.class, CachingConfig.class, CacheProperties.class})
-@Import({RestClientConfig.class, StatusListResolverAdapterIT.TestConfig.class, VerificationProperties.class})
+@Import({WebClientConfig.class, StatusListResolverAdapterIT.TestConfig.class, VerificationProperties.class})
 @TestPropertySource(properties = "verification.object-size-limit=10")
 class StatusListResolverAdapterIT {
 
@@ -48,9 +48,9 @@ class StatusListResolverAdapterIT {
     static class TestConfig {
         @Bean
         VerificationProperties verificationProperties() {
-            var mimi = new VerificationProperties();
-            mimi.setObjectSizeLimit(10);
-            return mimi;
+            var verificationProps = new VerificationProperties();
+            verificationProps.setObjectSizeLimit(10);
+            return verificationProps;
         }
     }
 

@@ -10,8 +10,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,13 +28,15 @@ class CallbackTest {
     @Mock
     private CallbackEventRepository callbackEventRepository;
     @Mock
-    private RestClient restClient;
+    private WebClient webClient;
     @Mock
-    private RestClient.RequestBodyUriSpec requestBodyUriSpec;
+    private WebClient.RequestBodyUriSpec requestBodyUriSpec;
     @Mock
-    private RestClient.RequestBodySpec requestBodySpec;
+    private WebClient.RequestBodySpec requestBodySpec;
     @Mock
-    private RestClient.ResponseSpec responseSpec;
+    private WebClient.ResponseSpec responseSpec;
+    @Mock
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
 
     @InjectMocks
     private CallbackEventProducer callbackEventProducer;
@@ -68,39 +71,43 @@ class CallbackTest {
                 .timestamp(Instant.now())
                 .build();
         when(callbackEventRepository.findAll()).thenReturn(List.of(event));
-        when(restClient.post()).thenReturn(requestBodyUriSpec);
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
         when(requestBodySpec.header(anyString(), anyString())).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodySpec);
-        when(requestBodySpec.body(any(Object.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any(Object.class))).thenReturn(requestHeadersSpec);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.toBodilessEntity()).thenReturn(null);
+        when(responseSpec.toBodilessEntity()).thenReturn(Mono.empty());
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
 
         callbackDispatchScheduler.triggerProcessCallback();
 
-        verify(restClient).post();
+        verify(webClient).post();
         verify(callbackEventRepository).delete(event);
     }
 
     /**
-     * This test verifies that if the RestClient throws an exception.
+     * This test verifies that if the WebClient throws an exception.
      * The event is not deleted, to be retried at a later point.
      */
     @Test
-    void triggerProcessCallback_handlesRestClientException() {
+    void triggerProcessCallback_handlesWebClientException() {
         CallbackEvent event = CallbackEvent.builder()
                 .id(UUID.randomUUID())
                 .verificationId(UUID.randomUUID())
                 .timestamp(Instant.now())
                 .build();
         when(callbackEventRepository.findAll()).thenReturn(List.of(event));
-        when(restClient.post()).thenReturn(requestBodyUriSpec);
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
         when(requestBodySpec.header(anyString(), anyString())).thenReturn(requestBodySpec);
         when(requestBodySpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodySpec);
-        when(requestBodySpec.body(any(Object.class))).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any(Object.class))).thenReturn(requestHeadersSpec);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.toBodilessEntity()).thenThrow(mock(RestClientResponseException.class));
+        when(responseSpec.toBodilessEntity()).thenReturn(
+                Mono.error(WebClientResponseException.create(500, "Internal Server Error", null, null, null))
+        );
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
 
         callbackDispatchScheduler.triggerProcessCallback();
 

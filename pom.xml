@@ -77,6 +77,12 @@
                 <version>6.2.11</version>
             </dependency>
             <!-- end fix -->
+
+            <dependency>
+                <groupId>io.github.swiyu-admin-ch</groupId>
+                <artifactId>swiyu-jws-signature-service</artifactId>
+                <version>1.0.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

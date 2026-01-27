@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.controller;
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto;
@@ -21,8 +22,7 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import com.authlete.sd.Disclosure;
@@ -106,7 +106,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Autowired
     private DataSource dataSource;
     @MockitoBean
-    private DidResolverAdapter didResolverAdapter;
+    private DidResolverFacade didResolverFacade;
     @MockitoBean
     private StatusListResolverAdapter mockedStatusListResolverAdapter;
 
@@ -797,7 +797,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
-            when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
+            when(didResolverFacade.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
                     sdjwt.getIssuerId(),
                     sdjwt.getKidHeaderValue(),
                     KeyFixtures.issuerPublicKeyAsJsonWebKey()));
@@ -1225,7 +1225,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final CountDownLatch didCallStarted = new CountDownLatch(1);
 
         // Simulate did resolution blocking
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId()))
+        when(didResolverFacade.resolveDid(emulator.getIssuerId()))
                 .thenAnswer(invocation -> {
                     didCallStarted.countDown();
                     Thread.sleep(Long.MAX_VALUE);
@@ -1273,7 +1273,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final CountDownLatch allowDidToFinish = new CountDownLatch(concurrentRequests);
 
         // Simulate did resolution blocking
-        when(didResolverAdapter.resolveDid(emulator.getIssuerId()))
+        when(didResolverFacade.resolveDid(emulator.getIssuerId()))
                 .thenAnswer(invocation -> {
                     didCallStarted.countDown();
                     try {

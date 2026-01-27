@@ -26,8 +26,12 @@
             <version>1.16.1</version>
         </dependency>
         <dependency>
-            <groupId>io.github.swiyu-admin-ch</groupId>
+            <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jws-signature-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-did-resolver-adapter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

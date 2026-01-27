@@ -1,10 +1,11 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+
 import ch.admin.eid.did_sidekicks.DidDoc;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
@@ -42,7 +43,7 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     private static final String TEST_JWT_SUBJECT = "health-check-test";
 
     /** Resolver used to resolve DID documents */
-    private final DidResolverAdapter didResolverAdapter;
+    private final DidResolverFacade didResolverFacade;
 
     /** Application properties containing the signing key verification method */
     private final ApplicationProperties applicationProperties;
@@ -149,7 +150,7 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
 
         try {
             String did = extractDidFromVerificationMethod(verificationMethod);
-            return didResolverAdapter.resolveDid(did);
+            return didResolverFacade.resolveDid(did);
         } catch (DidResolverException e) {
             return null;
         }

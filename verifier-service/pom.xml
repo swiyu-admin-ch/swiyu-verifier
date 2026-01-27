@@ -31,8 +31,12 @@
         </dependency>
 
         <dependency>
-            <groupId>io.github.swiyu-admin-ch</groupId>
+            <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jws-signature-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-did-resolver-adapter</artifactId>
         </dependency>
 
         <!-- JWT Library -->

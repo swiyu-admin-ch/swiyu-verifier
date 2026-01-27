@@ -8,7 +8,7 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.domain.publickey;
 
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
@@ -25,12 +25,12 @@ import static org.mockito.Mockito.when;
 
 class IssuerPublicKeyLoaderTest {
     private IssuerPublicKeyLoader publicKeyLoader;
-    private DidResolverAdapter mockedDidResolverAdapter;
+    private DidResolverFacade mockedDidResolverFacade;
 
     @BeforeEach
     void setUp() {
-        mockedDidResolverAdapter = mock(DidResolverAdapter.class);
-        publicKeyLoader = new IssuerPublicKeyLoader(mockedDidResolverAdapter, new ObjectMapper());
+        mockedDidResolverFacade = mock(DidResolverFacade.class);
+        publicKeyLoader = new IssuerPublicKeyLoader(mockedDidResolverFacade, new ObjectMapper());
     }
 
     @Test
@@ -42,7 +42,7 @@ class IssuerPublicKeyLoaderTest {
                 KeyFixtures.issuerPublicKeyAsMultibaseKey());
         var issuerDidTdw = issuerDidDocument.getId();
         var issuerKeyId = issuerDidDocument.getVerificationMethod().getFirst().getId();
-        when(mockedDidResolverAdapter.resolveDid(issuerDidTdw)).thenReturn(issuerDidDocument);
+        when(mockedDidResolverFacade.resolveDid(issuerDidTdw)).thenReturn(issuerDidDocument);
 
         var error = assertThrows(LoadingPublicKeyOfIssuerFailedException.class, () -> publicKeyLoader.loadPublicKey(issuerDidTdw, issuerKeyId));
         assertEquals("Failed to lookup public key from JWT Token for issuer did:example:123 and kid did:example:123#key-2", error.getMessage());
@@ -57,7 +57,7 @@ class IssuerPublicKeyLoaderTest {
                 KeyFixtures.issuerPublicKeyAsJsonWebKey());
         var issuerDidId = issuerDidDocument.getId();
         var issuerKeyId = issuerDidDocument.getVerificationMethod().getFirst().getId();
-        when(mockedDidResolverAdapter.resolveDid(issuerDidId)).thenReturn(issuerDidDocument);
+        when(mockedDidResolverFacade.resolveDid(issuerDidId)).thenReturn(issuerDidDocument);
 
         // WHEN
         var publicKey = publicKeyLoader.loadPublicKey(issuerDidId, issuerKeyId);

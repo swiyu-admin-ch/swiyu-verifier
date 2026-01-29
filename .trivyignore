@@ -14,4 +14,4 @@ CVE-2025-66293 exp:2026-03-01
 # Comes from base image, need to be fixed there (redhat/ubi9-minimal:latest)
 CVE-2025-68973 exp:2026-03-01
 # OpenSSL bug. Bouncy Castle has its own implementation - we are not affected
-CVE-2025-15467
+CVE-2025-15467 exp:2026-03-01

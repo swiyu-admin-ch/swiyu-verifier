@@ -1,8 +1,8 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.service.publickey;
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,17 +17,17 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
 @Transactional
-class DidResolverAdapterTest {
+class DidResolverFacadeTest {
     @Autowired
-    DidResolverAdapter didResolverAdapter;
+    DidResolverFacade didResolverFacade;
 
     @Test
     void testResolveNullDid() {
-        Assertions.assertThrows(IllegalArgumentException.class, () -> didResolverAdapter.resolveDid(null));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> didResolverFacade.resolveDid(null));
     }
 
     @Test
     void testEmptyDid() {
-        Assertions.assertThrows(DidResolverException.class, () -> didResolverAdapter.resolveDid(""));
+        Assertions.assertThrows(DidResolverException.class, () -> didResolverFacade.resolveDid(""));
     }
 }

@@ -62,6 +62,7 @@ public class OpenidClientMetadataDto {
            When a response_mode requiring encryption of the Response (such as direct_post.jwt) is specified,
            one of the specified algorithms is to be used.""")
     @Builder.Default
+    // Setting the default value as per OID4VP 5.1 to be more explicit
     private List<String> encryptedResponseEncValuesSupported = List.of("A128GCM");
 
     @JsonProperty(value = "vp_formats_supported", defaultValue =

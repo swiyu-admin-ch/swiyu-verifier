@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.dto.metadata;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ import java.util.Map;
                 Verifier metadata values.
                 Additional Verifier metadata parameters MAY be defined and used, as described in [RFC7591].
                 The Wallet MUST ignore any unrecognized parameters.""")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @NoArgsConstructor
 @AllArgsConstructor
 public class OpenidClientMetadataDto {
@@ -59,7 +61,8 @@ public class OpenidClientMetadataDto {
            If present, should be non-empty array of JWE algorithms as in RFC7516.
            When a response_mode requiring encryption of the Response (such as direct_post.jwt) is specified,
            one of the specified algorithms is to be used.""")
-    private List<String> encryptedResponseEncValuesSupported;
+    @Builder.Default
+    private List<String> encryptedResponseEncValuesSupported = List.of("A128GCM");
 
     @JsonProperty(value = "vp_formats_supported", defaultValue =
             """

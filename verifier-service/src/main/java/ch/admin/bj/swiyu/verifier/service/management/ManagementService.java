@@ -13,6 +13,7 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
@@ -103,7 +104,10 @@ public class ManagementService {
 
     private static void createEncryptionKeys(ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder) {
         try {
-            var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256).keyID(UUID.randomUUID().toString()).generate();
+            var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256)
+                .keyID(UUID.randomUUID().toString())
+                .algorithm(JWEAlgorithm.ECDH_ES)
+                .generate();
             JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
 
             // Public keys used in request object

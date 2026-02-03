@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
@@ -153,7 +154,10 @@ public abstract class BaseVerificationControllerTest {
                 .build());
 
 
-        var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256).keyID(UUID.randomUUID().toString()).generate();
+        var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256)
+          .keyID(UUID.randomUUID().toString())
+          .algorithm(JWEAlgorithm.ECDH_ES)
+          .generate();
         JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
         managementEntityRepository.save(Management.builder()
                 .id(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED)

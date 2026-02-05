@@ -15,6 +15,7 @@ public class CachingConfig {
     public static final String TRUST_STATEMENT_CACHE = "trustStatementCache";
     public static final String SIGNING_KEY_CACHE = "signingKeyCache";
     public static final String JWS_SIGNER_CACHE = "JwsSignerCache";
+    public static final String DID_DOC_CACHE = "didDocCache";
 
     @Bean
     public CacheManager cacheManager() {
@@ -23,6 +24,7 @@ public class CachingConfig {
                 ISSUER_PUBLIC_KEY_CACHE,
                 TRUST_STATEMENT_CACHE,
                 SIGNING_KEY_CACHE,
-                JWS_SIGNER_CACHE);
+                JWS_SIGNER_CACHE,
+                DID_DOC_CACHE);
     }
 }

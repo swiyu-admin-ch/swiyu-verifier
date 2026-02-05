@@ -16,14 +16,11 @@ import com.nimbusds.jose.jwk.ECKey;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.security.PublicKey;
 import java.text.ParseException;
 import java.util.List;
-
-import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.ISSUER_PUBLIC_KEY_CACHE;
 
 /**
  * This class is responsible for loading the public key of an issuer from a JWT Token. The issuer is identified by its
@@ -73,7 +70,6 @@ public class IssuerPublicKeyLoader {
      * @throws IllegalArgumentException if the issuerKeyId is invalid
      * @throws DidSidekicksException if the DID document does not contain any matching verification method for the given issuerKeyId
      */
-    @Cacheable(ISSUER_PUBLIC_KEY_CACHE)
     private Jwk loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalArgumentException, DidSidekicksException {
         var fragment = extractFragment(issuerKeyId);
         try (var didDoc = didResolverFacade.resolveDid(issuerDidId)) {

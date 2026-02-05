@@ -16,6 +16,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 
+import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.DID_DOC_CACHE;
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.TRUST_STATEMENT_CACHE;
 
 
@@ -37,6 +38,7 @@ public class DidResolverFacade {
      * @param didId - the id of the DID Document
      * @return the DID Document for the given DID
      */
+    @Cacheable(DID_DOC_CACHE)
     public DidDoc resolveDid(String didId) throws DidResolverException {
         if (didId == null) {
             throw new IllegalArgumentException("did must not be null");

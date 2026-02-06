@@ -10,6 +10,8 @@ import ch.admin.bj.swiyu.didresolveradapter.DidResolverAdapter;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.eid.did_sidekicks.DidDoc;
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
+import ch.admin.eid.did_sidekicks.Jwk;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -21,29 +23,30 @@ import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.TRUST_STATE
 
 
 /**
- * Adapter for loading a DID Documents by a DID (Decentralized Identifier).
+ * Adapter for loading information derived from DID Documents by a DID (Decentralized Identifier).
  */
 @Service
 @AllArgsConstructor
 @Slf4j
 public class DidResolverFacade {
 
-
     private final DidResolverAdapter didResolverAdapter;
     private final UrlRewriteProperties urlRewriteProperties;
 
     /**
-     * Returns the DID Document for the given DID.
+     * Returns the JWK (verification method) for the given DID and key fragment.
      *
-     * @param didId - the id of the DID Document
-     * @return the DID Document for the given DID
+     * @param didId    the id of the DID Document
+     * @param fragment the fragment part of the key id (after '#')
+     * @return the JWK for the given DID and fragment
      */
     @Cacheable(DID_DOC_CACHE)
-    public DidDoc resolveDid(String didId) throws DidResolverException {
+    public Jwk resolveDid(String didId, String fragment) throws DidResolverException, DidSidekicksException {
         if (didId == null) {
             throw new IllegalArgumentException("did must not be null");
         }
-        return didResolverAdapter.resolveDid(didId, urlRewriteProperties.getUrlMappings());
+        DidDoc didDoc = didResolverAdapter.resolveDid(didId, urlRewriteProperties.getUrlMappings());
+        return didDoc.getKey(fragment);
     }
 
     @Cacheable(TRUST_STATEMENT_CACHE)

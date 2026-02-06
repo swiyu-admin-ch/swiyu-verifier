@@ -797,11 +797,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
-            when(didResolverFacade.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
-                    sdjwt.getIssuerId(),
-                    sdjwt.getKidHeaderValue(),
-                    KeyFixtures.issuerPublicKeyAsJsonWebKey()));
-        } catch (DidResolverException e) {
+            String issuerKeyId = sdjwt.getIssuerId() + "#key-1";
+            String fragment = "key-1";
+            when(didResolverFacade.resolveDid(sdjwt.getIssuerId(), fragment))
+                    .thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
+                            sdjwt.getIssuerId(), issuerKeyId, KeyFixtures.issuerPublicKeyAsJsonWebKey()).getKey(fragment));
+        } catch (DidResolverException | ch.admin.eid.did_sidekicks.DidSidekicksException e) {
             throw new AssertionError(e);
         }
 
@@ -1226,11 +1227,14 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final CountDownLatch didCallStarted = new CountDownLatch(1);
 
         // Simulate did resolution blocking
-        when(didResolverFacade.resolveDid(emulator.getIssuerId()))
+        when(didResolverFacade.resolveDid(emulator.getIssuerId(), "key-1"))
                 .thenAnswer(invocation -> {
                     didCallStarted.countDown();
                     Thread.sleep(Long.MAX_VALUE);
-                    return null;
+                    return DidDocFixtures.issuerDidDocWithJsonWebKey(
+                            emulator.getIssuerId(),
+                            emulator.getIssuerId() + "#key-1",
+                            KeyFixtures.issuerPublicKeyAsJsonWebKey()).getKey("key-1");
                 });
 
         final HikariPoolMXBean pool = hikariPool();
@@ -1274,7 +1278,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final CountDownLatch allowDidToFinish = new CountDownLatch(concurrentRequests);
 
         // Simulate did resolution blocking
-        when(didResolverFacade.resolveDid(emulator.getIssuerId()))
+        when(didResolverFacade.resolveDid(emulator.getIssuerId(), "key-1"))
                 .thenAnswer(invocation -> {
                     didCallStarted.countDown();
                     try {
@@ -1284,9 +1288,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     }
                     return DidDocFixtures.issuerDidDocWithJsonWebKey(
                             emulator.getIssuerId(),
-                            emulator.getKidHeaderValue(),
-                            KeyFixtures.issuerPublicKeyAsJsonWebKey()
-                    );
+                            emulator.getIssuerId() + "#key-1",
+                            KeyFixtures.issuerPublicKeyAsJsonWebKey()).getKey("key-1");
                 });
 
         final HikariPoolMXBean pool = hikariPool();
@@ -1324,3 +1327,4 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 }
+

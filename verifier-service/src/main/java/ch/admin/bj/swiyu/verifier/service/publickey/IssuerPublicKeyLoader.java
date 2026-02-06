@@ -72,12 +72,9 @@ public class IssuerPublicKeyLoader {
      */
     private Jwk loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalArgumentException, DidSidekicksException {
         var fragment = extractFragment(issuerKeyId);
-        try (var didDoc = didResolverFacade.resolveDid(issuerDidId)) {
-            log.trace("Resolved did document for issuer {}", issuerDidId);
-            var jwk = didDoc.getKey(fragment);
-            log.trace("Found Verification Method {}", issuerKeyId);
-            return jwk;
-        }
+        Jwk jwk = didResolverFacade.resolveDid(issuerDidId, fragment);
+        log.trace("Resolved did document for issuer {} and found Verification Method {}", issuerDidId, issuerKeyId);
+        return jwk;
     }
 
     /**

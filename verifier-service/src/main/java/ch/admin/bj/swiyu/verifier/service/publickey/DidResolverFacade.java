@@ -18,7 +18,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 
-import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.DID_DOC_CACHE;
+import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.JWK_CACHE;
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.TRUST_STATEMENT_CACHE;
 
 
@@ -34,21 +34,39 @@ public class DidResolverFacade {
     private final UrlRewriteProperties urlRewriteProperties;
 
     /**
-     * Returns the JWK (verification method) for the given DID and key fragment.
+     * Resolves the DID Document for the given DID and returns the JWK (verification method) for the specified fragment.
+     * <p>
+     * The DID Document is handled via try-with-resources and closed automatically. Only the JWK for the fragment is returned.
+     * </p>
      *
-     * @param didId    the id of the DID Document
-     * @param fragment the fragment part of the key id (after '#')
+     * @param didId    the id of the DID Document (e.g. "did:example:123")
+     * @param fragment the fragment part of the key id (e.g. "key-1" for "did:example:123#key-1")
      * @return the JWK for the given DID and fragment
+     * @throws DidResolverException if the DID resolution fails
+     * @throws DidSidekicksException if the DID document or key extraction fails
+     * @throws IllegalArgumentException if didId is null
      */
-    @Cacheable(DID_DOC_CACHE)
-    public Jwk resolveDid(String didId, String fragment) throws DidResolverException, DidSidekicksException {
+    @Cacheable(JWK_CACHE)
+    public Jwk resolveDid(String didId, String fragment)
+            throws DidResolverException, DidSidekicksException {
         if (didId == null) {
             throw new IllegalArgumentException("did must not be null");
         }
-        DidDoc didDoc = didResolverAdapter.resolveDid(didId, urlRewriteProperties.getUrlMappings());
-        return didDoc.getKey(fragment);
+        try (DidDoc didDoc = didResolverAdapter.resolveDid(didId, urlRewriteProperties.getUrlMappings())) {
+            return didDoc.getKey(fragment);
+        }
     }
 
+    /**
+     * Resolves the trust statement for the given trust registry URL and VCT.
+     * <p>
+     * The result is cached. If the resolution fails (e.g. HTTP error), null is returned and a log entry is written.
+     * </p>
+     *
+     * @param trustRegistryUrl the URL of the trust registry
+     * @param vct the VCT identifier
+     * @return the trust statement as a String, or null if resolution fails
+     */
     @Cacheable(TRUST_STATEMENT_CACHE)
     public String resolveTrustStatement(String trustRegistryUrl, String vct) {
         try {

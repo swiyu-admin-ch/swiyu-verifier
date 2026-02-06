@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.
 import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -28,7 +28,7 @@ class ErrorCodesIT extends BaseVerificationControllerTest {
     @Autowired
     private MockMvc mock;
     @MockitoBean
-    private DidResolverAdapter didResolverAdapter;
+    private DidResolverFacade didResolverFacade;
 
 
     @Test

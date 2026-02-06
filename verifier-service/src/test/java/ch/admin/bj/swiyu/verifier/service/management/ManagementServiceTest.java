@@ -226,6 +226,8 @@ class ManagementServiceTest {
 
         // Validate that keys can be indeed be used together by doing a dry run of the encryption
         for (JWK jwk : jwkSet.getKeys()) {
+            assertThat(jwk.getAlgorithm()).isNotNull().as("For OID4VP algorithm MUST be not null");
+            assertThat(jwk.getAlgorithm()).isEqualTo(JWEAlgorithm.ECDH_ES).as("For swiss profile verification 1.0 only ECDH-ES is supported");
             // This part would be done by the wallet
             var encryptionMethod = EncryptionMethod.parse(responseSpec.getEncryptedResponseEncValuesSupported().getFirst());
             JWEObject jweObject = new JWEObject(

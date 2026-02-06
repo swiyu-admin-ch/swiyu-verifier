@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier.service.publickey;
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -14,6 +15,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 
 import java.security.PublicKey;
@@ -37,7 +39,7 @@ public class IssuerPublicKeyLoader {
     /**
      * Adapter for loading a DID Documents by a DID (Decentralized Identifier).
      */
-    private final DidResolverAdapter didResolverAdapter;
+    private final DidResolverFacade didResolverFacade;
     private final ObjectMapper objectMapper;
 
     /**
@@ -70,12 +72,9 @@ public class IssuerPublicKeyLoader {
      */
     private Jwk loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalArgumentException, DidSidekicksException {
         var fragment = extractFragment(issuerKeyId);
-        try (var didDoc = didResolverAdapter.resolveDid(issuerDidId)) {
-            log.trace("Resolved did document for issuer {}", issuerDidId);
-            var jwk = didDoc.getKey(fragment);
-            log.trace("Found Verification Method {}", issuerKeyId);
-            return jwk;
-        }
+        Jwk jwk = didResolverFacade.resolveDid(issuerDidId, fragment);
+        log.trace("Resolved did document for issuer {} and found Verification Method {}", issuerDidId, issuerKeyId);
+        return jwk;
     }
 
     /**
@@ -105,7 +104,7 @@ public class IssuerPublicKeyLoader {
      */
     public List<String> loadTrustStatement(String trustRegistryUri, String vct) throws JsonProcessingException {
         log.debug("Resolving trust statement at registry {} for {}", trustRegistryUri, vct);
-        var rawTrustStatements = didResolverAdapter.resolveTrustStatement("%s/api/v1/truststatements/issuance", vct);
+        var rawTrustStatements = didResolverFacade.resolveTrustStatement("%s/api/v1/truststatements/issuance", vct);
         return objectMapper.readValue(rawTrustStatements, List.class);
     }
 

@@ -11,7 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +28,16 @@ class DidResolverFacadeTest {
     @Autowired
     DidResolverFacade didResolverFacade;
 
-    @MockBean
+    @Autowired
     DidResolverAdapter didResolverAdapter;
+
+    @TestConfiguration
+    static class MockConfig {
+        @Bean
+        public DidResolverAdapter didResolverAdapter() {
+            return Mockito.mock(DidResolverAdapter.class);
+        }
+    }
 
     private static final String FRAGMENT = "key-1";
 
@@ -62,4 +71,22 @@ class DidResolverFacadeTest {
         Mockito.verify(didResolverAdapter, Mockito.times(1))
                 .resolveDid(Mockito.eq(did), Mockito.any());
     }
+
+    @Test
+    void testCacheNotFilledOnException() throws Exception {
+        String did = "did:test:fail";
+
+        Mockito.when(didResolverAdapter.resolveDid(Mockito.eq(did), Mockito.any()))
+                .thenThrow(new DidResolverException("fail"))
+                .thenReturn(Mockito.mock(DidDoc.class));
+
+        // First call: Exception
+        Assertions.assertThrows(DidResolverException.class, () -> didResolverFacade.resolveDid(did, FRAGMENT));
+
+        // Second
+        didResolverFacade.resolveDid(did, FRAGMENT);
+
+        Mockito.verify(didResolverAdapter, Mockito.times(2)).resolveDid(Mockito.eq(did), Mockito.any());
+    }
+
 }

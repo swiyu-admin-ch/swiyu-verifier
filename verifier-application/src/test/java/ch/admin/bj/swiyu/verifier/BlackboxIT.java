@@ -6,6 +6,7 @@
 
 package ch.admin.bj.swiyu.verifier;
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
@@ -17,8 +18,8 @@ import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
@@ -82,7 +83,7 @@ class BlackboxIT {
     @Autowired
     private ApplicationProperties applicationProperties;
     @MockitoBean
-    private DidResolverAdapter didResolverAdapter;
+    private DidResolverFacade didResolverFacade;
     @Autowired
     private ManagementRepository managementEntityRepository;
 
@@ -331,11 +332,14 @@ class BlackboxIT {
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
-            when(didResolverAdapter.resolveDid(sdjwt.getIssuerId())).thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
-                    sdjwt.getIssuerId(),
-                    sdjwt.getKidHeaderValue(),
-                    KeyFixtures.issuerPublicKeyAsJsonWebKey()));
-        } catch (DidResolverException e) {
+            String fragment = "key-1";
+            when(didResolverFacade.resolveDid(sdjwt.getIssuerId(), fragment))
+                    .thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
+                            sdjwt.getIssuerId(),
+                            sdjwt.getKidHeaderValue(),
+                            KeyFixtures.issuerPublicKeyAsJsonWebKey())
+                            .getKey(fragment));
+        } catch (DidResolverException | DidSidekicksException e) {
             throw new AssertionError(e);
         }
     }

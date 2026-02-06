@@ -1,10 +1,9 @@
 package ch.admin.bj.swiyu.verifier.service;
 
+import ch.admin.bj.swiyu.jwssignatureservice.factory.strategy.KeyStrategyException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.SignatureConfiguration;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
-import ch.admin.bj.swiyu.verifier.service.factory.KeyManagementStrategyFactory;
-import ch.admin.bj.swiyu.verifier.service.factory.strategy.KeyStrategyException;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -21,7 +20,8 @@ import org.springframework.stereotype.Service;
 public class JwtSigningService {
 
     private final ApplicationProperties applicationProperties;
-    private final KeyManagementStrategyFactory keyManagementStrategyFactory;
+    private final JwsSignatureFacade jwsSignatureFacade;
+
 
     /**
      * Signs the provided JWT claims set using the specified or default signing configuration.
@@ -97,8 +97,7 @@ public class JwtSigningService {
     }
 
     private SignerProvider createSignerProvider(SignatureConfiguration signatureConfiguration) throws IllegalArgumentException, KeyStrategyException {
-        return new SignerProvider(keyManagementStrategyFactory.getStrategy(signatureConfiguration.getKeyManagementMethod())
-                .createSigner(signatureConfiguration));
+        return new SignerProvider(jwsSignatureFacade.createSigner(signatureConfiguration));
     }
 
     /**

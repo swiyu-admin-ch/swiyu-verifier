@@ -1,11 +1,10 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverAdapter;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverException;
-import ch.admin.eid.did_sidekicks.DidDoc;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
 import com.nimbusds.jose.JOSEException;
@@ -42,7 +41,7 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     private static final String TEST_JWT_SUBJECT = "health-check-test";
 
     /** Resolver used to resolve DID documents */
-    private final DidResolverAdapter didResolverAdapter;
+    private final DidResolverFacade didResolverFacade;
 
     /** Application properties containing the signing key verification method */
     private final ApplicationProperties applicationProperties;
@@ -59,16 +58,8 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     protected void performCheck(Health.Builder builder) {
         String verificationMethod = applicationProperties.getSigningKeyVerificationMethod();
 
-        // Resolve the DID document
-        DidDoc didDoc = resolveDid(verificationMethod);
-        if (didDoc == null) {
-            builder.down().withDetail(HEALTH_DETAIL_FAILED_DIDS, verificationMethod);
-            return;
-        }
-
-        // Verify signing capability
         try {
-            if (verifySigningCapability(verificationMethod, didDoc)) {
+            if (verifySigningCapability(verificationMethod)) {
                 builder.up().withDetail(HEALTH_DETAIL_SIGNING_KEY, verificationMethod);
             } else {
                 builder.down().withDetail(HEALTH_DETAIL_SIGNING_KEY,
@@ -93,36 +84,43 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
      * </ol>
      *
      * @param verificationMethod The verification method identifier
-     * @param didDoc The resolved DID document
      * @return true if signing and verification succeed, false otherwise
      */
-    private boolean verifySigningCapability(String verificationMethod, DidDoc didDoc) throws IllegalArgumentException, JOSEException ,DidSidekicksException, ParseException {
+    private boolean verifySigningCapability(String verificationMethod)
+            throws IllegalArgumentException, JOSEException, ParseException, DidResolverException, DidSidekicksException {
+
+        if (verificationMethod == null || verificationMethod.isBlank()) {
+            return false;
+        }
+
+        String did = extractDidFromVerificationMethod(verificationMethod);
+        String fragment = extractFragmentFromVerificationMethod(verificationMethod);
+
+        // Resolve JWK directly via facade
+        Jwk jwk = didResolverFacade.resolveDid(did, fragment);
 
         // Create a test JWT claims set
         JWTClaimsSet testClaims = new JWTClaimsSet.Builder()
                 .subject(TEST_JWT_SUBJECT)
                 .build();
 
-        // Use the unified signing method
+        // Sign a JWT using the configured signing key
         SignedJWT signedJwt = jwtSigningService.signJwt(testClaims, null, null, verificationMethod);
 
-
-        // Extract public key from DID document and verify signature
-        return verifySignature(signedJwt, didDoc, verificationMethod);
+        // Verify signature using the resolved JWK
+        return verifySignature(signedJwt, jwk);
     }
 
     /**
      * Verifies the signature of a signed JWT using the public key from the DID document.
      *
      * @param signedJwt The signed JWT to verify
-     * @param didDoc The DID document containing the public key
-     * @param verificationMethod The verification method identifier
+     * @param jwk The Jwk containing the public key
      * @return true if signature verification succeeds, false otherwise
      */
-    private boolean verifySignature(SignedJWT signedJwt, DidDoc didDoc, String verificationMethod)
-            throws JOSEException, DidSidekicksException, ParseException {
-        final Jwk jwk = didDoc.getKey(extractFragmentFromVerificationMethod(verificationMethod));
-        
+    private boolean verifySignature(SignedJWT signedJwt, Jwk jwk)
+            throws JOSEException, ParseException {
+
         final Map<String, Object> map = new HashMap<>();
         map.put("kty", jwk.getKty());
         map.put("crv", jwk.getCrv());
@@ -134,25 +132,6 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
         // Create verifier and verify signature
         JWSVerifier verifier = new ECDSAVerifier(publicKey.toECKey());
         return signedJwt.verify(verifier);
-    }
-
-    /**
-     * Attempts to resolve the DID document for the given verification method.
-     *
-     * @param verificationMethod The verification method string (may include fragment)
-     * @return The resolved DID document, or null if resolution fails
-     */
-    private DidDoc resolveDid(String verificationMethod) {
-        if (verificationMethod == null || verificationMethod.isBlank()) {
-            return null;
-        }
-
-        try {
-            String did = extractDidFromVerificationMethod(verificationMethod);
-            return didResolverAdapter.resolveDid(did);
-        } catch (DidResolverException e) {
-            return null;
-        }
     }
 
     /**
@@ -184,4 +163,3 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
         return fragmentIndex > 0 ? verificationMethod.substring(fragmentIndex + 1) : verificationMethod;
     }
 }
-

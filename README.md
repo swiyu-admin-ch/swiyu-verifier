@@ -52,7 +52,7 @@ Please be aware that the **oid4vp** endpoints need to be publicly accessible and
 > the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html)
 
 Once the components are deployed you can create your first verification. For this you first need to define a
-presentation
+presentation 
 definition. Based on that definition you can then create a verification request for a holder as shown in the example
 below.
 In this case we're asking for a credential called "my-custom-vc" which should at least have the attributes

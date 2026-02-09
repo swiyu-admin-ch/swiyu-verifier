@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## latest
 
 - New endpoint `/actuator/env` to retrieve configuration details.
+- Allow setting the used Database Schema with environment variable `POSTGRES_DB_SCHEMA`. Default remains public as
+    before.
 
 ## 2.2.0
 

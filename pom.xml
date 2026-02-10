@@ -53,7 +53,7 @@
         <kotlin-stdlib.version>2.3.0</kotlin-stdlib.version>
         <jna.version>5.18.1</jna.version>     
         <sd-jwt.version>1.7</sd-jwt.version>
-        <didresolver.version>2.4.0</didresolver.version>     
+        <didresolver.version>2.6.0</didresolver.version>     
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>

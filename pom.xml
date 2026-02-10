@@ -38,7 +38,7 @@
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <json-path.version>2.9.0</json-path.version>
         <spring-cloud-dependencies.version>2024.0.0</spring-cloud-dependencies.version>
-        <bcprov-jdk18on.version>1.82</bcprov-jdk18on.version>
+        <bcprov-jdk18on.version>1.83</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.83</bcpkix-jdk18on.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>

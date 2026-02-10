@@ -81,8 +81,6 @@ spring:
     hibernate:
       ddl-auto: validate
     properties:
-      boot:
-        allow_jdbc_metadata_access: false
       hibernate:
         default_schema: ${POSTGRES_DB_SCHEMA:public}
 springdoc:
@@ -134,3 +132,6 @@ monitoring:
 caching:
   status-list-cache-ttl: ${STATUS_LIST_CACHE_TTL_MILLI:0} # is not cached by default if set to 0, caching is disabled
   issuer-public-key-cache-ttl: ${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000} # 1 hour
+
+database-migration:
+  init-container: ${IS_INIT_CONTAINER_EXECUTION:false}

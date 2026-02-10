@@ -36,7 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "monitoring.basic-auth.enabled=true",
         "monitoring.basic-auth.username=foo",
         "monitoring.basic-auth.password=bar",
-        "management.endpoint.metrics.enabled=true"
+        "management.endpoint.metrics.enabled=true",
+        "management.endpoint.metrics.access=read_only"
 })
 class MonitoringSecurityConfigTest {
 

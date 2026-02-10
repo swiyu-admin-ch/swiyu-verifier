@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## latest
 
 - New endpoint `/actuator/env` to retrieve configuration details.
+- Add health checks for:
+  - stale callbacks
+  - status list, checks if endpoints listed in `management.endpoint.health.serviceRegistries` are reachable.
+  - status registry, resolves the Dids listed in  `management.endpoint.health.identifierRegistries`.
 
 ## 2.2.0
 

@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.eid.did_sidekicks.DidDoc;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,8 @@ class IdentifierRegistryHealthCheckerTest {
 
     @Mock
     DidResolverFacade didResolverFacade;
+    @Mock
+    DidDoc didDoc;
     List<String> didIds = List.of(didId1, didId2);
 
     private IdentifierRegistryHealthChecker identifierRegistryHealthChecker;
@@ -37,8 +40,10 @@ class IdentifierRegistryHealthCheckerTest {
 
     @Test
     void performCheck_shouldReturnUp_whenAllDidsResolve() throws Exception {
-        var builder = Health.unknown();
+        when(didResolverFacade.resolveDid(didId1)).thenReturn(didDoc);
+        when(didResolverFacade.resolveDid(didId2)).thenReturn(didDoc);
 
+        var builder = Health.unknown();
         identifierRegistryHealthChecker.performCheck(builder);
         var health = builder.build();
         assertEquals(Status.UP, health.getStatus());
@@ -54,10 +59,10 @@ class IdentifierRegistryHealthCheckerTest {
 
     @Test
     void performCheck_shouldReturnDown_whenOneDidResolveFails() throws Exception {
-        var builder = Health.unknown();
-        when(didResolverFacade.resolveDid(didId1)).thenReturn(null);
+        when(didResolverFacade.resolveDid(didId1)).thenReturn(didDoc);
         when(didResolverFacade.resolveDid(didId2)).thenThrow(new DidResolverException("Test"));
 
+        var builder = Health.unknown();
         identifierRegistryHealthChecker.performCheck(builder);
         var health = builder.build();
         assertEquals(Status.DOWN, health.getStatus());
@@ -70,9 +75,9 @@ class IdentifierRegistryHealthCheckerTest {
 
     @Test
     void performCheck_shouldReturnDown_whenAllDidResolvesFails() throws Exception {
-        var builder = Health.unknown();
         when(didResolverFacade.resolveDid(any())).thenThrow(new DidResolverException("test exception"));
 
+        var builder = Health.unknown();
         identifierRegistryHealthChecker.performCheck(builder);
         var health = builder.build();
         assertEquals(Status.DOWN, health.getStatus());

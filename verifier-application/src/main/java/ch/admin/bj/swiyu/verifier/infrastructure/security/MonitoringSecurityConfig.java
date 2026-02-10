@@ -26,7 +26,7 @@ import java.util.UUID;
 
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "monitoring.basic-auth.enabled")
+@ConditionalOnProperty(name = "management.endpoint.metrics.access")
 public class MonitoringSecurityConfig {
 
     private static final String BASIC_AUTH_ROLE_NAME = UUID.randomUUID().toString();

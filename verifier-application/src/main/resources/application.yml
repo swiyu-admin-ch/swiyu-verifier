@@ -81,8 +81,6 @@ spring:
     hibernate:
       ddl-auto: validate
     properties:
-      boot:
-        allow_jdbc_metadata_access: false
       hibernate:
         default_schema: ${POSTGRES_DB_SCHEMA:public}
 springdoc:

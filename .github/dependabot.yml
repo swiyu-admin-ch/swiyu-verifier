@@ -21,6 +21,11 @@ updates:
         patterns:
           - "org.springframework.*"
           - "org.springdoc*"
+         ignore:
+          - dependency-name: "org.springframework.*"
+            update-types: ["version-update:semver-major"]
+          - dependency-name: "org.springdoc*"
+            update-types: ["version-update:semver-major"]
       swiyu:
         patterns:
           - "ch.admin.*"

@@ -95,6 +95,8 @@ public class Management {
     @NotNull
     private ResponseSpecification responseSpecification = ResponseSpecification.builder().responseModeType(ResponseModeType.DIRECT_POST).build();
 
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
 
     public boolean isVerificationPending() {
         return state == ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
@@ -118,11 +120,10 @@ public class Management {
 
 
     private static String createNonce() {
-        final SecureRandom random = new SecureRandom();
         final Base64.Encoder base64encoder = Base64.getEncoder().withoutPadding();
 
         byte[] randomBytes = new byte[24];
-        random.nextBytes(randomBytes);
+        SECURE_RANDOM.nextBytes(randomBytes);
 
         return base64encoder.encodeToString(randomBytes);
     }

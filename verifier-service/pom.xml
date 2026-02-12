@@ -165,6 +165,14 @@
             <version>26.0.2</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-jwe-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-jwt-util</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

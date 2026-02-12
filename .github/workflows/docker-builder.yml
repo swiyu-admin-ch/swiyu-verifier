@@ -1,6 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Swiss Confederation
-#
-# SPDX-License-Identifier: MIT
+
 
 name: Publish Docker Image
 run-name: ${{ github.repository }} is building and publishing a docker image

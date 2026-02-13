@@ -33,7 +33,6 @@ class VerifierHealthIndicatorTest {
                 this.callbackHealthChecker,
                 this.statusRegistryAccessHealthChecker,
                 this.identifierRegistryHealthChecker);
-        System.out.println(healthIndicator);
     }
 
     @Test

@@ -35,9 +35,7 @@ public class StatusRegistryAccessHealthChecker extends CachedHealthChecker {
                 if (response.getStatusCode().is2xxSuccessful()) {
                     return Status.UP;
                 }
-            } catch (WebClientException ignoredException) {
-                System.out.println(ignoredException);
-            }
+            } catch (WebClientException ignoredException) { }
             success.success = false;
             return Status.DOWN;
         }));

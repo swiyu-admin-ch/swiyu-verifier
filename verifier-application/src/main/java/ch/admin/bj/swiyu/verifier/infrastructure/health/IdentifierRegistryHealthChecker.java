@@ -2,13 +2,12 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClientException;
 
-import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,7 +33,7 @@ public class IdentifierRegistryHealthChecker extends CachedHealthChecker {
                 var didDoc = didResolverFacade.resolveDid(didId);
                 didDoc.close();
                 return Status.UP;
-            } catch (DidResolverException ignoredException) { }
+            } catch (DidResolverException | DidSidekicksException ignoredException) { }
             success.success = false;
             return Status.DOWN;
         }));

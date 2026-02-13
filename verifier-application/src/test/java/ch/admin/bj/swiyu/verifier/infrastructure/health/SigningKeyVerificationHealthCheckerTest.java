@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import ch.admin.eid.did_sidekicks.DidDoc;
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
@@ -39,8 +39,8 @@ import static org.mockito.Mockito.*;
 class SigningKeyVerificationHealthCheckerTest {
 
     private static final String TEST_DID = "did:example:123";
-    private static final String TEST_FRAGMENT = "key-1";
-    private static final String TEST_VERIFICATION_METHOD = String.format("%s#%s", TEST_DID, TEST_FRAGMENT);
+    private static final String TEST_VERIFICATION_METHOD = TEST_DID + "#key-1";
+    private static final String FRAGMENT = "key-1";
 
     @Mock
     private DidResolverFacade didResolverFacade;
@@ -50,9 +50,6 @@ class SigningKeyVerificationHealthCheckerTest {
 
     @Mock
     private JwtSigningService jwtSigningService;
-
-    @Mock
-    private DidDoc didDoc;
 
     @Mock
     private Jwk jwk;
@@ -102,16 +99,14 @@ class SigningKeyVerificationHealthCheckerTest {
     @Test
     void performCheck_shouldReturnUp_whenAllChecksPass() throws Exception {
         // Given
-        when(didResolverFacade.resolveDid(TEST_DID)).thenReturn(didDoc);
+        when(didResolverFacade.resolveDid(TEST_DID, FRAGMENT)).thenReturn(jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
         when(jwk.getY()).thenReturn(testKey.getY().toString());
         when(jwk.getKid()).thenReturn(testKey.getKeyID());
-        doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
 
@@ -137,13 +132,14 @@ class SigningKeyVerificationHealthCheckerTest {
         // Then
         Health health = builder.build();
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
-        assertThat(health.getDetails()).containsKey("failedDids");
+        assertThat(health.getDetails()).containsKey("signingKeyVerificationMethod");
     }
 
     @Test
-    void performCheck_shouldReturnDown_whenDidResolutionFails() throws DidResolverException {
+    void performCheck_shouldReturnDown_whenDidResolutionFails() throws DidResolverException, DidSidekicksException {
         // Given
-        when(didResolverFacade.resolveDid(TEST_DID)).thenThrow(new DidResolverException("Resolution failed"));
+        when(didResolverFacade.resolveDid(TEST_DID, FRAGMENT))
+                .thenThrow(new DidResolverException("Resolution failed"));
 
         Health.Builder builder = Health.up();
 
@@ -153,7 +149,7 @@ class SigningKeyVerificationHealthCheckerTest {
         // Then
         Health health = builder.build();
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
-        assertThat(health.getDetails()).containsEntry("failedDids", TEST_VERIFICATION_METHOD);
+        assertThat(health.getDetails()).containsEntry("signingKeyVerificationMethod", TEST_VERIFICATION_METHOD);
     }
 
 
@@ -161,7 +157,7 @@ class SigningKeyVerificationHealthCheckerTest {
     @Test
     void performCheck_shouldReturnDown_whenSigningFails() throws Exception {
         // Given
-        when(didResolverFacade.resolveDid(TEST_DID)).thenReturn(didDoc);
+        when(didResolverFacade.resolveDid(TEST_DID, FRAGMENT)).thenReturn(jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
 
         JWSSigner failingSigner = mock(JWSSigner.class);
@@ -183,10 +179,9 @@ class SigningKeyVerificationHealthCheckerTest {
     @Test
     void performCheck_shouldReturnDown_whenJwkParsingFails() throws Exception {
         // Given
-        when(didResolverFacade.resolveDid(TEST_DID)).thenReturn(didDoc);
+        when(didResolverFacade.resolveDid(TEST_DID, FRAGMENT)).thenReturn(jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn("invalid-kty");
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
@@ -209,16 +204,14 @@ class SigningKeyVerificationHealthCheckerTest {
         // Given
         String verificationMethodWithFragment = "did:example:123#key-1";
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn(verificationMethodWithFragment);
-        when(didResolverFacade.resolveDid("did:example:123")).thenReturn(didDoc);
+        when(didResolverFacade.resolveDid("did:example:123", FRAGMENT)).thenReturn(jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey("key-1")).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
         when(jwk.getY()).thenReturn(testKey.getY().toString());
         when(jwk.getKid()).thenReturn(testKey.getKeyID());
-        doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
 
@@ -226,8 +219,7 @@ class SigningKeyVerificationHealthCheckerTest {
         healthChecker.performCheck(builder);
 
         // Then
-        verify(didResolverFacade).resolveDid("did:example:123");
-        verify(didDoc).getKey("key-1");
+        verify(didResolverFacade).resolveDid("did:example:123", FRAGMENT);
         Health health = builder.build();
         assertThat(health.getStatus()).isEqualTo(Status.UP);
     }
@@ -235,27 +227,22 @@ class SigningKeyVerificationHealthCheckerTest {
     @Test
     void performCheck_shouldHandleVerificationMethodWithoutFragment() throws Exception {
         // Given
-        String verificationMethodWithoutFragment = "did:example:123";
-        when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn(verificationMethodWithoutFragment);
-        when(didResolverFacade.resolveDid("did:example:123")).thenReturn(didDoc);
-        when(signerProvider.canProvideSigner()).thenReturn(true);
-        when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(verificationMethodWithoutFragment)).thenReturn(jwk);
+        String didWithoutFragment = "did:example:123";
+        when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn(didWithoutFragment);
+        when(didResolverFacade.resolveDid(didWithoutFragment, didWithoutFragment)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
         when(jwk.getY()).thenReturn(testKey.getY().toString());
         when(jwk.getKid()).thenReturn(testKey.getKeyID());
-        doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
 
         // When
         healthChecker.performCheck(builder);
 
-        // Then
-        verify(didResolverFacade).resolveDid("did:example:123");
-        verify(didDoc).getKey("did:example:123");
+        // Then: resolveDid is called with did as both did and fragment according to current logic
+        verify(didResolverFacade).resolveDid(didWithoutFragment, didWithoutFragment);
         Health health = builder.build();
         assertThat(health.getStatus()).isEqualTo(Status.UP);
     }
@@ -268,17 +255,14 @@ class SigningKeyVerificationHealthCheckerTest {
                 .keyID("different-key")
                 .generate();
 
-        when(didResolverFacade.resolveDid(TEST_DID)).thenReturn(didDoc);
+        when(didResolverFacade.resolveDid(TEST_DID, FRAGMENT)).thenReturn(jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
-        // Return a different public key for verification
         when(jwk.getKty()).thenReturn(differentKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(differentKey.getCurve().getName());
         when(jwk.getX()).thenReturn(differentKey.getX().toString());
         when(jwk.getY()).thenReturn(differentKey.getY().toString());
         when(jwk.getKid()).thenReturn(differentKey.getKeyID());
-        doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
 
@@ -297,16 +281,14 @@ class SigningKeyVerificationHealthCheckerTest {
     @Test
     void performCheck_shouldVerifyJwtPayloadIsCorrect() throws Exception {
         // This test verifies that the JWT creation includes the expected claims
-        when(didResolverFacade.resolveDid(TEST_DID)).thenReturn(didDoc);
+        when(didResolverFacade.resolveDid(TEST_DID, FRAGMENT)).thenReturn(jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
         when(jwk.getY()).thenReturn(testKey.getY().toString());
         when(jwk.getKid()).thenReturn(testKey.getKeyID());
-        doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
 
@@ -321,16 +303,14 @@ class SigningKeyVerificationHealthCheckerTest {
     @Test
     void performCheck_shouldCallDidResolverOnlyOnce() throws Exception {
         // Given
-        when(didResolverFacade.resolveDid(TEST_DID)).thenReturn(didDoc);
+        when(didResolverFacade.resolveDid(TEST_DID, FRAGMENT)).thenReturn(jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
-        when(didDoc.getKey(TEST_FRAGMENT)).thenReturn(jwk);
         when(jwk.getKty()).thenReturn(testKey.getKeyType().toString());
         when(jwk.getCrv()).thenReturn(testKey.getCurve().getName());
         when(jwk.getX()).thenReturn(testKey.getX().toString());
         when(jwk.getY()).thenReturn(testKey.getY().toString());
         when(jwk.getKid()).thenReturn(testKey.getKeyID());
-        doNothing().when(didDoc).close();
 
         Health.Builder builder = Health.up();
 
@@ -338,7 +318,7 @@ class SigningKeyVerificationHealthCheckerTest {
         healthChecker.performCheck(builder);
 
         // Then
-        verify(didResolverFacade, times(1)).resolveDid(anyString());
+        verify(didResolverFacade, times(1)).resolveDid(anyString(), anyString());
     }
 
 

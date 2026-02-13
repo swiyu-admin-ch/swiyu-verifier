@@ -1,9 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2025 Swiss Confederation
- *
- * SPDX-License-Identifier: MIT
- */
-
 package ch.admin.bj.swiyu.verifier.service.publickey;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
@@ -15,6 +9,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 
 import java.security.PublicKey;
@@ -71,12 +66,9 @@ public class IssuerPublicKeyLoader {
      */
     private Jwk loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalArgumentException, DidSidekicksException {
         var fragment = extractFragment(issuerKeyId);
-        try (var didDoc = didResolverFacade.resolveDid(issuerDidId)) {
-            log.trace("Resolved did document for issuer {}", issuerDidId);
-            var jwk = didDoc.getKey(fragment);
-            log.trace("Found Verification Method {}", issuerKeyId);
-            return jwk;
-        }
+        Jwk jwk = didResolverFacade.resolveDid(issuerDidId, fragment);
+        log.trace("Resolved did document for issuer {} and found Verification Method {}", issuerDidId, issuerKeyId);
+        return jwk;
     }
 
     /**

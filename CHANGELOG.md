@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - stale callbacks
   - status list, checks if endpoints listed in `management.endpoint.health.serviceRegistries` are reachable.
   - status registry, resolves the Dids listed in  `management.endpoint.health.identifierRegistries`.
+- Allow setting the used Database Schema with environment variable `POSTGRES_DB_SCHEMA`. Default remains public as
+    before.
 
 ## 2.2.0
 

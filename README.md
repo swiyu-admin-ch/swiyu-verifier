@@ -52,7 +52,7 @@ Please be aware that the **oid4vp** endpoints need to be publicly accessible and
 > the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html)
 
 Once the components are deployed you can create your first verification. For this you first need to define a
-presentation
+presentation 
 definition. Based on that definition you can then create a verification request for a holder as shown in the example
 below.
 In this case we're asking for a credential called "my-custom-vc" which should at least have the attributes
@@ -180,6 +180,7 @@ On the base registry the public key is published. To generate the public key for
 | POSTGRES_USER                     | Username to connect to the Verifier Database                                                                                                                                                               | string           | none         |
 | POSTGRES_PASSWORD                 | Username to connect to the Verifier Database                                                                                                                                                               | string           | none         |
 | POSTGRES_JDBC                     | JDBC Connection string to the shared DB                                                                                                                                                                    | string           | none         |
+| POSTGRES_DB_SCHEMA                | Database Schema to be used                                                                                                                                                                                 | string           | public       |
 | VERIFICATION_TTL_SEC              | Validity period in seconds of an verification offer                                                                                                                                                        | int              | 900          |
 | DATA_CLEAR_PROCESS_INTERVAL_MS    | Interval in which expired offers should be removed from cache in milliseconds.                                                                                                                             | int              | 420000       |
 | MONITORING_BASIC_AUTH_ENABLED     | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                                                                       |

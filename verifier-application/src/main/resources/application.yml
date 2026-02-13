@@ -1,6 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Swiss Confederation
-#
-# SPDX-License-Identifier: MIT
+
 
 application:
   external-url: "${EXTERNAL_URL:}"
@@ -75,11 +73,14 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration/common
+    default_schema: ${POSTGRES_DB_SCHEMA:public}
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate # verifier-agent-management is owner of schema, so we just validate if it matches
-
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: ${POSTGRES_DB_SCHEMA:public}
 springdoc:
   swagger-ui:
     path: swagger-ui.html

@@ -38,8 +38,8 @@ public class ManagementMapper {
         }
 
         var override = management.getConfigurationOverride();
-        String externalUrl = StringUtils.isNotEmpty(override.externalUrl()) ? override.externalUrl() : props.getExternalUrl();
-        String clientId = StringUtils.isNotEmpty(override.verifierDid()) ? override.verifierDid() : props.getClientId();
+        String externalUrl = override.externalUrlOrDefault(props.getExternalUrl());
+        String clientId = override.verifierDidOrDefault(props.getClientId());
         var verificationUrl = String.format("%s/oid4vp/api/request-object/%s", externalUrl, management.getId());
         return new ManagementResponseDto(
                 management.getId(),

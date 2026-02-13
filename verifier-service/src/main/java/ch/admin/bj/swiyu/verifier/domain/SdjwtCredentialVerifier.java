@@ -447,9 +447,7 @@ public class SdjwtCredentialVerifier {
         }
 
         var override = managementEntity.getConfigurationOverride();
-        String clientId = Optional.ofNullable(override.verifierDid())
-                .orElse(applicationProperties.getClientId());
-
+        String clientId = override.verifierDidOrDefault(applicationProperties.getClientId());
 
         // Audience MUST be client_id
         // See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-14.1.2

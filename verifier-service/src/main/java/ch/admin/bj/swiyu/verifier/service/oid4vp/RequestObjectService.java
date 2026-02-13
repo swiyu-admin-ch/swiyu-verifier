@@ -155,9 +155,10 @@ public class RequestObjectService {
      */
     private EffectiveRequestObjectConfig resolveEffectiveConfig(Management managementEntity) {
         var override = managementEntity.getConfigurationOverride();
-        var externalUrl = StringUtils.isNotEmpty(override.externalUrl()) ? override.externalUrl() : applicationProperties.getExternalUrl();
-        var clientId = StringUtils.isNotEmpty(override.verifierDid()) ? override.verifierDid() : applicationProperties.getClientId();
-        var verificationMethod = StringUtils.isNotEmpty(override.verificationMethod()) ? override.verificationMethod() : applicationProperties.getSigningKeyVerificationMethod();
+        var externalUrl = override.externalUrlOrDefault(applicationProperties.getExternalUrl());
+        var clientId = override.verifierDidOrDefault(applicationProperties.getClientId());
+        var verificationMethod = override.verificationMethodOrDefault(applicationProperties.getSigningKeyVerificationMethod());
+
         return new EffectiveRequestObjectConfig(externalUrl, clientId, verificationMethod);
     }
 

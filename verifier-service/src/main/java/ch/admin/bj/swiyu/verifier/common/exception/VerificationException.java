@@ -1,9 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2025 Swiss Confederation
- *
- * SPDX-License-Identifier: MIT
- */
-
 package ch.admin.bj.swiyu.verifier.common.exception;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationError.INVALID_CREDENTIAL;

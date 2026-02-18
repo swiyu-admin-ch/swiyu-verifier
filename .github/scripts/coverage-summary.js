@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2025 Swiss Confederation
-// SPDX-License-Identifier: MIT
-
 // JaCoCo coverage summary generator.
 // Reads module reports, computes per-module and combined coverage, writes to GITHUB_STEP_SUMMARY.
 // Mirrors prior inline logic from workflow YAML, but uses standard Node APIs only.

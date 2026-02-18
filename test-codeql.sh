@@ -1,6 +1,4 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: 2025 Swiss Confederation
-# SPDX-License-Identifier: MIT
 
 # CodeQL Advanced Mode Test Script
 

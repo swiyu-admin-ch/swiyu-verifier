@@ -1,9 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2025 Swiss Confederation
-
-SPDX-License-Identifier: MIT
--->
-
 # Contributing Guidelines
 
 Contributions are welcome via GitHub issues and GitHub pull requests. Before opening an issue or pull request, please check whether [a ticket already exists](../../issues) that describes your intention. Our [status board](https://github.com/orgs/swiyu-admin-ch/projects/2) provides you with an overview of the status of your enquiry.

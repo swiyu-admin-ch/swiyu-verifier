@@ -1,6 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Swiss Confederation
-#
-# SPDX-License-Identifier: MIT
+
 
 name: Retag Docker Image
 run-name: Retag ${{ github.repository }}:${{ inputs.source_tag }} -> ${{ inputs.target_tag }}

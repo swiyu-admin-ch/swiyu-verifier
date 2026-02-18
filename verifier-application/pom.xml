@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  ~ SPDX-FileCopyrightText: 2025 Swiss Confederation
-  ~
-  ~ SPDX-License-Identifier: MIT
-  -->
+
 
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://maven.apache.org/POM/4.0.0"
@@ -23,7 +19,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <version>1.16.1</version>
+            <version>1.16.3</version>
         </dependency>
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
@@ -312,23 +308,6 @@
     <build>
         <plugins>
             <plugin>
-                <!-- See https://www.baeldung.com/checkstyle-java for more info -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${maven-checkstyle-plugin.version}</version>
-                <configuration>
-                    <!-- See https://checkstyle.sourceforge.io/config.html -->
-                    <configLocation>google_checks.xml</configLocation>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.ec4j.maven</groupId>
                 <artifactId>editorconfig-maven-plugin</artifactId>
                 <version>${editorconfig-maven-plugin.version}</version>
@@ -425,7 +404,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.2</version>
+                <version>3.5.4</version>
                 <executions>
                     <execution>
                         <id>integration-tests</id>

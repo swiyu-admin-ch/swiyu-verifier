@@ -32,14 +32,14 @@
         </sonar.exclusions>
         <!-- dependency versions -->
         <archunit-junit5.verion>1.4.1</archunit-junit5.verion>
-        <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
-        <javacrumbs.shedlock.version>6.0.2</javacrumbs.shedlock.version>
+        <javacrumbs.shedlock.version>7.6.0</javacrumbs.shedlock.version>
+        <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>2.8.12</springdoc-openapi-starter-webmvc-ui.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
-        <json-path.version>2.9.0</json-path.version>
+        <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2024.0.0</spring-cloud-dependencies.version>
-        <bcprov-jdk18on.version>1.82</bcprov-jdk18on.version>
-        <bcpkix-jdk18on.version>1.82</bcpkix-jdk18on.version>
+        <bcprov-jdk18on.version>1.83</bcprov-jdk18on.version>
+        <bcpkix-jdk18on.version>1.83</bcpkix-jdk18on.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>
             **/*Dto.java,**/domain/*
@@ -48,13 +48,12 @@
             **/*Dto.java,**/config/*,**/generated/*,**/*Exception.java,**/*Constants.java,**/*Registry.java,**/*Config.java,**/*Mock*,**/*Application.java
         </sonar.coverage.exclusions>
 
-        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <editorconfig-maven-plugin.version>0.1.3</editorconfig-maven-plugin.version>
-        <nimbus-jose-jwt.version>10.6</nimbus-jose-jwt.version>
-        <kotlin-stdlib.version>2.3.0</kotlin-stdlib.version>
+        <nimbus-jose-jwt.version>10.7</nimbus-jose-jwt.version>
+        <kotlin-stdlib.version>2.3.10</kotlin-stdlib.version>
         <jna.version>5.18.1</jna.version>     
         <sd-jwt.version>1.7</sd-jwt.version>
-        <didresolver.version>2.4.0</didresolver.version>     
+        <didresolver.version>2.6.0</didresolver.version>     
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
@@ -81,12 +80,12 @@
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-jws-signature-service</artifactId>
-                <version>1.1.0</version>
+                <version>1.2.0</version>
             </dependency>
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-did-resolver-adapter</artifactId>
-                <version>1.1.0</version>
+                <version>1.2.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

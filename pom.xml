@@ -49,7 +49,7 @@
         </sonar.coverage.exclusions>
 
         <editorconfig-maven-plugin.version>0.1.3</editorconfig-maven-plugin.version>
-        <nimbus-jose-jwt.version>10.6</nimbus-jose-jwt.version>
+        <nimbus-jose-jwt.version>10.7</nimbus-jose-jwt.version>
         <kotlin-stdlib.version>2.3.10</kotlin-stdlib.version>
         <jna.version>5.18.1</jna.version>     
         <sd-jwt.version>1.7</sd-jwt.version>

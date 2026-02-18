@@ -1,9 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2026 Swiss Confederation
- *
- * SPDX-License-Identifier: MIT
- */
-
 package ch.admin.bj.swiyu.verifier.infrastructure.env;
 
 import org.springframework.beans.factory.annotation.Value;

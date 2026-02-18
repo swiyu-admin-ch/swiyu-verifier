@@ -1,6 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Swiss Confederation
-#
-# SPDX-License-Identifier: MIT
+
 
 application:
   external-url: "${EXTERNAL_URL:}"
@@ -81,8 +79,6 @@ spring:
     hibernate:
       ddl-auto: validate
     properties:
-      boot:
-        allow_jdbc_metadata_access: false
       hibernate:
         default_schema: ${POSTGRES_DB_SCHEMA:public}
 springdoc:

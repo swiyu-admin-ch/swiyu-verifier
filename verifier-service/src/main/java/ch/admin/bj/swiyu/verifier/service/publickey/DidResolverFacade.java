@@ -60,7 +60,6 @@ public class DidResolverFacade {
      * @throws DidSidekicksException if the DID document or key extraction fails
      * @throws IllegalArgumentException if didId is null
      */
-    @Cacheable(JWK_CACHE)
     public DidDoc resolveDid(String didId)
             throws DidResolverException, DidSidekicksException {
         if (didId == null) {

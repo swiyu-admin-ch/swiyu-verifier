@@ -95,11 +95,35 @@ management:
         enabled: true
       show-components: always
       show-details: always
+      serviceRegistries:
+      identifierRegistries:
     additionalKeysToSanitize: test
     env:
       show-values: ALWAYS # NEVER to hide all values
       # Values to expose on the env endpoint
-      allowedProperties: local.server.port, server.ports, application.signing-key-verification-method, application.client_id_scheme, application.client_id, application.external-url, application.deeplink-schema, verification.object-size-limit, application.key-management-method, spring.flyway.enabled, springdoc.swagger-ui.path, webhook.callback-interval, application.client_id, logging.expect-correlation-id, APPLICATION_NAME, application.client-metadata-file, application.url-rewrite.mapping, application.accepted-status-list-hosts.*, application.verification-ttl, webhook.callback-uri, application.hsm.host, application.hsm.port
+      allowedProperties: >
+        local.server.port
+        server.ports
+        application.signing-key-verification-method
+        application.client_id_scheme
+        application.client_id
+        application.external-url
+        application.deeplink-schema
+        verification.object-size-limit
+        application.key-management-method
+        spring.flyway.enabled
+        springdoc.swagger-ui.path
+        webhook.callback-interval
+        application.client_id
+        logging.expect-correlation-id
+        APPLICATION_NAME
+        application.client-metadata-file
+        application.url-rewrite.mapping
+        application.accepted-status-list-hosts.*
+        application.verification-ttl
+        webhook.callback-uri
+        application.hsm.host
+        application.hsm.port
   health:
     livenessState:
       enabled: true

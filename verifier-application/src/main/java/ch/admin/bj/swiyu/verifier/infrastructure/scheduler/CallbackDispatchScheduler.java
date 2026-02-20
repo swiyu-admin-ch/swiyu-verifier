@@ -30,6 +30,7 @@ public class CallbackDispatchScheduler {
             // No Callback URI defined; We do not need to do callbacks
             return;
         }
+
         var events = callbackEventRepository.findAll();
         events.forEach(event -> processCallbackEvent(
                 event,
@@ -41,7 +42,7 @@ public class CallbackDispatchScheduler {
 
     private void processCallbackEvent(CallbackEvent event, String callbackUri, String authHeader, String authValue) {
         // Send the event
-        var request =   webClient.post().uri(callbackUri);
+        var request = webClient.post().uri(callbackUri);
         if (!StringUtils.isBlank(authHeader)) {
             request = request.header(authHeader, authValue);
         }

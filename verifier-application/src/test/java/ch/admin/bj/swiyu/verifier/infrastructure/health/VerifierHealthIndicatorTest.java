@@ -18,26 +18,44 @@ class VerifierHealthIndicatorTest {
 
     @Mock
     private SigningKeyVerificationHealthChecker signingKeyHealthChecker;
+    @Mock
+    private CallbackHealthChecker callbackHealthChecker;
+    @Mock
+    private StatusRegistryAccessHealthChecker statusRegistryAccessHealthChecker;
+    @Mock
+    private IdentifierRegistryHealthChecker identifierRegistryHealthChecker;
 
     private VerifierHealthIndicator healthIndicator;
 
     @BeforeEach
     void setUp() {
-        healthIndicator = new VerifierHealthIndicator(this.signingKeyHealthChecker);
+        healthIndicator = new VerifierHealthIndicator(this.signingKeyHealthChecker,
+                this.callbackHealthChecker,
+                this.statusRegistryAccessHealthChecker,
+                this.identifierRegistryHealthChecker);
     }
 
     @Test
     void performCheck_shouldReturnUp_whenSigningKeyHealthCheckerIsUp() {
         when(signingKeyHealthChecker.getHealthResult()).thenReturn(Health.up().build());
+        when(callbackHealthChecker.getHealthResult()).thenReturn(Health.up().build());
+        when(statusRegistryAccessHealthChecker.getHealthResult()).thenReturn(Health.up().build());
+        when(identifierRegistryHealthChecker.getHealthResult()).thenReturn(Health.up().build());
 
         var health = healthIndicator.health();
         assertThat(health.getStatus()).isEqualTo(Status.UP);
         assertThat(health.getDetails().get("signingKeyVerification")).isNotNull();
+        assertThat(health.getDetails().get("staleCallbacks")).isNotNull();
+        assertThat(health.getDetails().get("statusRegistry")).isNotNull();
+        assertThat(health.getDetails().get("identifierRegistry")).isNotNull();
     }
 
     @Test
-    void performCheck_shouldReturnDown_whenSigningKeyHealthCheckerIsDown() {
+    void performCheck_shouldReturnDown_whenOnHealthCheckerIsDown() {
         when(signingKeyHealthChecker.getHealthResult()).thenReturn(Health.down().build());
+        when(callbackHealthChecker.getHealthResult()).thenReturn(Health.up().build());
+        when(statusRegistryAccessHealthChecker.getHealthResult()).thenReturn(Health.up().build());
+        when(identifierRegistryHealthChecker.getHealthResult()).thenReturn(Health.up().build());
 
         var health = healthIndicator.health();
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
@@ -47,6 +65,9 @@ class VerifierHealthIndicatorTest {
     void performCheck_shouldIncludeHealthDetails() {
         Map<String, Object> details = Map.of("foo", "bar");
         when(signingKeyHealthChecker.getHealthResult()).thenReturn(Health.up().withDetails(details).build());
+        when(callbackHealthChecker.getHealthResult()).thenReturn(Health.up().build());
+        when(statusRegistryAccessHealthChecker.getHealthResult()).thenReturn(Health.up().build());
+        when(identifierRegistryHealthChecker.getHealthResult()).thenReturn(Health.up().build());
 
         var health = healthIndicator.health();
         assertThat(health.getDetails()).containsKey("signingKeyVerification");

@@ -52,6 +52,23 @@ public class DidResolverFacade {
     }
 
     /**
+     * Resolves the DID Document for the given DID and returns it
+     *
+     * @param didId    the id of the DID Document (e.g. "did:example:123")
+     * @return the DID Document
+     * @throws DidResolverException if the DID resolution fails
+     * @throws DidSidekicksException if the DID document or key extraction fails
+     * @throws IllegalArgumentException if didId is null
+     */
+    public DidDoc resolveDid(String didId)
+            throws DidResolverException, DidSidekicksException {
+        if (didId == null) {
+            throw new IllegalArgumentException("did must not be null");
+        }
+        return didResolverAdapter.resolveDid(didId, urlRewriteProperties.getUrlMappings());
+    }
+
+    /**
      * Resolves the trust statement for the given trust registry URL and VCT.
      * <p>
      * The result is cached. If the resolution fails (e.g. HTTP error), null is returned and a log entry is written.

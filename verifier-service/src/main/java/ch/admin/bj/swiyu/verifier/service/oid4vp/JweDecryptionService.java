@@ -1,16 +1,15 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jweutil.JweUtil;
+import ch.admin.bj.swiyu.jweutil.JweUtilException;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWEDecrypter;
 import com.nimbusds.jose.JWEObject;
-import com.nimbusds.jose.crypto.ECDHDecrypter;
-import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,17 +36,17 @@ public class JweDecryptionService {
     public VerificationPresentationUnionDto decrypt(Management managementEntity,
                                                     VerificationPresentationUnionDto verificationResponse) {
         try {
-            JWEObject jwe = JWEObject.parse(verificationResponse.getResponse());
-            String keyId = Optional.ofNullable(jwe.getHeader().getKeyID())
+            String jweString = verificationResponse.getResponse();
+            String keyId = Optional.ofNullable(JWEObject.parse(jweString).getHeader().getKeyID())
                     .orElseThrow(() -> VerificationException.submissionError(
                             INVALID_REQUEST,
                             "Missing keyId. Unable to decrypt response."));
-            JWEDecrypter decrypter = createJweDecryptor(managementEntity, keyId);
-            jwe.decrypt(decrypter);
-            return objectMapper.readValue(jwe.getPayload().toString(), VerificationPresentationUnionDto.class);
+            JWK privateKey = resolvePrivateKey(managementEntity, keyId);
+            String payload = JweUtil.decrypt(jweString, privateKey);
+            return objectMapper.readValue(payload, VerificationPresentationUnionDto.class);
         } catch (ParseException e) {
             throw VerificationException.credentialError(e, "Failed to parse response.");
-        } catch (JOSEException e) {
+        } catch (JweUtilException e) {
             throw VerificationException.credentialError(e, "Response cannot be decrypted.");
         } catch (JsonProcessingException e) {
             throw VerificationException.credentialError(e, e.getOriginalMessage());
@@ -55,16 +54,14 @@ public class JweDecryptionService {
     }
 
     @NotNull
-    private static JWEDecrypter createJweDecryptor(Management managementEntity, String keyId)
-            throws ParseException, JOSEException {
+    private static JWK resolvePrivateKey(Management managementEntity, String keyId)
+            throws ParseException {
         ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
         JWKSet privateKeys = JWKSet.parse(Optional.ofNullable(responseSpecification.getJwksPrivate())
                 // Throw illegal state, as this would be a server error
                 .orElseThrow(() -> new IllegalStateException("Missing JWK private. Unable to decrypt response.")));
-        ECKey privateKey = Optional.ofNullable(privateKeys.getKeyByKeyId(keyId))
+        return Optional.ofNullable(privateKeys.getKeyByKeyId(keyId))
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "No matching JWK for keyId %s found. Unable to decrypt response.".formatted(keyId)))
-                .toECKey();
-        return new ECDHDecrypter(privateKey);
+                        "No matching JWK for keyId %s found. Unable to decrypt response.".formatted(keyId)));
     }
 }

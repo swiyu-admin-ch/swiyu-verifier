@@ -1,11 +1,12 @@
 package ch.admin.bj.swiyu.verifier.service;
 
 import ch.admin.bj.swiyu.jwssignatureservice.factory.strategy.KeyStrategyException;
+import ch.admin.bj.swiyu.jwtutil.JwtUtil;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.SignatureConfiguration;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
+
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -55,14 +56,8 @@ public class JwtSigningService {
             throw new IllegalStateException("Presentation was configured to be signed, but no signing key was configured.");
         }
 
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                .keyID(verificationMethod)
-                .type(new JOSEObjectType("oauth-authz-req+jwt"))
-                .build();
-        SignedJWT signedJwt = new SignedJWT(header, claimsSet);
-        signedJwt.sign(signerProvider.getSigner());
-
-        return signedJwt;
+        JWSHeader header = JwtUtil.buildHeader(JWSAlgorithm.ES256, verificationMethod, "oauth-authz-req+jwt");
+        return JwtUtil.signJwt(claimsSet, header, signerProvider.getSigner());
     }
 
     /**

@@ -4,9 +4,11 @@ import ch.admin.bj.swiyu.jwssignatureservice.factory.strategy.KeyStrategyExcepti
 import ch.admin.bj.swiyu.jwtutil.JwtUtil;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.SignatureConfiguration;
+import ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
 
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class JwtSigningService {
 
+    private static final String OAUTH_AUTHZ_REQ_JWT = "oauth-authz-req+jwt";
     private final ApplicationProperties applicationProperties;
     private final JwsSignatureFacade jwsSignatureFacade;
 
@@ -56,7 +59,13 @@ public class JwtSigningService {
             throw new IllegalStateException("Presentation was configured to be signed, but no signing key was configured.");
         }
 
-        JWSHeader header = JwtUtil.buildHeader(JWSAlgorithm.ES256, verificationMethod, "oauth-authz-req+jwt");
+        // Build the JAR header with the required swiss profile version indication.
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .keyID(verificationMethod)
+                .type(new JOSEObjectType(OAUTH_AUTHZ_REQ_JWT))
+                .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
+                .build();
+
         return JwtUtil.signJwt(claimsSet, header, signerProvider.getSigner());
     }
 

@@ -62,7 +62,6 @@ class RequestObjectServiceTest {
         );
 
         // Mock application configurations
-        when(applicationProperties.getRequestObjectVersion()).thenReturn("1.0");
         when(applicationProperties.getClientId()).thenReturn(clientId);
         when(applicationProperties.getClientIdScheme()).thenReturn("test-scheme");
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");

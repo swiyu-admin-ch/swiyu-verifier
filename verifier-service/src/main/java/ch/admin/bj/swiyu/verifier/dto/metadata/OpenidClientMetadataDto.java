@@ -42,8 +42,6 @@ public class OpenidClientMetadataDto {
     @Deprecated(since="OID4VP 1.0")
     private OpenIdClientMetadataVpFormat vpFormats;
 
-    private String version;
-
     @JsonProperty("jwks")
     @Schema(description = """
             One or more public keys, such as those used by the Wallet as an input to a key agreement

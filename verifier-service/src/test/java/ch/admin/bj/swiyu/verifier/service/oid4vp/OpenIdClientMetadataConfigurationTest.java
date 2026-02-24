@@ -26,7 +26,6 @@ class OpenIdClientMetadataConfigurationTest {
 
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
     private final String clientId = "test-client-id";
-    private final String metadataVersion = "1.0.0";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -42,7 +41,6 @@ class OpenIdClientMetadataConfigurationTest {
         config.setClientMetadataResource(clientMetadataResource);
 
         when(applicationProperties.getClientId()).thenReturn(clientId);
-        when(applicationProperties.getMetadataVersion()).thenReturn(metadataVersion);
     }
 
     @Test
@@ -56,7 +54,6 @@ class OpenIdClientMetadataConfigurationTest {
         var metadata = config.getOpenIdClientMetadata();
 
         assertThat(metadata.getClientId()).isEqualTo(clientId);
-        assertThat(metadata.getVersion()).isEqualTo(metadataVersion);
         assertThat(metadata.getVpFormats().jwtVerifiablePresentation().algorithms())
                 .first()
                 .isEqualTo("ES256");

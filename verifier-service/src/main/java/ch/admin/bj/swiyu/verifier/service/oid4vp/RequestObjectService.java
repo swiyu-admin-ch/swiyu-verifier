@@ -112,7 +112,6 @@ public class RequestObjectService {
 
         return RequestObjectDto.builder()
                 .nonce(managementEntity.getRequestNonce())
-                .version(applicationProperties.getRequestObjectVersion())
                 .presentationDefinition(toPresentationDefinitionDto(presentation))
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
                 .clientId(effectiveConfig.clientId())

@@ -777,8 +777,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
-                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
-                .andExpect(jsonPath("$.version").value(applicationProperties.getMetadataVersion()));
+                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()));
     }
 
     private String createVpToken() throws Exception {

@@ -41,7 +41,6 @@ public class OpenIdClientMetadataConfiguration {
     public void initOpenIdClientMetadata() {
         final String resolvedJson = loadAndResolveTemplate();
         this.openIdClientMetadata = parseMetadata(resolvedJson);
-        this.openIdClientMetadata.setVersion(applicationProperties.getMetadataVersion());
         validateMetadata(this.openIdClientMetadata);
     }
 

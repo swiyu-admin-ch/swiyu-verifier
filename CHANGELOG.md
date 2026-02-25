@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - status registry, resolves the Dids listed in  `management.endpoint.health.identifierRegistries`.
 - Allow setting the used Database Schema with environment variable `POSTGRES_DB_SCHEMA`. Default remains public as
     before.
+- Include Swiss Profile version indication in JWT-Secured Authorization Requests (JAR): add `profile_version` to the JWT header (swiss-profile-verification).
+- Removed `version` property (value "1.0") from the Authorization Request and verifier metadata.
 
 ## 2.2.0
 

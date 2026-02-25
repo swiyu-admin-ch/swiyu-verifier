@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
@@ -61,7 +62,6 @@ class RequestObjectServiceTest {
         );
 
         // Mock application configurations
-        when(applicationProperties.getRequestObjectVersion()).thenReturn("1.0");
         when(applicationProperties.getClientId()).thenReturn(clientId);
         when(applicationProperties.getClientIdScheme()).thenReturn("test-scheme");
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");
@@ -86,6 +86,7 @@ class RequestObjectServiceTest {
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
                     .keyID("did:example:123#key1")
                     .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
+                    .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
                     .build();
             SignedJWT signedJwt = new SignedJWT(header, claimsSet);
             signedJwt.sign(jwsSigner);
@@ -100,6 +101,7 @@ class RequestObjectServiceTest {
         String jwtString = ((RequestObjectResult.Signed) result).jwt();
         SignedJWT jwt = SignedJWT.parse(jwtString);
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
+        assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(clientId);
     }
 
@@ -124,6 +126,7 @@ class RequestObjectServiceTest {
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
                     .keyID("did:override#key1")
                     .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
+                    .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
                     .build();
             SignedJWT signedJwt = new SignedJWT(header, claimsSet);
             signedJwt.sign(jwsSigner);
@@ -138,6 +141,7 @@ class RequestObjectServiceTest {
         String jwtString = ((RequestObjectResult.Signed) result).jwt();
         SignedJWT jwt = SignedJWT.parse(jwtString);
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
+        assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
         assertEquals(verificationMethod, jwt.getHeader().getKeyID());
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(overrideDid);
         assertThat(jwt.getJWTClaimsSet().getClaim("response_uri").toString()).startsWith(externalUrl);
@@ -229,3 +233,4 @@ class RequestObjectServiceTest {
         return management;
     }
 }
+

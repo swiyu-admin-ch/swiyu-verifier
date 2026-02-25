@@ -104,7 +104,6 @@ class BlackboxIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
-                .andExpect(jsonPath("$.version").value(applicationProperties.getMetadataVersion()))
                 .andReturn());
         // Check status, should still be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
@@ -152,7 +151,6 @@ class BlackboxIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
-                .andExpect(jsonPath("$.version").value(applicationProperties.getMetadataVersion()))
                 .andReturn());
         // Check status, should still be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
@@ -198,7 +196,6 @@ class BlackboxIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
-                .andExpect(jsonPath("$.version").value(applicationProperties.getMetadataVersion()))
                 .andReturn());
         // Check status, should still be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));

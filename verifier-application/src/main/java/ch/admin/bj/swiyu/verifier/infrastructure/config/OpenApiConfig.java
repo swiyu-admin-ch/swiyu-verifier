@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.config;
 import ch.admin.bj.swiyu.verifier.dto.callback.WebhookCallbackDto;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import lombok.AllArgsConstructor;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
@@ -15,12 +16,9 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI openApi() {
-        return new OpenAPI().info(new io.swagger.v3.oas.models.info.Info()
+        return new OpenAPI().info(new Info()
                 .title("Verifier API")
-                .description("Generic Verifier service")
-                .version("0.1")
-        );
-
+                .description("Generic Verifier service"));
     }
 
     @Bean

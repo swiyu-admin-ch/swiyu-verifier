@@ -33,6 +33,8 @@ public class IssuerPublicKeyLoader {
     /**
      * Adapter for loading a DID Documents by a DID (Decentralized Identifier).
      */
+    public static final String TRUST_STATEMENT_ISSUANCE_ENDPOINT = "/api/v1/truststatements/issuance";
+
     private final DidResolverFacade didResolverFacade;
     private final ObjectMapper objectMapper;
 
@@ -98,7 +100,7 @@ public class IssuerPublicKeyLoader {
      */
     public List<String> loadTrustStatement(String trustRegistryUri, String vct) throws JsonProcessingException {
         log.debug("Resolving trust statement at registry {} for {}", trustRegistryUri, vct);
-        var rawTrustStatements = didResolverFacade.resolveTrustStatement("%s/api/v1/truststatements/issuance", vct);
+        var rawTrustStatements = didResolverFacade.resolveTrustStatement(trustRegistryUri + TRUST_STATEMENT_ISSUANCE_ENDPOINT, vct);
         return objectMapper.readValue(rawTrustStatements, List.class);
     }
 

@@ -8,7 +8,7 @@
     <parent>
         <groupId>ch.admin.bj.swiyu</groupId>
         <artifactId>swiyu-verifier-parent</artifactId>
-        <version>2.2.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
 
 
@@ -241,13 +241,13 @@
         <dependency>
             <groupId>ch.admin.bj.swiyu</groupId>
             <artifactId>swiyu-verifier-service</artifactId>
-            <version>2.2.0-SNAPSHOT</version><!-- Use the same version as the parent pom -->
+            <version>3.0.0-SNAPSHOT</version><!-- Use the same version as the parent pom -->
         </dependency>
         <!-- this is a test dependency, it is used to test the verifier service with the mocks defined in verifer-service-->
         <dependency>
             <groupId>ch.admin.bj.swiyu</groupId>
             <artifactId>swiyu-verifier-service</artifactId>
-            <version>2.2.0-SNAPSHOT</version> <!-- Use the same version as the parent pom -->
+            <version>3.0.0-SNAPSHOT</version> <!-- Use the same version as the parent pom -->
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>

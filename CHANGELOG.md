@@ -5,17 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## latest
+## Latest
 
-- New endpoint `/actuator/env` to retrieve configuration details.
-- Add health checks for:
-  - stale callbacks
-  - status list, checks if endpoints listed in `management.endpoint.health.serviceRegistries` are reachable.
-  - status registry, resolves the Dids listed in  `management.endpoint.health.identifierRegistries`.
-- Allow setting the used Database Schema with environment variable `POSTGRES_DB_SCHEMA`. Default remains public as
-    before.
-- Include Swiss Profile version indication in JWT-Secured Authorization Requests (JAR): add `profile_version` to the JWT header (swiss-profile-verification).
-- Removed `version` property (value "1.0") from the Authorization Request and verifier metadata.
+### Added
+- New endpoint `/actuator/env` to retrieve configuration details. This includes an actuator sanitizer and additional properties `(#433)`.
+- Added health checks for `(#268)`:
+    - Stale callbacks.
+    - Status list (checks if endpoints listed in `management.endpoint.health.serviceRegistries` are reachable).
+    - Status registry (resolves the DIDs listed in `management.endpoint.health.identifierRegistries`).
+- Allow setting the used Database Schema with environment variable `POSTGRES_DB_SCHEMA` (default remains `public`) `(#604)`.
+- Include Swiss Profile version indication in JWT-Secured Authorization Requests (JAR): added `profile_version` to the JWT header (swiss-profile-verification) `(#694)`.
+
+### Fixed
+- Fixed trust statement retrieval by setting the correct URL `(#535)`.
+- Fixed DID resolving to support key fragment resolution and enhanced caching for JWKs instead of full DID documents `(#693)`.
+- Allowed metadata access to the database by removing the database-migration init container `(#604)`.
+- Added missing `ECDH-ES` algorithm claim to ephemeral JWKs `(#669)`.
+- Added validation for `keyId` and `keyPin` presence when creating signer providers to prevent inconsistent input `(#498)`.
+- Fixed VP token handling and trust validation, specifically for tokens ending with multiple tilde characters `(#371)`.
+
+### Changed
+- Removed the `version` property (value "1.0") from the Authorization Request and verifier metadata `(#694)`.
+- Replaced RestClient with WebClient for outbound HTTP requests `(#363)`.
+- Disabled the status list cache `(#401)`.
+- Improved the error message on the `response-data` endpoint when using `direct_post.jwt` `(#260)`.
+- Added a default value for `encrypted_response_enc_values_supported` to reduce ambiguity `(#663)`.
+- Added default value fallback methods for `ConfigurationOverride` fields `(#564)`.
 
 ## 2.2.0
 

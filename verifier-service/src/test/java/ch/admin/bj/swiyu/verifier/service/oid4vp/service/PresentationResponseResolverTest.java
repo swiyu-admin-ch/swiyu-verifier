@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -78,6 +79,33 @@ class PresentationResponseResolverTest {
         assertThat(result).isInstanceOf(PresentationResult.Dcql.class);
         assertThat(((PresentationResult.Dcql) result).request().getVpToken()).containsKey("defaultTestDcqlCredentialId");
     }
+
+
+    /*
+     * Verifies that when the response mode is DIRECT_POST_JWT and the VP token is encrypted (DCQL),
+     * the {@link PresentationResponseResolver#mapToPresentationResult} method correctly decrypts
+     * the payload and returns a {@link PresentationResult.Dcql} result.
+     */
+    @Test
+    void mapToPresentationResult_whenDirectPostJWT_andDcqlVpTokenEncrypted_thenReturnsDcqlResult() {
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST_JWT);
+
+        var realWorldJson = """
+                {"vp_token":{"defaultTestDcqlCredentialId":["eyJraWQiOiJURVNUX0lTU1VFUl9JRCNrZXktMSIsInR5cCI6InZjK3NkLWp3dCIsImFsZyI6IkVTMjU2In0.eyJpc3MiOiJURVNUX0lTU1VFUl9JRCIsIl9zZCI6WyJHbldFZ0JtVnRySEk3SnBFMWdZXzZGOUVDc2IxMnBpVUZDT2xseDQzOUFJIiwicklUNmxmNWY2ckc3UnpIa2NNT3JzdFJsbHh2SVJSMUwxSlR2ZFFVVUJKRSIsInZWelQtQXRCeHBISFZ4dUxfS0FYWUozR0hSS2p1Yk1pOGoyVVZ2Y2p6Zk0iXSwiY25mIjp7Imp3ayI6eyJrdHkiOiJFQyIsImNydiI6IlAtMjU2IiwieCI6Ik5tQUM5Ym8xcVpOUVkyblpDSDlVTTJjXzJxMXV0R2JWNnY0RU1XSmRkNEUiLCJ5IjoibUxJbmRBa3JxNlE5Yi1kWTN0TVBUeVFZSEtDdGZYM0xBNGtxZmVwM2NqYyJ9fSwiaWF0IjoxNzcyNDQ3MjkwLCJ2Y3QiOiJkZWZhdWx0VGVzdFZDVCJ9.ZnyBCPjZkUMH13z4k48VAD755ZcuOcKaPqZ5GhkaKMuiKvZOD1fUXw9ESiEDoPkKzdHcHBqeT8D-mqXqt3I9zA~WyJMLVJwNnpvMDVtZkxJT1MyUE5DODdBIiwiYmlydGhkYXRlIiwiMTk0OS0wMS0yMiJd~WyI2dWFIYi00VzM4SWs0Vl9MUVlFZHlBIiwibGFzdF9uYW1lIiwiVGVzdExhc3ROYW1lIl0~WyJaU3ZvbG9yTjVPLVIwVjd6bkl5Qk9nIiwiZmlyc3RfbmFtZSIsIlRlc3RGaXJzdG5hbWUiXQ~eyJ0eXAiOiJrYitqd3QiLCJhbGciOiJFUzI1NiJ9.eyJzZF9oYXNoIjoiNHJPQzZPX3o4cS1qZDRnUHh5UUgyRUJYWjc0SkktNjZGYkROQmUtZ0F4TSIsImF1ZCI6ImRpZDpleGFtcGxlOjEyMzQ1IiwiaWF0IjoxNzcyNDQ3MjkwLCJub25jZSI6IlAydlo4REtBdFR1Q0lVMU03ZGFXTEE2NUd6b2E3NnRMIn0.-KDLpTlnktNs0w_w9IBy3EhNqICXVlsxUkrVt82ED1usxKVG8l71dn0l8AIIqhrrz9ynbDyim6seI0s3jpJ2YA"]}}""";
+
+        String jweString = JweUtil.encrypt(realWorldJson, ecKey.toPublicJWK());
+
+        VerificationPresentationUnionDto union = VerificationPresentationUnionDto.builder()
+                .response(jweString)
+                .build();
+
+        PresentationResult result = assertDoesNotThrow(
+                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+
+        assertThat(result).isInstanceOf(PresentationResult.Dcql.class);
+        assertThat(((PresentationResult.Dcql) result).request().getVpToken()).containsKey("defaultTestDcqlCredentialId");
+    }
+
 
     @Test
     void mapToPresentationResult_whenDirectPost_andUnnecessaryEncryption_thenUsesPlainData() throws JOSEException {

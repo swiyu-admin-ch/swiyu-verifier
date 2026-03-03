@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -61,7 +62,7 @@ public class PresentationResponseResolver {
 
         // Rejection has priority, independent of the API version
         if (payload.isRejection()) {
-            return new PresentationResult.Rejection(payload.toRejection());
+            return new PresentationResult.Rejection(VerificationPresentationMapper.toRejection(payload));
         }
 
         return switch (apiVersion) {
@@ -76,12 +77,12 @@ public class PresentationResponseResolver {
                     VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM,
                     "Incomplete submission for ID2, must contain vp_token and presentation_submission");
         }
-        return new PresentationResult.PresentationExchange(payload.toStandardPresentation());
+        return new PresentationResult.PresentationExchange(VerificationPresentationMapper.toStandardPresentation(payload));
     }
 
     private PresentationResult mapV1Payload(VerificationPresentationUnionDto payload) {
         if (payload.isDcqlPresentation()) {
-            return new PresentationResult.Dcql(payload.toDcqlPresentation());
+            return new PresentationResult.Dcql(VerificationPresentationMapper.toDcqlPresentation(payload));
         }
         if (payload.isEncryptedPresentation()) {
             // Should already be caught by decryptIfNecessary; here again for safety

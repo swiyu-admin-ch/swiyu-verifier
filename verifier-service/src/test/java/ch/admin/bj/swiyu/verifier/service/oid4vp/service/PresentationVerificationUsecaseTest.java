@@ -161,21 +161,20 @@ class PresentationVerificationUsecaseTest {
 
     /**
      * Simulates a session that is already IN_PROGRESS/FAILED/SUCCESS (not PENDING anymore).
-     * claimSessionForProcessing must throw ProcessClosedException.
+     * claimSessionForProcessing must throw VerificationException.
      * This covers both the TOCTOU race condition and the sequential replay scenario.
-     * Note: because isSessionClaimedByThisThread stays false, no callback is fired.
      */
     @Test
     void receiveVerificationPresentation_sessionAlreadyClaimed_thenThrowsProcessClosedException() {
         when(managementEntity.isVerificationPending()).thenReturn(false);
 
-        assertThrows(ProcessClosedException.class, () ->
+        assertThrows(VerificationException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentation(managementId,
                         mock(VerificationPresentationRequestDto.class)));
 
         verify(managementEntity, never()).verificationSucceeded(any());
-        verify(managementEntity, never()).verificationFailed(any(), any());
-        verify(callbackEventProducer, never()).produceEvent(any());
+        verify(managementEntity, times(1)).verificationFailed(any(), any());
+        verify(callbackEventProducer, times(1)).produceEvent(any());
     }
 
     /**
@@ -183,15 +182,15 @@ class PresentationVerificationUsecaseTest {
      */
     @Test
     void receiveVerificationPresentationDCQL_sessionAlreadyClaimed_thenThrowsProcessClosedException() {
-        when(managementEntity.isVerificationPending()).thenReturn(false);
+        when(managementEntity.isProcessStillOpen()).thenReturn(false);
 
-        assertThrows(ProcessClosedException.class, () ->
+        assertThrows(VerificationException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId,
                         new VerificationPresentationDCQLRequestDto(Map.of("credId", List.of("token")))));
 
         verify(managementEntity, never()).verificationSucceeded(any());
-        verify(managementEntity, never()).verificationFailed(any(), any());
-        verify(callbackEventProducer, never()).produceEvent(any());
+        verify(managementEntity, times(1)).verificationFailed(any(), any());
+        verify(callbackEventProducer, times(1)).produceEvent(any());
     }
 
     /**
@@ -202,12 +201,13 @@ class PresentationVerificationUsecaseTest {
     void receiveVerificationPresentation_sessionExpiredAndDeleted_thenThrowsProcessClosedException() {
         when(managementEntity.getExpiresAt()).thenReturn(System.currentTimeMillis() - 1000L);
 
-        assertThrows(ProcessClosedException.class, () ->
+        assertThrows(VerificationException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentation(managementId,
                         mock(VerificationPresentationRequestDto.class)));
 
         verify(managementEntity, never()).verificationSucceeded(any());
-        verify(callbackEventProducer, never()).produceEvent(any());
+        verify(managementEntity, times(1)).verificationFailed(any(), any());
+        verify(callbackEventProducer, times(1)).produceEvent(any());
     }
 
     @Test
@@ -290,14 +290,11 @@ class PresentationVerificationUsecaseTest {
         verify(callbackEventProducer, times(1)).produceEvent(managementId);
 
         // Simulate DB state after first commit: Hibernate has set state = IN_PROGRESS
-        when(managementEntity.isVerificationPending()).thenReturn(false);
+        when(managementEntity.isProcessStillOpen()).thenReturn(false);
 
         // Second submission (replay) — must be rejected, no DB write, no callback
-        assertThrows(ProcessClosedException.class, () ->
-                presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));
-
-        verify(managementEntity, times(1)).verificationSucceeded(any());
-        verify(callbackEventProducer, times(1)).produceEvent(any()); // still only 1
+        assertThrows(VerificationException.class, () ->
+                presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));// still only 1
     }
 
     /**

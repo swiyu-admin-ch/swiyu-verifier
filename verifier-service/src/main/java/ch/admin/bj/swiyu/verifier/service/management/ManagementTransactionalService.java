@@ -97,15 +97,19 @@ public class ManagementTransactionalService {
     @Transactional(timeout = 10)
     public Management claimSessionForProcessing(UUID managementEntityId) {
         Management m = repository.findById(managementEntityId)
-                .orElseThrow(() -> new EntityNotFoundException("Management not found"));
-
-        if (m.isVerificationPending() && m.getExpiresAt() > System.currentTimeMillis()) {
+                .orElseThrow(() ->
+                        submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
+                                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId)
+                );
+        if (m.isProcessStillOpen()) {
             // Mutate state — Hibernate detects the dirty field (optimistic locking)
             m.claimForProcessing();
         } else {
             log.warn("Submission rejected for session {}: current state={}, expired={}",
                     managementEntityId, m.getState(), m.isExpired());
-            throw new ProcessClosedException();
+            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
+                    "Submission rejected for session %s: current state=%s, expired=%s".formatted(
+                    managementEntityId, m.getState(), m.isExpired()));
         }
         return m;
     }

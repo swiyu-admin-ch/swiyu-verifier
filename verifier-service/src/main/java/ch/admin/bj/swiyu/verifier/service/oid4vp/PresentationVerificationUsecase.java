@@ -53,15 +53,12 @@ public class PresentationVerificationUsecase {
         log.debug("Processing DIF presentation exchange presentation for request_id: {}", managementEntityId);
 
         // Flag, to know if WE are allowed to fire the event in the finally block
-        boolean isSessionClaimedByThisThread = false;
+        boolean isSessionClaimedByThisThread = true;
 
         try {
 
             // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
             Management managementEntity = managementService.claimSessionForProcessing(managementEntityId);
-
-            // here we know: THIS thread has exclusive control
-            isSessionClaimedByThisThread = true;
 
             // 2. Perform the potentially long‑running remote verification outside of any DB transaction
             // verifiy the presentation submission
@@ -83,11 +80,12 @@ public class PresentationVerificationUsecase {
             // 3c. Another thread is already working!
             // We don't touch the database. We only report the error to the client.
             log.warn("Concurrent submission rejected for session {}", managementEntityId);
+            isSessionClaimedByThisThread = false;
             throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
                     "Process already claimed or handled: " + managementEntityId);
         } finally {
             // 4. Notify Business Verifier that this verification is done (non-transactional)
-            if(isSessionClaimedByThisThread) {
+            if (isSessionClaimedByThisThread) {
                 callbackEventProducer.produceEvent(managementEntityId);
             }
         }
@@ -155,14 +153,11 @@ public class PresentationVerificationUsecase {
         log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
 
         // Flag, to know if WE are allowed to fire the event in the finally block
-        boolean isSessionClaimedByThisThread = false;
+        boolean isSessionClaimedByThisThread = true;
 
         try {
             // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
             Management managementEntity = managementService.claimSessionForProcessing(managementEntityId);
-
-            // here we know: THIS thread has exclusive control
-            isSessionClaimedByThisThread = true;
 
             // 2. Perform the potentially long‑running remote/DCQL verification outside of any DB transaction
             log.debug("Starting DCQL submission verification for {}", managementEntityId);
@@ -182,12 +177,13 @@ public class PresentationVerificationUsecase {
         } catch (ObjectOptimisticLockingFailureException e) {
             // 3c. Another thread is already working!
             // We don't touch the database. We only report the error to the client.
+            isSessionClaimedByThisThread = false;
             log.warn("Concurrent submission rejected for session {}", managementEntityId);
             throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
                     "Process already claimed or handled: " + managementEntityId);
         } finally {
             // 4. Notify Business Verifier that this verification is done (non-transactional)
-            if(isSessionClaimedByThisThread) {
+            if (isSessionClaimedByThisThread) {
                 callbackEventProducer.produceEvent(managementEntityId);
             }
         }

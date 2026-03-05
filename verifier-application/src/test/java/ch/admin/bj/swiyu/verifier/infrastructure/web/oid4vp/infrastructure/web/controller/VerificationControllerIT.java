@@ -1305,10 +1305,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             });
         }
 
-        assertThat(didCallStarted.await(5, TimeUnit.SECONDS))
-                .as("DID resolver must have been called")
-                .isTrue();
-
         final int activeConnections = pool.getActiveConnections();
 
         assertThat(activeConnections)

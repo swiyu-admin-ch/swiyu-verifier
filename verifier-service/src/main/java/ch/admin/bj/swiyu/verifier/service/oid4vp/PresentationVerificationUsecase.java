@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRequestDto;
@@ -10,10 +11,12 @@ import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionErrorV1;
 
 @Slf4j
@@ -43,40 +46,50 @@ public class PresentationVerificationUsecase {
      *
      * @param managementEntityId the id of the Management
      * @param request            the presentation request to verify
-     *
      * @deprecated legacy methode for receiveVerificationPresentation
      */
     @Deprecated(since = "OID4VP 1.0")
     public void receiveVerificationPresentation(UUID managementEntityId, VerificationPresentationRequestDto request) {
         log.debug("Processing DIF presentation exchange presentation for request_id: {}", managementEntityId);
-        // 1. Load management entity in a short transaction
-        Management managementEntity = managementService.loadManagementEntityForUpdate(managementEntityId);
-        try {
-            // 2. Check if the process is still pending and not expired
-            log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-            if (!managementEntity.isProcessStillOpen()) {
-                throw new ProcessClosedException();
-            }
 
-            // 3. Perform the potentially long‑running remote verification outside of any DB transaction
+        // Flag, to know if WE are allowed to fire the event in the finally block
+        boolean isSessionClaimedByThisThread = false;
+
+        try {
+
+            // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
+            Management managementEntity = managementService.claimSessionForProcessing(managementEntityId);
+
+            // here we know: THIS thread has exclusive control
+            isSessionClaimedByThisThread = true;
+
+            // 2. Perform the potentially long‑running remote verification outside of any DB transaction
             // verifiy the presentation submission
             log.debug("Starting submission verification for {}", managementEntityId);
             var credentialSubjectData = presentationVerificationService.verify(managementEntity, request);
             log.trace("Submission verification completed for {}", managementEntityId);
 
-            // 4a. Persist successful verification result in a dedicated short transaction
+            // 3a. Persist successful verification result in a dedicated short transaction
             managementService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
             log.debug("Saved successful verification result for {}", managementEntityId);
         } catch (VerificationException e) {
-            // 4b. Persist failed verification result in a dedicated short transaction
+            // 3b. Persist failed verification result in a dedicated short transaction
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
 
             //PMD: rethrow since client gets notified of the error (v2 structure)
             throw e; // NOPMD - ExceptionAsFlowControl
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // 3c. Another thread is already working!
+            // We don't touch the database. We only report the error to the client.
+            log.warn("Concurrent submission rejected for session {}", managementEntityId);
+            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
+                    "Process already claimed or handled: " + managementEntityId);
         } finally {
-            // 5. Notify Business Verifier that this verification is done (non-transactional)
-            callbackEventProducer.produceEvent(managementEntityId);
+            // 4. Notify Business Verifier that this verification is done (non-transactional)
+            if(isSessionClaimedByThisThread) {
+                callbackEventProducer.produceEvent(managementEntityId);
+            }
         }
     }
 
@@ -140,33 +153,43 @@ public class PresentationVerificationUsecase {
      */
     public void receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
         log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
-        // 1. Load management entity in a short transaction
-        Management managementEntity = managementService.loadManagementEntityForUpdate(managementEntityId);
-        try {
-            // 2. Check if the process is still pending and not expired
-            log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-            if (!managementEntity.isProcessStillOpen()) {
-                throw new ProcessClosedException();
-            }
 
-            // 3. Perform the potentially long‑running remote/DCQL verification **outside** of any DB transaction
+        // Flag, to know if WE are allowed to fire the event in the finally block
+        boolean isSessionClaimedByThisThread = false;
+
+        try {
+            // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
+            Management managementEntity = managementService.claimSessionForProcessing(managementEntityId);
+
+            // here we know: THIS thread has exclusive control
+            isSessionClaimedByThisThread = true;
+
+            // 2. Perform the potentially long‑running remote/DCQL verification outside of any DB transaction
             log.debug("Starting DCQL submission verification for {}", managementEntityId);
             var credentialSubjectData = dcqlPresentationVerificationService.process(managementEntity, request);
             log.trace("DCQL submission verification completed for {}", managementEntityId);
 
-            // 4. Persist successful verification result in a dedicated short transaction
+            // 3a. Persist successful verification result in a dedicated short transaction
             managementService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
         } catch (VerificationException e) {
-            // 4a. Persist failed verification result in a dedicated short transaction
+            // 3b. Persist failed verification result in a dedicated short transaction
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed DCQL verification result for {}", managementEntityId);
 
             // PMD: we intentionally convert v2 -> v1 error contract here
             throw submissionErrorV1(e, e.getErrorResponseCode(), e.getErrorDescription()); // NOPMD - ExceptionAsFlowControl - rethrow as v1
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // 3c. Another thread is already working!
+            // We don't touch the database. We only report the error to the client.
+            log.warn("Concurrent submission rejected for session {}", managementEntityId);
+            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
+                    "Process already claimed or handled: " + managementEntityId);
         } finally {
-            // 5. Notify Business Verifier that this verification is done.
-            callbackEventProducer.produceEvent(managementEntityId);
+            // 4. Notify Business Verifier that this verification is done (non-transactional)
+            if(isSessionClaimedByThisThread) {
+                callbackEventProducer.produceEvent(managementEntityId);
+            }
         }
     }
 }

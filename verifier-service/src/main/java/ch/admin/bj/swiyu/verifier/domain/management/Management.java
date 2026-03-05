@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
+import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import jakarta.persistence.*;
@@ -40,6 +41,15 @@ public class Management {
     @Id
     @Builder.Default
     private UUID id = UUID.randomUUID(); // Generate the ID manually
+
+    /**
+     * Optimistic locking version counter — incremented by JPA on every UPDATE.
+     * Together with {@link #claimForProcessing()} this ensures that two concurrent
+     * threads cannot both pass the PENDING-check (second line of defence after the
+     * atomic SQL claim in the repository).
+     */
+    @Version
+    private Long version;
 
     @Builder.Default
     private String requestNonce = createNonce();
@@ -93,7 +103,24 @@ public class Management {
 
 
     public boolean isVerificationPending() {
-        return state == ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
+        return state == VerificationStatus.PENDING;
+    }
+
+    /**
+     * Marks this session as exclusively claimed for processing by transitioning the
+     * state from {@link VerificationStatus#PENDING} to {@link VerificationStatus#IN_PROGRESS}.
+     *
+     * If a concurrent thread has already called this method and flushed the version increment,
+     * JPA will throw an {@link jakarta.persistence.OptimisticLockException}.
+     *
+     * @throws ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException if the
+     *         session is not {@code PENDING} or has already expired
+     */
+    public void claimForProcessing() {
+        if (!isProcessStillOpen()) {
+            throw new ProcessClosedException();
+        }
+        this.state = VerificationStatus.IN_PROGRESS;
     }
 
     public void verificationFailed(VerificationErrorResponseCode errorCode, String errorDescription) {
@@ -158,4 +185,5 @@ public class Management {
     public ConfigurationOverride getConfigurationOverride() {
         return Objects.requireNonNullElseGet(this.configurationOverride, () -> ConfigurationOverride.builder().build());
     }
+
 }

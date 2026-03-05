@@ -161,7 +161,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
-                .andExpect(status().isGone());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

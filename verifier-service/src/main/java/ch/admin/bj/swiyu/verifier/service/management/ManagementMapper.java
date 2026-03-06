@@ -96,6 +96,7 @@ public class ManagementMapper {
         }
         return switch (source) {
             case PENDING -> VerificationStatusDto.PENDING;
+            case IN_PROGRESS -> VerificationStatusDto.PENDING; // For the API, we want to treat IN_PROGRESS as PENDING since it is still not completed from the client's perspective
             case SUCCESS -> VerificationStatusDto.SUCCESS;
             case FAILED -> VerificationStatusDto.FAILED;
         };

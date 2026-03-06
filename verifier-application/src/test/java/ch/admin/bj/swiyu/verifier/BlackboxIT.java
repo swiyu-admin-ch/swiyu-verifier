@@ -170,7 +170,7 @@ class BlackboxIT {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
-                .andExpect(status().isGone())
+                .andExpect(status().isBadRequest())
         );
         // Status should not have changed, status should not change
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
@@ -214,7 +214,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("response", buildJWTResponse(Map.of("presentation_submission", presentationSubmission,"vp_token", vpToken), createResponseDto.id())))
-                .andExpect(status().isGone()));
+                .andExpect(status().isBadRequest()));
 
         // Status should not have changed, status should not change
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));

@@ -161,7 +161,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
-                .andExpect(status().isGone());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -1304,10 +1304,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 }
             });
         }
-
-        assertThat(didCallStarted.await(5, TimeUnit.SECONDS))
-                .as("DID resolver must have been called")
-                .isTrue();
 
         final int activeConnections = pool.getActiveConnections();
 

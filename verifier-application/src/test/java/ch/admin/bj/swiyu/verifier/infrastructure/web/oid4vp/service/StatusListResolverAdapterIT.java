@@ -178,4 +178,71 @@ class StatusListResolverAdapterIT {
         // only one network request should have been made due to caching
         mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(1));
     }
+
+    @Test
+    void testStatusListCaching_whenCachingDisabled_thenAlwaysFetchesFromRemote() {
+        // caching is disabled when ttl = 0
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
+
+        mockServerClient
+                .when(request().withMethod("GET").withPath("/statuslist"))
+                .respond(response().withStatusCode(200).withBody("statusList").withHeader("Content-Type", MediaType.TEXT_PLAIN_VALUE));
+
+        statusListResolverAdapter.resolveStatusList(url);
+        statusListResolverAdapter.resolveStatusList(url);
+
+        // both calls must have hit the remote – no caching
+        mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(2));
+        assertNull(cacheManager.getCache(STATUS_LIST_CACHE).get(url));
+    }
+
+    @Test
+    void testStatusListCaching_whenCacheEvicted_thenFetchesFromRemoteAgain() {
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
+
+        mockServerClient
+                .when(request().withMethod("GET").withPath("/statuslist"))
+                .respond(response().withStatusCode(200).withBody("statusList").withHeader("Content-Type", MediaType.TEXT_PLAIN_VALUE));
+
+        // first call – populates the cache
+        statusListResolverAdapter.resolveStatusList(url);
+        mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(1));
+
+        // evict the cache
+        cacheManager.getCache(STATUS_LIST_CACHE).clear();
+
+        // second call – cache is empty, must fetch again
+        statusListResolverAdapter.resolveStatusList(url);
+        mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(2));
+    }
+
+    @Test
+    void testStatusListCaching_differentUris_areCachedSeparately() {
+        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
+
+        var url2 = "https://example.com/statuslist2";
+        var rewrittenUrl2 = "http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist2";
+        when(urlRewriteProperties.getRewrittenUrl(url2)).thenReturn(rewrittenUrl2);
+
+        mockServerClient
+                .when(request().withMethod("GET").withPath("/statuslist"))
+                .respond(response().withStatusCode(200).withBody("list1").withHeader("Content-Type", MediaType.TEXT_PLAIN_VALUE));
+        mockServerClient
+                .when(request().withMethod("GET").withPath("/statuslist2"))
+                .respond(response().withStatusCode(200).withBody("list2").withHeader("Content-Type", MediaType.TEXT_PLAIN_VALUE));
+
+        var result1 = statusListResolverAdapter.resolveStatusList(url);
+        var result2 = statusListResolverAdapter.resolveStatusList(url2);
+
+        assertEquals("list1", result1);
+        assertEquals("list2", result2);
+
+        // each URI must have its own cache entry
+        assertEquals("list1", cacheManager.getCache(STATUS_LIST_CACHE).get(url).get());
+        assertEquals("list2", cacheManager.getCache(STATUS_LIST_CACHE).get(url2).get());
+
+        // each remote was called exactly once
+        mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(1));
+        mockServerClient.verify(request().withPath("/statuslist2"), VerificationTimes.exactly(1));
+    }
 }

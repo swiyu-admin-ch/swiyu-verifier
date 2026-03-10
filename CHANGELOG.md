@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.3.1
+
+### Fixed
+- Fixed status list cache eviction: the cache is now cleared at a fixed rate defined by `caching.status-list-cache-ttl` (in milliseconds). The eviction bean is only active if the property is set to a value greater than zero; `0` disables caching. `(#784)`
+
+
 ## 2.3.0
 
 ### Added

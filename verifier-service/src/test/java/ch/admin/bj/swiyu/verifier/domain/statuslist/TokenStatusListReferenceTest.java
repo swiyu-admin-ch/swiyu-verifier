@@ -121,6 +121,26 @@ class TokenStatusListReferenceTest {
     }
 
     @Test
+    void givenRevokedTokenStatusReference_whenVerified_thenThrowsCredentialRevokedException() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
+        when(issuerPublicKeyLoader.loadPublicKey(issuerOfReferencedToken, "TEST_ISSUER_ID#key-1")).thenReturn(
+                emulator.getKey().toECPublicKey()
+        );
+        // idx=0 is the position in the status list; the value at position 0 is 1 (revoked), according to SPEC_STATUS_LIST
+        var tokenStatusListReference = new TokenStatusListReference(
+                statusListResolverAdapter,
+                Map.of(
+                        "idx", 0,
+                        "uri", SPEC_SUBJECT
+                ),
+                issuerPublicKeyLoader,
+                issuerOfReferencedToken,
+                204800);
+
+        var exc = assertThrows(VerificationException.class, tokenStatusListReference::verifyStatus);
+        assertEquals(VerificationErrorResponseCode.CREDENTIAL_REVOKED, exc.getErrorResponseCode());
+    }
+
+    @Test
     void givenDifferentTokenStatusReference_whenVerified_thenFails() {
         var tokenStatusListReference = new TokenStatusListReference(
                 statusListResolverAdapter,

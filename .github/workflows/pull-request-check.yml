@@ -80,13 +80,6 @@ jobs:
         with:
           image-ref: pull_request_check:latest
           severity: 'CRITICAL,HIGH'
-          exit-code: 1 # Trivy darf nicht den Job abbrechen, damit SARIF immer hochgeladen wird
+          exit-code: 1
           ignore-unfixed: true
-          format: sarif
-          output: trivy-image.sarif
-
-      - name: Upload Trivy SARIF
-        if: ${{ always() && hashFiles('trivy-image.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-image.sarif
+          format: table

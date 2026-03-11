@@ -77,11 +77,17 @@ jobs:
           build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile
 
-      - name: Run Trivy vulnerability scan
+      - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: pull_request_check:latest
           severity: 'CRITICAL,HIGH'
           exit-code: 1
-          ignore-unfixed: true
-          format: table
+          ignore-unfixed: false
+          format: sarif
+          output: trivy-image.sarif
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif

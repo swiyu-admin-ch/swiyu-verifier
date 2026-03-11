@@ -68,7 +68,7 @@ public class SdJwtVpTokenVerifier {
 
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken, management);
-        } else if (requiresKeyBinding(vpToken.getClaims())) {
+        } else if (canHaveKeyBinding(vpToken.getClaims())) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
 
@@ -196,7 +196,12 @@ public class SdJwtVpTokenVerifier {
         statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
     }
 
-    boolean requiresKeyBinding(JWTClaimsSet claims) {
+    /**
+     * 
+     * @param claims the claims of a VP Token
+     * @return true, if the VP Token is set up to have a key binding
+     */
+    boolean canHaveKeyBinding(JWTClaimsSet claims) {
         return claims.getClaims().containsKey("cnf");
     }
 

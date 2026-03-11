@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -75,15 +76,42 @@ public class ManagementTransactionalService {
         repository.deleteByExpiresAtIsBefore(System.currentTimeMillis());
     }
 
+
     /**
-     * Loads the {@link Management} entity for the given id within a short transaction and returns it
-     * detached from the persistence context so it can safely be used outside of the transaction.
+     * Claims a verification session for exclusive processing by transitioning its state
+     * from {@link VerificationStatus#PENDING} to {@link VerificationStatus#IN_PROGRESS}.
+     *
+     * <p>Concurrency is handled via <b>optimistic locking</b>: both threads may load and
+     * mutate the entity in memory, but only one can commit. Hibernate issues
+     * {@code UPDATE … WHERE version = ?} at flush time — the losing thread receives an
+     * {@link org.springframework.orm.ObjectOptimisticLockingFailureException}, which the
+     * caller must handle.</p>
+     *
+     * @param managementEntityId the session to claim
+     * @return the {@link Management} entity in state {@code IN_PROGRESS}
+     * @throws ProcessClosedException if the session is not {@code PENDING} or has expired
+     * @throws EntityNotFoundException if no session exists for the given id
+     * @throws org.springframework.orm.ObjectOptimisticLockingFailureException if a concurrent
+     *         thread committed first
      */
-    @Transactional(timeout = 10, readOnly = true)
-    public Management loadManagementEntityForUpdate(UUID managementEntityId) {
-        return repository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
-                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+    @Transactional(timeout = 10)
+    public Management claimSessionForProcessing(UUID managementEntityId) {
+        Management m = repository.findById(managementEntityId)
+                .orElseThrow(() ->
+                        submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
+                                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId)
+                );
+        if (m.isProcessStillOpen()) {
+            // Mutate state — Hibernate detects the dirty field (optimistic locking)
+            m.claimForProcessing();
+        } else {
+            log.warn("Submission rejected for session {}: current state={}, expired={}",
+                    managementEntityId, m.getState(), m.isExpired());
+            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
+                    "Submission rejected for session %s: current state=%s, expired=%s".formatted(
+                    managementEntityId, m.getState(), m.isExpired()));
+        }
+        return m;
     }
 
     /**

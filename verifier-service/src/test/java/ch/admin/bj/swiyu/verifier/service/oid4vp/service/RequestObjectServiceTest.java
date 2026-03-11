@@ -71,7 +71,7 @@ class RequestObjectServiceTest {
 
     @Test
     void assembleRequestObjectWithSignedJWT_thenSuccess() throws Exception {
-        mockManagement(true);
+        var mockedManagement = mockManagement(true);
 
         when(signerProvider.canProvideSigner()).thenReturn(true);
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
@@ -103,6 +103,10 @@ class RequestObjectServiceTest {
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(clientId);
+        var state = jwt.getJWTClaimsSet().getClaim("state");
+        assertThat(state)
+            .as("state should be set as of swiss-profile-verification 1.0").isNotNull()
+            .as("state should match the one provided in management object").isEqualTo(mockedManagement.getOauthState().toString());
     }
 
     @Test
@@ -230,6 +234,7 @@ class RequestObjectServiceTest {
         var responseVerification = mock(ResponseSpecification.class);
         when(management.getResponseSpecification()).thenReturn(responseVerification);
         when(responseVerification.getResponseModeType()).thenReturn(ResponseModeType.DIRECT_POST);
+        when(management.getOauthState()).thenReturn(UUID.randomUUID().toString());
         return management;
     }
 }

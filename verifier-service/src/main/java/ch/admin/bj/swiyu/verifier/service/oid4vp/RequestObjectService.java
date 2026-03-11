@@ -18,7 +18,6 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -122,6 +121,7 @@ public class RequestObjectService {
                 .responseUri(String.format("%s/oid4vp/api/request-object/%s/response-data",
                         effectiveConfig.externalUrl(),
                         managementEntityId))
+                .state(managementEntity.getOauthState().toString())
                 .build();
     }
 

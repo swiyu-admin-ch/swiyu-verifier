@@ -8,13 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## latest (3.0.0)
 
 ### Added
-- tbd
+- OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallet to adopt it
 
 ### Changed
 - tbd
 
 ### Fixed
-- tbd
+- Fixed a TOCTOU race condition on the VP response endpoint (`direct_post`, `direct_post.jwt`) that allowed two concurrent wallet submissions for the same session to both be accepted, leading to non-deterministic verification results.
 
 
 ## 2.3.0

@@ -121,8 +121,8 @@ public class ManagementService {
      * @param managementEntityId the UUID of the management entity
      * @return the Management entity
      */
-    public Management loadManagementEntityForUpdate(UUID managementEntityId) {
-        return managementTransactionalService.loadManagementEntityForUpdate(managementEntityId);
+    public Management claimSessionForProcessing(UUID managementEntityId) {
+        return managementTransactionalService.claimSessionForProcessing(managementEntityId);
     }
 
     /**

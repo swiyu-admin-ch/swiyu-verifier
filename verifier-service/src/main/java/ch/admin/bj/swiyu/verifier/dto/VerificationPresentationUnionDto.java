@@ -67,6 +67,12 @@ public class VerificationPresentationUnionDto {
     )
     private String response;
 
+    @Schema(description = """
+                    The OAuth State is an opaque value used by the client to maintain state between the request and callback.<br>
+                    If provided in the request object the state string <em>MUST</em> be returned in the response.
+                    """)
+    private String state;
+
     // Helper methods to determine the type of request
     /**
      * @return {@code true} if this payload represents a presentation exchange response

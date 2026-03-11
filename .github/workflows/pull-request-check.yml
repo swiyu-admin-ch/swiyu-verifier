@@ -57,7 +57,6 @@ jobs:
         id: pmd
         with:
           rulesets: '.github/rulesets/java/pmd_omni_ruleset.xml'
-          cache: true
 
       - name: Upload PMD SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
@@ -76,6 +75,7 @@ jobs:
           file: Dockerfile
 
       - name: Run Trivy image scan
+        id: trivy_scan
         uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: pull_request_check:latest
@@ -86,7 +86,72 @@ jobs:
           output: trivy-image.sarif
 
       - name: Upload Trivy SARIF
-        if: ${{ exists('trivy-image.sarif') }}
+        if: ${{ always() && hashFiles('trivy-image.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
+
+      - name: Prepare Trivy gate artifact
+        if: ${{ always() }}
+        run: |
+          mkdir -p trivy-gate
+          if [ -f trivy-image.sarif ]; then
+            cp trivy-image.sarif trivy-gate/trivy-image.sarif
+          fi
+          cat > trivy-gate/scan-status.json <<EOF
+          {"trivyStepOutcome":"${{ steps.trivy_scan.outcome }}","sarifPresent":$( [ -f trivy-image.sarif ] && echo true || echo false )}
+          EOF
+
+      - name: Upload Trivy gate artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-gate
+          path: trivy-gate/
+
+  trivy-security-gate:
+    needs: docker-security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download Trivy gate artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-gate
+
+      - name: Check Trivy SARIF for vulnerabilities
+        run: |
+          node <<'EOF'
+          const fs = require('node:fs');
+
+          const statusFile = 'scan-status.json';
+          if (!fs.existsSync(statusFile)) {
+            console.error('Missing scan-status.json from the docker-security-scan job.');
+            process.exit(1);
+          }
+
+          const status = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
+          if (!status.sarifPresent) {
+            console.error('Trivy did not produce trivy-image.sarif.');
+            console.error(`Trivy step outcome: ${status.trivyStepOutcome}`);
+            console.error('Check the docker-security-scan job logs above for the root cause.');
+            process.exit(1);
+          }
+
+          const sarifFile = 'trivy-image.sarif';
+          const sarif = JSON.parse(fs.readFileSync(sarifFile, 'utf8'));
+          const count = (sarif.runs ?? [])
+            .flatMap(run => run.results ?? [])
+            .length;
+
+          if (count > 0) {
+            console.error(`Trivy found ${count} vulnerabilities.`);
+            process.exit(1);
+          }
+
+          console.log('No vulnerabilities found by Trivy.');
+          EOF

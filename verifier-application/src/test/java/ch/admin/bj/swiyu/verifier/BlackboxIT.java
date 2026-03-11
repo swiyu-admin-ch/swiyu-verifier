@@ -247,6 +247,8 @@ class BlackboxIT {
         assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
         assertThat(claims.getStringClaim("nonce")).isEqualTo(nonce);
         assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId));
+        assertThat(claims.getStringClaim("state"))
+                .as("The verifier should provide a state").isNotBlank();
     }
 
     private ManagementResponseDto createVerificationRequest(String body) {

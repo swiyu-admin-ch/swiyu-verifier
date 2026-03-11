@@ -109,5 +109,11 @@ public class RequestObjectDto {
     private OpenidClientMetadataDto clientMetadata;
 
     @JsonProperty("state")
+    @Schema(description = """
+            An opaque value used by the client to maintain
+            state between the request and callback.  The authorization
+            server includes this value when redirecting the user-agent back
+            to the client.
+            """)
     private String state;
 }

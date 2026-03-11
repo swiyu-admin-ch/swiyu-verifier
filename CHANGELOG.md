@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## latest (3.0.0)
 
 ### Added
-- tbd
+- OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallet to adopt it
 
 ### Changed
 - tbd

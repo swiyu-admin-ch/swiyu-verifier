@@ -37,11 +37,10 @@ public class DcqlVpTokenVerifier {
         }
 
         // If Key Binding is present, validate that it is correct
-        var requireKeyBinding = Boolean.TRUE.equals(dcqlCredential.getRequireCryptographicHolderBinding());
-
         if (vpToken.hasKeyBinding()) {
             sdJwtVpTokenVerifier.validateKeyBinding(vpToken, management);
-        } else if (requireKeyBinding || sdJwtVpTokenVerifier.requiresKeyBinding(vpToken.getClaims())) {
+        } else if (dcqlCredential.isCryptographicHolderBindingRequired()) {
+            // We received no KeyBinding, but we requested one!
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
         sdJwtVpTokenVerifier.verifyStatus(vpToken.getClaims().getClaims(), management);

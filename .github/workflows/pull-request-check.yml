@@ -1,5 +1,3 @@
-
-
 # Inspired by https://thomasthornton.cloud/2025/03/18/setting-up-trivy-in-your-github-actions/
 name: Pull Request Check
 run-name: ${{ github.repository }} is evaluating pull request
@@ -82,12 +80,27 @@ jobs:
         with:
           image-ref: pull_request_check:latest
           severity: 'CRITICAL,HIGH'
-          exit-code: 1
-          ignore-unfixed: true
+          exit-code: 0 # Trivy darf nicht den Job abbrechen, damit SARIF immer hochgeladen wird
+          ignore-unfixed: false
           format: sarif
           output: trivy-image.sarif
 
       - name: Upload Trivy SARIF
+        if: ${{ exists('trivy-image.sarif') }}
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
+
+      - name: Check Trivy SARIF for vulnerabilities
+        run: |
+          if [ -f trivy-image.sarif ]; then
+            count=$(jq '.runs[].results | length' trivy-image.sarif)
+            if [ "$count" -gt 0 ]; then
+              echo "Trivy found $count vulnerabilities!"
+              exit 1
+            else
+              echo "No vulnerabilities found by Trivy."
+            fi
+          else
+            echo "SARIF file not found, skipping vulnerability check."
+          fi

@@ -109,12 +109,12 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet sends valid credential
-        var vpToken = createMockCredential(nonce);
-        var presentationSubmission = SDJWTCredentialMock.getPresentationSubmissionString(UUID.randomUUID());
+        var vpToken = Map.of("identity_credential_dcql", List.of(createMockCredential(nonce)));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
                 .andExpect(status().isOk())
         );
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
@@ -127,6 +127,36 @@ class BlackboxIT {
                 .andExpect(status().isGone())
         );
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideCreateDtosDirectPost")
+    void testVerificationFlow_recursive(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+        var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
+        var createResponseDto = createVerificationRequest(createDto);
+
+        var nonce = createResponseDto.requestNonce();
+        var requestId = createResponseDto.id().toString();
+
+        // Check status, should be pending
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
+
+        // Wallet retrieves Verifier Request
+        getVerificationRequestForWallet(requestId, nonce);
+
+        // Wallet sends valid credential
+        var cred = List.of(createMockCredential_rec(nonce));
+        var vpToken = Map.of("identity_credential_dcql", cred);
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isOk())
+        );
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
+
+        // Todo check response
     }
 
     @ParameterizedTest
@@ -303,7 +333,6 @@ class BlackboxIT {
 
     private static Stream<Arguments> provideCreateDtosDirectPost() {
         return Stream.of(
-                Arguments.of(createDtoAsContentBody(ResponseModeTypeDto.DIRECT_POST)),
                 Arguments.of(createDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST))
         );
     }
@@ -320,6 +349,14 @@ class BlackboxIT {
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
+        return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
+    }
+
+    private String createMockCredential_rec(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, "some_issuer_id#key-1");
+        mockDidResolverResponse(emulator);
+
+        var sdJWT = emulator.createSDJWTMockWithRecursiveListArray();
         return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
     }
 

@@ -122,6 +122,12 @@ public class SdJwt {
                 .map(Disclosure::parse).toList();
     }
 
+    public List<Disclosure> getNonArrayDisclosures() {
+        return getDisclosures().stream()
+                .filter(disclosure -> disclosure.getClaimName() != null)
+                .toList();
+    }
+
     public JWSHeader getHeader() {
         if (header == null) {
             throw new IllegalStateException("header has not yet been verified");

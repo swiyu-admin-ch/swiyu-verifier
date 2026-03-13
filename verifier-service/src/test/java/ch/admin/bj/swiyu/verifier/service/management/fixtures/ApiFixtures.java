@@ -152,9 +152,15 @@ public class ApiFixtures {
 
     @NotNull
     public static DcqlQueryDto getDcqlQueryDto() {
+        List<Object> lang = new ArrayList<>();
+        lang.add("languages");
+        lang.add(null);
+
         var claims = List.of(
-                new DcqlClaimDto(null, List.of("given_name"), null),
-                new DcqlClaimDto(null, List.of("family_name"),null)
+                new DcqlClaimDto(null, List.of("first_name"), null),
+                new DcqlClaimDto(null, List.of("last_name"),null),
+                new DcqlClaimDto(null, lang,List.of("FR"))
+
         );
         return createDcqlQueryDto(claims);
     }
@@ -163,7 +169,7 @@ public class ApiFixtures {
         // Build a minimal DCQL query DTO
         var meta = new DcqlCredentialMetaDto(
                 null,
-                List.of("https://credentials.example.com/identity_credential"),
+                List.of("defaultTestVCT"),
                 null
         );
         var credential = new DcqlCredentialDto(

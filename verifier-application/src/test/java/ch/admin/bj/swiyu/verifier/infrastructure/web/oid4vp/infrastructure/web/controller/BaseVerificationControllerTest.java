@@ -244,7 +244,8 @@ public abstract class BaseVerificationControllerTest {
                       },
                       "claims": [
                           {"path": ["last_name"]},
-                          {"path": ["first_name"]}
+                          {"path": ["first_name"]},
+                          {"path": ["languages", null], "values": ["IT"]}
                       ]
                     }
                   ]

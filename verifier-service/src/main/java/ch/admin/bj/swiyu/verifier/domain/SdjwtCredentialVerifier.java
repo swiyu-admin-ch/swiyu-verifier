@@ -151,7 +151,7 @@ public class SdjwtCredentialVerifier {
         try {
             disclosures = Arrays.stream(Arrays.copyOfRange(parts, 1, disclosureLength))
                     .map(Disclosure::parse).toList();
-            digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
+            digestsFromDisclosures = disclosures.stream().filter(disc -> disc.getClaimName() != null).map(Disclosure::digest).toList();
         } catch (IllegalArgumentException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
         }
@@ -573,4 +573,3 @@ public class SdjwtCredentialVerifier {
     private record SdJwtData(JWTClaimsSet payload, List<Disclosure> disclosures) {
     }
 }
-

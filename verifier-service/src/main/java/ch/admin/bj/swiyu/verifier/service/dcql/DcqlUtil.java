@@ -3,12 +3,14 @@ package ch.admin.bj.swiyu.verifier.service.dcql;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
+import com.authlete.sd.SDObjectDecoder;
 import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 /**
  * Service for processing and validating DCQL (Decentralized Credential Query Language) claims and paths.
@@ -21,7 +23,10 @@ import java.util.Map;
 @UtilityClass
 public class DcqlUtil {
     private static List<Object> selectClaim(SdJwt sdJwt, DcqlClaim requestedClaim) {
-        var selected = new DcqlPathSelection(sdJwt.getClaims().getClaims());
+        var decoder = new SDObjectDecoder();
+        Map<String, Object> decodedMap = decoder.decode(sdJwt.getClaims().getClaims(), sdJwt.getDisclosures());
+
+        var selected = new DcqlPathSelection(decodedMap);
         List<Object> requestedPath = requestedClaim.getPath();
         for (Object path : requestedPath) {
             switch (path) {
@@ -49,7 +54,13 @@ public class DcqlUtil {
             var claims = selectClaim(sdJwt, requestedClaim);
 
             var requestedValues = requestedClaim.getValues();
-            if (requestedValues != null && !requestedValues.containsAll(claims)) {
+
+            // todo check
+            // According to OID4VP: if values is present, the Wallet SHOULD return the claim only if the type
+            // and value of the claim both match exactly for at least one of the elements in the array.
+            // Therefore, we must ensure that there is at least one intersection between presented claims
+            // and requested values. If there is no intersection, the requested requirement is not satisfied.
+            if (requestedValues != null && Collections.disjoint(claims, requestedValues)) {
                 throw new IllegalArgumentException("Not all requested claim values are satisfied");
             }
         }

@@ -806,11 +806,24 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
+        var parts = unsignedSdJwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
+        var disclosures = Arrays.copyOfRange(parts, 1, parts.length);
+        var discList = new java.util.ArrayList<>(Arrays.asList(disclosures));
+            // remove index 2 first, then index 1 to keep indices stable
+            discList.remove(2);
+            discList.remove(1);
+        var rebuiltSdJwt = parts[0]
+                + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + StringUtils.join(discList, SdJwt.JWT_PART_DELINEATION_CHARACTER)
+                + SdJwt.JWT_PART_DELINEATION_CHARACTER;
+
+        var sdJwt = emulator.addKeyBindingProof(rebuiltSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+
+        // remove unused list disclosures
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
@@ -821,11 +834,14 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+
+        // {"iss":"TEST_ISSUER_ID","first_name":"TestFirstname","last_name":"TestLastName","birthdate":"1949-01-22","cnf":{"jwk":{"kty":"EC","crv":"P-256","x":"7dAwCV6avHekIpLRFpiqnUE446YjoqvErdwwospJD5o","y":"Jcb_aAUyrwgYO0I4XFaQnHHsSyv0YfjW01SmGeX5Ko4"}},"languages":["DE","FR","IT"],"iat":"2026-03-12T13:24:55.000+00:00","vct":"defaultTestVCT"}
         assertThat(managementEntity.getWalletResponse().credentialSubjectData())
                 .contains("first_name")
                 .contains("TestFirstname")
                 .contains("last_name")
-                .contains("TestLastName");
+                .contains("TestLastName")
+                .contains("languages");
     }
 
     @Test
@@ -1316,4 +1332,3 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 }
-

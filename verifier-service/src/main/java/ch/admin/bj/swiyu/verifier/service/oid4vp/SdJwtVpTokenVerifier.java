@@ -119,12 +119,13 @@ public class SdJwtVpTokenVerifier {
         try {
             disclosures = sdJwt.getDisclosures();
             // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
-            digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
+            digestsFromDisclosures = sdJwt.getNonArrayDisclosures().stream().map(Disclosure::digest).toList();
         } catch (IllegalArgumentException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
         }
         log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntity.getId());
 
+        // contains all claims except list entries (as they are)
         var disclosedClaimNames = disclosures.stream().map(Disclosure::getClaimName).collect(Collectors.toSet());
 
         // SD-JWT VC 3.2.2
@@ -159,7 +160,7 @@ public class SdJwtVpTokenVerifier {
         log.trace("Successfully verified disclosure digests of id {}", managementEntity.getId());
 
         var updatedClaimsBuilder = new JWTClaimsSet.Builder(claims);
-        disclosures.forEach(disclosure -> updatedClaimsBuilder.claim(disclosure.getClaimName(), disclosure.getClaimValue()));
+        sdJwt.getNonArrayDisclosures().forEach(disclosure -> updatedClaimsBuilder.claim(disclosure.getClaimName(), disclosure.getClaimValue()));
         sdJwt.setClaims(updatedClaimsBuilder.build());
     }
 

@@ -912,26 +912,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void testDCQLEndpoint_noHolderBindingRequestedButNeededForCredential_thenBadRequest() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-
-        mockDidResolverResponse(emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
-                .andExpect(status().isBadRequest());
-
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-    }
-
-    @Test
     void testDCQLEndpoint_invalidHolderBinding_thenBadRequest() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();

@@ -69,6 +69,7 @@ public class SdJwtVpTokenVerifier {
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken, management);
         } else if (canHaveKeyBinding(vpToken.getClaims())) {
+            // If the Trust Statement can have a key binding we currently enforce usage of it
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
 

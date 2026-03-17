@@ -40,7 +40,8 @@ public class DcqlVpTokenVerifier {
         if (vpToken.hasKeyBinding()) {
             sdJwtVpTokenVerifier.validateKeyBinding(vpToken, management);
         } else if (dcqlCredential.isCryptographicHolderBindingRequired()) {
-            // We received no KeyBinding, but we requested one!
+            // KeyBinding was requested in DCQL Query, but the Holder did not attach one to the Presentation
+            // This occurs if there is a bug in the wallet or during an attack
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
         sdJwtVpTokenVerifier.verifyStatus(vpToken.getClaims().getClaims(), management);

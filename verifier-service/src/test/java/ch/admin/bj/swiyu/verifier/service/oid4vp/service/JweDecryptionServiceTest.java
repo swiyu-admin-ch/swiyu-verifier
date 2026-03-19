@@ -18,7 +18,6 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 
 import java.util.List;
 import java.util.Map;
@@ -26,13 +25,14 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class JweDecryptionServiceTest {
 
     private static ECKey ecKey;
     private static ObjectMapper objectMapper;
 
-    @Mock
     private ApplicationProperties applicationProperties;
 
     private JweDecryptionService jweDecryptionService;
@@ -45,6 +45,8 @@ class JweDecryptionServiceTest {
 
     @BeforeEach
     void setUp() {
+        applicationProperties = mock(ApplicationProperties.class);
+        when(applicationProperties.getMaxCompressedCipherTextLength()).thenReturn(100000);
         jweDecryptionService = new JweDecryptionService(objectMapper, applicationProperties);
     }
 

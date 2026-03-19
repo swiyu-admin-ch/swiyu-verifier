@@ -21,13 +21,14 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class PresentationResponseResolverTest {
 
@@ -35,9 +36,6 @@ class PresentationResponseResolverTest {
     private static ObjectMapper objectMapper;
 
     private PresentationResponseResolver presentationResponseResolver;
-
-    @Mock
-    private ApplicationProperties applicationProperties;
 
     @BeforeAll
     static void init() throws JOSEException {
@@ -47,6 +45,8 @@ class PresentationResponseResolverTest {
 
     @BeforeEach
     void setUp() {
+        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
+        when(applicationProperties.getMaxCompressedCipherTextLength()).thenReturn(100000);
         JweDecryptionService jweDecryptionService = new JweDecryptionService(objectMapper, applicationProperties);
         presentationResponseResolver = new PresentationResponseResolver(jweDecryptionService);
     }

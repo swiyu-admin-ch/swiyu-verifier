@@ -15,7 +15,7 @@ application:
   deeplink-schema: ${DEEPLINK_SCHEMA:swiyu-verify}
 
   key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
-  max-compressed-cipher-text-length: 100000
+  max-compressed-cipher-text-length: ${MAX_COMPRESSED_CIPHER_TEXT_LENGTH:100000}
   # Pin to unlock the hsm
   hsm:
     user-pin: "${secret.key.hsm.pin.user:${HSM_USER_PIN:}}"

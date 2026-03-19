@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
@@ -12,29 +13,33 @@ import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class RequestObjectServiceTest {
 
+    private final String scheme = "test-scheme";
+    private final String nonce = "nonce";
     private final UUID mgmtId = UUID.randomUUID();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final OpenidClientMetadataDto openidClientMetadataDto = new OpenidClientMetadataDto();
@@ -63,7 +68,7 @@ class RequestObjectServiceTest {
 
         // Mock application configurations
         when(applicationProperties.getClientId()).thenReturn(clientId);
-        when(applicationProperties.getClientIdScheme()).thenReturn("test-scheme");
+        when(applicationProperties.getClientIdScheme()).thenReturn(scheme);
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("did:example:123#key1");
         when(openIdClientMetadataConfiguration.getOpenIdClientMetadata()).thenReturn(openidClientMetadataDto);
@@ -100,13 +105,21 @@ class RequestObjectServiceTest {
 
         String jwtString = ((RequestObjectResult.Signed) result).jwt();
         SignedJWT jwt = SignedJWT.parse(jwtString);
+        // verify JWT header
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
+        // verify JWT body
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(clientId);
         var state = jwt.getJWTClaimsSet().getClaim("state");
         assertThat(state)
             .as("state should be set as of swiss-profile-verification 1.0").isNotNull()
             .as("state should match the one provided in management object").isEqualTo(mockedManagement.getOauthState().toString());
+        assertThat(jwt.getJWTClaimsSet().getAudience()).isEqualTo(List.of(RequestObjectService.AUDIENCE));
+        assertThat(jwt.getJWTClaimsSet().getClaim("nonce")).isEqualTo(nonce);
+        assertThat(jwt.getJWTClaimsSet().getClaim("response_mode")).isEqualTo(ResponseModeTypeDto.DIRECT_POST.toString());
+        assertThat(jwt.getJWTClaimsSet().getClaim("client_id_scheme")).isEqualTo(scheme);
+        assertThat(jwt.getJWTClaimsSet().getClaim("client_metadata")).isNotNull();
+        assertThat(jwt.getJWTClaimsSet().getClaim("response_type")).isEqualTo(RequestObjectService.RESPONSE_TYPE);
     }
 
     @Test
@@ -181,7 +194,45 @@ class RequestObjectServiceTest {
         RequestObjectDto dto = ((RequestObjectResult.Unsigned) result).requestObject();
         assertEquals(overrideDid, dto.getClientId());
         assertThat(dto.getResponseUri()).startsWith(externalUrl);
+    }
 
+    @Test
+    void assembleRequestObjectJWTResponseType_thenSuccess() {
+        var externalUrl = "https://overriden.example.com";
+        var overrideDid = "did:override";
+        var management = mock(Management.class);
+        when(managementRepository.findById(mgmtId)).thenReturn(Optional.of(management));
+        when(management.isVerificationPending()).thenReturn(true);
+        when(management.isExpired()).thenReturn(false);
+        when(management.getRequestedPresentation()).thenReturn(null);
+        when(management.getRequestNonce()).thenReturn(nonce);
+        when(management.getJwtSecuredAuthorizationRequest()).thenReturn(false);
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
+        when(management.getOauthState()).thenReturn(UUID.randomUUID().toString());
+
+        var responseSpecification = mock(ResponseSpecification.class);
+        when(management.getResponseSpecification()).thenReturn(responseSpecification);
+        when(responseSpecification.getResponseModeType()).thenReturn(ResponseModeType.DIRECT_POST_JWT);
+
+        var ephemeralEncryptionKey = assertDoesNotThrow(() -> new ECKeyGenerator(Curve.P_256)
+                .keyID(UUID.randomUUID().toString())
+                .algorithm(JWEAlgorithm.ECDH_ES)
+                .generate());
+        JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
+        when(responseSpecification.getJwks()).thenReturn(jwkSet.toString());
+        when(responseSpecification.getEncryptedResponseEncValuesSupported()).thenReturn(List.of());
+
+        var override = new ConfigurationOverride(externalUrl, overrideDid, null, null, null);
+        when(management.getConfigurationOverride()).thenReturn(override);
+
+        RequestObjectResult result = service.assembleRequestObject(mgmtId);
+
+        assertThat(result).isInstanceOf(RequestObjectResult.Unsigned.class);
+        assertThat(result.isSigned()).isFalse();
+
+        RequestObjectDto dto = ((RequestObjectResult.Unsigned) result).requestObject();
+        assertEquals(overrideDid, dto.getClientId());
+        assertThat(dto.getResponseUri()).startsWith(externalUrl);
     }
 
     @Test
@@ -228,7 +279,7 @@ class RequestObjectServiceTest {
         when(management.isVerificationPending()).thenReturn(true);
         when(management.isExpired()).thenReturn(false);
         when(management.getRequestedPresentation()).thenReturn(null);
-        when(management.getRequestNonce()).thenReturn("nonce");
+        when(management.getRequestNonce()).thenReturn(nonce);
         when(management.getJwtSecuredAuthorizationRequest()).thenReturn(needsJwsAuthorizationRequest);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
         var responseVerification = mock(ResponseSpecification.class);

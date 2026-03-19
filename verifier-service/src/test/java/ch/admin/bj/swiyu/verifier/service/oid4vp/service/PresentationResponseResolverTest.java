@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
 import ch.admin.bj.swiyu.jweutil.JweUtil;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -20,6 +21,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,9 @@ class PresentationResponseResolverTest {
 
     private PresentationResponseResolver presentationResponseResolver;
 
+    @Mock
+    private ApplicationProperties applicationProperties;
+
     @BeforeAll
     static void init() throws JOSEException {
         ecKey = new ECKeyGenerator(Curve.P_256).keyID("ad_hoc_generated_testkey").generate();
@@ -42,7 +47,7 @@ class PresentationResponseResolverTest {
 
     @BeforeEach
     void setUp() {
-        JweDecryptionService jweDecryptionService = new JweDecryptionService(objectMapper);
+        JweDecryptionService jweDecryptionService = new JweDecryptionService(objectMapper, applicationProperties);
         presentationResponseResolver = new PresentationResponseResolver(jweDecryptionService);
     }
 

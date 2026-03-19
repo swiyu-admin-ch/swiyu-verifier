@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -17,6 +18,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,9 @@ class JweDecryptionServiceTest {
     private static ECKey ecKey;
     private static ObjectMapper objectMapper;
 
+    @Mock
+    private ApplicationProperties applicationProperties;
+
     private JweDecryptionService jweDecryptionService;
 
     @BeforeAll
@@ -40,7 +45,7 @@ class JweDecryptionServiceTest {
 
     @BeforeEach
     void setUp() {
-        jweDecryptionService = new JweDecryptionService(objectMapper);
+        jweDecryptionService = new JweDecryptionService(objectMapper, applicationProperties);
     }
 
     @Test
@@ -153,4 +158,3 @@ class JweDecryptionServiceTest {
         return jweObject.serialize();
     }
 }
-

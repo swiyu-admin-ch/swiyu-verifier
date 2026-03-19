@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 2.3.2
 
 ### Added
-- Added possibility to configure the `maxCompressedCipherTextLength` for the JWE encryption of the VP response. The default value is 100000, which is sufficient for most cases and should only be changed in very exclusive scenarios.
+- Added possibility to configure the `maxCompressedCipherTextLength` for the JWE encryption of the VP response. The default value is 100000, which is sufficient for most cases and should only be changed in very exclusive scenarios. `(#801)`.
 
 ## 2.3.1
 

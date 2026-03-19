@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.jweutil.JweUtilException;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -32,6 +33,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationError.INVA
 public class JweDecryptionService {
 
     private final ObjectMapper objectMapper;
+    private final ApplicationProperties applicationProperties;
 
     public VerificationPresentationUnionDto decrypt(Management managementEntity,
                                                     VerificationPresentationUnionDto verificationResponse) {
@@ -42,7 +44,7 @@ public class JweDecryptionService {
                             INVALID_REQUEST,
                             "Missing keyId. Unable to decrypt response."));
             JWK privateKey = resolvePrivateKey(managementEntity, keyId);
-            String payload = JweUtil.decrypt(jweString, privateKey);
+            String payload = JweUtil.decrypt(jweString, privateKey, applicationProperties.getMaxCompressedCipherTextLength());
             return objectMapper.readValue(payload, VerificationPresentationUnionDto.class);
         } catch (ParseException e) {
             throw VerificationException.credentialError(e, "Failed to parse response.");

@@ -32,7 +32,7 @@ Once the user provides the commit messages, generate the changelog using STRICTL
 
 ## Step 5: Update the pom.xml Files
 Directly after presenting the changelog, provide the code to update the `pom.xml` files.
-Provide the exact XML snippets to update the `<version>` tags for `swiyu-issuer-parent` and `swiyu-issuer-service` to the new version defined in Step 1.
+Provide the exact XML snippets to update the `<version>` tags for `swiyu-verifier-parent` and `swiyu-verifier-service` to the new version defined in Step 1.
 Also, suggest the command `mvn versions:set -DnewVersion=[VERSION_FROM_STEP_1]` as a quick alternative to update all Maven modules automatically.
 
 ## Step 6: Commit and Push Version Changes
@@ -50,11 +50,11 @@ Output exactly this guide in German, filling in the correct variables based on t
 
 **Schritt 7: GitHub Release erstellen**
 Bitte führe nun die folgenden Schritte auf GitHub aus:
-1. Öffne die Release-Seite: [https://github.com/swiyu-admin-ch/swiyu-issuer/releases](https://github.com/swiyu-admin-ch/swiyu-issuer/releases)
+1. Öffne die Release-Seite: [https://github.com/swiyu-admin-ch/swiyu-verifier/releases](https://github.com/swiyu-admin-ch/swiyu-verifier/releases)
 2. Klicke auf den Button **"Draft a new release"**.
 3. **Choose a tag:** Tippe `[VERSION_FROM_STEP_1]` ein und wähle "Create new tag".
 4. **Target:** Wähle den entsprechenden Release-Branch aus (z.B. `[BRANCH_CALCULATED_BY_YOU]`).
-5. **Release title:** Gib `swiyu-issuer [VERSION_FROM_STEP_1]` ein.
+5. **Release title:** Gib `swiyu-verifier [VERSION_FROM_STEP_1]` ein.
 6. **Describe this release:** Kopiere das oben generierte Changelog und füge es hier ein.
 7. Klicke auf **"Publish release"**.
 

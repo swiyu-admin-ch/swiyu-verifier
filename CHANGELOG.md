@@ -7,14 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 2.3.2
 
+### Added
+- Added possibility to configure the `maxCompressedCipherTextLength` for the JWE encryption of the VP response. The default value is 100000, which is sufficient for most cases and should only be changed in very exclusive scenarios.
+
+## 2.3.1
+
 ### Fixed
 - Fixed status list cache eviction: the cache is now cleared at a fixed rate defined by `caching.status-list-cache-ttl` (in milliseconds). The eviction bean is only active if the property is set to a value greater than zero; `0` disables caching. `(#784)`
 - Fix trivy finding
 
-
 ## 2.3.0
 
 ### Added
+
 - New endpoint `/actuator/env` to retrieve configuration details. This includes an actuator sanitizer and additional properties `(#433)`.
 - Added health checks for `(#268)`:
     - Stale callbacks.
@@ -24,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Include Swiss Profile version indication in JWT-Secured Authorization Requests (JAR): added `profile_version` to the JWT header (swiss-profile-verification) `(#694)`.
 
 ### Fixed
+
 - Fixed trust statement retrieval by setting the correct URL `(#535)`.
 - Fixed DID resolving to support key fragment resolution and enhanced caching for JWKs instead of full DID documents `(#693)`.
 - Allowed metadata access to the database by removing the database-migration init container `(#604)`.
@@ -32,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed VP token handling and trust validation, specifically for tokens ending with multiple tilde characters `(#371)`.
 
 ### Changed
+
 - Removed the `version` property (value "1.0") from the Authorization Request and verifier metadata `(#694)`.
 - Replaced RestClient with WebClient for outbound HTTP requests `(#363)`.
 - Disabled the status list cache `(#401)`.
@@ -57,16 +64,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated ApiErrorDto and reused it for every error response. This allows for a more consistent error
   response structure. Possible breaking change could be that the `error_code` will be moved to details
 - Added WebhookCallbackDto to openapi config schemas.
-- Base functionality for DCQL, allowing using OID4VP v1 style along side legacy DIF PE to query credentials. 
-  Verifiable presentations are validated and checked according to DCQL "credentials" query. 
+- Base functionality for DCQL, allowing using OID4VP v1 style along side legacy DIF PE to query credentials.
+  Verifiable presentations are validated and checked according to DCQL "credentials" query.
   Currently only single credential submissions are supported. To maintain backwards compatibility with old wallet versions using DIF PE remains mandatory.
-- Optional End2End encryption with JWE according to OID4VP 1.0. Default is currently still unencrypted to allow wallets to start supporting it. 
-  Usage be chosen on verification request basis with new `response_mode` json attribute.  
+- Optional End2End encryption with JWE according to OID4VP 1.0. Default is currently still unencrypted to allow wallets to start supporting it.
+  Usage be chosen on verification request basis with new `response_mode` json attribute.
 - Updated didresolver dependency from 2.1.3 to 2.3.0
 
-
 ### Changed
-- Allow both vc+sd-jwt (SD JWT VC Draft 05 and older) dc+sd-jwt (SD JWT VC Draft 06 and newer) for presented VC format 
+
+- Allow both vc+sd-jwt (SD JWT VC Draft 05 and older) dc+sd-jwt (SD JWT VC Draft 06 and newer) for presented VC format
 
 ## 2.0.0
 
@@ -75,23 +82,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional callback as alternative for active polling for verification status.
 - Optional OAuth security with bearer tokens on `/management` endpoints.
   It can be activated and configured via spring environment variables.
-- 
+-
+
 ### Changed
 
 - client_metadata must now contain a vp_formats field otherwise the app will not start. A valid metadata example is:
+
 ```json
 {
     "client_id": "your verifier did",
     "version": "1.0.0",
     "vp_formats": {
         "jwt_vp": {
-            "alg": [
-                "ES256"
-            ]
+            "alg": ["ES256"]
         }
     }
 }
 ```
+
 - Breaking! updated url path to distinguish management (with `/management`) and oid4vp (with `/oid4vp`) urls
 - Expanded the verificationClientErrorDto to allow `access_denied` code (the `client_rejected` code is still supported)
 - Expanded `ManagementResponseDto` with an additional field `verification_deeplink` with a standard conform
@@ -115,7 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 }
 ```
 
-- Using new `jwt_premature` error code when receiving a presentation where the `nbf` time has not yet been reached instead of `malformed_credential` 
+- Using new `jwt_premature` error code when receiving a presentation where the `nbf` time has not yet been reached instead of `malformed_credential`
 
 ## 1.0.1
 

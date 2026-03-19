@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -25,6 +26,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class PresentationResponseResolverTest {
 
@@ -41,7 +44,9 @@ class PresentationResponseResolverTest {
 
     @BeforeEach
     void setUp() {
-        JweDecryptionService jweDecryptionService = new JweDecryptionService(objectMapper);
+        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
+        when(applicationProperties.getMaxCompressedCipherTextLength()).thenReturn(100000);
+        JweDecryptionService jweDecryptionService = new JweDecryptionService(objectMapper, applicationProperties);
         presentationResponseResolver = new PresentationResponseResolver(jweDecryptionService);
     }
 

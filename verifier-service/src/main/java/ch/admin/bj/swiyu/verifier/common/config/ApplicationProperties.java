@@ -39,6 +39,12 @@ public class ApplicationProperties {
     @NotNull
     private String keyManagementMethod;
 
+    // Temporary change: do not alter this value here (default is 100000).
+    // Limits the maximum length of compressed ciphertext accepted by the application
+    // to avoid excessive memory usage or potential DoS.
+    @NotNull
+    private Integer maxCompressedCipherTextLength;
+
     private HSMProperties hsm;
 
     private List<String> acceptedStatusListHosts;

@@ -5,16 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.3.2
+## 2.3.3 - 2026-03-19
 
 ### Added
 - Added possibility to configure the `maxCompressedCipherTextLength` for the JWE encryption of the VP response. The default value is 100000, which is sufficient for most cases and should only be changed in very exclusive scenarios. `(#801)`.
+
+## 2.3.2
+
+### Fixed
+
+- Fix trivy finding
 
 ## 2.3.1
 
 ### Fixed
 - Fixed status list cache eviction: the cache is now cleared at a fixed rate defined by `caching.status-list-cache-ttl` (in milliseconds). The eviction bean is only active if the property is set to a value greater than zero; `0` disables caching. `(#784)`
-- Fix trivy finding
 
 ## 2.3.0
 

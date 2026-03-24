@@ -329,7 +329,7 @@ public class SdJwtVpTokenVerifier {
     /**
      * Process the Disclosures and embedded digests in the Issuer-signed JWT
      */
-    private JsonNode processDisclosures(JWTClaimsSet claimSet, List<Disclosure> disclosures, UUID managementEntityId) {
+    protected JsonNode processDisclosures(JWTClaimsSet claimSet, List<Disclosure> disclosures, UUID managementEntityId) {
 
         var claims = objectMapper.convertValue(claimSet.getClaims(), JsonNode.class);
 
@@ -470,7 +470,6 @@ public class SdJwtVpTokenVerifier {
 
         return newArray;
     }
-
 
     private void removeSdKeys(JsonNode node) {
         if (node.isObject()) {

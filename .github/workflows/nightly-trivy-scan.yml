@@ -1,7 +1,8 @@
 name: Nightly Trivy Scan
 on:
-  schedule:
-    - cron: 20 4 * * *  # Runs daily at 04:20 UTC
+  # Because of security issues with Trivy, we currently disable the vulnerability scan
+#  schedule:
+#    - cron: 20 4 * * *  # Runs daily at 04:20 UTC
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 permissions:

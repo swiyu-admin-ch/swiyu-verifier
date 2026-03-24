@@ -55,6 +55,7 @@ class DcqlUtilTest {
         var claims = mock(JWTClaimsSet.class);
         when(sdJwt.getClaims()).thenReturn(claims);
         when(claims.getClaims()).thenReturn(exampleData);
+        when(sdJwt.getResolvedClaims()).thenReturn(exampleData);
     }
 
 

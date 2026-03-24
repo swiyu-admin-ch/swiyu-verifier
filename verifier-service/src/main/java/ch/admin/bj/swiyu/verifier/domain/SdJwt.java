@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.verifier.common.util.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import com.authlete.sd.Disclosure;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.Getter;
@@ -14,6 +15,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -25,7 +27,7 @@ public class SdJwt {
     /**
      * The compact serialized format for the SD-JWT is the concatenation of each part delineated with a single tilde ('~') character.
      */
-    final static public String JWT_PART_DELINEATION_CHARACTER = "~";
+    public static final String JWT_PART_DELINEATION_CHARACTER = "~";
 
     @Getter
     private final String[] parts;
@@ -33,14 +35,9 @@ public class SdJwt {
     private JWSHeader header;
     @Setter
     private JWTClaimsSet claims;
-
-    /*
-     * <a href="https://www.rfc-editor.org/rfc/rfc9901.html#name-disclosures">Disclosures (zero or more)</a>
-     */
-    /*
     @Getter
-    private final List<Disclosure> disclosures;
-     */
+    @Setter
+    private Map<String, Object> resolvedClaims;
 
     /**
      * <a href="https://www.rfc-editor.org/rfc/rfc9901.html#section-4.3">Key Binding JWT</a>

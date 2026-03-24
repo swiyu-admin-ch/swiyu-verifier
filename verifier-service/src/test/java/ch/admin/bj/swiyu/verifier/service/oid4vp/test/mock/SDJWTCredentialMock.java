@@ -127,59 +127,28 @@ public class SDJWTCredentialMock {
             }
         });
 
-        builder.putClaim("iss", issuerId);
-        builder.putClaim("iat", Instant.now().getEpochSecond());
-
-        if (nonNull(validFrom)) {
-            builder.putClaim("nbf", validFrom);
-        }
-
-        if (nonNull(validUntil)) {
-            builder.putClaim("exp", validUntil);
-        }
-
-        if (nonNull(vct)) {
-            builder.putClaim("vct", vct);
-        }
-
-        if (nonNull(statusListIndex)) {
-            var statusListReference = new HashMap<String, Object>();
-            var innerStatusListReference = new HashMap<>();
-            innerStatusListReference.put("idx", statusListIndex);
-            innerStatusListReference.put("uri", "https://example.com/statuslists/1");
-            statusListReference.put("status_list", innerStatusListReference);
-            builder.putClaim("status", statusListReference);
-        }
-
-        // Refactor this as soon as issuer and wallet deliver the correct cnf structure
-        if (!skipCnf) {
-            if (useLegacyCnfFormat) {
-                builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
-            } else {
-                Map<String, Object> correctCNFClaim = new HashMap<>();
-                correctCNFClaim.put("jwk", holderKey.toPublicJWK().toJSONObject());
-                builder.putClaim("cnf", correctCNFClaim);
-            }
-        }
-
-        try {
-            Map<String, Object> claims = builder.build();
-            var header = new JWSHeader.Builder(jwsAlgorithm)
-                    .type(new JOSEObjectType(credentialFormat))
-                    .keyID(kidHeaderValue)
-                    .build();
-            JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);
-            SignedJWT jwt = new SignedJWT(header, claimsSet);
-            JWSSigner signer = new ECDSASigner(key);
-            jwt.sign(signer);
-
-            return new SDJWT(jwt.serialize(), disclosures).toString();
-        } catch (ParseException | JOSEException e) {
-            throw new AssertionError(e);
-        }
+        return createSdJWT(builder, disclosures, validFrom, validUntil, statusListIndex, vct,  useLegacyCnfFormat, credentialFormat, jwsAlgorithm, skipCnf);
     }
 
+    public String createSDJWTMockRecursiveObject() {
 
+        SDObjectBuilder builder = new SDObjectBuilder();
+        List<Disclosure> disclosures = new ArrayList<>();
+
+        Map<String, Object> address = Map.of("street", "Bhf str.", "country", "CH", "zip", "8000");
+
+        var addressBuilder = new SDObjectBuilder();
+        address.forEach((key1, value) -> {
+            var dis = new Disclosure(key1, value);
+            disclosures.add(dis);
+            addressBuilder.putSDClaim(dis);
+        });
+        var addressDisclosure = new Disclosure("address", addressBuilder.build());
+        builder.putSDClaim(addressDisclosure);
+        disclosures.add(addressDisclosure);
+
+        return createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
+    }
     /**
      * Adds A second (fake) VC to the VP Token generated to test the Presentation Exchange Credential Selection
      *
@@ -325,56 +294,7 @@ public class SDJWTCredentialMock {
             }
         });
 
-        builder.putClaim("iss", issuerId);
-        builder.putClaim("iat", Instant.now().getEpochSecond());
-
-        if (nonNull(validFrom)) {
-            builder.putClaim("nbf", validFrom);
-        }
-
-        if (nonNull(validUntil)) {
-            builder.putClaim("exp", validUntil);
-        }
-
-        if (nonNull(vct)) {
-            builder.putClaim("vct", vct);
-        }
-
-        if (nonNull(statusListIndex)) {
-            var statusListReference = new HashMap<String, Object>();
-            var innerStatusListReference = new HashMap<>();
-            innerStatusListReference.put("idx", statusListIndex);
-            innerStatusListReference.put("uri", "https://example.com/statuslists/1");
-            statusListReference.put("status_list", innerStatusListReference);
-            builder.putClaim("status", statusListReference);
-        }
-
-        // Refactor this as soon as issuer and wallet deliver the correct cnf structure
-        if (!skipCnf) {
-            if (useLegacyCnfFormat) {
-                builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
-            } else {
-                Map<String, Object> correctCNFClaim = new HashMap<>();
-                correctCNFClaim.put("jwk", holderKey.toPublicJWK().toJSONObject());
-                builder.putClaim("cnf", correctCNFClaim);
-            }
-        }
-
-        try {
-            Map<String, Object> claims = builder.build();
-            var header = new JWSHeader.Builder(jwsAlgorithm)
-                    .type(new JOSEObjectType(credentialFormat))
-                    .keyID(kidHeaderValue)
-                    .build();
-            JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);
-            SignedJWT jwt = new SignedJWT(header, claimsSet);
-            JWSSigner signer = new ECDSASigner(key);
-            jwt.sign(signer);
-
-            return new SDJWT(jwt.serialize(), disclosures).toString();
-        } catch (ParseException | JOSEException e) {
-            throw new AssertionError(e);
-        }
+        return createSdJWT(builder, disclosures, validFrom, validUntil, statusListIndex, vct,  useLegacyCnfFormat, credentialFormat, jwsAlgorithm, skipCnf);
     }
 
     /**
@@ -415,6 +335,59 @@ public class SDJWTCredentialMock {
             Map<String, Object> claims = builder.build();
             var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                     .type(new JOSEObjectType("vc+sd-jwt"))
+                    .keyID(kidHeaderValue)
+                    .build();
+            JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);
+            SignedJWT jwt = new SignedJWT(header, claimsSet);
+            JWSSigner signer = new ECDSASigner(key);
+            jwt.sign(signer);
+
+            return new SDJWT(jwt.serialize(), disclosures).toString();
+        } catch (ParseException | JOSEException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    public String createSdJWT(SDObjectBuilder builder, List<Disclosure> disclosures, Long validFrom, Long validUntil, Integer statusListIndex, String vct, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {
+        builder.putClaim("iss", issuerId);
+        builder.putClaim("iat", Instant.now().getEpochSecond());
+
+        if (nonNull(validFrom)) {
+            builder.putClaim("nbf", validFrom);
+        }
+
+        if (nonNull(validUntil)) {
+            builder.putClaim("exp", validUntil);
+        }
+
+        if (nonNull(vct)) {
+            builder.putClaim("vct", vct);
+        }
+
+        if (nonNull(statusListIndex)) {
+            var statusListReference = new HashMap<String, Object>();
+            var innerStatusListReference = new HashMap<>();
+            innerStatusListReference.put("idx", statusListIndex);
+            innerStatusListReference.put("uri", "https://example.com/statuslists/1");
+            statusListReference.put("status_list", innerStatusListReference);
+            builder.putClaim("status", statusListReference);
+        }
+
+        // Refactor this as soon as issuer and wallet deliver the correct cnf structure
+        if (!skipCnf) {
+            if (useLegacyCnfFormat) {
+                builder.putClaim("cnf", holderKey.toPublicJWK().toJSONObject());
+            } else {
+                Map<String, Object> correctCNFClaim = new HashMap<>();
+                correctCNFClaim.put("jwk", holderKey.toPublicJWK().toJSONObject());
+                builder.putClaim("cnf", correctCNFClaim);
+            }
+        }
+
+        try {
+            Map<String, Object> claims = builder.build();
+            var header = new JWSHeader.Builder(jwsAlgorithm)
+                    .type(new JOSEObjectType(credentialFormat))
                     .keyID(kidHeaderValue)
                     .build();
             JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);

@@ -367,87 +367,110 @@ public class SdJwtVpTokenVerifier {
     private JsonNode processNode(JsonNode node,
                                  Map<String, Disclosure> digestMap,
                                  Set<String> usedDigests) {
-
         if (node.isObject()) {
-            var object = (ObjectNode) node;
-
-            // check if _sd key exists -> Object is nested and needs to be processed according to the rules in 3.2
-            if (object.has("_sd")) {
-
-                // recursive part
-                ArrayNode sdArray = (ArrayNode) object.get("_sd");
-
-                // snapshot of original fields to check for duplicates after processing the disclosures, as the object node is modified in place
-                List<String> originalFields = new ArrayList<>();
-                object.fieldNames().forEachRemaining(originalFields::add);
-
-                for (JsonNode digestNode : sdArray) {
-                    String digest = digestNode.asText();
-
-                    if (!digestMap.containsKey(digest)) continue;
-
-                    usedDigests.add(digest);
-                    var disclosure = digestMap.get(digest);
-                    var claimName = disclosure.getClaimName();
-
-                    // 3.2.1 If the contents of the respective Disclosure is not a JSON array of three elements (salt, claim name, claim value), the SD-JWT MUST be rejected.
-                    if (claimName == null || disclosure.getClaimValue() == null ||  disclosure.getSalt() == null) {
-                        throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found");
-                    }
-
-                    // 3.2. If the claim name is _sd or ..., the SD-JWT MUST be rejected.
-                    if (claimName.equals("_sd") || claimName.equals("...")) {
-                        throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
-                    }
-
-                    // 3.3.  If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected
-                    if (object.has(claimName)) {
-                        throw credentialError(MALFORMED_CREDENTIAL, "Claim name already exists at the level of the _sd key");
-                    }
-
-                    var claimValue = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
-                    object.set(claimName, processNode(claimValue, digestMap, usedDigests));
-                }
-
-                // iterate only the original fields (snapshot) to avoid processing fields we just added above
-                for (String field : originalFields) {
-                    if ("_sd".equals(field)) continue;
-                    object.set(field, processNode(object.get(field), digestMap, usedDigests));
-                }
-            }
-
-            return object;
+            return processObjectNode((ObjectNode) node, digestMap, usedDigests);
         }
 
         if (node.isArray()) {
-            ArrayNode array = (ArrayNode) node;
-            ArrayNode newArray = objectMapper.createArrayNode();
-
-            for (JsonNode element : array) {
-                if (element.isObject() && element.has("...")) {
-                    String digest = element.get("...").asText();
-
-                    if (!digestMap.containsKey(digest)) continue;
-
-                    usedDigests.add(digest);
-                    var disclosure = digestMap.get(digest);
-
-                    if (disclosure.getClaimName() != null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
-                        throw credentialError(MALFORMED_CREDENTIAL, "Illegal non-array disclosure found");
-                    }
-
-                    var value = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
-                    newArray.add(processNode(value, digestMap, usedDigests));
-                } else {
-                    newArray.add(processNode(element, digestMap, usedDigests));
-                }
-            }
-
-            return newArray;
+            return processArrayNode((ArrayNode) node, digestMap, usedDigests);
         }
 
         return node;
     }
+
+    private JsonNode processObjectNode(ObjectNode object,
+                                       Map<String, Disclosure> digestMap,
+                                       Set<String> usedDigests) {
+        // if no _sd key present, just recurse into fields
+        if (!object.has("_sd")) {
+            Iterator<String> fields = object.fieldNames();
+            List<String> names = new ArrayList<>();
+            fields.forEachRemaining(names::add);
+            for (String name : names) {
+                object.set(name, processNode(object.get(name), digestMap, usedDigests));
+            }
+            return object;
+        }
+
+        // object has _sd -> process disclosures first
+        ArrayNode sdArray = (ArrayNode) object.get("_sd");
+
+        // snapshot original fields to avoid processing newly added fields
+        List<String> originalFields = new ArrayList<>();
+        object.fieldNames().forEachRemaining(originalFields::add);
+
+        handleSdArray(object, sdArray, digestMap, usedDigests);
+
+        // iterate only the original fields (skip _sd) and recurse
+        for (String field : originalFields) {
+            if ("_sd".equals(field)) continue;
+            object.set(field, processNode(object.get(field), digestMap, usedDigests));
+        }
+
+        return object;
+    }
+
+    private void handleSdArray(ObjectNode object,
+                               ArrayNode sdArray,
+                               Map<String, Disclosure> digestMap,
+                               Set<String> usedDigests) {
+        for (JsonNode digestNode : sdArray) {
+            String digest = digestNode.asText();
+
+            if (!digestMap.containsKey(digest)) continue;
+
+            usedDigests.add(digest);
+            var disclosure = digestMap.get(digest);
+            var claimName = disclosure.getClaimName();
+
+            // 3.2.1 If the contents of the respective Disclosure is not a JSON array of three elements (salt, claim name, claim value), the SD-JWT MUST be rejected.
+            if (claimName == null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
+                throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found");
+            }
+
+            // 3.2. If the claim name is _sd or ..., the SD-JWT MUST be rejected.
+            if (claimName.equals("_sd") || claimName.equals("...")) {
+                throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
+            }
+
+            // 3.3.  If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected
+            if (object.has(claimName)) {
+                throw credentialError(MALFORMED_CREDENTIAL, "Claim name already exists at the level of the _sd key");
+            }
+
+            var claimValue = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
+            object.set(claimName, processNode(claimValue, digestMap, usedDigests));
+        }
+    }
+
+    private JsonNode processArrayNode(ArrayNode array,
+                                      Map<String, Disclosure> digestMap,
+                                      Set<String> usedDigests) {
+        ArrayNode newArray = objectMapper.createArrayNode();
+
+        for (JsonNode element : array) {
+            if (element.isObject() && element.has("...")) {
+                String digest = element.get("...").asText();
+
+                if (!digestMap.containsKey(digest)) continue;
+
+                usedDigests.add(digest);
+                var disclosure = digestMap.get(digest);
+
+                if (disclosure.getClaimName() != null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
+                    throw credentialError(MALFORMED_CREDENTIAL, "Illegal non-array disclosure found");
+                }
+
+                var value = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
+                newArray.add(processNode(value, digestMap, usedDigests));
+            } else {
+                newArray.add(processNode(element, digestMap, usedDigests));
+            }
+        }
+
+        return newArray;
+    }
+
 
     private void removeSdKeys(JsonNode node) {
         if (node.isObject()) {

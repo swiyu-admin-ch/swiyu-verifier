@@ -155,8 +155,6 @@ class BlackboxIT {
                 .andExpect(status().isOk())
         );
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
-
-        // Todo check response
     }
 
     @ParameterizedTest

@@ -17,7 +17,6 @@ import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
@@ -30,16 +29,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_KID_HEADER_VALUE;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -215,7 +210,7 @@ class SdJwtVpTokenVerifierTest {
 
         var claimsForSdJWT = getClaimsFromSdJwt(disclosure);
 
-        JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT);
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
         SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
         assertDoesNotThrow(() -> verifier.processDisclosures(claimsSet, disclosure, UUID.randomUUID()));
     }
@@ -239,57 +234,17 @@ class SdJwtVpTokenVerifierTest {
                 new JWSHeader.Builder(JWSAlgorithm.ES256)
                         .type(new JOSEObjectType("vc+sd-jwt")).build();
 
-        JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT);
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
         SignedJWT jwt = new SignedJWT(header, claimsSet);
         ECKey privateKey = new ECKeyGenerator(Curve.P_256).generate();
         JWSSigner signer = new ECDSASigner(privateKey);
         jwt.sign(signer);
 
         SDJWT sdJwt = new SDJWT(jwt.serialize(), disclosure);
+        SdJwt sdjwt = new SdJwt(sdJwt.toString());
+        sdjwt.setClaims(claimsSet);
 
         SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
-        assertDoesNotThrow(() -> verifier.validateDisclosures(new SdJwt(sdJwt.toString()), mgmtEntity));
-    }
-
-    public static Map<String, Object> getClaimsFromSdJwt(List<Disclosure> disclosure) {
-        SDObjectBuilder builder = new SDObjectBuilder();
-
-        var nameDisc = new Disclosure("name", "Max Muster");
-        builder.putSDClaim(nameDisc);
-        disclosure.add(nameDisc);
-
-// ---------- Address 1 ----------
-        SDObjectBuilder address1 = new SDObjectBuilder();
-        var address1Map = Map.of("city", "Bern", "street_address", "Bahnhofstrasse", "house_number", "1");
-        address1Map.forEach((claimName, claimValue) -> {
-            var disc = new Disclosure(claimName, claimValue);
-            address1.putSDClaim(disc);
-            disclosure.add(disc);
-        });
-        var addressDisc1 = new Disclosure(address1.build());
-        disclosure.add(addressDisc1);
-
-// ---------- Address 2 ----------
-        SDObjectBuilder address2 = new SDObjectBuilder();
-        var address2Map = Map.of("city", "Zürich", "street_address", "Bahnhofstrasse", "house_number", "10");
-        address2Map.forEach((claimName, claimValue) -> {
-            var disc = new Disclosure(claimName, claimValue);
-            address2.putSDClaim(disc);
-            disclosure.add(disc);
-        });
-        var addressDisc2 = new Disclosure(address2.build());
-        disclosure.add(addressDisc2);
-
-        var addressList1 = addressDisc1.toArrayElement();
-        var addressList2 = addressDisc2.toArrayElement();
-        var addressesDisc = new Disclosure("addresses", List.of(addressList1, addressList2));
-        builder.putSDClaim(addressesDisc);
-        disclosure.add(addressesDisc);
-
-        var emailDisc = new Disclosure("email", "max@example.com");
-        builder.putSDClaim(emailDisc);
-        disclosure.add(emailDisc);
-
-        return builder.build();
+        assertDoesNotThrow(() -> verifier.validateDisclosures(sdjwt, mgmtEntity));
     }
 }

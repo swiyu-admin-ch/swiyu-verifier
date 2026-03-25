@@ -278,8 +278,8 @@ public abstract class BaseVerificationControllerTest {
                         "vct_values": [ "%s" ]
                       },
                       "claims": [
-                          {"path": ["address", "zip"], "values": ["8000"]},
-                          {"path": ["address", "country"], "values": ["CH"]}
+                          {"path": ["addresses", null, "street"], "values": ["Bahnhofstrasse"]},
+                          {"path": ["addresses", null, "country"], "values": ["CH"]}
                       ]
                     }
                   ]

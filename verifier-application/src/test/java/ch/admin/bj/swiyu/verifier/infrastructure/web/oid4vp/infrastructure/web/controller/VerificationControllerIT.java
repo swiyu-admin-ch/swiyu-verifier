@@ -870,7 +870,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
 
-        // {"iss":"TEST_ISSUER_ID","first_name":"TestFirstname","last_name":"TestLastName","birthdate":"1949-01-22","cnf":{"jwk":{"kty":"EC","crv":"P-256","x":"7dAwCV6avHekIpLRFpiqnUE446YjoqvErdwwospJD5o","y":"Jcb_aAUyrwgYO0I4XFaQnHHsSyv0YfjW01SmGeX5Ko4"}},"languages":["DE","FR","IT"],"iat":"2026-03-12T13:24:55.000+00:00","vct":"defaultTestVCT"}
         assertThat(managementEntity.getWalletResponse().credentialSubjectData())
                 .contains("first_name")
                 .contains("TestFirstname")
@@ -904,7 +903,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     void testDCQLNestedEndpoint_withKeybinding_thenSuccess() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMockRecursiveObject();
+        var unsignedSdJwt = emulator.createNestedSDJWTMock();
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
 
         mockDidResolverResponse(emulator);

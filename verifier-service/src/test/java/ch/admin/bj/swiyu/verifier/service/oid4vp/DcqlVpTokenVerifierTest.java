@@ -26,7 +26,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.SdJwtVpTokenVerifierTest.getClaimsFromSdJwt;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.getClaimsFromSdJwt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -97,7 +97,7 @@ class DcqlVpTokenVerifierTest {
         List<Disclosure> disclosures = new ArrayList<>();
         var claimsForSdJWT = getClaimsFromSdJwt(disclosures);
 
-        JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT);
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
 
         when(vpToken.getClaims()).thenReturn(claimsSet);
         when(vpToken.hasKeyBinding()).thenReturn(true);

@@ -195,6 +195,7 @@ On the base registry the public key is published. To generate the public key for
 | OPENID_CLIENT_METADATA_FILE       | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                       | string           | None         |
 | STATUS_LIST_CACHE_TTL_MILLI       | TTL in milliseconds how long a status list result should be cached. If 0 or less will not cache status lists.                                                                                              | int              | 0            |
 | ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI | TTL in milliseconds how long a public key result should be cached                                                                                                                                          | int              | 3600000 (1h) |
+| MAX_COMPRESSED_CIPHER_TEXT_LENGTH | Maximum allowed size of a compressed ciphertext the service will process                                                                                                                                   | int              | 100000       |
 
 ### Kubernetes Vault Keys
 

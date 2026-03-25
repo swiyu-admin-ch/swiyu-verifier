@@ -205,7 +205,6 @@ class SdJwtVpTokenVerifierTest {
     @Test
     void processDisclosures_whenDeeplyNested_thenSuccess() throws ParseException {
 
-        SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosure = new ArrayList<>();
 
         var claimsForSdJWT = getClaimsFromSdJwt(disclosure);

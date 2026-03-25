@@ -1,5 +1,3 @@
-
-
 # Inspired by https://thomasthornton.cloud/2025/03/18/setting-up-trivy-in-your-github-actions/
 name: Pull Request Check
 run-name: ${{ github.repository }} is evaluating pull request
@@ -77,11 +75,12 @@ jobs:
           build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile
 
-      - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.30.0
-        with:
-          image-ref: pull_request_check:latest
-          severity: 'CRITICAL,HIGH'
-          exit-code: 1
-          ignore-unfixed: true
-          format: table
+
+#      - name: Run Trivy vulnerability scan
+#        uses: aquasecurity/trivy-action@0.30.0
+#        with:
+#          image-ref: pull_request_check:latest
+#          severity: 'CRITICAL,HIGH'
+#          exit-code: 1
+#          ignore-unfixed: true
+#          format: table

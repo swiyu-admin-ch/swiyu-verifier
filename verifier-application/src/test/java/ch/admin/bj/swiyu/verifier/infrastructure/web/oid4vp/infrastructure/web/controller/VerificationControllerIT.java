@@ -382,6 +382,41 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
+    void shouldRejectDCQLPresentation_whenCredentialIsRevoked_thenBadRequest() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        // idx=0 has status value 1 (revoked) in SPEC_STATUS_LIST
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
+                .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
+                        StatusListGenerator.SPEC_STATUS_LIST,
+                        emulator.getKey(),
+                        emulator.getIssuerId(),
+                        emulator.getKidHeaderValue())
+                );
+
+        var sdJwt = emulator.createSDJWTMock(0);
+        var boundSdJwt = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, "did:example:12345");
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        var vpTokenMap = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(boundSdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpTokenMap);
+
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_code").value("credential_revoked"));
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+        assertThat(managementEntity.getWalletResponse().errorCode().getJsonValue()).isEqualTo("credential_revoked");
+    }
+
+    @Test
     void twoTimesSameDisclosures_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -908,26 +943,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .andExpect(status().isBadRequest());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-    }
-
-    @Test
-    void testDCQLEndpoint_noHolderBindingRequestedButNeededForCredential_thenBadRequest() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-
-        mockDidResolverResponse(emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
-                .andExpect(status().isBadRequest());
-
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 

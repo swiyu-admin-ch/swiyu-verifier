@@ -116,4 +116,7 @@ public class RequestObjectDto {
             to the client.
             """)
     private String state;
+
+    @JsonProperty("aud")
+    private String audience;
 }

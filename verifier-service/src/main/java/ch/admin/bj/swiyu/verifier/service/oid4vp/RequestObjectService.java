@@ -32,6 +32,9 @@ import static ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectMapper.toPr
 @Service
 @AllArgsConstructor
 public class RequestObjectService {
+    public static final String AUDIENCE = "https://self-issued.me/v2";
+    public static final String RESPONSE_TYPE = "vp_token";
+
     public static final JWSAlgorithm USED_JWS_ALGORITHM = JWSAlgorithm.ES256;
     private final ApplicationProperties applicationProperties;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
@@ -110,13 +113,14 @@ public class RequestObjectService {
         }
 
         return RequestObjectDto.builder()
+                .audience(AUDIENCE)
                 .nonce(managementEntity.getRequestNonce())
                 .presentationDefinition(toPresentationDefinitionDto(presentation))
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
                 .clientId(effectiveConfig.clientId())
                 .clientMetadata(clientMetadataBuilder.build())
                 .clientIdScheme(applicationProperties.getClientIdScheme())
-                .responseType("vp_token")
+                .responseType(RESPONSE_TYPE)
                 .responseMode(ManagementMapper.toResponseModeDto(responseSpecification.getResponseModeType()))
                 .responseUri(String.format("%s/oid4vp/api/request-object/%s/response-data",
                         effectiveConfig.externalUrl(),

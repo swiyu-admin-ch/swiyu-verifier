@@ -130,7 +130,7 @@ class BlackboxIT {
     }
 
     @ParameterizedTest
-    @MethodSource("provideCreateDtosDirectPost")
+    @MethodSource("provideCreateNestedDtosDirectPost")
     void testVerificationFlow_dcql_recursive(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
         var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
         var createResponseDto = createVerificationRequest(createDto);
@@ -326,12 +326,39 @@ class BlackboxIT {
                         .id(UUID.randomUUID().toString())
                         .format(ApiFixtures.formatAlgorithmDtoMap())
                         .build()
+                ).dcqlQuery(ApiFixtures.getDcqlQueryDto()).build();
+    }
+
+    private static CreateVerificationManagementDto createNestedDtoAsContentBodyWithDCQL(ResponseModeTypeDto responseModeTypeDto) {
+        return CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
+                .jwtSecuredAuthorizationRequest(true)
+                .responseMode(responseModeTypeDto)
+                .presentationDefinition(
+                        PresentationDefinitionDto.builder()
+                                .inputDescriptors(List.of(new InputDescriptorDto(
+                                        UUID.randomUUID().toString(),
+                                        "input_description_name",
+                                        "input_description_purpose",
+                                        ApiFixtures.formatAlgorithmDtoMap(),
+                                        // .first_name field in constraints as at least one is required.
+                                        new ConstraintDto(UUID.randomUUID().toString(), null, null, ApiFixtures.formatAlgorithmDtoMap(), List.of(ApiFixtures.fieldDto(List.of(".first_name"))))
+                                )))
+                                .id(UUID.randomUUID().toString())
+                                .format(ApiFixtures.formatAlgorithmDtoMap())
+                                .build()
                 ).dcqlQuery(ApiFixtures.getDcqlQueryForNestedAddressDto()).build();
     }
 
     private static Stream<Arguments> provideCreateDtosDirectPost() {
         return Stream.of(
                 Arguments.of(createDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST))
+        );
+    }
+
+    private static Stream<Arguments> provideCreateNestedDtosDirectPost() {
+        return Stream.of(
+                Arguments.of(createNestedDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST))
         );
     }
 

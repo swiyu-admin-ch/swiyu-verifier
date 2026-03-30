@@ -151,6 +151,21 @@ public class ApiFixtures {
     }
 
     @NotNull
+    public static DcqlQueryDto getDcqlQueryDto() {
+        var langs = new ArrayList<>();
+        langs.add("languages");
+        langs.add(null);
+
+        var claims = List.of(
+                new DcqlClaimDto(null, List.of("first_name"), null),
+                new DcqlClaimDto(null, List.of("last_name"),null),
+                new DcqlClaimDto(null, List.of("birthdate"),null),
+                new DcqlClaimDto(null, langs,List.of("FR"))
+        );
+        return createDcqlQueryDto(claims);
+    }
+
+    @NotNull
     public static DcqlQueryDto getDcqlQueryForListDto() {
         List<Object> lang = new ArrayList<>();
         lang.add("languages");

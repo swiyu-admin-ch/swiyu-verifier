@@ -151,7 +151,7 @@ public class ApiFixtures {
     }
 
     @NotNull
-    public static DcqlQueryDto getDcqlQueryDto() {
+    public static DcqlQueryDto getDcqlQueryForListDto() {
         List<Object> lang = new ArrayList<>();
         lang.add("languages");
         lang.add(null);
@@ -160,6 +160,21 @@ public class ApiFixtures {
                 new DcqlClaimDto(null, List.of("first_name"), null),
                 new DcqlClaimDto(null, List.of("last_name"),null),
                 new DcqlClaimDto(null, lang,List.of("FR"))
+
+        );
+        return createDcqlQueryDto(claims);
+    }
+
+    @NotNull
+    public static DcqlQueryDto getDcqlQueryForNestedAddressDto() {
+        List<Object> address = new ArrayList<>();
+        address.add("company");
+        address.add("addresses");
+        address.add(null);
+        address.add("zip");
+
+        var claims = List.of(
+                new DcqlClaimDto(null, address,List.of("8000"))
 
         );
         return createDcqlQueryDto(claims);

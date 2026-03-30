@@ -5,14 +5,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import com.authlete.sd.Disclosure;
-import com.authlete.sd.SDJWT;
-import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.ECDSASigner;
-import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -92,7 +85,7 @@ class DcqlVpTokenVerifierTest {
     }
 
     @Test
-    void verifyVpTokenForDCQLRequest_deeplyNested_thenReturnsVpToken() throws ParseException, JOSEException {
+    void verifyVpTokenForDCQLRequest_deeplyNested_thenReturnsVpToken() throws ParseException {
 
         List<Disclosure> disclosures = new ArrayList<>();
         var claimsForSdJWT = getClaimsFromSdJwt(disclosures);

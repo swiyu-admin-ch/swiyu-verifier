@@ -48,10 +48,8 @@ public class DcqlUtil {
 
             var requestedValues = requestedClaim.getValues();
 
-            // According to OID4VP: if values is present, the Wallet SHOULD return the claim only if the type
+            // if values is present, the Wallet SHOULD return the claim only if the type
             // and value of the claim both match exactly for at least one of the elements in the array.
-            // Therefore, we must ensure that there is at least one intersection between presented claims
-            // and requested values. If there is no intersection, the requested requirement is not satisfied.
             if (requestedValues != null && Collections.disjoint(claims, requestedValues)) {
                 throw new IllegalArgumentException("Not all requested claim values are satisfied");
             }

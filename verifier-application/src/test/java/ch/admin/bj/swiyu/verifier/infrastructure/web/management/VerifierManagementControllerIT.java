@@ -276,7 +276,7 @@ class VerifierManagementControllerIT {
         void testCreateOffer_withOnlyDcqlQuery_thenIllegalArgumentException() throws Exception {
 
                 // Build a minimal DCQL query DTO
-                var request = createVerificationManagementWithDcqlQueryDto(null, getDcqlQueryDto(), issuerDids);
+                var request = createVerificationManagementWithDcqlQueryDto(null, getDcqlQueryForListDto(), issuerDids);
 
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -293,7 +293,7 @@ class VerifierManagementControllerIT {
 
         var request = CreateVerificationManagementDto.builder()
                 .presentationDefinition(presentationDefinitionDto())
-                .dcqlQuery(getDcqlQueryDto())
+                .dcqlQuery(getDcqlQueryForListDto())
                 .trustAnchors(List.of())
                 .acceptedIssuerDids(List.of())
                 .build();
@@ -315,7 +315,7 @@ class VerifierManagementControllerIT {
 
         var request = CreateVerificationManagementDto.builder()
                 .presentationDefinition(presentationDefinitionDto())
-                .dcqlQuery(getDcqlQueryDto())
+                .dcqlQuery(getDcqlQueryForListDto())
                 .trustAnchors(null)
                 .acceptedIssuerDids(issuerDids)
                 .build();
@@ -335,7 +335,7 @@ class VerifierManagementControllerIT {
 
         var request = CreateVerificationManagementDto.builder()
                 .presentationDefinition(presentationDefinitionDto())
-                .dcqlQuery(getDcqlQueryDto())
+                .dcqlQuery(getDcqlQueryForListDto())
                 .trustAnchors(null)
                 .acceptedIssuerDids(null)
                 .build();
@@ -356,7 +356,7 @@ class VerifierManagementControllerIT {
 
         var request = CreateVerificationManagementDto.builder()
                 .presentationDefinition(presentationDefinitionDto())
-                .dcqlQuery(getDcqlQueryDto())
+                .dcqlQuery(getDcqlQueryForListDto())
                 .trustAnchors(List.of(trustAnchorDto))
                 .acceptedIssuerDids(null)
                 .build();
@@ -373,7 +373,7 @@ class VerifierManagementControllerIT {
 
                 // Build a minimal DCQL query DTO
                 var request = createVerificationManagementWithDcqlQueryDto(presentationDefinitionDto(),
-                                getDcqlQueryDto(), issuerDids);
+                                getDcqlQueryForListDto(), issuerDids);
 
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -386,7 +386,7 @@ class VerifierManagementControllerIT {
         void testCreateOffer_withDcqlQueryWithoutResponseMode_thenSuccess() throws Exception {
 
                 // Build a minimal DCQL query DTO
-                var request = createVerificationManagementWithoutResponseMode(issuerDids, getDcqlQueryDto());
+                var request = createVerificationManagementWithoutResponseMode(issuerDids, getDcqlQueryForListDto());
 
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)

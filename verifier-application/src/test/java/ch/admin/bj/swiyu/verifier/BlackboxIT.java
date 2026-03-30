@@ -131,7 +131,7 @@ class BlackboxIT {
 
     @ParameterizedTest
     @MethodSource("provideCreateDtosDirectPost")
-    void testVerificationFlow_recursive(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+    void testVerificationFlow_dcql_recursive(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
         var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
         var createResponseDto = createVerificationRequest(createDto);
 
@@ -290,11 +290,11 @@ class BlackboxIT {
         return assertDoesNotThrow(() -> objectMapper.readValue(createVerificationResult.getResponse().getContentAsString(), ManagementResponseDto.class));
     }
 
-    private static CreateVerificationManagementDto createDtoAsContentBody(ResponseModeTypeDto responseModeTypeDto) {
+    private static CreateVerificationManagementDto createDtoAsContentBody() {
         return CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
                 .jwtSecuredAuthorizationRequest(true)
-                .responseMode(responseModeTypeDto)
+                .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
                 .presentationDefinition(PresentationDefinitionDto.builder()
                         .inputDescriptors(List.of(new InputDescriptorDto(
                                 UUID.randomUUID().toString(),
@@ -326,7 +326,7 @@ class BlackboxIT {
                         .id(UUID.randomUUID().toString())
                         .format(ApiFixtures.formatAlgorithmDtoMap())
                         .build()
-                ).dcqlQuery(ApiFixtures.getDcqlQueryDto()).build();
+                ).dcqlQuery(ApiFixtures.getDcqlQueryForNestedAddressDto()).build();
     }
 
     private static Stream<Arguments> provideCreateDtosDirectPost() {
@@ -337,7 +337,7 @@ class BlackboxIT {
 
     private static Stream<Arguments> provideCreateDtosDirectPostJwt() {
         return Stream.of(
-                Arguments.of(createDtoAsContentBody(ResponseModeTypeDto.DIRECT_POST_JWT)),
+                Arguments.of(createDtoAsContentBody()),
                 Arguments.of(createDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST_JWT))
         );
     }

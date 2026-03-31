@@ -12,6 +12,11 @@ import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.authlete.sd.Disclosure;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -34,11 +39,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.INVALID_FORMAT;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.JWT_EXPIRED;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.JWT_PREMATURE;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.MALFORMED_CREDENTIAL;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.MISSING_NONCE;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
 /**
@@ -61,6 +61,7 @@ public class SdJwtVpTokenVerifier {
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management) {
         // Re-use the shared verification building blocks
@@ -112,20 +113,11 @@ public class SdJwtVpTokenVerifier {
      * Update the sdJwts disclosure with validates resolved selective disclosures
      */
     protected void validateDisclosures(SdJwt sdJwt, Management managementEntity) {
-        // Step 8 (SD-JWT spec 8.1 / 3 ): Process the Disclosures and embedded digests
-        // in the Issuer-signed JWT (section 3 in 8.1)
-        List<String> digestsFromDisclosures;
-        List<Disclosure> disclosures;
-        var claims = sdJwt.getClaims();
-        try {
-            disclosures = sdJwt.getDisclosures();
-            // 8.1 / 3.2.2 If the claim name is _sd or ..., the SD-JWT MUST be rejected.
-            digestsFromDisclosures = disclosures.stream().map(Disclosure::digest).toList();
-        } catch (IllegalArgumentException e) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
-        }
-        log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntity.getId());
 
+        var claims = sdJwt.getClaims();
+        var disclosures = sdJwt.getDisclosures();
+
+        // contains all claims except list entries (as they are)
         var disclosedClaimNames = disclosures.stream().map(Disclosure::getClaimName).collect(Collectors.toSet());
 
         // SD-JWT VC 3.2.2
@@ -138,30 +130,13 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(MALFORMED_CREDENTIAL, "Can not resolve disclosures. Existing Claim would be overridden.");
         }
 
-        // check if distinct disclosures
-        if (new HashSet<>(disclosures).size() != disclosures.size()) {
-            throw credentialError(MALFORMED_CREDENTIAL,
-                    "Request contains non-distinct disclosures");
-        }
+        JsonNode resolvedClaims = processDisclosures(sdJwt.getClaims(), disclosures, managementEntity.getId());
 
-        // If any digest is missing or appears more than once in _sd, the check fails. This enforces that all disclosed digests are uniquely present in the _sd claim, as required by the SD-JWT specification.
-        if (!digestsFromDisclosures.stream()
-                .allMatch(dig -> {
-                    try {
-                        return Collections.frequency(claims.getListClaim("_sd"), dig) == 1;
-                    } catch (ParseException e) {
-                        throw credentialError(MALFORMED_CREDENTIAL,
-                                "Could not verify JWT. _sd field was not a list of disclosures.");
-                    }
-                })) {
-            throw credentialError(MALFORMED_CREDENTIAL,
-                    "Could not verify JWT problem with disclosures and _sd field");
-        }
+        var prepared = objectMapper.convertValue(resolvedClaims, new TypeReference<Map<String, Object>>(){});
+
         log.trace("Successfully verified disclosure digests of id {}", managementEntity.getId());
 
-        var updatedClaimsBuilder = new JWTClaimsSet.Builder(claims);
-        disclosures.forEach(disclosure -> updatedClaimsBuilder.claim(disclosure.getClaimName(), disclosure.getClaimValue()));
-        sdJwt.setClaims(updatedClaimsBuilder.build());
+        sdJwt.setResolvedClaims(prepared);
     }
 
     /**
@@ -348,6 +323,167 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(MISSING_NONCE,
                     String.format("Holder Binding lacks correct nonce expected '%s' but was '%s'", expectedNonce,
                             actualNonce));
+        }
+    }
+
+    /**
+     * Process the Disclosures and embedded digests in the Issuer-signed JWT
+     */
+    protected JsonNode processDisclosures(JWTClaimsSet claimSet, List<Disclosure> disclosures, UUID managementEntityId) {
+
+        var claims = objectMapper.convertValue(claimSet.getClaims(), JsonNode.class);
+
+        // 3.1 - For each Disclosure provided Calculate the digest over the base64url-encoded string
+        Map<String, Disclosure> digestToDisclosure = disclosures.stream().collect(Collectors.toMap(Disclosure::digest, d -> d));
+
+        log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntityId);
+
+        Set<String> usedDigests = new HashSet<>();
+
+        JsonNode processed = processNode(claims, digestToDisclosure, usedDigests);
+
+        // 3.5 Remove _sd keys
+        removeSdKeys(processed);
+
+        // 3.6 Remove _sd_alg
+        ((ObjectNode) processed).remove("_sd_alg");
+
+        // 4. Check duplicate digests
+        if (usedDigests.size() != new HashSet<>(usedDigests).size()) {
+            throw credentialError(MALFORMED_CREDENTIAL, "Duplicate digest detected");
+        }
+
+        // 5. Ensure all disclosures used
+        if (usedDigests.size() != disclosures.size()) {
+            throw credentialError(MALFORMED_CREDENTIAL, "Unused disclosures detected");
+        }
+
+        // 6. Validate claims (exp, nbf, aud)
+        validateJwtTimes(claimSet);
+
+        return processed;
+    }
+
+    private JsonNode processNode(JsonNode node,
+                                 Map<String, Disclosure> digestMap,
+                                 Set<String> usedDigests) {
+        if (node.isObject()) {
+            return processObjectNode((ObjectNode) node, digestMap, usedDigests);
+        }
+
+        if (node.isArray()) {
+            return processArrayNode((ArrayNode) node, digestMap, usedDigests);
+        }
+
+        return node;
+    }
+
+    private JsonNode processObjectNode(ObjectNode object,
+                                       Map<String, Disclosure> digestMap,
+                                       Set<String> usedDigests) {
+        // if no _sd key present, just recurse into fields
+        if (!object.has("_sd")) {
+            Iterator<String> fields = object.fieldNames();
+            List<String> names = new ArrayList<>();
+            fields.forEachRemaining(names::add);
+            for (String name : names) {
+                object.set(name, processNode(object.get(name), digestMap, usedDigests));
+            }
+            return object;
+        }
+
+        // object has _sd -> process disclosures first
+        ArrayNode sdArray = (ArrayNode) object.get("_sd");
+
+        // snapshot original fields to avoid processing newly added fields
+        List<String> originalFields = new ArrayList<>();
+        object.fieldNames().forEachRemaining(originalFields::add);
+
+        handleSdArray(object, sdArray, digestMap, usedDigests);
+
+        // iterate only the original fields (skip _sd) and recurse
+        for (String field : originalFields) {
+            if ("_sd".equals(field)) continue;
+            object.set(field, processNode(object.get(field), digestMap, usedDigests));
+        }
+
+        return object;
+    }
+
+    private void handleSdArray(ObjectNode object,
+                               ArrayNode sdArray,
+                               Map<String, Disclosure> digestMap,
+                               Set<String> usedDigests) {
+        for (JsonNode digestNode : sdArray) {
+            String digest = digestNode.asText();
+
+            if (!digestMap.containsKey(digest)) continue;
+
+            usedDigests.add(digest);
+            var disclosure = digestMap.get(digest);
+            var claimName = disclosure.getClaimName();
+
+            // 3.2.1 If the contents of the respective Disclosure is not a JSON array of three elements (salt, claim name, claim value), the SD-JWT MUST be rejected.
+            if (claimName == null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
+                throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found");
+            }
+
+            // 3.2. If the claim name is _sd or ..., the SD-JWT MUST be rejected.
+            if (claimName.equals("_sd") || claimName.equals("...")) {
+                throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
+            }
+
+            // 3.3.  If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected
+            if (object.has(claimName)) {
+                throw credentialError(MALFORMED_CREDENTIAL, "Claim name already exists at the level of the _sd key");
+            }
+
+            var claimValue = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
+            object.set(claimName, processNode(claimValue, digestMap, usedDigests));
+        }
+    }
+
+    private JsonNode processArrayNode(ArrayNode array,
+                                      Map<String, Disclosure> digestMap,
+                                      Set<String> usedDigests) {
+        ArrayNode newArray = objectMapper.createArrayNode();
+
+        for (JsonNode element : array) {
+            if (element.isObject() && element.has("...")) {
+                String digest = element.get("...").asText();
+
+                if (!digestMap.containsKey(digest)) continue;
+
+                usedDigests.add(digest);
+                var disclosure = digestMap.get(digest);
+
+                if (disclosure.getClaimName() != null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
+                    throw credentialError(MALFORMED_CREDENTIAL, "Illegal non-array disclosure found");
+                }
+
+                var value = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
+                newArray.add(processNode(value, digestMap, usedDigests));
+            } else {
+                newArray.add(processNode(element, digestMap, usedDigests));
+            }
+        }
+
+        return newArray;
+    }
+
+    private void removeSdKeys(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode obj = (ObjectNode) node;
+            obj.remove("_sd");
+
+            Iterator<String> fields = obj.fieldNames();
+            while (fields.hasNext()) {
+                removeSdKeys(obj.get(fields.next()));
+            }
+        } else if (node.isArray()) {
+            for (JsonNode n : node) {
+                removeSdKeys(n);
+            }
         }
     }
 }

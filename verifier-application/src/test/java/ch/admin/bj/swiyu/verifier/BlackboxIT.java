@@ -109,12 +109,12 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet sends valid credential
-        var vpToken = createMockCredential(nonce);
-        var presentationSubmission = SDJWTCredentialMock.getPresentationSubmissionString(UUID.randomUUID());
+        var vpToken = Map.of("identity_credential_dcql", List.of(createMockCredential(nonce)));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
-                        .formField("vp_token", vpToken))
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
                 .andExpect(status().isOk())
         );
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
@@ -125,6 +125,34 @@ class BlackboxIT {
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really don't want to"))
                 .andExpect(status().isGone())
+        );
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideCreateNestedDtosDirectPost")
+    void testVerificationFlow_dcql_recursive(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+        var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
+        var createResponseDto = createVerificationRequest(createDto);
+
+        var nonce = createResponseDto.requestNonce();
+        var requestId = createResponseDto.id().toString();
+
+        // Check status, should be pending
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
+
+        // Wallet retrieves Verifier Request
+        getVerificationRequestForWallet(requestId, nonce);
+
+        // Wallet sends valid credential
+        var cred = List.of(createMockCredential_rec(nonce));
+        var vpToken = Map.of("identity_credential_dcql", cred);
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isOk())
         );
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
     }
@@ -262,11 +290,11 @@ class BlackboxIT {
         return assertDoesNotThrow(() -> objectMapper.readValue(createVerificationResult.getResponse().getContentAsString(), ManagementResponseDto.class));
     }
 
-    private static CreateVerificationManagementDto createDtoAsContentBody(ResponseModeTypeDto responseModeTypeDto) {
+    private static CreateVerificationManagementDto createDtoAsContentBody() {
         return CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
                 .jwtSecuredAuthorizationRequest(true)
-                .responseMode(responseModeTypeDto)
+                .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
                 .presentationDefinition(PresentationDefinitionDto.builder()
                         .inputDescriptors(List.of(new InputDescriptorDto(
                                 UUID.randomUUID().toString(),
@@ -301,16 +329,42 @@ class BlackboxIT {
                 ).dcqlQuery(ApiFixtures.getDcqlQueryDto()).build();
     }
 
+    private static CreateVerificationManagementDto createNestedDtoAsContentBodyWithDCQL(ResponseModeTypeDto responseModeTypeDto) {
+        return CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
+                .jwtSecuredAuthorizationRequest(true)
+                .responseMode(responseModeTypeDto)
+                .presentationDefinition(
+                        PresentationDefinitionDto.builder()
+                                .inputDescriptors(List.of(new InputDescriptorDto(
+                                        UUID.randomUUID().toString(),
+                                        "input_description_name",
+                                        "input_description_purpose",
+                                        ApiFixtures.formatAlgorithmDtoMap(),
+                                        // .first_name field in constraints as at least one is required.
+                                        new ConstraintDto(UUID.randomUUID().toString(), null, null, ApiFixtures.formatAlgorithmDtoMap(), List.of(ApiFixtures.fieldDto(List.of(".first_name"))))
+                                )))
+                                .id(UUID.randomUUID().toString())
+                                .format(ApiFixtures.formatAlgorithmDtoMap())
+                                .build()
+                ).dcqlQuery(ApiFixtures.getDcqlQueryForNestedAddressDto()).build();
+    }
+
     private static Stream<Arguments> provideCreateDtosDirectPost() {
         return Stream.of(
-                Arguments.of(createDtoAsContentBody(ResponseModeTypeDto.DIRECT_POST)),
                 Arguments.of(createDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST))
+        );
+    }
+
+    private static Stream<Arguments> provideCreateNestedDtosDirectPost() {
+        return Stream.of(
+                Arguments.of(createNestedDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST))
         );
     }
 
     private static Stream<Arguments> provideCreateDtosDirectPostJwt() {
         return Stream.of(
-                Arguments.of(createDtoAsContentBody(ResponseModeTypeDto.DIRECT_POST_JWT)),
+                Arguments.of(createDtoAsContentBody()),
                 Arguments.of(createDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST_JWT))
         );
     }
@@ -320,6 +374,14 @@ class BlackboxIT {
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
+        return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
+    }
+
+    private String createMockCredential_rec(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, "some_issuer_id#key-1");
+        mockDidResolverResponse(emulator);
+
+        var sdJWT = emulator.createSDJWTMockWithRecursiveListArray();
         return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
     }
 

@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
+import com.authlete.sd.Disclosure;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,8 +15,14 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.getClaimsFromSdJwt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -73,6 +80,25 @@ class DcqlVpTokenVerifierTest {
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(explicitlySet ? Boolean.TRUE : null).build();
 
         SdJwt verifiedToken = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(vpToken, management, dcqlCredential);
+
+        assertThat(verifiedToken).isEqualTo(vpToken);
+    }
+
+    @Test
+    void verifyVpTokenForDCQLRequest_deeplyNested_thenReturnsVpToken() throws ParseException {
+
+        List<Disclosure> disclosures = new ArrayList<>();
+        var claimsForSdJWT = getClaimsFromSdJwt(disclosures);
+
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
+
+        when(vpToken.getClaims()).thenReturn(claimsSet);
+        when(vpToken.hasKeyBinding()).thenReturn(true);
+
+
+        var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(Boolean.TRUE).build();
+
+        SdJwt verifiedToken = assertDoesNotThrow(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(vpToken, management, dcqlCredential));
 
         assertThat(verifiedToken).isEqualTo(vpToken);
     }

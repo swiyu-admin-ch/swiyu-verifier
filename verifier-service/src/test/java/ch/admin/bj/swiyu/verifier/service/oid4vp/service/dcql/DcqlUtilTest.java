@@ -55,6 +55,7 @@ class DcqlUtilTest {
         var claims = mock(JWTClaimsSet.class);
         when(sdJwt.getClaims()).thenReturn(claims);
         when(claims.getClaims()).thenReturn(exampleData);
+        when(sdJwt.getResolvedClaims()).thenReturn(exampleData);
     }
 
 
@@ -234,6 +235,17 @@ class DcqlUtilTest {
         paths.add(null);
         paths.add("type");
         var requestClaim = new DcqlClaim(null, paths, List.of("Bachelor of Science", "Master of Arts"));
+        var claims = List.of(requestClaim);
+        assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
+    }
+
+    @Test
+    void arraySelection_whenAllValuesMissing_thenThrowIllegalArgumentException() {
+        var paths = new LinkedList<>();
+        paths.add("degrees");
+        paths.add(null);
+        paths.add("type");
+        var requestClaim = new DcqlClaim(null, paths, List.of("Bachelor of Arts", "Master of Arts"));
         var claims = List.of(requestClaim);
         assertThrows(IllegalArgumentException.class, () -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
     }

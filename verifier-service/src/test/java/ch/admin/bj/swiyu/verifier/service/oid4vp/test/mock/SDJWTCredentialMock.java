@@ -104,6 +104,83 @@ public class SDJWTCredentialMock {
         return mapper.writeValueAsString(submission);
     }
 
+    public static SDObjectBuilder getClaimsFromSdJwt(List<Disclosure> disclosure) {
+        SDObjectBuilder builder = new SDObjectBuilder();
+
+        var nameDisc = new Disclosure("name", "Max Muster");
+        builder.putSDClaim(nameDisc);
+        disclosure.add(nameDisc);
+
+        // ---------- Address 1 ----------
+        SDObjectBuilder address1 = new SDObjectBuilder();
+        var address1Map = Map.of("city", "Bern", "street", "Bahnhofstrasse", "house_number", 1, "country", "CH");
+        address1Map.forEach((claimName, claimValue) -> {
+            var disc = new Disclosure(claimName, claimValue);
+            address1.putSDClaim(disc);
+            disclosure.add(disc);
+        });
+        var addressDisc1 = new Disclosure(address1.build());
+        disclosure.add(addressDisc1);
+
+        // ---------- Address 2 ----------
+        SDObjectBuilder address2 = new SDObjectBuilder();
+        var address2Map = Map.of("city", "Zürich", "street", "Bahnhofstrasse", "house_number", 10, "country", "CH");
+        address2Map.forEach((claimName, claimValue) -> {
+            var disc = new Disclosure(claimName, claimValue);
+            address2.putSDClaim(disc);
+            disclosure.add(disc);
+        });
+        var addressDisc2 = new Disclosure(address2.build());
+        disclosure.add(addressDisc2);
+
+        var addressList1 = addressDisc1.toArrayElement();
+        var addressList2 = addressDisc2.toArrayElement();
+        var addressesDisc = new Disclosure("addresses", List.of(addressList1, addressList2));
+        builder.putSDClaim(addressesDisc);
+        disclosure.add(addressesDisc);
+
+        var emailDisc = new Disclosure("email", "max@example.com");
+        builder.putSDClaim(emailDisc);
+        disclosure.add(emailDisc);
+
+        return builder;
+    }
+
+    public String createSDJWTMockRecursiveObject(Long validFrom, Long validUntil, Integer statusListIndex, String vct, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {
+
+        SDObjectBuilder builder = new SDObjectBuilder();
+        List<Disclosure> disclosures = new ArrayList<>();
+
+        Map<String, Object> address = Map.of("street", "Bhf str.", "country", "CH", "zip", "8000");
+        Map<String, Object> address2 = Map.of("street", "Bhf str.", "country", "CH", "zip", "3000");
+
+        List<Map<String, Object>> addressList = List.of(address, address2);
+
+        var addresses = addressList.stream().map(addr -> {
+            var addressBuilder = new SDObjectBuilder();
+            addr.forEach((key1, value) -> {
+                var dis = new Disclosure(key1, value);
+                disclosures.add(dis);
+                addressBuilder.putSDClaim(dis);
+            });
+            var addressDisclosure = new Disclosure(addressBuilder.build());
+            disclosures.add(addressDisclosure);
+            return addressDisclosure.toArrayElement();
+        }).toList();
+
+        var addressDisclosure = new Disclosure("addresses", addresses);
+        disclosures.add(addressDisclosure);
+        var companyBuilder = new SDObjectBuilder();
+        companyBuilder.putSDClaim(addressDisclosure);
+        var nameDisc = new Disclosure("name", "Max Muster AG");
+        companyBuilder.putSDClaim(nameDisc);
+        disclosures.add(nameDisc);
+        var companyDisclosure = new Disclosure("company", companyBuilder.build());
+        builder.putSDClaim(companyDisclosure);
+        disclosures.add(companyDisclosure);
+
+        return createSdJWT(builder, disclosures, validFrom, validUntil, statusListIndex, vct, useLegacyCnfFormat, credentialFormat, jwsAlgorithm, skipCnf);
+    }
     /**
      * Adds A second (fake) VC to the VP Token generated to test the Presentation Exchange Credential Selection
      *
@@ -131,33 +208,20 @@ public class SDJWTCredentialMock {
     }
 
     public String createSDJWTMock(boolean useLegacyCnfFormat, String credentialFormat) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, credentialFormat, JWSAlgorithm.ES256, false);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, credentialFormat, false);
     }
 
     public String createSDJWTMock(boolean skipCnf) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, "dc+sd-jwt", JWSAlgorithm.ES256, skipCnf);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, "dc+sd-jwt", skipCnf);
     }
 
-    public String createSDJWTMockWithClaims(Map<String, String> sdClaims) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
+    public String createSDJWTMockWithRecursiveListArray() {
+        return createSDJWTMockRecursiveObject(null, null, null, DEFAULT_VCT, false, "dc+sd-jwt", JWSAlgorithm.ES256, false);
     }
 
-
-    /**
-     * Creates a VC which has a selective disclosure overriding the issuer claim of the jwt
-     */
-    public String createIssuerAttackSDJWTMock() {
-        var sdClaims = getSDClaims();
-        sdClaims.put("iss", "did:example:12344321");
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims);
+    public String createSDJWTMockWithClaims(Map<String, Object> sdClaims) {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims, false, "vc+sd-jwt", false);
     }
-
-    public String createIllegalSDJWTMock() {
-        var sdClaims = getSDClaims();
-        sdClaims.put("iss", "did:example:12344321");
-        return createIllegalSDJWTMock(DEFAULT_VCT, sdClaims);
-    }
-
 
     public String createTrustStatementIssuanceV1(String trustStatementIssuerDid, String trustStatementIssuerKeyId) throws JOSEException {
         return createTrustStatementIssuanceV1(trustStatementIssuerDid, trustStatementIssuerKeyId, this.issuerId);
@@ -208,31 +272,56 @@ public class SDJWTCredentialMock {
         return sdjwt + jwt.serialize();
     }
 
-    private HashMap<String, String> getSDClaims() {
-        HashMap<String, String> claims = new HashMap<>();
+    public static HashMap<String, Object> getSDClaims() {
+        HashMap<String, Object> claims = new HashMap<>();
 
         claims.put("first_name", "TestFirstname");
         claims.put("last_name", "TestLastName");
         claims.put("birthdate", "1949-01-22");
+        claims.put("languages", List.of("DE", "FR", "IT"));
 
         return claims;
     }
 
-    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, String> sdClaims) {
-        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
+    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, Object> sdClaims) {
+        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, "vc+sd-jwt", false);
     }
 
     // Refactor this as soon as issuer and wallet deliver the correct cnf structure
-    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, Map<String, String> sdClaims, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {
+    private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, Map<String, Object> sdClaims, boolean useLegacyCnfFormat, String credentialFormat, boolean skipCnf) {
         SDObjectBuilder builder = new SDObjectBuilder();
         List<Disclosure> disclosures = new ArrayList<>();
 
         sdClaims.forEach((k, v) -> {
-            Disclosure dis = new Disclosure(k, v);
-            builder.putSDClaim(dis);
-            disclosures.add(dis);
+
+            if (v instanceof Collection<?> values) {
+                var disc = values.stream().map(item -> {
+                    var dis = new Disclosure(item);
+                    disclosures.add(dis);
+                    return dis.toArrayElement();
+                }).toList();
+
+                builder.putClaim(k, disc);
+            } else {
+                Disclosure dis = new Disclosure(k, v);
+                builder.putSDClaim(dis);
+                disclosures.add(dis);
+            }
         });
 
+        return createSdJWT(builder, disclosures, validFrom, validUntil, statusListIndex, vct,  useLegacyCnfFormat, credentialFormat, JWSAlgorithm.ES256, skipCnf);
+    }
+
+    public String createNestedSDJWTMock() {
+
+        List<Disclosure> disclosures = new ArrayList<>();
+
+        var builder = getClaimsFromSdJwt(disclosures);
+
+        return createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
+    }
+
+    public String createSdJWT(SDObjectBuilder builder, List<Disclosure> disclosures, Long validFrom, Long validUntil, Integer statusListIndex, String vct, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {
         builder.putClaim("iss", issuerId);
         builder.putClaim("iat", Instant.now().getEpochSecond());
 
@@ -272,57 +361,6 @@ public class SDJWTCredentialMock {
             Map<String, Object> claims = builder.build();
             var header = new JWSHeader.Builder(jwsAlgorithm)
                     .type(new JOSEObjectType(credentialFormat))
-                    .keyID(kidHeaderValue)
-                    .build();
-            JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);
-            SignedJWT jwt = new SignedJWT(header, claimsSet);
-            JWSSigner signer = new ECDSASigner(key);
-            jwt.sign(signer);
-
-            return new SDJWT(jwt.serialize(), disclosures).toString();
-        } catch (ParseException | JOSEException e) {
-            throw new AssertionError(e);
-        }
-    }
-
-    /**
-     * Create a SD-JWT which has claims which are mandatory to be disclosed as disclosable claims
-     */
-    private String createIllegalSDJWTMock(String vct, HashMap<String, String> sdClaims) {
-        SDObjectBuilder builder = new SDObjectBuilder();
-        List<Disclosure> disclosures = new ArrayList<>();
-
-        sdClaims.forEach((k, v) -> {
-            Disclosure dis = new Disclosure(k, v);
-            builder.putSDClaim(dis);
-            disclosures.add(dis);
-        });
-
-        // vct & cnf among others have to be always included - they may not be selectively disclosed
-        var mandatoryClaims = Map.of(
-                "vct", vct,
-                "cnf", holderKey.toPublicJWK().toJSONObject()
-        );
-        mandatoryClaims.forEach((k, v) -> {
-            if (v == null) {
-                return;
-            }
-            Disclosure dis = new Disclosure(k, v);
-            builder.putSDClaim(dis);
-            disclosures.add(dis);
-        });
-
-        // issuer will be caught even before getting to selective disclosures.
-        builder.putClaim("iss", issuerId);
-
-
-        builder.putClaim("iat", Instant.now().getEpochSecond());
-
-
-        try {
-            Map<String, Object> claims = builder.build();
-            var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("vc+sd-jwt"))
                     .keyID(kidHeaderValue)
                     .build();
             JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);

@@ -16,6 +16,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.Map;
@@ -90,5 +92,23 @@ class DcqlPresentationVerificationServiceTest {
         // Act + Assert
         var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
         assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void process_whenNotMultiple_throwsVerificationException(boolean useDefaultValue) {
+        Boolean multiple = useDefaultValue == true ? null: Boolean.FALSE;
+        // Arrange
+        var management = mock(Management.class);
+        var credentialId = "cred-1";
+        var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
+        var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
+        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, multiple);
+        var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
+        when(management.getDcqlQuery()).thenReturn(dcqlQuery);
+        var vpToken = "vp-token-sdjwt";
+        // Create Presentation with 2 credentials being presented
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken, vpToken)));
+        assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
     }
 }

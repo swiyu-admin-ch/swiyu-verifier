@@ -50,7 +50,7 @@ public class DcqlPresentationVerificationService {
                 throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp token for requested credential id " + requestedCredential.getId());
             }
             var requestedVpTokens = vpTokens.get(requestedCredential.getId());
-            if (Boolean.FALSE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
+            if (!Boolean.TRUE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
                 throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Expected only 1 vp token for " + requestedCredential.getId());
             }
 

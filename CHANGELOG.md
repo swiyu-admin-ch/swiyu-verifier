@@ -5,20 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## latest (3.0.0)
+## [3.0.0] - 2026-04-07
 
 ### Added
-- OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallet to adopt it
-- Added possibility to configure the `maxCompressedCipherTextLength` for the JWE encryption of the VP response. The default value is 100000, which is sufficient for most cases and should only be changed in very exclusive scenarios.
-- Recursive SD-JWT disclosure resolution and validation:
-  - Resolve nested `_sd` entries in objects and arrays, inserting claim name/value pairs from disclosures at the `_sd` level and recursively processing the inserted values.
-- Added `Swiss Government Root CA VI` to image
+- OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallets to adopt it. `(#-656)`
+- Added possibility to configure `maxCompressedCipherTextLength` for JWE encryption of the VP response. The default value is 100000 and should only be changed in exclusive scenarios. `(#-801)`
+- Recursive SD-JWT disclosure resolution and validation: resolves nested `_sd` entries in objects and arrays, inserting claim name/value pairs from disclosures at the `_sd` level and recursively processing inserted values. `(#-696)`
+- Added `aud` claim to the JWT-Secured Authorization Request (JAR). `(#-653)`
+- Added `Swiss Government Root CA VI` to the container image. `(#-683)`
 
 ### Changed
-- tbd
+- Updated `spring-boot-starter-parent` to version 3.4.13.
 
 ### Fixed
 - Fixed a TOCTOU race condition on the VP response endpoint (`direct_post`, `direct_post.jwt`) that allowed two concurrent wallet submissions for the same session to both be accepted, leading to non-deterministic verification results.
+- Fixed actuator env configuration parsing. `(#-800)`
+- Fixed incorrect default behaviour when `DCQL multiple=false`. `(#-800)`
+- Fixed `require_cryptographic_holder_binding` to correctly control whether holder binding validation is enforced. `(#-751)`
+- Fixed `maxCompressedCipherTextLength` to be configurable via environment variable to prevent excessive memory usage. `(#-801)`
 
 
 ## 2.3.0

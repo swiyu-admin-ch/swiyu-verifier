@@ -280,10 +280,19 @@ For easy playground setup security starts deactivated. It is activated when the 
 
 Other properties as defined by spring can be used.
 
-
-
-
 Multitenancy is not supported.
+
+### Adding certificates to the image via the `certs` directory
+
+To add additional CA or TLS certificates to the application image, place PEM encoded files into the project `certs`
+directory (path: `./certs`) and rebuild the image. Certificates must end with `crt`. Do not store private keys
+in `certs`.
+
+Steps:
+
+1. Copy one or more `.crt` files to `./certs` (e.g. `my-ca.crt`).
+2. Rebuild the Docker image so the files are included.
+3. Certificates are imported into the truststore during image build.
 
 ## Usage
 

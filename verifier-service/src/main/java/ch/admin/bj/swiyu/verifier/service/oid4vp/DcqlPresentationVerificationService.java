@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
+import com.authlete.sd.SDObjectDecoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ public class DcqlPresentationVerificationService {
                 throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp token for requested credential id " + requestedCredential.getId());
             }
             var requestedVpTokens = vpTokens.get(requestedCredential.getId());
-            if (Boolean.FALSE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
+            if (!Boolean.TRUE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
                 throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Expected only 1 vp token for " + requestedCredential.getId());
             }
 
@@ -68,9 +69,11 @@ public class DcqlPresentationVerificationService {
 
 
     private List<Map<String, Object>> extractClaimsList(List<SdJwt> sdJwts) {
+        var decoder = new SDObjectDecoder();
         return sdJwts.stream()
-                .map(sdJwt -> sdJwt.getClaims().getClaims())
+                .map(sdJwt -> decoder.decode(sdJwt.getClaims().getClaims(), sdJwt.getDisclosures()))
                 .toList();
+
     }
 
     private String writeAsString(Object object) {

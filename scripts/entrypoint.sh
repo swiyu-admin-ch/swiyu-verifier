@@ -1,21 +1,17 @@
 #!/bin/bash
 
-#
-
-#
-
 # Add microservice CAs
 echo "Adding certificates to Java truststore:"
 if ls /certs-app/*.crt &> /dev/null; then
-    for f in $(ls /certs-app/*.crt); do
-        CERT=$f
-        CERT_ALIAS=$(basename $CERT .crt)
+    for CERT in /certs-app/*.crt; do
+        CERT_ALIAS=$(basename "$CERT" .crt)
         echo " => adding $CERT as $CERT_ALIAS to truststore"
-        $JAVA_HOME/bin/keytool -importcert -file $CERT -alias $CERT_ALIAS -cacerts -storepass changeit -noprompt -trustcacerts
+        "$JAVA_HOME"/bin/keytool -importcert -file "$CERT" -alias "$CERT_ALIAS" -cacerts -storepass changeit -noprompt -trustcacerts
     done
 else
     echo " => No certificates found, skipping"
 fi
+
 
 
 # If the directory provided through environment variable $JAVA_BOOTCLASSPATH exists, we gather up all .jar files in it and append them to the classpath.

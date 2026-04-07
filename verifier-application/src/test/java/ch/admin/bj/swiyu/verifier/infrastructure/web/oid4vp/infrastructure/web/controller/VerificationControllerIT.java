@@ -841,11 +841,24 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
+        var parts = unsignedSdJwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
+        var disclosures = Arrays.copyOfRange(parts, 1, parts.length);
+        var discList = new java.util.ArrayList<>(Arrays.asList(disclosures));
+            // remove index 2 first, then index 1 to keep indices stable
+            discList.remove(2);
+            discList.remove(1);
+        var rebuiltSdJwt = parts[0]
+                + SdJwt.JWT_PART_DELINEATION_CHARACTER
+                + StringUtils.join(discList, SdJwt.JWT_PART_DELINEATION_CHARACTER)
+                + SdJwt.JWT_PART_DELINEATION_CHARACTER;
+
+        var sdJwt = emulator.addKeyBindingProof(rebuiltSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+
+        // remove unused list disclosures
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
@@ -856,11 +869,13 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+
         assertThat(managementEntity.getWalletResponse().credentialSubjectData())
                 .contains("first_name")
                 .contains("TestFirstname")
                 .contains("last_name")
-                .contains("TestLastName");
+                .contains("TestLastName")
+                .contains("languages");
     }
 
     @Test
@@ -881,6 +896,27 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .andExpect(status().isOk());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
+
+    @Test
+    void testDCQLNestedEndpoint_withKeybinding_thenSuccess() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createNestedSDJWTMock();
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
+
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_NESTED_SECURED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isOk());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_NESTED_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
@@ -1331,4 +1367,3 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 }
-

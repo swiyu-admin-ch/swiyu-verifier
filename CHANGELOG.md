@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallet to adopt it
 - Added possibility to configure the `maxCompressedCipherTextLength` for the JWE encryption of the VP response. The default value is 100000, which is sufficient for most cases and should only be changed in very exclusive scenarios.
+- Recursive SD-JWT disclosure resolution and validation:
+  - Resolve nested `_sd` entries in objects and arrays, inserting claim name/value pairs from disclosures at the `_sd` level and recursively processing the inserted values.
+- Added `Swiss Government Root CA VI` to image
 
 ### Changed
 - tbd

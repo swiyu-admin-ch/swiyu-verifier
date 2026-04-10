@@ -215,6 +215,25 @@ class SdJwtVpTokenVerifierTest {
     }
 
     @Test
+    void processDisclosuresRecursive_withDuplicatedDigest_thenError() throws ParseException {
+
+        List<Disclosure> disclosure = new ArrayList<>();
+
+        var claimsForSdJWT = getClaimsFromWithDuplicatedDigetsSdJwt(disclosure);
+
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
+
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        var ex = assertThrows(VerificationException.class, () -> verifier.processDisclosures(claimsSet, disclosure, UUID.randomUUID()));
+        assertThat(ex.getErrorResponseCode())
+                .as("Should throw malformed credential error when disclosure claim name collides with existing claim")
+                .isEqualTo(VerificationErrorResponseCode.MALFORMED_CREDENTIAL);
+        assertThat(ex.getErrorDescription())
+                .as("Should throw understandable error message indicating the claim name collision")
+                .startsWith("Duplicate digest detected");
+    }
+
+    @Test
     void validateDisclosures_whenDeeplyNested_thenSuccess() throws ParseException, JOSEException {
 
         List<Disclosure> disclosure = new ArrayList<>();

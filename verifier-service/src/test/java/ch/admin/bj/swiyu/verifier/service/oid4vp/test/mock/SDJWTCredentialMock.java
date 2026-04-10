@@ -104,6 +104,35 @@ public class SDJWTCredentialMock {
         return mapper.writeValueAsString(submission);
     }
 
+    /**
+     * Adds a second (fake) VC to the VP Token generated to test the Presentation Exchange Credential Selection
+     *
+     * @param sdjwt full sd jwt serialized as string
+     */
+    public static String createMultipleVPTokenMock(String sdjwt) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
+    }
+    public String createSDJWTMock(Integer statusListIndex) {
+        return createSDJWTMock(null, null, statusListIndex, "testCredentialType", getSDClaims());
+    }
+
+    public String createSDJWTMock() {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims());
+    }
+
+    public String createSDJWTMock(Long validFrom) {
+        return createSDJWTMock(validFrom, null, null, DEFAULT_VCT, getSDClaims());
+    }
+
+    public String createSDJWTMock(Long validFrom, Long validUntil) {
+        return createSDJWTMock(validFrom, validUntil, null, DEFAULT_VCT, getSDClaims());
+    }
+
+    public String createSDJWTMock(boolean useLegacyCnfFormat, String credentialFormat) {
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, credentialFormat, false);
+    }
+
     public static SDObjectBuilder getClaimsFromSdJwt(List<Disclosure> disclosure) {
         SDObjectBuilder builder = new SDObjectBuilder();
 
@@ -146,6 +175,34 @@ public class SDJWTCredentialMock {
         return builder;
     }
 
+    public static SDObjectBuilder getClaimsFromWithDuplicatedDigestsSdJwt(List<Disclosure> disclosure) {
+        SDObjectBuilder builder = new SDObjectBuilder();
+
+        var nameDisc = new Disclosure("name", "Max Muster");
+        builder.putSDClaim(nameDisc);
+        disclosure.add(nameDisc);
+
+        SDObjectBuilder address1 = new SDObjectBuilder();
+        var address1Map = Map.of("city", "Bern", "street", "Bahnhofstrasse", "house_number", 1, "country", "CH");
+        address1Map.forEach((claimName, claimValue) -> {
+            var disc = new Disclosure(claimName, claimValue);
+            address1.putSDClaim(disc);
+
+            // add name digest to address claims to create duplicated digests in the SD-JWT
+            address1.putSDClaim(nameDisc);
+            disclosure.add(disc);
+        });
+        var addressDisc1 = new Disclosure(address1.build());
+        disclosure.add(addressDisc1);
+
+        var addressList1 = addressDisc1.toArrayElement();
+        var addressesDisc = new Disclosure("addresses", List.of(addressList1));
+        builder.putSDClaim(addressesDisc);
+        disclosure.add(addressesDisc);
+
+        return builder;
+    }
+
     public String createSDJWTMockRecursiveObject(Long validFrom, Long validUntil, Integer statusListIndex, String vct, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {
 
         SDObjectBuilder builder = new SDObjectBuilder();
@@ -180,35 +237,6 @@ public class SDJWTCredentialMock {
         disclosures.add(companyDisclosure);
 
         return createSdJWT(builder, disclosures, validFrom, validUntil, statusListIndex, vct, useLegacyCnfFormat, credentialFormat, jwsAlgorithm, skipCnf);
-    }
-    /**
-     * Adds A second (fake) VC to the VP Token generated to test the Presentation Exchange Credential Selection
-     *
-     * @param sdjwt full sd jwt serialized as string
-     */
-    public static String createMultipleVPTokenMock(String sdjwt) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
-    }
-
-    public String createSDJWTMock(Integer statusListIndex) {
-        return createSDJWTMock(null, null, statusListIndex, "testCredentialType", getSDClaims());
-    }
-
-    public String createSDJWTMock() {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims());
-    }
-
-    public String createSDJWTMock(Long validFrom) {
-        return createSDJWTMock(validFrom, null, null, DEFAULT_VCT, getSDClaims());
-    }
-
-    public String createSDJWTMock(Long validFrom, Long validUntil) {
-        return createSDJWTMock(validFrom, validUntil, null, DEFAULT_VCT, getSDClaims());
-    }
-
-    public String createSDJWTMock(boolean useLegacyCnfFormat, String credentialFormat) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), useLegacyCnfFormat, credentialFormat, false);
     }
 
     public String createSDJWTMock(boolean skipCnf) {

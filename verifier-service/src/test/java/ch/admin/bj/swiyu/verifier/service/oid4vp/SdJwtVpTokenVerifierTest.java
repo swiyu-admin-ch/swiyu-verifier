@@ -219,7 +219,7 @@ class SdJwtVpTokenVerifierTest {
 
         List<Disclosure> disclosure = new ArrayList<>();
 
-        var claimsForSdJWT = getClaimsFromWithDuplicatedDigetsSdJwt(disclosure);
+        var claimsForSdJWT = getClaimsFromWithDuplicatedDigestsSdJwt(disclosure);
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
 

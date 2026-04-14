@@ -84,7 +84,7 @@ class IssuerPublicKeyLoaderTest {
     @Test
     void testLoadPublicKeyWithIssuerFromTdw() throws Exception {
         // given
-        String issuerDidTdw = "did:web:tdw.example";
+        String issuerDidTdw = "did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000";
         String issuerKeyId = issuerDidTdw + "#key-1";
         String fragment = "key-1";
 

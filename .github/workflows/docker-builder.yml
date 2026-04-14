@@ -88,3 +88,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile
+
+      - name: Monitor Snyk for vulnerabilities in code 📦
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_API: https://api.eu.snyk.io
+          SNYK_ORG: ${{ secrets.SNYK_ORG }}
+        with:
+          # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
+          args: monitor --maven-aggregate-project --severity-threshold=high
+
+      - name: Monitor Snyk for vulnerabilities in image 🐳
+        uses: snyk/actions/docker@master
+        with:
+          args: monitor --docker ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_API: https://api.eu.snyk.io
+          SNYK_ORG: ${{ secrets.SNYK_ORG }}

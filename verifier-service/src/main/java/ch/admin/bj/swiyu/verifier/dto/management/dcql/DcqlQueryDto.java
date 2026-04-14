@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.dto.management.dcql;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.extensions.Extension;
 import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
@@ -64,6 +65,7 @@ import java.util.List;
     }
     """
 )
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record DcqlQueryDto(
 
         @Schema(description = "A non-empty array of Credential Queries that specify the requested Credentials. " +

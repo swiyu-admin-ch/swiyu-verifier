@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.domain.management.dcql;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

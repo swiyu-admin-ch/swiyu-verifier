@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.dto.management.dcql;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Schema(description = "Represents a Credential Set Query within a DCQL query according to " +
         "https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.2")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record DcqlCredentialSetDto(
 
         @Schema(description = "A non-empty array, where each value in the array is a list of Credential Query " +

@@ -30,6 +30,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  IMAGE_VERSION_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.version_tag || 'main' }} # var to determine the correct tag in normal pull request merge when no version is set
 
 # Github documentation
 jobs:
@@ -90,19 +91,22 @@ jobs:
           file: Dockerfile
 
       - name: Monitor Snyk for vulnerabilities in code 📦
-        uses: snyk/actions/docker@master
+        uses: snyk/actions/maven-3-jdk-21@master
         env:
+          JAVA_HOME: '' # Snyk action sets JAVA_HOME to a path that is not compatible with the setup-java action, so we need to reset it here
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
         with:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
-          args: monitor --maven-aggregate-project --severity-threshold=high
-
+          command: monitor
+          args: --maven-aggregate-project --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG  }}
       - name: Monitor Snyk for vulnerabilities in image 🐳
         uses: snyk/actions/docker@master
         with:
-          args: monitor --docker ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+          command: monitor
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}
+          args: --severity-threshold=high --severity-threshold=high--project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

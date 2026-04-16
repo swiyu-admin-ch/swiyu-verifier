@@ -198,19 +198,19 @@ public abstract class BaseVerificationControllerTest {
         managementEntityRepository.deleteAll();
     }
 
-    private PresentationDefinition presentationDefinition(String presentationDefinitionJson) throws JsonProcessingException {
+    PresentationDefinition presentationDefinition(String presentationDefinitionJson) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readValue(presentationDefinitionJson, PresentationDefinition.class);
     }
 
-    private DcqlQuery dcqlQuery(String dcqlQuery) throws JsonProcessingException {
+    DcqlQuery dcqlQuery(String dcqlQuery) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readValue(dcqlQuery, DcqlQuery.class);
     }
 
 
 
-    private static String presentationDefinitionJson() {
+    static String presentationDefinitionJson() {
         return """
                 {
                   "id": "cf244758-00f9-4fa0-83ff-6719bac358a2",
@@ -287,7 +287,7 @@ public abstract class BaseVerificationControllerTest {
                 """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT);
     }
 
-    private static String dcqlQueryJsonWithCryptographicHolderBinding(boolean requireCryptographicHolderBinding) {
+     static String dcqlQueryJsonWithCryptographicHolderBinding(boolean requireCryptographicHolderBinding) {
         return """
                 {
                 "credentials": [

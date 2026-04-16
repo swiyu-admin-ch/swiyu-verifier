@@ -452,16 +452,23 @@ public class SdJwtVpTokenVerifier {
             if (element.isObject() && element.has("...")) {
                 String digest = element.get("...").asText();
 
-                if (!digestMap.containsKey(digest)) continue;
+                JsonNode value;
 
-                usedDigests.add(digest);
-                var disclosure = digestMap.get(digest);
+                if (digestMap.containsKey(digest)) {
+                    usedDigests.add(digest);
+                    var disclosure = digestMap.get(digest);
 
-                if (disclosure.getClaimName() != null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
-                    throw credentialError(MALFORMED_CREDENTIAL, "Illegal non-array disclosure found");
+                    if (disclosure.getClaimName() != null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
+                        throw credentialError(MALFORMED_CREDENTIAL, "Illegal non-array disclosure found");
+                    }
+
+                    value = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
+                } else {
+                    // if value is not requested, add digest to array otherwise index access won't work
+                    value = objectMapper.convertValue(digest, JsonNode.class);
                 }
 
-                var value = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
+
                 newArray.add(processNode(value, digestMap, usedDigests));
             } else {
                 newArray.add(processNode(element, digestMap, usedDigests));

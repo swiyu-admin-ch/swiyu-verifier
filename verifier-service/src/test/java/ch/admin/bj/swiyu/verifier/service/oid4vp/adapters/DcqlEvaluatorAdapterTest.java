@@ -4,7 +4,6 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.adapters.DcqlEvaluatorAdapter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;

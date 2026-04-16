@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.controller;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
+import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto;
@@ -8,10 +9,6 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
-import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
-import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
@@ -20,6 +17,7 @@ import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import com.authlete.sd.Disclosure;
+import com.authlete.sd.SDObjectBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
@@ -49,20 +47,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import javax.sql.DataSource;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto.INVALID_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.getMultiplePresentationSubmissionString;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.getPresentationSubmissionString;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -918,6 +913,76 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_NESTED_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
+
+    @Test
+    void testDCQLNestedEndpoint_forArray_thenSuccess() throws Exception {
+
+        var dcqlCredentialId = UUID.randomUUID();
+
+        var dcqlQuery = """
+                {
+                "credentials": [
+                    {
+                      "id": "%s",
+                      "format": "dc+sd-jwt",
+                      "meta": {
+                        "vct_values": [ "%s" ]
+                      },
+                      "require_cryptographic_holder_binding": true,
+                      "claims": [
+                          {"path": ["languages", 2], "values": ["IT"]}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(dcqlCredentialId, SDJWTCredentialMock.DEFAULT_VCT);
+
+        managementEntityRepository.save(Management.builder()
+                .id(dcqlCredentialId)
+                .jwtSecuredAuthorizationRequest(false)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .dcqlQuery(dcqlQuery(dcqlQuery))
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .build());
+
+        // GIVEN
+        List<Disclosure> disclosures = new ArrayList<>();
+        SDObjectBuilder builder = new SDObjectBuilder();
+        var languages = Stream.of("DE", "FR", "IT").map(lang -> {
+            var languageDisclosure = new Disclosure(lang);
+            disclosures.add(languageDisclosure);
+            return languageDisclosure.toArrayElement();
+        }).toList();
+
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var languagesDisclosure = new Disclosure("languages", languages);
+        disclosures.add(languagesDisclosure);
+        builder.putSDClaim(languagesDisclosure);
+
+        var used = disclosures.stream().filter(disc -> (Objects.equals(disc.getClaimName(), "languages") || disc.getClaimValue().equals("IT"))).toList();
+        var sdjwtWithoutKeyBinding = emulator.createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
+        var test = sdjwtWithoutKeyBinding.split("~")[0]
+                .concat(used.stream().map(disc -> "~" + disc.toString()).reduce("", String::concat))
+                .concat("~");
+
+        var sdJwt = emulator.addKeyBindingProof(test, NONCE_SD_JWT_SQL, applicationProperties.getClientId());
+
+        mockDidResolverResponse(emulator);
+        var vpToken = Map.of(dcqlCredentialId, List.of(sdJwt));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, dcqlCredentialId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("vp_token", submissionData))
+                .andExpect(status().isOk());
     }
 
     @Test

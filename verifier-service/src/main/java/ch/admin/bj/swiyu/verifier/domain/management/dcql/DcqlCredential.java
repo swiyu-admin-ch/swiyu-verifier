@@ -1,7 +1,6 @@
 package ch.admin.bj.swiyu.verifier.domain.management.dcql;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotEmpty;

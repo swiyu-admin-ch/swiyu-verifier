@@ -338,7 +338,7 @@ public class SdJwtVpTokenVerifier {
 
         log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntityId);
 
-        Set<String> usedDigests = new HashSet<>();
+        List<String> usedDigests = new LinkedList<>();
 
         JsonNode processed = processNode(claims, digestToDisclosure, usedDigests);
 
@@ -366,7 +366,7 @@ public class SdJwtVpTokenVerifier {
 
     private JsonNode processNode(JsonNode node,
                                  Map<String, Disclosure> digestMap,
-                                 Set<String> usedDigests) {
+                                 List<String> usedDigests) {
         if (node.isObject()) {
             return processObjectNode((ObjectNode) node, digestMap, usedDigests);
         }
@@ -380,7 +380,7 @@ public class SdJwtVpTokenVerifier {
 
     private JsonNode processObjectNode(ObjectNode object,
                                        Map<String, Disclosure> digestMap,
-                                       Set<String> usedDigests) {
+                                       List<String> usedDigests) {
         // if no _sd key present, just recurse into fields
         if (!object.has("_sd")) {
             Iterator<String> fields = object.fieldNames();
@@ -413,7 +413,7 @@ public class SdJwtVpTokenVerifier {
     private void handleSdArray(ObjectNode object,
                                ArrayNode sdArray,
                                Map<String, Disclosure> digestMap,
-                               Set<String> usedDigests) {
+                               List<String> usedDigests) {
         for (JsonNode digestNode : sdArray) {
             String digest = digestNode.asText();
 
@@ -445,7 +445,7 @@ public class SdJwtVpTokenVerifier {
 
     private JsonNode processArrayNode(ArrayNode array,
                                       Map<String, Disclosure> digestMap,
-                                      Set<String> usedDigests) {
+                                      List<String> usedDigests) {
         ArrayNode newArray = objectMapper.createArrayNode();
 
         for (JsonNode element : array) {

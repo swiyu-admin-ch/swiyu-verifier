@@ -84,21 +84,21 @@ class IssuerPublicKeyLoaderTest {
     @Test
     void testLoadPublicKeyWithIssuerFromTdw() throws Exception {
         // given
-        String issuerDidTdw = "did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000";
-        String issuerKeyId = issuerDidTdw + "#key-1";
+        String issuerDidWebvh = "did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000";
+        String issuerKeyId = issuerDidWebvh + "#key-1";
         String fragment = "key-1";
 
         try(DidDoc issuerDidDocument = DidDocFixtures.issuerDidDocWithJsonWebKey(
-                issuerDidTdw,
+                issuerDidWebvh,
                 issuerKeyId,
                 KeyFixtures.issuerPublicKeyAsJsonWebKey())) {
 
             // adapt mock to new resolveDid(did, fragment) API returning Jwk
-            when(mockedDidResolverFacade.resolveDid(issuerDidTdw, fragment))
+            when(mockedDidResolverFacade.resolveDid(issuerDidWebvh, fragment))
                     .thenReturn(issuerDidDocument.getKey(fragment));
 
             // WHEN
-            var publicKey = publicKeyLoader.loadPublicKey(issuerDidTdw, issuerKeyId);
+            var publicKey = publicKeyLoader.loadPublicKey(issuerDidWebvh, issuerKeyId);
 
             // THEN
             assertThat(publicKey.getAlgorithm()).isEqualTo("EC");

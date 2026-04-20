@@ -65,11 +65,6 @@
             <artifactId>jna</artifactId>
             <version>${jna.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.github.swiyu-admin-ch</groupId>
-            <artifactId>didresolver</artifactId>
-            <version>${didresolver.version}</version>
-        </dependency>
 
         <!-- SD-JWT -->
         <!-- https://mvnrepository.com/artifact/com.authlete/sd-jwt -->

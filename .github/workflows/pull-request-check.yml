@@ -96,6 +96,7 @@ jobs:
         uses: snyk/actions/docker@master
         continue-on-error: false
         with:
+          # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           image: pull_request_check:latest
           args: --file=Dockerfile --severity-threshold=high --exclude-base-image-vulns
         env:

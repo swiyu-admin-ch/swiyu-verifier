@@ -73,7 +73,7 @@ jobs:
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
         with:
-            # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
+          # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           args: --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif
       - name: Upload result as sarif to GitHub Code Scanning 📦
         if: always() # We want to upload the SARIF file even if the Snyk action fails, to have the results in the Code Scanning tab of GitHub

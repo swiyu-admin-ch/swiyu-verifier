@@ -104,6 +104,7 @@ jobs:
       - name: Monitor Snyk for vulnerabilities in image 🐳
         uses: snyk/actions/docker@master
         with:
+          # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           command: monitor
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}
           args: --severity-threshold=high --severity-threshold=high--project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }}

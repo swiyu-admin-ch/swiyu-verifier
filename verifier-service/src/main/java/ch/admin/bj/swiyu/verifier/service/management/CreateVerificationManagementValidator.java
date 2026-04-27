@@ -19,12 +19,11 @@ public class CreateVerificationManagementValidator {
         if (request == null) {
             throw new IllegalArgumentException("CreateVerificationManagement must not be null");
         }
-        if (request.presentationDefinition() == null) {
-            // Until the wallet is migrated we MUST provide a presentation definition.
-            throw new IllegalArgumentException("PresentationDefinition must be provided");
-        }
 
         var dcqlQueryDto = request.dcqlQuery();
+        if (dcqlQueryDto == null) {
+            throw new IllegalArgumentException("dcql_query is required");
+        }
         if (dcqlQueryDto != null) {
             if (dcqlQueryDto.credentials().stream().anyMatch(cred -> Boolean.TRUE.equals(cred.multiple()))) {
                 // Currently supporting only 1 vp token per credential query

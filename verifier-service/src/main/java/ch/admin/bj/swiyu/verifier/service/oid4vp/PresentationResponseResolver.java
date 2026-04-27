@@ -66,18 +66,8 @@ public class PresentationResponseResolver {
         }
 
         return switch (apiVersion) {
-            case ID2 -> mapId2Payload(payload);
             case V1 -> mapV1Payload(payload);
         };
-    }
-
-    private PresentationResult mapId2Payload(VerificationPresentationUnionDto payload) {
-        if (!payload.isPresentationExchange()) {
-            throw submissionError(
-                    VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM,
-                    "Incomplete submission for ID2, must contain vp_token and presentation_submission");
-        }
-        return new PresentationResult.PresentationExchange(VerificationPresentationMapper.toStandardPresentation(payload));
     }
 
     private PresentationResult mapV1Payload(VerificationPresentationUnionDto payload) {

@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.dto.requestobject;
 
-import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
@@ -64,16 +63,6 @@ public class RequestObjectDto {
 
     @JsonProperty("version")
     private String version;
-
-    @JsonProperty("presentation_definition")
-    @Schema(
-        description = """
-            Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition.
-            This field is only used for requests initiated with the older Presentation Exchange (PE) format.
-            """,
-        requiredMode = Schema.RequiredMode.NOT_REQUIRED
-    )
-    private PresentationDefinitionDto presentationDefinition;
 
     @JsonProperty("dcql_query")
     @Schema(

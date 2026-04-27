@@ -4,14 +4,13 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlVpTokenVerifier;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 /**
- * Adapter implementation of {@link LegacyPresentationVerifier} that delegates VP token verification
+ * Adapter implementation of {@link PresentationVerifier} that delegates VP token verification
  * to the existing {@link DcqlVpTokenVerifier} domain service.
  */
 @Service

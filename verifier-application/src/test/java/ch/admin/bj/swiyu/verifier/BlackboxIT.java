@@ -4,9 +4,6 @@ import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
-import ch.admin.bj.swiyu.verifier.dto.definition.ConstraintDto;
-import ch.admin.bj.swiyu.verifier.dto.definition.InputDescriptorDto;
-import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.*;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
@@ -193,10 +190,8 @@ class BlackboxIT {
 
         // Wallet sends valid credential, should be rejected
         var vpToken = createMockCredential(nonce);
-        var presentationSubmission = SDJWTCredentialMock.getPresentationSubmissionString(UUID.randomUUID());
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("presentation_submission", presentationSubmission)
                         .formField("vp_token", vpToken))
                 .andExpect(status().isBadRequest())
         );
@@ -238,10 +233,9 @@ class BlackboxIT {
 
         // Wallet sends valid credential, should be rejected
         var vpToken = createMockCredential(nonce);
-        var presentationSubmission = SDJWTCredentialMock.getPresentationSubmissionString(UUID.randomUUID());
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("response", buildJWTResponse(Map.of("presentation_submission", presentationSubmission,"vp_token", vpToken), createResponseDto.id())))
+                        .formField("response", buildJWTResponse(Map.of("vp_token", vpToken), createResponseDto.id())))
                 .andExpect(status().isBadRequest()));
 
         // Status should not have changed, status should not change
@@ -290,43 +284,13 @@ class BlackboxIT {
         return assertDoesNotThrow(() -> objectMapper.readValue(createVerificationResult.getResponse().getContentAsString(), ManagementResponseDto.class));
     }
 
-    private static CreateVerificationManagementDto createDtoAsContentBody() {
-        return CreateVerificationManagementDto.builder()
-                .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
-                .jwtSecuredAuthorizationRequest(true)
-                .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
-                .presentationDefinition(PresentationDefinitionDto.builder()
-                        .inputDescriptors(List.of(new InputDescriptorDto(
-                                UUID.randomUUID().toString(),
-                                "input_description_name",
-                                "input_description_purpose",
-                                ApiFixtures.formatAlgorithmDtoMap(),
-                                new ConstraintDto(UUID.randomUUID().toString(), null, null, ApiFixtures.formatAlgorithmDtoMap(), List.of(ApiFixtures.fieldDto(List.of(".first_name"))))
-                        )))
-                        .id(UUID.randomUUID().toString())
-                        .format(ApiFixtures.formatAlgorithmDtoMap())
-                        .build()).build();
-    }
-
     private static CreateVerificationManagementDto createDtoAsContentBodyWithDCQL(ResponseModeTypeDto responseModeTypeDto) {
         return CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
                 .jwtSecuredAuthorizationRequest(true)
                 .responseMode(responseModeTypeDto)
-                .presentationDefinition(
-                        PresentationDefinitionDto.builder()
-                        .inputDescriptors(List.of(new InputDescriptorDto(
-                                UUID.randomUUID().toString(),
-                                "input_description_name",
-                                "input_description_purpose",
-                                ApiFixtures.formatAlgorithmDtoMap(),
-                                // .first_name field in constraints as at least one is required.
-                                new ConstraintDto(UUID.randomUUID().toString(), null, null, ApiFixtures.formatAlgorithmDtoMap(), List.of(ApiFixtures.fieldDto(List.of(".first_name"))))
-                        )))
-                        .id(UUID.randomUUID().toString())
-                        .format(ApiFixtures.formatAlgorithmDtoMap())
-                        .build()
-                ).dcqlQuery(ApiFixtures.getDcqlQueryDto()).build();
+                .dcqlQuery(ApiFixtures.getDcqlQueryDto())
+                .build();
     }
 
     private static CreateVerificationManagementDto createNestedDtoAsContentBodyWithDCQL(ResponseModeTypeDto responseModeTypeDto) {
@@ -334,20 +298,7 @@ class BlackboxIT {
                 .acceptedIssuerDids(List.of(ACCEPTED_ISSUER))
                 .jwtSecuredAuthorizationRequest(true)
                 .responseMode(responseModeTypeDto)
-                .presentationDefinition(
-                        PresentationDefinitionDto.builder()
-                                .inputDescriptors(List.of(new InputDescriptorDto(
-                                        UUID.randomUUID().toString(),
-                                        "input_description_name",
-                                        "input_description_purpose",
-                                        ApiFixtures.formatAlgorithmDtoMap(),
-                                        // .first_name field in constraints as at least one is required.
-                                        new ConstraintDto(UUID.randomUUID().toString(), null, null, ApiFixtures.formatAlgorithmDtoMap(), List.of(ApiFixtures.fieldDto(List.of(".first_name"))))
-                                )))
-                                .id(UUID.randomUUID().toString())
-                                .format(ApiFixtures.formatAlgorithmDtoMap())
-                                .build()
-                ).dcqlQuery(ApiFixtures.getDcqlQueryForNestedAddressDto()).build();
+                .dcqlQuery(ApiFixtures.getDcqlQueryForNestedAddressDto()).build();
     }
 
     private static Stream<Arguments> provideCreateDtosDirectPost() {
@@ -364,7 +315,6 @@ class BlackboxIT {
 
     private static Stream<Arguments> provideCreateDtosDirectPostJwt() {
         return Stream.of(
-                Arguments.of(createDtoAsContentBody()),
                 Arguments.of(createDtoAsContentBodyWithDCQL(ResponseModeTypeDto.DIRECT_POST_JWT))
         );
     }

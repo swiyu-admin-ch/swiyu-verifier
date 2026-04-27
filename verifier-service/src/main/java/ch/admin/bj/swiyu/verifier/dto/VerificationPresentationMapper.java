@@ -23,23 +23,6 @@ public class VerificationPresentationMapper {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
-     * Maps a union DTO to a standard Presentation Exchange DTO.
-     *
-     * @param payload union payload
-     * @return mapped standard presentation
-     * @throws IllegalArgumentException if the payload does not match the expected shape
-     */
-    public static VerificationPresentationRequestDto toStandardPresentation(VerificationPresentationUnionDto payload) {
-        if (payload == null || !payload.isPresentationExchange()) {
-            throw new IllegalArgumentException("Union DTO does not contain standard presentation data");
-        }
-        var dto = new VerificationPresentationRequestDto();
-        dto.setVpToken((String) payload.getVp_token());
-        dto.setPresentationSubmission(payload.getPresentation_submission());
-        return dto;
-    }
-
-    /**
      * Maps a union DTO to a rejection DTO.
      *
      * @param payload union payload

@@ -12,17 +12,11 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
-import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRequestDto;
-import ch.admin.bj.swiyu.verifier.service.PresentationVerificationStrategyRegistry;
 import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementTransactionalService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationSubmissionService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerificationStrategy;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -48,10 +42,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.getPresentationSubmissionString;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.getSDClaims;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class PresentationVerificationUsecaseTest {
@@ -61,11 +54,9 @@ class PresentationVerificationUsecaseTest {
     private Management managementEntity;
     private UUID managementId;
     private ManagementRepository managementRepository;
-    private LegacyPresentationVerifier legacyPresentationVerifier;
     private PresentationVerifier presentationVerifier;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
     private ObjectMapper objectMapper;
-    private PresentationVerificationStrategyRegistry strategyRegistry;
 
     @BeforeEach
     void setUp() {
@@ -76,19 +67,14 @@ class PresentationVerificationUsecaseTest {
 
         objectMapper = new ObjectMapper();
         callbackEventProducer = mock(CallbackEventProducer.class);
-        legacyPresentationVerifier = mock(LegacyPresentationVerifier.class);
         presentationVerifier = mock(PresentationVerifier.class);
         dcqlPresentationVerificationService = mock(DcqlPresentationVerificationService.class);
-        strategyRegistry = mock(PresentationVerificationStrategyRegistry.class);
 
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-        var submissionService = new PresentationSubmissionService(validator);
-        var presentationVerificationService = new PresentationVerificationService(strategyRegistry, submissionService);
 
         presentationVerificationUsecase = new PresentationVerificationUsecase(
                 callbackEventProducer,
                 dcqlPresentationVerificationService,
-                presentationVerificationService,
                 managementService
         );
 
@@ -102,28 +88,6 @@ class PresentationVerificationUsecaseTest {
         when(managementEntity.getExpiresAt()).thenReturn(System.currentTimeMillis() + 900_000L);
         when(managementEntity.getId()).thenReturn(managementId);
         when(managementEntity.isProcessStillOpen()).thenReturn(true);
-    }
-
-    @Test
-    void receiveVerificationPresentation_thenSuccess() throws JsonProcessingException {
-        var vpToken = getVpToken();
-        var mockRequest = getMockRequest(vpToken, getPresentationSubmissionString(UUID.randomUUID()));
-
-        when(legacyPresentationVerifier.verify(vpToken, managementEntity)).thenReturn("credential-data");
-        // stub registry with a strategy delegating to stringPresentationVerifier
-        when(strategyRegistry.getStrategy(anyString())).thenReturn(new PresentationVerificationStrategy() {
-            @Override
-            public String verify(String vpToken, Management managementEntity, ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto presentationSubmission) {
-                return legacyPresentationVerifier.verify(vpToken, managementEntity);
-            }
-            @Override
-            public String getSupportedFormat() { return "vc+sd-jwt"; }
-        });
-
-        presentationVerificationUsecase.receiveVerificationPresentation(managementId, mockRequest);
-
-        verify(managementEntity).verificationSucceeded("credential-data");
-        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     @Test
@@ -161,24 +125,6 @@ class PresentationVerificationUsecaseTest {
     }
 
     /**
-     * Simulates a session that is already IN_PROGRESS/FAILED/SUCCESS (not PENDING anymore).
-     * claimSessionForProcessing must throw VerificationException.
-     * This covers both the TOCTOU race condition and the sequential replay scenario.
-     */
-    @Test
-    void receiveVerificationPresentation_sessionAlreadyClaimed_thenThrowsProcessClosedException() {
-        when(managementEntity.isVerificationPending()).thenReturn(false);
-
-        assertThrows(VerificationException.class, () ->
-                presentationVerificationUsecase.receiveVerificationPresentation(managementId,
-                        mock(VerificationPresentationRequestDto.class)));
-
-        verify(managementEntity, never()).verificationSucceeded(any());
-        verify(managementEntity, times(1)).verificationFailed(any(), any());
-        verify(callbackEventProducer, times(1)).produceEvent(any());
-    }
-
-    /**
      * Simulates a session that is already claimed for the DCQL flow.
      */
     @Test
@@ -200,27 +146,16 @@ class PresentationVerificationUsecaseTest {
      */
     @Test
     void receiveVerificationPresentation_sessionExpiredAndDeleted_thenThrowsProcessClosedException() {
-        when(managementEntity.getExpiresAt()).thenReturn(System.currentTimeMillis() - 1000L);
+        when(managementEntity.isExpired()).thenReturn(true);
+        when(managementEntity.isProcessStillOpen()).thenCallRealMethod();
 
         assertThrows(VerificationException.class, () ->
-                presentationVerificationUsecase.receiveVerificationPresentation(managementId,
-                        mock(VerificationPresentationRequestDto.class)));
+                presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId,
+                        new VerificationPresentationDCQLRequestDto(Map.of("credId", List.of("token")))));
 
         verify(managementEntity, never()).verificationSucceeded(any());
         verify(managementEntity, times(1)).verificationFailed(any(), any());
         verify(callbackEventProducer, times(1)).produceEvent(any());
-    }
-
-    @Test
-    void receiveVerificationPresentation_verificationException() throws JsonProcessingException {
-        var mockRequest = getMockRequestNoVpToken();
-
-        var exception = assertThrows(VerificationException.class, () ->
-                presentationVerificationUsecase.receiveVerificationPresentation(managementId, mockRequest));
-
-        assertEquals(AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM, exception.getErrorResponseCode());
-        verify(managementEntity).verificationFailed(any(), any());
-        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     @ParameterizedTest
@@ -368,14 +303,6 @@ class PresentationVerificationUsecaseTest {
     }
 
     // --- helper methods ---
-
-    private VerificationPresentationRequestDto getMockRequestNoVpToken() throws JsonProcessingException {
-        return getMockRequest("", getPresentationSubmissionString(UUID.randomUUID()));
-    }
-
-    private VerificationPresentationRequestDto getMockRequest(String vpToken, String presentationSubmission) {
-        return new VerificationPresentationRequestDto(vpToken, presentationSubmission);
-    }
 
     private String getVpToken() {
         return new SDJWTCredentialMock().createSDJWTMock();

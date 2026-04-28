@@ -15,6 +15,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -45,11 +47,7 @@ public class JwtSigningService {
 
         SignerProvider signerProvider;
         try {
-            if (keyId != null && keyPin != null) {
-                signerProvider = createSignerProvider(keyId, keyPin);
-            } else {
-                signerProvider = createDefaultSignerProvider();
-            }
+            signerProvider = createSignerProvider(keyId, keyPin);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialize signature provider. This is probably because the key could not be loaded.", e);
         }
@@ -70,18 +68,6 @@ public class JwtSigningService {
     }
 
     /**
-     * Creates a default {@link SignerProvider} using the keyId and keyPin from the application properties.
-     *
-     * @return a configured {@link SignerProvider}
-     * @throws IllegalArgumentException if invalid arguments are provided
-     * @throws KeyStrategyException     if key strategy creation fails
-     */
-    private SignerProvider createDefaultSignerProvider() throws IllegalArgumentException, KeyStrategyException {
-        var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);
-        return createSignerProvider(defaultSignatureConfiguration);
-    }
-
-    /**
      * Creates a {@link SignerProvider} using the default settings, but overrides keyId and keyPin.
      *
      * @param keyId  the key identifier to use
@@ -91,12 +77,13 @@ public class JwtSigningService {
      * @throws KeyStrategyException     if key strategy creation fails
      */
     private SignerProvider createSignerProvider(String keyId, String keyPin) throws IllegalArgumentException, KeyStrategyException {
-        if (keyId == null ^ keyPin == null) {
-            throw new IllegalArgumentException("expected both keyId and keyPin, but only one was provided.");
-        }
         var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);
-        defaultSignatureConfiguration.getHsm().setKeyId(keyId);
-        defaultSignatureConfiguration.getHsm().setKeyPin(keyPin);
+        if (StringUtils.isNotEmpty(keyId)) {
+            defaultSignatureConfiguration.getHsm().setKeyId(keyId);
+        }
+        if (StringUtils.isNotEmpty(keyPin)) {
+            defaultSignatureConfiguration.getHsm().setKeyPin(keyPin);
+        }
         return createSignerProvider(defaultSignatureConfiguration);
     }
 

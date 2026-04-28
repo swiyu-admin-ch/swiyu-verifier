@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `Swiss Government Root CA VI` to image
 
 ### Changed
-- tbd
+- Allow hsm key id and key pin to be overridden individually
 
 ### Fixed
 - Fixed a TOCTOU race condition on the VP response endpoint (`direct_post`, `direct_post.jwt`) that allowed two concurrent wallet submissions for the same session to both be accepted, leading to non-deterministic verification results.

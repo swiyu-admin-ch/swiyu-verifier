@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a TOCTOU race condition on the VP response endpoint (`direct_post`, `direct_post.jwt`) that allowed two concurrent wallet submissions for the same session to both be accepted, leading to non-deterministic verification results.
 
 
+### Removed
+- Dropped support for SWIYU-API-Version 1, which was using DIF Presentation Exchange. Now only DCQL can be used for verification as defined in OID4VP 1.0.
+
+
 ## 2.3.0
 
 ### Added

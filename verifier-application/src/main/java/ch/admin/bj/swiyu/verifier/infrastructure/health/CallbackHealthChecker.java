@@ -2,7 +2,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEventRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.health.contributor.Health;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;

@@ -55,6 +55,11 @@ class StatusListResolverAdapterIT {
             verificationProps.setObjectSizeLimit(10);
             return verificationProps;
         }
+
+        @Bean
+        WebClient.Builder webClientBuilder() {
+            return WebClient.builder();
+        }
     }
 
     private static final Duration CACHE_EVICTION_TIMEOUT = Duration.ofSeconds(2);

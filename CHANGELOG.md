@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recursive SD-JWT disclosure resolution and validation:
   - Resolve nested `_sd` entries in objects and arrays, inserting claim name/value pairs from disclosures at the `_sd` level and recursively processing the inserted values.
 - Added `Swiss Government Root CA VI` to image
+- All four runtime health checks can now be individually disabled via configuration (see `management.health.*` properties) `(#949)`:
+  - `SIGNING_KEY_VERIFICATION_ENABLED` – disables the signing-key verification check (default: `true`). Set to `false` when using dynamic key management without a statically configured `DID_VERIFICATION_METHOD`. When disabled, the check reports `UP` with detail `signingKeyVerificationMethod: disabled`. The check also automatically reports `UP` (detail: `not configured`) when `DID_VERIFICATION_METHOD` is empty.
+  - `CALLBACK_HEALTH_ENABLED` – disables the stale-callback check (default: `true`).
+  - `STATUS_REGISTRY_HEALTH_ENABLED` – disables the status-registry accessibility check (default: `true`).
+  - `IDENTIFIER_REGISTRY_HEALTH_ENABLED` – disables the identifier-registry DID-resolution check (default: `true`).
 
 ### Changed
 - Migrated to Spring Boot 4.0.6 (Spring Framework 7):

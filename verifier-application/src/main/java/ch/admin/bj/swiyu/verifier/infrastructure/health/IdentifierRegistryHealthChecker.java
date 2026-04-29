@@ -5,8 +5,8 @@ import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

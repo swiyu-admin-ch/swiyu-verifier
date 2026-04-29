@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -54,7 +54,7 @@ public class StatusListResolverAdapter {
                 .get()
                 .uri(rewrittenUrl)
                 .retrieve()
-                .onStatus(status -> status != HttpStatus.OK, response ->
+                .onStatus(status -> status != HttpStatusCode.valueOf(200), response ->
                         Mono.error(new StatusListFetchFailedException(
                                 "Status list with uri: %s could not be retrieved".formatted(rewrittenUrl))))
                 .bodyToMono(String.class)

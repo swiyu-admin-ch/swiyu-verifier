@@ -22,6 +22,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
@@ -34,12 +35,16 @@ class StatusRegistryAccessHealthCheckerTest {
 
     @Mock
     private ResponseEntity<String> response;
+    @Mock
+    private HealthCheckProperties healthCheckProperties;
+
     private MockServerClient mockServerClient;
 
     WebClient webClient;
 
     @BeforeEach
     void setUp() throws URISyntaxException {
+        when(healthCheckProperties.isStatusRegistryEnabled()).thenReturn(true);
         this.mockServerClient = new MockServerClient(mockServerContainer.getHost(), mockServerContainer.getServerPort());
 
         webClient = WebClient.create();
@@ -51,7 +56,7 @@ class StatusRegistryAccessHealthCheckerTest {
     void performCheck_shouldReturnUp_WhenAllUrlsAvailable() throws Exception {
         this.mockServerClient.hasStarted();
         var upUri = new URI("http://%s:%d/up".formatted(mockServerContainer.getHost(), mockServerClient.getPort()));
-        var statusRegistryAccessHealthChecker = new StatusRegistryAccessHealthChecker(webClient, List.of(upUri));
+        var statusRegistryAccessHealthChecker = new StatusRegistryAccessHealthChecker(webClient, List.of(upUri), healthCheckProperties);
 
         var builder = Health.unknown();
         statusRegistryAccessHealthChecker.performCheck(builder);
@@ -67,7 +72,7 @@ class StatusRegistryAccessHealthCheckerTest {
     void performCheck_shouldReturnDown_WhenUrlsReturnsError() throws Exception {
         this.mockServerClient.hasStarted();
         var downUri = new URI("http://%s:%d/down".formatted(mockServerContainer.getHost(), mockServerClient.getPort()));
-        var statusRegistryAccessHealthChecker = new StatusRegistryAccessHealthChecker(webClient, List.of(downUri));
+        var statusRegistryAccessHealthChecker = new StatusRegistryAccessHealthChecker(webClient, List.of(downUri), healthCheckProperties);
 
         var builder = Health.unknown();
         statusRegistryAccessHealthChecker.performCheck(builder);

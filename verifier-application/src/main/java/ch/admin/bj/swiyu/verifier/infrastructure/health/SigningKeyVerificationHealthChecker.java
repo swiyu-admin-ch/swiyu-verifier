@@ -30,12 +30,15 @@ import java.util.Map;
  *   <li>Verifies that a signer can be provided</li>
  *   <li>Tests the signing and verification process with a dummy JWT</li>
  * </ul>
+ *
+ * <p>The check can be disabled via {@code application.health.signing-key-verification-enabled=false}
+ * (env: {@code SIGNING_KEY_VERIFICATION_ENABLED=false}). When disabled, the check reports
+ * {@code UP} with {@code status: disabled}.</p>
  */
 @Component
 @RequiredArgsConstructor
 public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
 
-    private static final String HEALTH_DETAIL_FAILED_DIDS = "failedDids";
     private static final String HEALTH_DETAIL_SIGNING_KEY = "signingKeyVerificationMethod";
     private static final String HEALTH_DETAIL_SIGNING_ERROR = "signingError";
     private static final String TEST_JWT_SUBJECT = "health-check-test";
@@ -48,6 +51,14 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
 
     /** Service used to create signers for JWT signing */
     private final JwtSigningService jwtSigningService;
+
+    /** Health check configuration properties */
+    private final HealthCheckProperties healthCheckProperties;
+
+    @Override
+    protected boolean isEnabled() {
+        return healthCheckProperties.isSigningKeyVerificationEnabled();
+    }
 
     /**
      * Performs the health check by validating the signing capability.

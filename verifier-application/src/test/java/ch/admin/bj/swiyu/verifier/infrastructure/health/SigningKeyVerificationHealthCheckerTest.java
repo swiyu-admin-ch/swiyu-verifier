@@ -52,6 +52,9 @@ class SigningKeyVerificationHealthCheckerTest {
     private JwtSigningService jwtSigningService;
 
     @Mock
+    private HealthCheckProperties healthCheckProperties;
+
+    @Mock
     private Jwk jwk;
 
     @Mock
@@ -67,8 +70,12 @@ class SigningKeyVerificationHealthCheckerTest {
         healthChecker = new SigningKeyVerificationHealthChecker(
                 didResolverFacade,
                 applicationProperties,
-                jwtSigningService
+                jwtSigningService,
+                healthCheckProperties
         );
+
+        // Health checks are enabled by default
+        when(healthCheckProperties.isSigningKeyVerificationEnabled()).thenReturn(true);
 
         // Generate a test EC key pair
         testKey = new ECKeyGenerator(Curve.P_256)
@@ -321,6 +328,19 @@ class SigningKeyVerificationHealthCheckerTest {
         verify(didResolverFacade, times(1)).resolveDid(anyString(), anyString());
     }
 
+    @Test
+    void scheduledCheck_shouldReturnUpWithDisabledDetail_whenSigningKeyVerificationIsDisabled() {
+        // Given
+        when(healthCheckProperties.isSigningKeyVerificationEnabled()).thenReturn(false);
 
+        // When
+        healthChecker.scheduledCheck();
+
+        // Then
+        Health health = healthChecker.getHealthResult();
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("status", "disabled");
+        verifyNoInteractions(didResolverFacade, jwtSigningService);
+    }
 }
 

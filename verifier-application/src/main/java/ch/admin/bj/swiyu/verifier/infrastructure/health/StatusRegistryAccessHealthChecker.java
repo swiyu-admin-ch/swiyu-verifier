@@ -11,15 +11,30 @@ import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Health checker that verifies accessibility of configured status registry URLs.
+ *
+ * <p>Can be disabled via {@code application.health.status-registry-enabled=false}
+ * (env: {@code STATUS_REGISTRY_HEALTH_ENABLED=false}).</p>
+ */
 @Component
 public class StatusRegistryAccessHealthChecker extends CachedHealthChecker {
 
     private final WebClient webClient;
     private final List<URI> statusListsToCheck;
+    private final HealthCheckProperties healthCheckProperties;
 
-    public StatusRegistryAccessHealthChecker(WebClient webClient, @Value("${management.endpoint.health.serviceregistries}") List<URI> urls) {
+    public StatusRegistryAccessHealthChecker(WebClient webClient,
+                                             @Value("${management.endpoint.health.serviceregistries}") List<URI> urls,
+                                             HealthCheckProperties healthCheckProperties) {
         this.webClient = webClient;
         this.statusListsToCheck = urls;
+        this.healthCheckProperties = healthCheckProperties;
+    }
+
+    @Override
+    protected boolean isEnabled() {
+        return healthCheckProperties.isStatusRegistryEnabled();
     }
 
     @Override
@@ -46,6 +61,5 @@ public class StatusRegistryAccessHealthChecker extends CachedHealthChecker {
         } else {
             builder.down();
         }
-
     }
 }

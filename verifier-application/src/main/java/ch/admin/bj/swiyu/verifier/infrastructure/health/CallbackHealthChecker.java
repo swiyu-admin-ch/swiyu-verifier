@@ -8,6 +8,12 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.Instant;
 
+/**
+ * Health checker that detects stale (undelivered) callback events.
+ *
+ * <p>Can be disabled via {@code application.health.callback-enabled=false}
+ * (env: {@code CALLBACK_HEALTH_ENABLED=false}).</p>
+ */
 @Component
 public class CallbackHealthChecker extends CachedHealthChecker {
     private static final String AMOUNT_OF_STALE_CALLBACKS = "amountOfStaleCallbacks";
@@ -15,14 +21,23 @@ public class CallbackHealthChecker extends CachedHealthChecker {
 
     private final CallbackEventRepository callbackEventRepository;
     private final Duration timeUntilStale;
+    private final HealthCheckProperties healthCheckProperties;
 
-    public CallbackHealthChecker(CallbackEventRepository callbackEventRepository, @Value("${webhook.callback-interval:2000}") Duration callbackInterval) {
+    public CallbackHealthChecker(CallbackEventRepository callbackEventRepository,
+                                 @Value("${webhook.callback-interval:2000}") Duration callbackInterval,
+                                 HealthCheckProperties healthCheckProperties) {
         this.callbackEventRepository = callbackEventRepository;
+        this.healthCheckProperties = healthCheckProperties;
         if (callbackInterval.compareTo(DEFAULT_DURATION_UNTIL_STALE) < 0) {
             timeUntilStale = DEFAULT_DURATION_UNTIL_STALE;
         } else {
             timeUntilStale = callbackInterval.multipliedBy(3);
         }
+    }
+
+    @Override
+    protected boolean isEnabled() {
+        return healthCheckProperties.isCallbackEnabled();
     }
 
     @Override

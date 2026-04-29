@@ -2,7 +2,6 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEvent;
 import ch.admin.bj.swiyu.verifier.domain.callback.CallbackEventRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

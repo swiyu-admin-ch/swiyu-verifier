@@ -11,7 +11,7 @@ import java.time.Instant;
 /**
  * Health checker that detects stale (undelivered) callback events.
  *
- * <p>Can be disabled via {@code application.health.callback-enabled=false}
+ * <p>Can be disabled via {@code management.health.callback-enabled=false}
  * (env: {@code CALLBACK_HEALTH_ENABLED=false}).</p>
  */
 @Component

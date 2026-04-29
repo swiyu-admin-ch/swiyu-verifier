@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 /**
  * Health checker that verifies accessibility of configured status registry URLs.
  *
- * <p>Can be disabled via {@code application.health.status-registry-enabled=false}
+ * <p>Can be disabled via {@code management.health.status-registry-enabled=false}
  * (env: {@code STATUS_REGISTRY_HEALTH_ENABLED=false}).</p>
  */
 @Component

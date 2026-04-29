@@ -31,9 +31,9 @@ import java.util.Map;
  *   <li>Tests the signing and verification process with a dummy JWT</li>
  * </ul>
  *
- * <p>The check can be disabled via {@code application.health.signing-key-verification-enabled=false}
+ * <p>The check can be disabled via {@code management.health.signing-key-verification-enabled=false}
  * (env: {@code SIGNING_KEY_VERIFICATION_ENABLED=false}). When disabled, the check reports
- * {@code UP} with {@code status: disabled}.</p>
+ * {@code UP} with {@code signingKeyVerificationMethod: disabled}.</p>
  */
 @Component
 @RequiredArgsConstructor

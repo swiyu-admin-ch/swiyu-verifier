@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 /**
  * Health checker that validates DID resolution for configured identifier registries.
  *
- * <p>Can be disabled via {@code application.health.identifier-registry-enabled=false}
+ * <p>Can be disabled via {@code management.health.identifier-registry-enabled=false}
  * (env: {@code IDENTIFIER_REGISTRY_HEALTH_ENABLED=false}).</p>
  */
 @Component

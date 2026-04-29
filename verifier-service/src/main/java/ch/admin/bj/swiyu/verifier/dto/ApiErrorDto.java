@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 @Builder
 @Getter
@@ -20,5 +20,5 @@ public class ApiErrorDto {
     @JsonProperty("detail")
     String errorDetails;
     @JsonIgnore
-    HttpStatus status;
+    HttpStatusCode status;
 }

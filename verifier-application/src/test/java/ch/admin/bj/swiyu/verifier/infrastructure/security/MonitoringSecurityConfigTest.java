@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.infrastructure.config.MonitoringBasicAuthProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -30,7 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "monitoring.basic-auth.enabled=true",
         "monitoring.basic-auth.username=foo",
         "monitoring.basic-auth.password=bar",
-        "management.endpoint.metrics.access=read_only"
+        "management.endpoint.metrics.access=read_only",
+        "management.endpoint.prometheus.access=none"
 })
 class MonitoringSecurityConfigTest {
 
@@ -58,8 +59,8 @@ class MonitoringSecurityConfigTest {
         String encoding = Base64.getEncoder().encodeToString(("foo:bar").getBytes());
         assertDoesNotThrow(() -> mvc.perform(get(MONITORING_ENDPOINT)
                         .header("Authorization", "Basic " + encoding))
-                // during the test, prometheus endpoint is disabled, so a 404 is returned.
-                // However, that still means the request got past authorization.
+                // The prometheus endpoint is disabled in this test, so 404 is returned.
+                // That still means the request got past authorization.
                 .andExpect(status().isNotFound()));
 
     }

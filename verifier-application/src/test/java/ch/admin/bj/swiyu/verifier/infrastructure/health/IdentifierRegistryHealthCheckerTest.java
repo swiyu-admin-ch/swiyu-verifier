@@ -36,7 +36,6 @@ class IdentifierRegistryHealthCheckerTest {
 
     @BeforeEach
     void setUp() {
-        when(healthCheckProperties.isIdentifierRegistryEnabled()).thenReturn(true);
         this.identifierRegistryHealthChecker = new IdentifierRegistryHealthChecker(didResolverFacade, didIds, healthCheckProperties);
     }
 

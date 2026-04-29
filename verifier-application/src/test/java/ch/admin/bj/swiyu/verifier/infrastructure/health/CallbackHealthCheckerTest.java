@@ -30,10 +30,6 @@ class CallbackHealthCheckerTest {
     @Mock
     HealthCheckProperties healthCheckProperties;
 
-    @BeforeEach
-    void setUp() {
-        when(healthCheckProperties.isCallbackEnabled()).thenReturn(true);
-    }
 
     @Test
     void performCheck_timeUntilStaleIsBiggerThanDispatchInterval() throws Exception {

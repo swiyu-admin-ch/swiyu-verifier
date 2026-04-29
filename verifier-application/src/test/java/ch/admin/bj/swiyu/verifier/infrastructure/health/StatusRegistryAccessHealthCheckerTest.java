@@ -22,7 +22,6 @@ import java.net.URISyntaxException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
@@ -44,7 +43,6 @@ class StatusRegistryAccessHealthCheckerTest {
 
     @BeforeEach
     void setUp() throws URISyntaxException {
-        when(healthCheckProperties.isStatusRegistryEnabled()).thenReturn(true);
         this.mockServerClient = new MockServerClient(mockServerContainer.getHost(), mockServerContainer.getServerPort());
 
         webClient = WebClient.create();

@@ -39,20 +39,6 @@ application:
     proxy-user: "${HSM_PROXY_USER:}"
     proxy-password: "${HSM_PROXY_PASSWORD:}"
 
-  health:
-    # Set to false if no static signing key is configured (e.g. dynamic key management via ConfigurationOverride).
-    # Env: SIGNING_KEY_VERIFICATION_ENABLED
-    signing-key-verification-enabled: ${SIGNING_KEY_VERIFICATION_ENABLED:true}
-    # Set to false to disable the stale-callback health check.
-    # Env: CALLBACK_HEALTH_ENABLED
-    callback-enabled: ${CALLBACK_HEALTH_ENABLED:true}
-    # Set to false to disable the status-registry accessibility health check.
-    # Env: STATUS_REGISTRY_HEALTH_ENABLED
-    status-registry-enabled: ${STATUS_REGISTRY_HEALTH_ENABLED:true}
-    # Set to false to disable the identifier-registry DID resolution health check.
-    # Env: IDENTIFIER_REGISTRY_HEALTH_ENABLED
-    identifier-registry-enabled: ${IDENTIFIER_REGISTRY_HEALTH_ENABLED:true}
-
   url-rewrite:
     mapping: "${URL_REWRITE_MAPPING:{}}"
   accepted-status-list-hosts:
@@ -144,6 +130,18 @@ management:
         application.hsm.host,
         application.hsm.port
   health:
+    # Set to false if no static signing key is configured (e.g. dynamic key management via ConfigurationOverride).
+    # Env: SIGNING_KEY_VERIFICATION_ENABLED
+    signing-key-verification-enabled: ${SIGNING_KEY_VERIFICATION_ENABLED:true}
+    # Set to false to disable the stale-callback health check.
+    # Env: CALLBACK_HEALTH_ENABLED
+    callback-enabled: ${CALLBACK_HEALTH_ENABLED:true}
+    # Set to false to disable the status-registry accessibility health check.
+    # Env: STATUS_REGISTRY_HEALTH_ENABLED
+    status-registry-enabled: ${STATUS_REGISTRY_HEALTH_ENABLED:true}
+    # Set to false to disable the identifier-registry DID resolution health check.
+    # Env: IDENTIFIER_REGISTRY_HEALTH_ENABLED
+    identifier-registry-enabled: ${IDENTIFIER_REGISTRY_HEALTH_ENABLED:true}
     livenessState:
       enabled: true
     readinessState:

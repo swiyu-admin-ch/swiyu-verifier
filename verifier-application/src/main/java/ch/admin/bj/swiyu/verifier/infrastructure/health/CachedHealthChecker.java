@@ -40,6 +40,17 @@ public abstract class CachedHealthChecker {
     }
 
     /**
+     * Builds the {@link Health} result that is stored when {@link #isEnabled()} returns {@code false}.
+     *
+     * <p>Override in subclasses to provide a check-specific disabled detail key.</p>
+     *
+     * @return a UP health with a {@code "status": "disabled"} detail by default
+     */
+    protected Health buildDisabledHealth() {
+        return Health.up().withDetail("status", "disabled").build();
+    }
+
+    /**
      * Periodic execution updating the cached health result.
      * Marks DOWN if {@link #performCheck(Health.Builder)} throws.
      * Skips the check entirely when {@link #isEnabled()} returns {@code false}.
@@ -47,7 +58,7 @@ public abstract class CachedHealthChecker {
     @Scheduled(fixedRate = 60000, initialDelay = 5000)
     public void scheduledCheck() {
         if (!isEnabled()) {
-            healthResultRef.set(Health.up().withDetail("status", "disabled").build());
+            healthResultRef.set(buildDisabledHealth());
             return;
         }
         log.info("Running health check: {}", this.getClass().getSimpleName());

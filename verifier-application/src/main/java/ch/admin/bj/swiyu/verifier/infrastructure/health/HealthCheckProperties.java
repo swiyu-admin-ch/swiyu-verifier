@@ -13,7 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * <p>All checks are enabled by default.</p>
  */
 @Data
-@ConfigurationProperties(prefix = "application.health")
+@ConfigurationProperties(prefix = "management.health")
 public class HealthCheckProperties {
 
     /**

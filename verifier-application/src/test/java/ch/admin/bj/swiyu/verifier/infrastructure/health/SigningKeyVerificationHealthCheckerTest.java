@@ -127,8 +127,8 @@ class SigningKeyVerificationHealthCheckerTest {
     }
 
     @Test
-    void performCheck_shouldReturnDown_whenVerificationMethodIsBlank() {
-        // Given
+    void performCheck_shouldReturnUp_whenVerificationMethodIsBlank() {
+        // Given – no static key configured (dynamic key management scenario)
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("   ");
 
         Health.Builder builder = Health.up();
@@ -138,8 +138,24 @@ class SigningKeyVerificationHealthCheckerTest {
 
         // Then
         Health health = builder.build();
-        assertThat(health.getStatus()).isEqualTo(Status.DOWN);
-        assertThat(health.getDetails()).containsKey("signingKeyVerificationMethod");
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("signingKeyVerificationMethod", "not configured");
+    }
+
+    @Test
+    void performCheck_shouldReturnUp_whenVerificationMethodIsNull() {
+        // Given
+        when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn(null);
+
+        Health.Builder builder = Health.up();
+
+        // When
+        healthChecker.performCheck(builder);
+
+        // Then
+        Health health = builder.build();
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("signingKeyVerificationMethod", "not configured");
     }
 
     @Test
@@ -339,7 +355,7 @@ class SigningKeyVerificationHealthCheckerTest {
         // Then
         Health health = healthChecker.getHealthResult();
         assertThat(health.getStatus()).isEqualTo(Status.UP);
-        assertThat(health.getDetails()).containsEntry("status", "disabled");
+        assertThat(health.getDetails()).containsEntry("signingKeyVerificationMethod", "disabled");
         verifyNoInteractions(didResolverFacade, jwtSigningService);
     }
 }

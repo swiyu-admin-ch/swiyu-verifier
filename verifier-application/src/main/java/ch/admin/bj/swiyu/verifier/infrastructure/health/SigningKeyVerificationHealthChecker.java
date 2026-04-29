@@ -61,7 +61,18 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     }
 
     /**
+     * Returns UP with {@code signingKeyVerificationMethod: disabled} when the check is disabled via configuration.
+     */
+    @Override
+    protected Health buildDisabledHealth() {
+        return Health.up().withDetail(HEALTH_DETAIL_SIGNING_KEY, "disabled").build();
+    }
+
+    /**
      * Performs the health check by validating the signing capability.
+     *
+     * <p>If no verification method is configured (blank), the check is skipped and UP is reported,
+     * since dynamic key management does not require a statically configured key.</p>
      *
      * @param builder The health builder to populate with check results
      */
@@ -69,17 +80,22 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     protected void performCheck(Health.Builder builder) {
         String verificationMethod = applicationProperties.getSigningKeyVerificationMethod();
 
+        if (verificationMethod == null || verificationMethod.isBlank()) {
+            builder.up().withDetail(HEALTH_DETAIL_SIGNING_KEY, "not configured");
+            return;
+        }
+
         try {
             if (verifySigningCapability(verificationMethod)) {
                 builder.up().withDetail(HEALTH_DETAIL_SIGNING_KEY, verificationMethod);
             } else {
                 builder.down().withDetail(HEALTH_DETAIL_SIGNING_KEY,
-                    "Verification failed for " + verificationMethod);
+                        "Verification failed for " + verificationMethod);
             }
         } catch (Exception e) {
             builder.down()
-                .withDetail(HEALTH_DETAIL_SIGNING_ERROR, e.getMessage())
-                .withDetail(HEALTH_DETAIL_SIGNING_KEY, verificationMethod);
+                    .withDetail(HEALTH_DETAIL_SIGNING_ERROR, e.getMessage())
+                    .withDetail(HEALTH_DETAIL_SIGNING_KEY, verificationMethod);
         }
     }
 

@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## latest (3.0.0)
+## Latest
+
+### Fixed
+- Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  
+
+## 3.0.0
 
 ### Added
 - OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallet to adopt it

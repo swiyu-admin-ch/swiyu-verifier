@@ -78,7 +78,6 @@ public class RequestObjectDto {
     @Schema(description = "A JSON object containing the Verifier metadata values providing further information about the verifier, such as name and logo. It is UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter is present.",
             example = """
                     {
-                        "client_id": "did:example:12345",
                         "client_name#en": "English name (all regions)",
                         "client_name#fr": "French name (all regions)",
                         "client_name#de-DE": "German name (region Germany)",

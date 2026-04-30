@@ -40,6 +40,7 @@
         <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
         <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.84</bcpkix-jdk18on.version>
+        <postgres.version>42.7.11</postgres.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>
             **/*Dto.java,**/domain/*

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.14</version>
+        <version>4.0.6</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -34,10 +34,10 @@
         <archunit-junit5.verion>1.4.1</archunit-junit5.verion>
         <javacrumbs.shedlock.version>7.6.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
-        <springdoc-openapi-starter-webmvc-ui.version>2.8.16</springdoc-openapi-starter-webmvc-ui.version>
+        <springdoc-openapi-starter-webmvc-ui.version>3.0.0</springdoc-openapi-starter-webmvc-ui.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <json-path.version>2.10.0</json-path.version>
-        <spring-cloud-dependencies.version>2025.0.1</spring-cloud-dependencies.version>
+        <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
         <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.84</bcpkix-jdk18on.version>
         <!-- Sonar -->
@@ -61,14 +61,6 @@
 
     <dependencyManagement>
         <dependencies>
-
-            <!-- Check again on Spring Boot update -->
-            <dependency>
-                <groupId>org.apache.tomcat.embed</groupId>
-                <artifactId>tomcat-embed-core</artifactId>
-                <version>10.1.54</version>
-                <scope>compile</scope>
-            </dependency>
 
             <!-- Check again when spring-cloud-kubernetes-fabric8-config is updated -->
             <dependency>

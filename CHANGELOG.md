@@ -15,7 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `Swiss Government Root CA VI` to image
 
 ### Changed
-- tbd
+- Migrated to Spring Boot 4.0.6 (Spring Framework 7):
+  - Upgraded Spring Cloud to 2025.1.1 and springdoc-openapi to 3.0.0.
+  - Added dedicated starters for extracted autoconfiguration modules: `spring-boot-starter-webclient`,
+    `spring-boot-starter-flyway`, `spring-boot-jackson2`, and `spring-boot-health`.
+  - Retained Jackson 2 (`com.fasterxml.jackson`) via `spring-boot-jackson2` and
+    `spring.http.converters.preferred-json-mapper=jackson2` (Boot 4 defaults to Jackson 3).
+  - Replaced `HttpStatus` with `HttpStatusCode` in `ApiErrorDto` and `StatusListResolverAdapter` to support
+    non-standard HTTP status codes no longer present in the `HttpStatus` enum in Spring Framework 7.
+  - Removed `@Configuration` from `@ConfigurationProperties` classes (`CacheProperties`, `UrlRewriteProperties`,
+    `VerificationProperties`, `ApplicationProperties`) to prevent CGLIB proxy conflicts with Lombok.
+  - Removed `CacheManagerCustomizer` implementation from `CacheCustomizer` (API removed in Spring Boot 4);
+    cache names are now configured directly in `CachingConfig`.
+  - Migrated health contributor imports to `org.springframework.boot.health.contributor`.
+  - Upgraded Testcontainers to 2.0 (module artifacts renamed, e.g. `junit-jupiter` → `testcontainers-junit-jupiter`).
+  - Replaced `@Mock` with `@MockitoBean` for Spring-managed beans in `@SpringBootTest` integration tests.
 
 ### Fixed
 - Fixed a TOCTOU race condition on the VP response endpoint (`direct_post`, `direct_post.jwt`) that allowed two concurrent wallet submissions for the same session to both be accepted, leading to non-deterministic verification results.

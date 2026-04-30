@@ -61,8 +61,12 @@ verification:
 
 
 spring:
+  jackson:
+    constructor-detector: use-properties-based
   http:
-    client:
+    converters:
+      preferred-json-mapper: jackson2
+    clients:
       read-timeout: 10s # 10 seconds for reading the response
       connect-timeout: 5s # 5 seconds until tcp handshake is done
   datasource:

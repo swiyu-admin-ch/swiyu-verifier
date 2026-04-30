@@ -12,7 +12,7 @@ spring:
   docker:
     compose:
       enabled: true
-      file: verifier-application/compose.yaml
+      file: compose.yaml
   datasource:
     url: "jdbc:postgresql://localhost:5434/verifier_db"
     username: "verifier_user"

@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectMapper.toPresentationDefinitionDto;
-
 
 @Slf4j
 @Service
@@ -99,7 +97,6 @@ public class RequestObjectService {
     private RequestObjectDto buildRequestObject(Management managementEntity,
                                                 EffectiveRequestObjectConfig effectiveConfig,
                                                 UUID managementEntityId) {
-        var presentation = managementEntity.getRequestedPresentation();
         var dcqlQuery = managementEntity.getDcqlQuery();
 
         var clientMetadata = openIdClientMetadataConfiguration.getOpenIdClientMetadata();
@@ -115,7 +112,6 @@ public class RequestObjectService {
         return RequestObjectDto.builder()
                 .audience(AUDIENCE)
                 .nonce(managementEntity.getRequestNonce())
-                .presentationDefinition(toPresentationDefinitionDto(presentation))
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
                 .clientId(effectiveConfig.clientId())
                 .clientMetadata(clientMetadataBuilder.build())

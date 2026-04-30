@@ -73,10 +73,6 @@ public class Management {
     @Builder.Default
     private Boolean jwtSecuredAuthorizationRequest = true;
 
-    @Column(name = "requested_presentation", columnDefinition = "jsonb")
-    @JdbcTypeCode(SqlTypes.JSON)
-    private PresentationDefinition requestedPresentation;
-
     @Column(name = "wallet_response", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     private ResponseData walletResponse;
@@ -111,6 +107,7 @@ public class Management {
 
     @Column(name = "dcql_query", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
+    @NotNull
     private DcqlQuery dcqlQuery;
 
     @Builder.Default

@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.dto.management;
 
-import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,8 +14,6 @@ public record ManagementResponseDto(
         @JsonProperty("request_nonce")
         String requestNonce,
         VerificationStatusDto state,
-        @JsonProperty("presentation_definition")
-        PresentationDefinitionDto presentationDefinition,
         @JsonProperty("dcql_query")
         DcqlQueryDto dcqlQuery,
         @JsonProperty("wallet_response")

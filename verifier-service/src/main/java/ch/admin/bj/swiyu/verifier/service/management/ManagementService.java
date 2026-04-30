@@ -23,7 +23,6 @@ import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toManagementResponseDto;
-import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toPresentationDefinition;
 
 @Service
 @AllArgsConstructor
@@ -65,13 +64,11 @@ public class ManagementService {
     public ManagementResponseDto createVerificationManagement(CreateVerificationManagementDto request) {
         CreateVerificationManagementValidator.validate(request);
 
-        var presentationDefinition = toPresentationDefinition(request.presentationDefinition());
         var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
         var trustAnchors = ManagementMapper.toTrustAnchors(request.trustAnchors());
         var responseSpecificationBuilder = createResponseSpecificationBuilder(request.responseMode());
 
         var management = managementTransactionalService.saveNewManagement(
-                presentationDefinition,
                 dcqlQuery,
                 request,
                 trustAnchors,

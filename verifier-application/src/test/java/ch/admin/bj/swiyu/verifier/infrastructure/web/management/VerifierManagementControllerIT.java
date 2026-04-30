@@ -1,8 +1,6 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.management;
 
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
-import ch.admin.bj.swiyu.verifier.dto.definition.FieldDto;
-import ch.admin.bj.swiyu.verifier.dto.definition.FormatAlgorithmDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
@@ -11,6 +9,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -45,254 +45,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class VerifierManagementControllerIT {
 
-        private static final String BASE_URL = "/management/api/verifications";
-        @Autowired
-        protected MockMvc mvc;
+    private static final String BASE_URL = "/management/api/verifications";
+    @Autowired
+    protected MockMvc mvc;
 
-        @Autowired
-        private ApplicationProperties applicationProperties;
+    private List<String> issuerDids = List.of(UUID.randomUUID().toString());
 
-        private List<String> issuerDids = List.of(UUID.randomUUID().toString());
-
-        @Test
-        void testCreateOffer_thenSuccess() throws Exception {
-                var request = createVerificationManagementDto(issuerDids);
-                var sdJWTFormatType = "vc+sd-jwt";
-
-                var reqDescriptor0 = request.presentationDefinition().inputDescriptors().getFirst();
-                var reqField0 = reqDescriptor0.constraints().fields().getFirst();
-                var sdJwtFormat = reqDescriptor0.format().get(sdJWTFormatType);
-
-                MvcResult result = mvc.perform(post(BASE_URL)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(request)))
-                                .andExpect(status().isOk())
-
-                                // check management dto
-                                .andExpect(jsonPath("$.id").isNotEmpty())
-                                .andExpect(jsonPath("$.request_nonce").isNotEmpty())
-                                .andExpect(jsonPath("$.state").value(VerificationStatus.PENDING.toString()))
-                                .andExpect(jsonPath("$.verification_url").isNotEmpty())
-                                // must contain deeplink schema
-                                .andExpect(jsonPath("$.verification_deeplink",
-                                                containsString(applicationProperties.getDeeplinkSchema())))
-                                // must contain did as client id in deeplink url
-                                .andExpect(jsonPath("$.verification_deeplink",
-                                                containsString(URLEncoder.encode(applicationProperties.getClientId(),
-                                                                StandardCharsets.UTF_8))))
-
-                                .andExpect(jsonPath("$.presentation_definition.id").isNotEmpty())
-                                .andExpect(jsonPath("$.presentation_definition.input_descriptors").isArray())
-                                .andExpect(jsonPath("$.presentation_definition.input_descriptors.length()").value(1))
-                                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].id")
-                                                .value(reqDescriptor0.id()))
-                                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].name")
-                                                .value(reqDescriptor0.name()))
-                                .andExpect(jsonPath("$.presentation_definition.input_descriptors[0].constraints")
-                                                .isNotEmpty())
-
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].format.%s.sd-jwt_alg_values[0]"
-                                                                .formatted(sdJWTFormatType))
-                                                .value(sdJwtFormat.alg().getFirst()))
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].format.%s.kb-jwt_alg_values[0]"
-                                                                .formatted(sdJWTFormatType))
-                                                .value(sdJwtFormat.keyBindingAlg().getFirst()))
-
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].constraints.fields[0].id")
-                                                .value(reqField0.id()))
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].constraints.fields[0].name")
-                                                .value(reqField0.name()))
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].constraints.fields[0].purpose")
-                                                .value(reqField0.purpose()))
-
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].constraints.fields[0].path")
-                                                .isArray())
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].constraints.fields[0].path.length()")
-                                                .value(2))
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].constraints.fields[0].path[0]")
-                                                .value(reqField0.path().getFirst()))
-                                .andExpect(jsonPath(
-                                                "$.presentation_definition.input_descriptors[0].constraints.fields[0].path[1]")
-                                                .value(reqField0.path().get(1)))
-                                .andReturn();
-
-                String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
-
-                MvcResult result1 = mvc.perform(get(BASE_URL + "/" + id))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.id").isNotEmpty())
-                                .andExpect(jsonPath("$.request_nonce").isNotEmpty())
-                                .andExpect(jsonPath("$.state").value(VerificationStatus.PENDING.toString()))
-                                .andExpect(jsonPath("$.verification_url").isNotEmpty())
-                                /*
-                                 * TODO check seems to be working on swagger but not on it
-                                 * .andExpect(jsonPath(inputDescriptor0JsonPath +
-                                 * ".id").value(expectedJsonContext.read(reqDescriptor0JsonPath
-                                 * +".id").toString()))
-                                 * .andExpect(jsonPath(inputDescriptor0JsonPath +
-                                 * ".name").value(expectedJsonContext.read(reqDescriptor0JsonPath +
-                                 * ".name").toString()))
-                                 * .andExpect(jsonPath(proofPath).value(expectedJsonContext.read(
-                                 * reqProofJsonPath).toString()))
-                                 * .andExpect(jsonPath(fieldsPath +
-                                 * ".id").value(expectedJsonContext.read(reqField0JsonPath + ".id").toString()))
-                                 * .andExpect(jsonPath(fieldsPath +
-                                 * ".name").value(expectedJsonContext.read(reqField0JsonPath +
-                                 * ".name").toString()))
-                                 * .andExpect(jsonPath(fieldsPath +
-                                 * ".purpose").value(expectedJsonContext.read(reqField0JsonPath +
-                                 * ".purpose").toString()))
-                                 * .andExpect(jsonPath(fieldsPath +
-                                 * ".path[0]").value(expectedJsonContext.read(reqField0JsonPath +
-                                 * ".path[0]").toString()))
-                                 */
-                                .andReturn();
-
-                result1.getResponse();
-        }
-
-        @Test
-        void testCreateOfferValidation_noInputDescriptorId_thenException() throws Exception {
-                var request = createVerificationManagementDto(issuerDids);
-                request.presentationDefinition().inputDescriptors().clear();
-                request.presentationDefinition().inputDescriptors().add(inputDescriptorDto(null));
-
-                mvc.perform(post(BASE_URL)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(request)))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.error_description").value(
-                                                "presentationDefinition.inputDescriptors[0].id: id of input descriptor is mandatory"))
-                                .andReturn();
-        }
-
-        @Test
-        void testCreateOfferValidation_noConstraints_thenException() throws Exception {
-                var request = createVerificationManagementDto(issuerDids);
-                request.presentationDefinition().inputDescriptors().clear();
-                request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_WithoutConstraints());
-
-                mvc.perform(post(BASE_URL)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(request)))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.error_description").value(
-                                                "presentationDefinition.inputDescriptors[0].constraints: must not be null"))
-                                .andReturn();
-        }
-
-        @Test
-        void testCreateOfferValidation_noFieldPath_thenException() throws Exception {
-                // GIVEN
-                var request = createVerificationManagementDto(issuerDids);
-                var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
-                var emptyFieldDto = FieldDto.builder().build();
-                constraints.fields().clear();
-                constraints.fields().add(emptyFieldDto);
-                // WHEN / THEN
-                mvc.perform(post(BASE_URL)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(request)))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.error_description").value(
-                                                "presentationDefinition.inputDescriptors[0].constraints.fields[0].path: must not be empty"))
-                                .andReturn();
-        }
-
-        @Test
-        void testCreateOfferValidation_emptyFieldPath_thenException() throws Exception {
-                // GIVEN
-                var request = createVerificationManagementDto(issuerDids);
-                var constraints = request.presentationDefinition().inputDescriptors().getFirst().constraints();
-                constraints.fields().clear();
-
-                // WHEN / THEN
-                mvc.perform(post(BASE_URL)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(request)))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.error_description").value(
-                                                "presentationDefinition.inputDescriptors[0].constraints.fields: must not be empty"))
-                                .andReturn();
-        }
-
-        @Test
-        void testCreateOfferValidation_withInvalidAlgorithmFormats_thenExceptionWithMultipleErrors() throws Exception {
-                // GIVEN
-                var request = createVerificationManagementDto(issuerDids);
-                request.presentationDefinition().inputDescriptors().clear();
-                request.presentationDefinition().inputDescriptors().add(inputDescriptorDto_Invalid());
-                request.presentationDefinition().format().clear();
-                request.presentationDefinition().format().put("FailCrypt", new FormatAlgorithmDto(null, null));
-
-                // WHEN / THEN
-                var expectedPresentationFormatError = "presentationDefinition.format: Invalid format";
-                var expectedInputDescriptorFormatError = "presentationDefinition.inputDescriptors[0].format: Invalid format";
-
-                mvc.perform(post(BASE_URL)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(request)))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.error_description").value(expectedPresentationFormatError + ", "
-                                                + expectedInputDescriptorFormatError))
-                                .andReturn();
-        }
-
-        @Test
-        void testCreateMinimalExample_thenSuccess() throws Exception {
-                var minimal = createVerificationManagementDto_Minimal(true);
-                MvcResult result = mvc.perform(post(BASE_URL)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(minimal)))
-                                .andExpect(status().isOk())
-                                .andReturn();
-
-                String id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
-
-                MvcResult result1 = mvc.perform(get(BASE_URL + "/" + id))
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andReturn();
-
-                assertEquals(-1, result1.getResponse().getContentAsString().indexOf("null"));
-
-                MvcResult result2 = mvc.perform(get(BASE_URL + "/" + id))
-                                .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                                .andReturn();
-
-                assertEquals(-1, result2.getResponse().getContentAsString().indexOf("null"));
-        }
-
-        @Test
-        void testCreateOffer_withOnlyDcqlQuery_thenIllegalArgumentException() throws Exception {
-
-                // Build a minimal DCQL query DTO
-                var request = createVerificationManagementWithDcqlQueryDto(null, getDcqlQueryForListDto(), issuerDids);
-
-                mvc.perform(post(BASE_URL)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(request)))
-                                .andExpect(status().is4xxClientError())
-                                .andExpect(result -> assertEquals(
-                                                IllegalArgumentException.class,
-                                                result.getResolvedException().getClass()))
-                                .andReturn();
-        }
 
     @Test
     void testCreateOffer_withEmptyAcceptedIssuerDidsAndEmptyTrustAnchors_thenThrowBadRequest()throws Exception {
 
         var request = CreateVerificationManagementDto.builder()
-                .presentationDefinition(presentationDefinitionDto())
                 .dcqlQuery(getDcqlQueryForListDto())
                 .trustAnchors(List.of())
                 .acceptedIssuerDids(List.of())
@@ -314,7 +77,6 @@ class VerifierManagementControllerIT {
         issuerDids.add(null);
 
         var request = CreateVerificationManagementDto.builder()
-                .presentationDefinition(presentationDefinitionDto())
                 .dcqlQuery(getDcqlQueryForListDto())
                 .trustAnchors(null)
                 .acceptedIssuerDids(issuerDids)
@@ -334,7 +96,6 @@ class VerifierManagementControllerIT {
     void testCreateOffer_withNullAcceptedIssuerDidsAndNullTrustAnchors_thenThrowBadRequest()throws Exception {
 
         var request = CreateVerificationManagementDto.builder()
-                .presentationDefinition(presentationDefinitionDto())
                 .dcqlQuery(getDcqlQueryForListDto())
                 .trustAnchors(null)
                 .acceptedIssuerDids(null)
@@ -355,7 +116,6 @@ class VerifierManagementControllerIT {
         TrustAnchorDto trustAnchorDto = new TrustAnchorDto("did:example:12345", null);
 
         var request = CreateVerificationManagementDto.builder()
-                .presentationDefinition(presentationDefinitionDto())
                 .dcqlQuery(getDcqlQueryForListDto())
                 .trustAnchors(List.of(trustAnchorDto))
                 .acceptedIssuerDids(null)
@@ -372,8 +132,7 @@ class VerifierManagementControllerIT {
         void testCreateOffer_withDcqlQuery_thenSuccess() throws Exception {
 
                 // Build a minimal DCQL query DTO
-                var request = createVerificationManagementWithDcqlQueryDto(presentationDefinitionDto(),
-                                getDcqlQueryForListDto(), issuerDids);
+                var request = createVerificationManagementWithDcqlQueryDto(getDcqlQueryForListDto(), issuerDids);
 
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)

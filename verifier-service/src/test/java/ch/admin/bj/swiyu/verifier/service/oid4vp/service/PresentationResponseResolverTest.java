@@ -52,23 +52,6 @@ class PresentationResponseResolverTest {
     }
 
     @Test
-    void mapToPresentationResult_whenDirectPost_andUnencryptedStandard_thenReturnsStandardResult() {
-        Management management = createTestManagement(ResponseModeType.DIRECT_POST);
-        VerificationPresentationUnionDto union = VerificationPresentationUnionDto.builder()
-                .vp_token("vp-token-jwt")
-                .presentation_submission("{}")
-                .build();
-
-        PresentationResult result = assertDoesNotThrow(
-                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.ID2, union));
-
-        assertThat(result).isInstanceOf(PresentationResult.PresentationExchange.class);
-        var standard = (PresentationResult.PresentationExchange) result;
-        assertEquals("vp-token-jwt", standard.request().getVpToken());
-        assertEquals("{}", standard.request().getPresentationSubmission());
-    }
-
-    @Test
     void mapToPresentationResult_whenDirectPost_andRealDcqlToken_thenReturnsDcqlResult() {
         Management management = createTestManagement(ResponseModeType.DIRECT_POST);
         var realWorldJson = """
@@ -111,30 +94,6 @@ class PresentationResponseResolverTest {
         assertThat(((PresentationResult.Dcql) result).request().getVpToken()).containsKey("defaultTestDcqlCredentialId");
     }
 
-
-    @Test
-    void mapToPresentationResult_whenDirectPost_andUnnecessaryEncryption_thenUsesPlainData() throws JOSEException {
-        Management management = createTestManagement(ResponseModeType.DIRECT_POST);
-        String presentationId = "test_credential_id";
-        List<String> presentationPayload = List.of("Not validated here");
-        String testClaims = new JWTClaimsSet.Builder()
-                .claim("vp_token", Map.of(presentationId, presentationPayload))
-                .build()
-                .toString();
-
-        VerificationPresentationUnionDto union = VerificationPresentationUnionDto.builder()
-                .vp_token("plain-vp-token")
-                .response(jweEncrypt(testClaims, ecKey))
-                .presentation_submission("{}")
-                .build();
-
-        PresentationResult result = assertDoesNotThrow(
-                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.ID2, union));
-
-        assertThat(result).isInstanceOf(PresentationResult.PresentationExchange.class);
-        var standard = (PresentationResult.PresentationExchange) result;
-        assertEquals("plain-vp-token", standard.request().getVpToken());
-    }
 
     @Test
     void mapToPresentationResult_whenDirectPostJwt_andEncryptedDcql_thenDecryptsAndReturnsDcqlResult() throws JOSEException {

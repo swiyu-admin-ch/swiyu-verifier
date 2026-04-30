@@ -1,29 +1,22 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.dto.definition.*;
 import ch.admin.bj.swiyu.verifier.dto.management.*;
 import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
-import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Objects.nonNull;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
@@ -45,7 +38,6 @@ public class ManagementMapper {
                 management.getId(),
                 management.getRequestNonce(),
                 toVerifcationStatusDto(management.getState()),
-                toPresentationDefinitionDto(management.getRequestedPresentation()),
                 null,
                 toResponseDataDto(management.getWalletResponse()),
                 verificationUrl,
@@ -77,19 +69,6 @@ public class ManagementMapper {
                 .toString();
     }
 
-    public static PresentationDefinition toPresentationDefinition(PresentationDefinitionDto source) {
-        if (source == null) {
-            throw new IllegalArgumentException("PresentationDefinitionDto must not be null");
-        }
-        return new PresentationDefinition(
-                source.id(),
-                source.name(),
-                source.purpose(),
-                toFormatAlgorithmMap(source.format()),
-                toInputDescriptor(source.inputDescriptors())
-        );
-    }
-
     private static VerificationStatusDto toVerifcationStatusDto(VerificationStatus source) {
         if (source == null) {
             return null;
@@ -102,39 +81,6 @@ public class ManagementMapper {
         };
     }
 
-    private static PresentationDefinitionDto toPresentationDefinitionDto(PresentationDefinition source) {
-        if (source == null) {
-            return null;
-        }
-        return new PresentationDefinitionDto(
-                source.id(),
-                source.name(),
-                source.purpose(),
-                toFormatAlgorithmDtoMap(source.format()),
-                toInputDescriptorDto(source.inputDescriptors())
-        );
-    }
-
-    private static List<InputDescriptorDto> toInputDescriptorDto(List<InputDescriptor> source) {
-        if (isEmpty(source)) {
-            return emptyList();
-        }
-        return source.stream().map(ManagementMapper::toInputDescriptorDto).toList();
-    }
-
-    private static InputDescriptorDto toInputDescriptorDto(InputDescriptor source) {
-        if (source == null) {
-            return null;
-        }
-        return new InputDescriptorDto(
-                source.id(),
-                source.name(),
-                source.purpose(),
-                toFormatAlgorithmDtoMap(source.format()),
-                toConstraintDto(source.constraints())
-        );
-    }
-
     private static ResponseDataDto toResponseDataDto(ResponseData source) {
         if (source == null) {
             return null;
@@ -144,141 +90,6 @@ public class ManagementMapper {
                 toVerificationErrorResponseCodeDto(source.errorCode()),
                 source.errorDescription(),
                 nonNull(credentialSubjectDataString) ? jsonStringToMap(credentialSubjectDataString) : null);
-    }
-
-    private static ConstraintDto toConstraintDto(Constraint source) {
-        if (source == null) {
-            return null;
-        }
-        return new ConstraintDto(
-                source.id(),
-                source.name(),
-                source.purpose(),
-                toFormatAlgorithmDtoMap(source.format()),
-                toFieldDto(source.fields()));
-    }
-
-    private static List<FieldDto> toFieldDto(List<Field> source) {
-        if (isEmpty(source)) {
-            return emptyList();
-        }
-        return source.stream().map(ManagementMapper::toFieldDto).toList();
-    }
-
-    private static FieldDto toFieldDto(Field source) {
-        if (source == null) {
-            return null;
-        }
-        return new FieldDto(
-                toStringList(source.path()),
-                source.id(),
-                source.name(),
-                source.purpose(),
-                toFilterDto(source.filter())
-        );
-    }
-
-    private static FilterDto toFilterDto(Filter source) {
-        if (source == null) {
-            return null;
-        }
-        return new FilterDto(source.type(), source.constDescriptor());
-    }
-
-    private static Map<String, FormatAlgorithmDto> toFormatAlgorithmDtoMap(Map<String, FormatAlgorithm> source) {
-        if (isEmpty(source)) {
-            return emptyMap();
-        }
-        return source.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> toFormatAlgorithmDto(entry.getValue())
-                ));
-    }
-
-    private static FormatAlgorithmDto toFormatAlgorithmDto(FormatAlgorithm source) {
-        if (source == null) {
-            return null;
-        }
-        return new FormatAlgorithmDto(toStringList(source.alg()), toStringList(source.keyBindingAlg()));
-    }
-
-    private static Map<String, FormatAlgorithm> toFormatAlgorithmMap(Map<String, FormatAlgorithmDto> source) {
-        if (isEmpty(source)) {
-            return emptyMap();
-        }
-        return source.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> toFormatAlgorithm(entry.getValue())
-                ));
-    }
-
-    private static List<InputDescriptor> toInputDescriptor(List<InputDescriptorDto> source) {
-        if (isEmpty(source)) {
-            return emptyList();
-        }
-        return source.stream().map(ManagementMapper::toInputDescriptor).toList();
-    }
-
-    private static InputDescriptor toInputDescriptor(InputDescriptorDto source) {
-        if (source == null) {
-            return null;
-        }
-        return new InputDescriptor(
-                source.id(),
-                source.name(),
-                source.purpose(),
-                toFormatAlgorithmMap(source.format()),
-                toConstraint(source.constraints())
-        );
-    }
-
-    private static Constraint toConstraint(ConstraintDto source) {
-        if (source == null) {
-            return null;
-        }
-        return new Constraint(
-                source.id(),
-                source.name(),
-                source.purpose(),
-                toFormatAlgorithmMap(source.format()),
-                toField(source.fields()));
-    }
-
-    private static List<Field> toField(List<FieldDto> source) {
-        if (isEmpty(source)) {
-            return emptyList();
-        }
-        return source.stream().map(ManagementMapper::toField).toList();
-    }
-
-    private static Field toField(FieldDto source) {
-        if (source == null) {
-            return null;
-        }
-        return new Field(toStringList(source.path()), source.id(), source.name(), source.purpose(), toFilter(source.filter()));
-    }
-
-    private static Filter toFilter(FilterDto source) {
-        if (source == null) {
-            return null;
-        }
-        return new Filter(source.type(), source.constDescriptor());
-    }
-
-    private static FormatAlgorithm toFormatAlgorithm(FormatAlgorithmDto source) {
-        if (source == null) {
-            return null;
-        }
-        return new FormatAlgorithm(
-                toStringList(source.alg()),
-                toStringList(source.keyBindingAlg())
-        );
-    }
-
-    private static List<String> toStringList(List<String> source) {
-        return source == null ? emptyList() : new ArrayList<>(source);
     }
 
     private static Map<String, Object> jsonStringToMap(String jsonString) {

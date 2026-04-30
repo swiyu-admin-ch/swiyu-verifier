@@ -1,0 +1,1 @@
+alter table management drop column requested_presentation;

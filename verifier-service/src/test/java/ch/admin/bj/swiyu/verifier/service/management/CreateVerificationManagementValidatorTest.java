@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
@@ -21,15 +20,9 @@ class CreateVerificationManagementValidatorTest {
     }
 
     @Test
-    void validate_shouldThrow_whenPresentationDefinitionIsNull() {
-        var request = createRequest(null, null, null);
+    void validate_shouldThrow_whenDCQLQueryIsNull() {
+        var request = createRequest(null, null);
         assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
-    }
-
-    @Test
-    void validate_shouldNotThrow_whenRequestIsValid() {
-        var request = createRequest(createPresentationDefinition(), null, List.of());
-        assertDoesNotThrow(() -> CreateVerificationManagementValidator.validate(request));
     }
 
     @Test
@@ -47,7 +40,7 @@ class CreateVerificationManagementValidatorTest {
                 )
         );
         var dcqlQuery = new DcqlQueryDto(credentials, List.of());
-        var request = createRequest(createPresentationDefinition(), dcqlQuery, null);
+        var request = createRequest(dcqlQuery, null);
         assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
     }
 
@@ -66,25 +59,20 @@ class CreateVerificationManagementValidatorTest {
                 )
         );
         var dcqlQuery = new DcqlQueryDto(credentials, List.of());
-        var request = createRequest(createPresentationDefinition(), dcqlQuery, null);
+        var request = createRequest(dcqlQuery, null);
         assertDoesNotThrow(() -> CreateVerificationManagementValidator.validate(request));
     }
 
-    private CreateVerificationManagementDto createRequest(PresentationDefinitionDto presentationDefinition,
-                                                          DcqlQueryDto dcqlQuery,
+    private CreateVerificationManagementDto createRequest(DcqlQueryDto dcqlQuery,
                                                           List<TrustAnchorDto> trustAnchors) {
         return new CreateVerificationManagementDto(
                 null, // acceptedIssuerDids
                 trustAnchors,
                 null, // jwtSecuredAuthorizationRequest
                 null, // responseMode
-                presentationDefinition,
                 null, // configuration_override
                 dcqlQuery
         );
     }
 
-    private PresentationDefinitionDto createPresentationDefinition() {
-        return new PresentationDefinitionDto("id", "name", "purpose", null, List.of());
-    }
 }

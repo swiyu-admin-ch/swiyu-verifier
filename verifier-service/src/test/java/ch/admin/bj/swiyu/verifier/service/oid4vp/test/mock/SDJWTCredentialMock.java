@@ -1,8 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock;
 
-import ch.admin.bj.swiyu.verifier.dto.submission.DescriptorDto;
-import ch.admin.bj.swiyu.verifier.dto.submission.PresentationSubmissionDto;
-import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
@@ -58,50 +55,6 @@ public class SDJWTCredentialMock {
         this.holderKey = holderKey;
         this.issuerId = issuerId;
         this.kidHeaderValue = kidHeaderValue;
-    }
-
-    public static String getPresentationSubmissionString(UUID uuid) throws JsonProcessingException {
-        return getPresentationSubmissionStringWithPath(uuid != null ? uuid : UUID.randomUUID(), "$");
-    }
-
-    public static String getPresentationSubmissionStringWithPath(UUID uuid, String path) throws JsonProcessingException {
-        var mapper = new ObjectMapper();
-        var submission = getPresentationSubmissionWithPath(uuid, path);
-        return mapper.writeValueAsString(submission);
-    }
-
-    public static PresentationSubmissionDto getPresentationSubmissionWithPath(UUID uuid, String path) {
-        DescriptorDto descriptor = DescriptorDto.builder()
-                .path(path)
-                .format(SdjwtCredentialVerifier.CREDENTIAL_FORMAT)
-                .build();
-
-        return PresentationSubmissionDto.builder()
-                .id(uuid != null ? uuid.toString() : UUID.randomUUID().toString())
-                .descriptorMap(List.of(descriptor))
-                .build();
-    }
-
-    public static String getMultiplePresentationSubmissionString(UUID uuid) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-
-        DescriptorDto descriptorSDJWT = DescriptorDto.builder()
-                .id("multipass")
-                .path("$[1]")
-                .format(SdjwtCredentialVerifier.CREDENTIAL_FORMAT)
-                .build();
-
-        DescriptorDto descriptor = DescriptorDto.builder()
-                .id("test")
-                .path("$[0]")
-                .format("whatever")
-                .build();
-        PresentationSubmissionDto submission = PresentationSubmissionDto.builder()
-                .id(uuid != null ? uuid.toString() : UUID.randomUUID().toString())
-                .descriptorMap(List.of(descriptorSDJWT, descriptor))
-                .build();
-
-        return mapper.writeValueAsString(submission);
     }
 
     /**

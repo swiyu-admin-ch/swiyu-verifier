@@ -24,9 +24,9 @@ public class DcqlMapper {
      * @param dcqlQueryDto the DTO to convert
      * @return the converted domain object, or null if input is null
      */
-    public static DcqlQuery toDcqlQuery(@Nullable DcqlQueryDto dcqlQueryDto) {
+    public static DcqlQuery toDcqlQuery(DcqlQueryDto dcqlQueryDto) {
         if (dcqlQueryDto == null) {
-            return null;
+            throw new IllegalArgumentException("DCQL query must not be null");
         }
 
         return DcqlQuery.builder()

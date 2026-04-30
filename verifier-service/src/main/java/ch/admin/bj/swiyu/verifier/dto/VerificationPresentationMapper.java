@@ -54,7 +54,7 @@ public class VerificationPresentationMapper {
      * @throws IllegalArgumentException if the payload does not match the expected shape or cannot be parsed
      */
     public static VerificationPresentationDCQLRequestDto toDcqlPresentation(VerificationPresentationUnionDto payload) {
-        if (payload == null || !payload.isDcqlPresentation()) {
+        if (payload == null || !payload.isUnencryptedDcqlPresentation()) {
             throw new IllegalArgumentException("Union DTO does not contain DCQL presentation data");
         }
         try {

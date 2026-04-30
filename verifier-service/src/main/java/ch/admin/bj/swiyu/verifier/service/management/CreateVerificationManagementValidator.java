@@ -24,18 +24,16 @@ public class CreateVerificationManagementValidator {
         if (dcqlQueryDto == null) {
             throw new IllegalArgumentException("dcql_query is required");
         }
-        if (dcqlQueryDto != null) {
-            if (dcqlQueryDto.credentials().stream().anyMatch(cred -> Boolean.TRUE.equals(cred.multiple()))) {
-                // Currently supporting only 1 vp token per credential query
-                throw new IllegalArgumentException("multiple credentials in response for a single query not supported");
-            }
-            if (!CollectionUtils.isEmpty(dcqlQueryDto.credentialSets())) {
-                // Not yet supporting credential sets
-                throw new IllegalArgumentException("credential sets not yet supported");
-            }
-            if (dcqlQueryDto.credentials().stream().anyMatch(cred -> cred.meta().vctValues().isEmpty())) {
-                throw new IllegalArgumentException("vct_values is required");
-            }
+        if (dcqlQueryDto.credentials().stream().anyMatch(cred -> Boolean.TRUE.equals(cred.multiple()))) {
+            // Currently supporting only 1 vp token per credential query
+            throw new IllegalArgumentException("multiple credentials in response for a single query not supported");
+        }
+        if (!CollectionUtils.isEmpty(dcqlQueryDto.credentialSets())) {
+            // Not yet supporting credential sets
+            throw new IllegalArgumentException("credential sets not yet supported");
+        }
+        if (dcqlQueryDto.credentials().stream().anyMatch(cred -> cred.meta().vctValues().isEmpty())) {
+            throw new IllegalArgumentException("vct_values is required");
         }
     }
 }

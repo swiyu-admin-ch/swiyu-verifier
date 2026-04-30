@@ -80,7 +80,7 @@ public class VerificationPresentationUnionDto {
      * @return {@code true} if this payload represents a DCQL presentation (vp_token present).
      */
     @JsonIgnore
-    public boolean isDcqlPresentation() {
+    public boolean isUnencryptedDcqlPresentation() {
         return vp_token != null;
     }
 

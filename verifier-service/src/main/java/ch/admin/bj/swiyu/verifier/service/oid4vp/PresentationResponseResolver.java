@@ -66,12 +66,12 @@ public class PresentationResponseResolver {
         }
 
         return switch (apiVersion) {
-            case V1 -> mapV1Payload(payload);
+            case V1 -> mapPayload(payload);
         };
     }
 
-    private PresentationResult mapV1Payload(VerificationPresentationUnionDto payload) {
-        if (payload.isDcqlPresentation()) {
+    private PresentationResult mapPayload(VerificationPresentationUnionDto payload) {
+        if (payload.isUnencryptedDcqlPresentation()) {
             return new PresentationResult.Dcql(VerificationPresentationMapper.toDcqlPresentation(payload));
         }
         if (payload.isEncryptedPresentation()) {

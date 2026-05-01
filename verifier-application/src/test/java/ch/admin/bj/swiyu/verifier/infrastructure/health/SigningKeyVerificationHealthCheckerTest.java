@@ -52,6 +52,9 @@ class SigningKeyVerificationHealthCheckerTest {
     private JwtSigningService jwtSigningService;
 
     @Mock
+    private HealthCheckProperties healthCheckProperties;
+
+    @Mock
     private Jwk jwk;
 
     @Mock
@@ -67,8 +70,12 @@ class SigningKeyVerificationHealthCheckerTest {
         healthChecker = new SigningKeyVerificationHealthChecker(
                 didResolverFacade,
                 applicationProperties,
-                jwtSigningService
+                jwtSigningService,
+                healthCheckProperties
         );
+
+        // Health checks are enabled by default
+        when(healthCheckProperties.isSigningKeyVerificationEnabled()).thenReturn(true);
 
         // Generate a test EC key pair
         testKey = new ECKeyGenerator(Curve.P_256)
@@ -120,8 +127,8 @@ class SigningKeyVerificationHealthCheckerTest {
     }
 
     @Test
-    void performCheck_shouldReturnDown_whenVerificationMethodIsBlank() {
-        // Given
+    void performCheck_shouldReturnUp_whenVerificationMethodIsBlank() {
+        // Given – no static key configured (dynamic key management scenario)
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("   ");
 
         Health.Builder builder = Health.up();
@@ -131,8 +138,24 @@ class SigningKeyVerificationHealthCheckerTest {
 
         // Then
         Health health = builder.build();
-        assertThat(health.getStatus()).isEqualTo(Status.DOWN);
-        assertThat(health.getDetails()).containsKey("signingKeyVerificationMethod");
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("signingKeyVerificationMethod", "not configured");
+    }
+
+    @Test
+    void performCheck_shouldReturnUp_whenVerificationMethodIsNull() {
+        // Given
+        when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn(null);
+
+        Health.Builder builder = Health.up();
+
+        // When
+        healthChecker.performCheck(builder);
+
+        // Then
+        Health health = builder.build();
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("signingKeyVerificationMethod", "not configured");
     }
 
     @Test
@@ -321,6 +344,19 @@ class SigningKeyVerificationHealthCheckerTest {
         verify(didResolverFacade, times(1)).resolveDid(anyString(), anyString());
     }
 
+    @Test
+    void scheduledCheck_shouldReturnUpWithDisabledDetail_whenSigningKeyVerificationIsDisabled() {
+        // Given
+        when(healthCheckProperties.isSigningKeyVerificationEnabled()).thenReturn(false);
 
+        // When
+        healthChecker.scheduledCheck();
+
+        // Then
+        Health health = healthChecker.getHealthResult();
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("signingKeyVerificationMethod", "disabled");
+        verifyNoInteractions(didResolverFacade, jwtSigningService);
+    }
 }
 

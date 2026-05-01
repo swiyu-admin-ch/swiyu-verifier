@@ -23,18 +23,20 @@ class IdentifierRegistryHealthCheckerTest {
     private final String didId1 = "did:webvh:scid:example.com";
     private final String didId2 = "did:webvh:scid:test.com";
 
-
     @Mock
     DidResolverFacade didResolverFacade;
     @Mock
     DidDoc didDoc;
+    @Mock
+    HealthCheckProperties healthCheckProperties;
+
     List<String> didIds = List.of(didId1, didId2);
 
     private IdentifierRegistryHealthChecker identifierRegistryHealthChecker;
 
     @BeforeEach
     void setUp() {
-        this.identifierRegistryHealthChecker = new IdentifierRegistryHealthChecker(didResolverFacade, didIds);
+        this.identifierRegistryHealthChecker = new IdentifierRegistryHealthChecker(didResolverFacade, didIds, healthCheckProperties);
     }
 
 

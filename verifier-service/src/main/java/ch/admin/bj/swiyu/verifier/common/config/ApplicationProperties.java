@@ -46,4 +46,11 @@ public class ApplicationProperties {
     private HSMProperties hsm;
 
     private List<String> acceptedStatusListHosts;
+
+    /**
+     * Allowed hosts for DID-based issuer resolution. DID URLs whose host does not match any entry
+     * in this list are rejected to prevent CSRF and "phone home" attacks.
+     * Maps to the environment variable {@code APPLICATION_ACCEPTED_IDENTIFIER_HOSTS}.
+     */
+    private List<String> acceptedIdentifierHosts = List.of();
 }

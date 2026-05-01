@@ -5,7 +5,8 @@ import java.util.Map;
 
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import com.nimbusds.jwt.SignedJWT;
@@ -52,7 +53,9 @@ public abstract class StatusListReference {
      */
     private final Map<String, Object> statusListReferenceClaims;
 
-    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
+    private final DidJwtValidator didJwtValidator;
+
+    private final DidResolverFacade didResolverFacade;
 
     private final String referencedTokenIssuer;
 

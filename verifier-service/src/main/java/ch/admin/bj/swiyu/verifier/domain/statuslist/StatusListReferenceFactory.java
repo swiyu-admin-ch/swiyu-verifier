@@ -1,10 +1,11 @@
 package ch.admin.bj.swiyu.verifier.domain.statuslist;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,8 @@ import java.util.function.Function;
 @AllArgsConstructor
 @Slf4j
 public class StatusListReferenceFactory {
-    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
+    private final DidJwtValidator didJwtValidator;
+    private final DidResolverFacade didResolverFacade;
     private final StatusListResolverAdapter statusListResolverAdapter;
     private final VerificationProperties verificationProperties;
 
@@ -84,7 +86,7 @@ public class StatusListReferenceFactory {
     private Function<Map<String, Object>, List<TokenStatusListReference>> createTokenStatusListReferences(String referencedTokenIssuer) {
         return tokenStatusListReferenceTokenEntry -> List.of(
                 new TokenStatusListReference(statusListResolverAdapter, JsonUtil.getJsonObject(tokenStatusListReferenceTokenEntry.get("status_list")),
-                        issuerPublicKeyLoader, referencedTokenIssuer, verificationProperties.getObjectSizeLimit())
+                        didJwtValidator, didResolverFacade, referencedTokenIssuer, verificationProperties.getObjectSizeLimit())
         );
     }
 

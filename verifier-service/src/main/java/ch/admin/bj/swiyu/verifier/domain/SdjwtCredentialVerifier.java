@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.verifier.domain;
 
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
+import ch.admin.bj.swiyu.sdjwtvalidator.SdJwtVcValidator;
 import ch.admin.bj.swiyu.verifier.common.util.base64.Base64Utils;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
@@ -9,8 +11,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectDecoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -59,6 +60,8 @@ public class SdjwtCredentialVerifier {
     private final List<String> supportedAlgorithms = List.of("ES256");
     private final String vpToken;
     private final Management managementEntity;
+    private final SdJwtVcValidator sdJwtVcValidator;
+    private final DidResolverFacade didResolverFacade;
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
@@ -221,22 +224,24 @@ public class SdjwtCredentialVerifier {
             var header = nimbusJwt.getHeader();
             validateHeader(header);
             var claims = nimbusJwt.getJWTClaimsSet();
-            // SWIYU injection ==> We want to ensure we trust the issuer
-            validateTrust(claims.getIssuer(), claims.getStringClaim("vct"));
-            // We trust the issuer (or everybody)
-            var publicKey = issuerPublicKeyLoader.loadPublicKey(claims.getIssuer(), header.getKeyID());
-            log.trace("Loaded issuer public key for id {}", managementEntity.getId());
-            // Verify the JWS signature of the JWT
-            if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey))) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Signature mismatch");
+            // Step 1: validate kid and resolve DID URL (enforces URL allowlist, ADR-027: iss is ignored)
+            String didUrl = sdJwtVcValidator.getAndValidateResolutionUrl(jwt);
+            // SWIYU injection ==> Trust check uses DID from kid, NOT the iss claim (ADR-027)
+            validateTrust(didUrl, claims.getStringClaim("vct"));
+            // Step 2: resolve DID document and verify signature
+            try (var didDoc = didResolverFacade.resolveDid(didUrl)) {
+                sdJwtVcValidator.validateSdJwtVc(jwt, didDoc);
             }
             log.trace("Successfully verified signature of id {}", managementEntity.getId());
             validateJwtTimes(claims);
             return claims;
         } catch (ParseException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
-        } catch (LoadingPublicKeyOfIssuerFailedException | JOSEException e) {
+        } catch (JwtValidatorException e) {
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
+        } catch (Exception e) {
+            if (e instanceof VerificationException ve) throw ve;
+            throw credentialError(PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, "Failed to resolve issuer DID: " + e.getMessage());
         }
     }
 
@@ -573,3 +578,5 @@ public class SdjwtCredentialVerifier {
     private record SdJwtData(JWTClaimsSet payload, List<Disclosure> disclosures) {
     }
 }
+
+

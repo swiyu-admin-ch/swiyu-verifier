@@ -3,7 +3,6 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
-import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,10 +26,9 @@ public class DcqlVpTokenVerifier {
         // Validate Basic JWT (header, times, signature)
         sdJwtVpTokenVerifier.verifyVerifiableCredentialJWT(vpToken, management);
 
-        // Perform issuer trust validation based on claims
-        JWTClaimsSet claims = vpToken.getClaims();
+        // Perform issuer trust validation based on DID derived from kid (ADR-027: iss claim is ignored)
         try {
-            issuerTrustValidator.validateTrust(claims.getIssuer(), claims.getStringClaim("vct"), management);
+            issuerTrustValidator.validateTrust(vpToken.getIssuerDid(), vpToken.getClaims().getStringClaim("vct"), management);
         } catch (ParseException e) {
             log.error("Failed to extract vct claim from JWT token", e);
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");

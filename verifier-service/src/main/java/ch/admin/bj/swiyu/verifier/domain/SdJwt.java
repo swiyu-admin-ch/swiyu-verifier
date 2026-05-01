@@ -40,6 +40,18 @@ public class SdJwt {
     private Map<String, Object> resolvedClaims;
 
     /**
+     * The issuer DID derived from the absolute {@code kid} header of the SD-JWT.
+     * <p>
+     * This is the DID URL returned by the validator library (e.g. {@code did:tdw:...#key-1} → {@code did:tdw:...})
+     * and is the authoritative identity of the issuer. It must <em>not</em> be confused with the optional
+     * {@code iss} claim, which is explicitly ignored per ADR-027.
+     * </p>
+     */
+    @Getter
+    @Setter
+    private String issuerDid;
+
+    /**
      * <a href="https://www.rfc-editor.org/rfc/rfc9901.html#section-4.3">Key Binding JWT</a>
      */
     @Getter

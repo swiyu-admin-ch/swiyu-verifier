@@ -114,8 +114,9 @@ public class IssuerTrustValidator {
                                      String rawTrustStatement, Management management) throws ParseException {
         var trustStatement = new SdJwt(rawTrustStatement);
         trustStatement = sdJwtVpTokenVerifier.verifyVpTokenTrustStatement(trustStatement, management);
+        // ADR-027: iss claim is ignored; use the DID derived from the kid header for all identity checks
         return issuerDid.equals(trustStatement.getClaims().getSubject())
-                && trustAnchor.did().equals(trustStatement.getClaims().getIssuer())
+                && trustAnchor.did().equals(trustStatement.getIssuerDid())
                 && vct.equals(trustStatement.getClaims().getStringClaim("canIssue"));
     }
 

@@ -45,6 +45,13 @@ application:
     - "status-reg.trust-infra.swiyu-int.admin.ch"
     - "status-reg.trust-infra.swiyu.admin.ch"
 
+  # Allowed hosts for DID-based issuer resolution (anti-CSRF / phone-home protection).
+  # DID URLs whose host does not match any entry are rejected by swiyu-jwt-validator.
+  # Override via environment variable APPLICATION_ACCEPTED_IDENTIFIER_HOSTS.
+  accepted-identifier-hosts:
+    - "identifier-reg.trust-infra.swiyu-int.admin.ch"
+    - "identifier-reg.trust-infra.swiyu.admin.ch"
+
   # ---- OpenID4VP Part ----
 
   # TTL is set to 900 seconds -> 15 minutes

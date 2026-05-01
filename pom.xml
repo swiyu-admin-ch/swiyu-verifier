@@ -56,7 +56,7 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
-        <generic-java-lib.version>1.4.0</generic-java-lib.version>
+        <generic-java-lib.version>1.5.0</generic-java-lib.version>
     </properties>
 
     <dependencyManagement>
@@ -96,6 +96,16 @@
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-jwt-util</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-jwt-validator</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-sdjwt-validator</artifactId>
                 <version>${generic-java-lib.version}</version>
             </dependency>
         </dependencies>

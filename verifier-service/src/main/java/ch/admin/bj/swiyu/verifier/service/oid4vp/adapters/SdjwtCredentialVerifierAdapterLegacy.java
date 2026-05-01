@@ -1,11 +1,13 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.adapters;
 
+import ch.admin.bj.swiyu.sdjwtvalidator.SdJwtVcValidator;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.domain.SdjwtCredentialVerifier;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.LegacyPresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,8 @@ import org.springframework.stereotype.Service;
 @Deprecated(since="OID4VP 1.0")
 public class SdjwtCredentialVerifierAdapterLegacy implements LegacyPresentationVerifier {
 
+    private final SdJwtVcValidator sdJwtVcValidator;
+    private final DidResolverFacade didResolverFacade;
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ObjectMapper objectMapper;
@@ -53,6 +57,8 @@ public class SdjwtCredentialVerifierAdapterLegacy implements LegacyPresentationV
         var legacy = new SdjwtCredentialVerifier(
                 vpToken,
                 management,
+                sdJwtVcValidator,
+                didResolverFacade,
                 issuerPublicKeyLoader,
                 statusListReferenceFactory,
                 objectMapper,

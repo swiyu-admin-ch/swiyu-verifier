@@ -9,8 +9,10 @@ import ch.admin.bj.swiyu.verifier.domain.management.PresentationDefinition;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
+import ch.admin.bj.swiyu.sdjwtvalidator.SdJwtVcValidator;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.eid.did_sidekicks.DidDoc;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -26,12 +28,16 @@ import java.util.*;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_KID_HEADER_VALUE;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SdjwtCredentialVerifierTest {
 
     private static final String TEST_NONCE = "test-nonce";
+    private SdJwtVcValidator sdJwtVcValidator;
+    private DidResolverFacade didResolverFacade;
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
     private StatusListReferenceFactory statusListReferenceFactory;
     private ObjectMapper objectMapper;
@@ -41,7 +47,9 @@ class SdjwtCredentialVerifierTest {
     private PresentationDefinition presentationDefinition;
 
     @BeforeEach
-    void setUp() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
+    void setUp() throws Exception {
+        sdJwtVcValidator = mock(SdJwtVcValidator.class);
+        didResolverFacade = mock(DidResolverFacade.class);
         issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
         statusListReferenceFactory = mock(StatusListReferenceFactory.class);
         objectMapper = new ObjectMapper();
@@ -52,12 +60,14 @@ class SdjwtCredentialVerifierTest {
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
         when(applicationProperties.getClientId()).thenReturn("did:example:12345");
         when(applicationProperties.getExternalUrl()).thenReturn("did:example:12345");
+        DidDoc mockDidDoc = mock(DidDoc.class);
+        when(sdJwtVcValidator.getAndValidateResolutionUrl(any())).thenReturn(DEFAULT_ISSUER_ID);
+        when(didResolverFacade.resolveDid(any())).thenReturn(mockDidDoc);
+        doNothing().when(sdJwtVcValidator).validateSdJwtVc(any(), any(DidDoc.class));
         when(managementEntity.getId()).thenReturn(UUID.randomUUID());
         when(managementEntity.getRequestNonce()).thenReturn(TEST_NONCE);
 
         when(managementEntity.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
         when(managementEntity.getRequestedPresentation()).thenReturn(presentationDefinition);
     }
 
@@ -79,7 +89,7 @@ class SdjwtCredentialVerifierTest {
                 .map(Disclosure::parse).toList();
 
         SdjwtCredentialVerifier verifier = new SdjwtCredentialVerifier(
-                vpToken, managementEntity, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
+                vpToken, managementEntity, sdJwtVcValidator, didResolverFacade, issuerPublicKeyLoader, statusListReferenceFactory, objectMapper, verificationProperties, applicationProperties
         );
 
         presentationDefinition = getMockedPresentationDefinition("ES384", "ES256", List.of("$.first_name", "$.last_name", "$.not_existing"));

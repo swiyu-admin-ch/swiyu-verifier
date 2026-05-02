@@ -1,19 +1,5 @@
 #!/bin/bash
 
-# Add microservice CAs
-echo "Adding certificates to Java truststore:"
-if ls /certs-app/*.crt &> /dev/null; then
-    for CERT in /certs-app/*.crt; do
-        CERT_ALIAS=$(basename "$CERT" .crt)
-        echo " => adding $CERT as $CERT_ALIAS to truststore"
-        "$JAVA_HOME"/bin/keytool -importcert -file "$CERT" -alias "$CERT_ALIAS" -cacerts -storepass changeit -noprompt -trustcacerts
-    done
-else
-    echo " => No certificates found, skipping"
-fi
-
-
-
 # If the directory provided through environment variable $JAVA_BOOTCLASSPATH exists, we gather up all .jar files in it and append them to the classpath.
 # This is done by concatenating all filenames with a colon
 # Resulting line looks something like
@@ -28,6 +14,18 @@ fi
 #
 test -d "${JAVA_BOOTCLASSPATH}" && bootclasspath_java_opt=-Xbootclasspath/a:$(ls $JAVA_BOOTCLASSPATH/*.jar | tr '\n' ':')
 
+# Print truststore presence for baked-in certs so it is visible in container startup logs.
+if ls /certs-app/*.crt >/dev/null 2>&1; then
+    echo "Checking certificates in Java truststore:"
+    for cert in /certs-app/*.crt; do
+        alias="$(basename "$cert" .crt)"
+        if keytool -list -keystore "$JAVA_HOME/lib/security/cacerts" -storepass changeit -alias "$alias" >/dev/null 2>&1; then
+            echo " => truststore contains alias: $alias"
+        else
+            echo " => truststore missing alias: $alias"
+        fi
+    done
+fi
 
 java -Duser.timezone=Europe/Zurich \
 -Dspring.config.location=classpath:bootstrap.yml,classpath:application.yml,optional:file:/vault/secrets/database-credentials.yml \

@@ -4,11 +4,7 @@ package ch.admin.bj.swiyu.verifier.dto;
  * Enumeration of supported SWIYU API versions for the SWIYU-API-Version header.
  */
 public enum VPApiVersion {
-    /**
-     * DIF Presentation Exchange for old Presentation Exchange requests standard
-     */
-    ID2("1", "Implementers Draft 2 (OID4VP Draft 18) with DIF Presentation Exchange"),
-    
+
     /**
      * OpenID4VP Rejection for rejections
      */
@@ -38,9 +34,9 @@ public enum VPApiVersion {
      */
     public static VPApiVersion fromValue(String value) {
         if (value == null) {
-            return ID2; // Default behaviour
+            return V1;
         }
-        
+
         for (VPApiVersion version : values()) {
             if (version.value.equals(value)) {
                 return version;

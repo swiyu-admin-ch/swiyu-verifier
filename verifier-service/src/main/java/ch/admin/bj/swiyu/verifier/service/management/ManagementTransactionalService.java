@@ -50,14 +50,12 @@ public class ManagementTransactionalService {
      * Persists a new Management aggregate in its own transaction.
      */
     @Transactional
-    public Management saveNewManagement(PresentationDefinition presentationDefinition,
-                                        DcqlQuery dcqlQuery,
+    public Management saveNewManagement(DcqlQuery dcqlQuery,
                                         CreateVerificationManagementDto request,
                                         List<TrustAnchor> trustAnchors,
                                         ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder) {
         return repository.save(Management.builder()
             .expirationInSeconds(applicationProperties.getVerificationTTL())
-            .requestedPresentation(presentationDefinition)
             .dcqlQuery(dcqlQuery)
             .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
             .responseSpecification(responseSpecificationBuilder.build())

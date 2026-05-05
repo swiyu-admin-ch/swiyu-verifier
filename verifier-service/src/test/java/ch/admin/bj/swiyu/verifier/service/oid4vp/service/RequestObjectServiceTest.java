@@ -204,7 +204,6 @@ class RequestObjectServiceTest {
         when(managementRepository.findById(mgmtId)).thenReturn(Optional.of(management));
         when(management.isVerificationPending()).thenReturn(true);
         when(management.isExpired()).thenReturn(false);
-        when(management.getRequestedPresentation()).thenReturn(null);
         when(management.getRequestNonce()).thenReturn(nonce);
         when(management.getJwtSecuredAuthorizationRequest()).thenReturn(false);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
@@ -278,7 +277,6 @@ class RequestObjectServiceTest {
         when(managementRepository.findById(mgmtId)).thenReturn(Optional.of(management));
         when(management.isVerificationPending()).thenReturn(true);
         when(management.isExpired()).thenReturn(false);
-        when(management.getRequestedPresentation()).thenReturn(null);
         when(management.getRequestNonce()).thenReturn(nonce);
         when(management.getJwtSecuredAuthorizationRequest()).thenReturn(needsJwsAuthorizationRequest);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));

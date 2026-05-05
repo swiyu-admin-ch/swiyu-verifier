@@ -5,9 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,15 +30,6 @@ public class OpenidClientMetadataDto {
     @NotBlank
     @JsonProperty("client_id")
     private String clientId;
-
-    /**
-     * @deprecated replaced by vp_formats_supported in OID4VP 1.0
-     */
-    @NotNull
-    @Valid
-    @JsonProperty("vp_formats")
-    @Deprecated(since="OID4VP 1.0")
-    private OpenIdClientMetadataVpFormat vpFormats;
 
     @JsonProperty("jwks")
     @Schema(description = """

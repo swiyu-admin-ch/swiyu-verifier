@@ -116,6 +116,14 @@ public class Management {
     @NotNull
     private ResponseSpecification responseSpecification = ResponseSpecification.builder().responseModeType(ResponseModeType.DIRECT_POST).build();
 
+    /**
+     * Verification Query Public Statement (vqPS) JWT persisted during verification initialization.
+     * Registered at the Trust Registry (TMS) and injected into the {@code verifier_info} array
+     * of the JWT-Secured Authorization Request as part of Trust Protocol 2.0.
+     */
+    @Column(name = "vq_ps")
+    private String vqPs;
+
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 

@@ -1,0 +1,760 @@
+openapi: 3.1.0
+info:
+  title: Trust Registry Data Service
+  description: IF-007 - APIs for the Trust Registry Data Services
+  version: 1.6.0
+servers:
+  - url: https://trust-reg.trust-infra.swiyu.admin.ch
+    description: Pre-Release
+  - url: https://trust-reg.trust-infra.swiyu-int.admin.ch
+    description: Public Beta / Preview
+  - url: https://trust-reg-d.trust-infra.swiyu.admin.ch
+    description: DEV
+  - url: https://trust-reg-r.trust-infra.swiyu.admin.ch
+    description: REF
+  - url: https://trust-reg-a.trust-infra.swiyu-int.admin
+    description: INT-ABN
+  - url: https://trust-reg-a.trust-infra.swiyu.admin.ch
+    description: ABN
+tags:
+  - name: Trust Protocol 2.0
+    description: Returns Trust Statements from the datastore.
+paths:
+  /api/v2/verification-query-public-statement/{jti}:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.009 - Get the Verification Query Public Statement (vqPS) for a
+        given identifier.
+      description: >-
+        Get the Verification Query Public Statement (vqPS) for a given
+        identifier.
+      operationId: getVqPS
+      parameters:
+        - name: jti
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns an encoded trust statement.
+          content:
+            '*/*':
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/verification-query-public-statement/:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: IF-007.010 - List the Verification Query Public Statement (vqPS).
+      description: List the Verification Query Public Statement (vqPS).
+      operationId: listVqPS
+      parameters:
+        - name: sub
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: filterActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: >-
+            Sorting criteria in the format: property,(asc|desc). Default sort
+            order is ascending. Multiple sort criteria are supported.
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Returns a list of encoded trust statements
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PagedModelString'
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/protected-verification-authorization-trust-statement/{jti}:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.011 - Get the Protected Verification Authorization Trust
+        Statement (pvaTS) for a given identifier.
+      description: >-
+        Get the Protected Verification Authorization Trust Statement (pvaTS) for
+        a given identifier.
+      operationId: getPvaTS
+      parameters:
+        - name: jti
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns an encoded trust statement.
+          content:
+            '*/*':
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/protected-verification-authorization-trust-statement/:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.012 - List the Protected Verification Authorization Trust
+        Statement (pvaTS).
+      description: List the Protected Verification Authorization Trust Statement (pvaTS).
+      operationId: listPvaTS
+      parameters:
+        - name: sub
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: filterActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: >-
+            Sorting criteria in the format: property,(asc|desc). Default sort
+            order is ascending. Multiple sort criteria are supported.
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Returns a list of encoded trust statements
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PagedModelString'
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/protected-issuance-trust-list-statement/{jti}:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.015 - Get the Protected Issuance Trust List Statement (piTLS) for
+        a given identifier.
+      description: >-
+        Get the Protected Issuance Trust List Statement (piTLS) for a given
+        identifier.
+      operationId: getPiTLS
+      parameters:
+        - name: jti
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns an encoded trust statement.
+          content:
+            '*/*':
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/protected-issuance-trust-list-statement/:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: IF-007.016 - List the Protected Issuance Trust List Statement (piTLS).
+      description: List the Protected Issuance Trust List Statement (piTLS).
+      operationId: listPiTLS
+      parameters:
+        - name: sub
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: filterActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: >-
+            Sorting criteria in the format: property,(asc|desc). Default sort
+            order is ascending. Multiple sort criteria are supported.
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Returns a list of encoded trust statements
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PagedModelString'
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/protected-issuance-trust-list:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.018 - Get the currently active Protected Issuance Trust List Statement (piTLS) for the ecosystem.
+      description: >-
+        Get the currently active Protected Issuance Trust List Statement (piTLS) for the ecosystem.
+      operationId: getActivePiTLS
+      responses:
+        '200':
+          description: Returns an encoded trust statement.
+          content:
+            '*/*':
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/protected-issuance-authorization-trust-statement/{jti}:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.013 - Get the Protected Issuance Authorization Trust Statement
+        (piaTS) for a given identifier.
+      description: >-
+        Get the Protected Issuance Authorization Trust Statement (piaTS) for a
+        given identifier.
+      operationId: getPiaTS
+      parameters:
+        - name: jti
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Returns an encoded trust statement.
+          content:
+            '*/*':
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/protected-issuance-authorization-trust-statement/:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.014 - List the Protected Issuance Authorization Trust Statement
+        (piaTS).
+      description: List the Protected Issuance Authorization Trust Statement (piaTS).
+      operationId: listPiaTS
+      parameters:
+        - name: sub
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: filterActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: >-
+            Sorting criteria in the format: property,(asc|desc). Default sort
+            order is ascending. Multiple sort criteria are supported.
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Returns a list of encoded trust statements
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PagedModelString'
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/non-compliance-trust-list:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.017 - Get the currently active Non-Compliance Trust List
+        Statement (ncTLS) for the ecosystem.
+      description: >-
+        Get the currently active Non-Compliance Trust List Statement (ncTLS) for
+        the ecosystem.
+      operationId: getActiveNcTLS
+      responses:
+        '200':
+          description: Returns an encoded trust statement.
+          content:
+            '*/*':
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/identity-trust-statement/{identifier}:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: >-
+        IF-007.007 - Get the Identity Trust Statement (idTS) for a given
+        identifier.
+      description: Get the Identity Trust Statement (idTS) for a given identifier.
+      operationId: getIdTS
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Returns an encoded trust statement.
+          content:
+            '*/*':
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+  /api/v2/identity-trust-statement/:
+    get:
+      tags:
+        - Trust Protocol 2.0
+      summary: IF-007.008 - List the Identity Trust Statement (idTS).
+      description: List the Identity Trust Statement (idTS).
+      operationId: listIdTS
+      parameters:
+        - name: sub
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: filterActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: >-
+            Sorting criteria in the format: property,(asc|desc). Default sort
+            order is ascending. Multiple sort criteria are supported.
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Returns a list of encoded trust statements
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PagedModelString'
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          description: Gone
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal Server Error
+components:
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - 100 CONTINUE
+            - 101 SWITCHING_PROTOCOLS
+            - 102 PROCESSING
+            - 103 EARLY_HINTS
+            - 103 CHECKPOINT
+            - 200 OK
+            - 201 CREATED
+            - 202 ACCEPTED
+            - 203 NON_AUTHORITATIVE_INFORMATION
+            - 204 NO_CONTENT
+            - 205 RESET_CONTENT
+            - 206 PARTIAL_CONTENT
+            - 207 MULTI_STATUS
+            - 208 ALREADY_REPORTED
+            - 226 IM_USED
+            - 300 MULTIPLE_CHOICES
+            - 301 MOVED_PERMANENTLY
+            - 302 FOUND
+            - 302 MOVED_TEMPORARILY
+            - 303 SEE_OTHER
+            - 304 NOT_MODIFIED
+            - 305 USE_PROXY
+            - 307 TEMPORARY_REDIRECT
+            - 308 PERMANENT_REDIRECT
+            - 400 BAD_REQUEST
+            - 401 UNAUTHORIZED
+            - 402 PAYMENT_REQUIRED
+            - 403 FORBIDDEN
+            - 404 NOT_FOUND
+            - 405 METHOD_NOT_ALLOWED
+            - 406 NOT_ACCEPTABLE
+            - 407 PROXY_AUTHENTICATION_REQUIRED
+            - 408 REQUEST_TIMEOUT
+            - 409 CONFLICT
+            - 410 GONE
+            - 411 LENGTH_REQUIRED
+            - 412 PRECONDITION_FAILED
+            - 413 PAYLOAD_TOO_LARGE
+            - 413 REQUEST_ENTITY_TOO_LARGE
+            - 414 URI_TOO_LONG
+            - 414 REQUEST_URI_TOO_LONG
+            - 415 UNSUPPORTED_MEDIA_TYPE
+            - 416 REQUESTED_RANGE_NOT_SATISFIABLE
+            - 417 EXPECTATION_FAILED
+            - 418 I_AM_A_TEAPOT
+            - 419 INSUFFICIENT_SPACE_ON_RESOURCE
+            - 420 METHOD_FAILURE
+            - 421 DESTINATION_LOCKED
+            - 422 UNPROCESSABLE_ENTITY
+            - 423 LOCKED
+            - 424 FAILED_DEPENDENCY
+            - 425 TOO_EARLY
+            - 426 UPGRADE_REQUIRED
+            - 428 PRECONDITION_REQUIRED
+            - 429 TOO_MANY_REQUESTS
+            - 431 REQUEST_HEADER_FIELDS_TOO_LARGE
+            - 451 UNAVAILABLE_FOR_LEGAL_REASONS
+            - 500 INTERNAL_SERVER_ERROR
+            - 501 NOT_IMPLEMENTED
+            - 502 BAD_GATEWAY
+            - 503 SERVICE_UNAVAILABLE
+            - 504 GATEWAY_TIMEOUT
+            - 505 HTTP_VERSION_NOT_SUPPORTED
+            - 506 VARIANT_ALSO_NEGOTIATES
+            - 507 INSUFFICIENT_STORAGE
+            - 508 LOOP_DETECTED
+            - 509 BANDWIDTH_LIMIT_EXCEEDED
+            - 510 NOT_EXTENDED
+            - 511 NETWORK_AUTHENTICATION_REQUIRED
+        message:
+          type: string
+    PageMetadata:
+      type: object
+      properties:
+        size:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          format: int64
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int64
+    PagedModelString:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: string
+        page:
+          $ref: '#/components/schemas/PageMetadata'

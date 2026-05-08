@@ -63,7 +63,8 @@ class RequestObjectServiceTest {
                 openIdClientMetadataConfiguration,
                 managementRepository,
                 objectMapper,
-                jwtSigningService
+                jwtSigningService,
+                Optional.empty()
         );
 
         // Mock application configurations

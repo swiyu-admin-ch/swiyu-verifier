@@ -11,6 +11,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
  * Should be sent as JWT signed by the verifier.
@@ -19,7 +21,7 @@ import lombok.NoArgsConstructor;
  * <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-aud-of-a-request-object">OID4VP Changes to RequestObjectDto</a>
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(name = "RequestObject", description = """
     OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
@@ -108,4 +110,14 @@ public class RequestObjectDto {
 
     @JsonProperty("aud")
     private String audience;
+
+    /**
+     * Trust Protocol 2.0: array of trust statements ({@code idTS}, {@code pvaTS}, {@code vqPS})
+     * injected into the JWT-Secured Authorization Request.
+     * Each entry has the form {@code {"format": "jwt", "data": "<jwt-string>"}}.
+     * This field is omitted when no trust statements are available (TP2.0 disabled or fetch failure).
+     */
+    @JsonProperty("verifier_info")
+    @Schema(description = "Trust Protocol 2.0 trust statements embedded as JWT objects.")
+    private List<VerifierInfoEntryDto> verifierInfo;
 }

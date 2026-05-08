@@ -311,6 +311,18 @@
                 <version>4.12.0</version>
             </dependency>
             <!-- end fix -->
+            <!-- fix CVE netty compression/http2 – force 4.2.13.Final -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-compression</artifactId>
+                <version>4.2.13.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http2</artifactId>
+                <version>4.2.13.Final</version>
+            </dependency>
+            <!-- end fix -->
         </dependencies>
     </dependencyManagement>
 

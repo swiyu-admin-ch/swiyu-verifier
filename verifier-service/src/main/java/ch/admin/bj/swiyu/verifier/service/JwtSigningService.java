@@ -68,13 +68,15 @@ public class JwtSigningService {
     }
 
     /**
-     * Creates a {@link SignerProvider} using the default settings, but overrides keyId and keyPin.
+     * Creates a {@link SignerProvider} based on the default application configuration,
+     * optionally overriding the hardware security module (HSM) key identifier and PIN.
+     * * <p>If {@code keyId} or {@code keyPin} are provided (not null and not empty),
+     * they selectively replace the default values specified in the application properties.</p>
      *
-     * @param keyId  the key identifier to use
-     * @param keyPin the key PIN to use
-     * @return a configured {@link SignerProvider}
-     * @throws IllegalArgumentException if invalid arguments are provided
-     * @throws KeyStrategyException     if key strategy creation fails
+     * @param keyId  The specific key identifier to use, or {@code null}/empty to fall back to the default.
+     * @param keyPin The specific key PIN to use, or {@code null}/empty to fall back to the default.
+     * @return A fully configured {@link SignerProvider} ready for JWT signing operations.
+     * @throws KeyStrategyException If the underlying signature strategy cannot be initialized.
      */
     private SignerProvider createSignerProvider(String keyId, String keyPin) throws IllegalArgumentException, KeyStrategyException {
         var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);

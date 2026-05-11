@@ -15,6 +15,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -45,11 +47,7 @@ public class JwtSigningService {
 
         SignerProvider signerProvider;
         try {
-            if (keyId != null && keyPin != null) {
-                signerProvider = createSignerProvider(keyId, keyPin);
-            } else {
-                signerProvider = createDefaultSignerProvider();
-            }
+            signerProvider = createSignerProvider(keyId, keyPin);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialize signature provider. This is probably because the key could not be loaded.", e);
         }
@@ -70,33 +68,24 @@ public class JwtSigningService {
     }
 
     /**
-     * Creates a default {@link SignerProvider} using the keyId and keyPin from the application properties.
+     * Creates a {@link SignerProvider} based on the default application configuration,
+     * optionally overriding the hardware security module (HSM) key identifier and PIN.
+     * * <p>If {@code keyId} or {@code keyPin} are provided (not null and not empty),
+     * they selectively replace the default values specified in the application properties.</p>
      *
-     * @return a configured {@link SignerProvider}
-     * @throws IllegalArgumentException if invalid arguments are provided
-     * @throws KeyStrategyException     if key strategy creation fails
-     */
-    private SignerProvider createDefaultSignerProvider() throws IllegalArgumentException, KeyStrategyException {
-        var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);
-        return createSignerProvider(defaultSignatureConfiguration);
-    }
-
-    /**
-     * Creates a {@link SignerProvider} using the default settings, but overrides keyId and keyPin.
-     *
-     * @param keyId  the key identifier to use
-     * @param keyPin the key PIN to use
-     * @return a configured {@link SignerProvider}
-     * @throws IllegalArgumentException if invalid arguments are provided
-     * @throws KeyStrategyException     if key strategy creation fails
+     * @param keyId  The specific key identifier to use, or {@code null}/empty to fall back to the default.
+     * @param keyPin The specific key PIN to use, or {@code null}/empty to fall back to the default.
+     * @return A fully configured {@link SignerProvider} ready for JWT signing operations.
+     * @throws KeyStrategyException If the underlying signature strategy cannot be initialized.
      */
     private SignerProvider createSignerProvider(String keyId, String keyPin) throws IllegalArgumentException, KeyStrategyException {
-        if (keyId == null ^ keyPin == null) {
-            throw new IllegalArgumentException("expected both keyId and keyPin, but only one was provided.");
-        }
         var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);
-        defaultSignatureConfiguration.getHsm().setKeyId(keyId);
-        defaultSignatureConfiguration.getHsm().setKeyPin(keyPin);
+        if (StringUtils.isNotEmpty(keyId)) {
+            defaultSignatureConfiguration.getHsm().setKeyId(keyId);
+        }
+        if (StringUtils.isNotEmpty(keyPin)) {
+            defaultSignatureConfiguration.getHsm().setKeyPin(keyPin);
+        }
         return createSignerProvider(defaultSignatureConfiguration);
     }
 

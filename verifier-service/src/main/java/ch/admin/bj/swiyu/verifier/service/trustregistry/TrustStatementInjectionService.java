@@ -1,11 +1,13 @@
 package ch.admin.bj.swiyu.verifier.service.trustregistry;
 
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.VerifierInfoEntryDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,10 +31,22 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "swiyu.trust-registry", name = "api-url")
+@ConditionalOnBean(TrustStatementCacheService.class)
 public class TrustStatementInjectionService {
 
-    private final TrustStatementCacheService cacheService;
+
+    private final TrustStatementCacheService trustStatementCacheService;
+
+    private final ApplicationProperties applicationProperties;
+
+    /**
+     * Validator for signature verification at inject time.
+     * When present, each cached trust statement JWT is verified against the
+     * Trust Registry's current DID Document before injection. This ensures
+     * key rotations are detected immediately, without waiting for cache expiry.
+     * On failure the cache entry is invalidated so a fresh statement is fetched next time.
+     */
+    private final TrustStatementValidator trustStatementValidator;
 
     /**
      * Returns a new {@link RequestObjectDto} with the {@code verifier_info} array populated from
@@ -48,9 +62,14 @@ public class TrustStatementInjectionService {
     public RequestObjectDto injectVerifierInfo(RequestObjectDto requestObject, Management managementEntity) {
         List<VerifierInfoEntryDto> verifierInfo = new ArrayList<>();
 
-        addNullable(verifierInfo, cacheService.getIdentityTrustStatement(), "idTS");
-        addNullable(verifierInfo, cacheService.getProtectedVerificationAuthorizationTrustStatement(), "pvaTS");
-        addVqPs(verifierInfo, managementEntity);
+        var override = managementEntity.getConfigurationOverride();
+        var clientId = override.verifierDidOrDefault(applicationProperties.getClientId());
+
+        injectIdentityTrustStatement(verifierInfo, clientId);
+        injectProtectedVerificationAuthorizationTrustStatement(verifierInfo, clientId);
+
+        // Comes with https://jira.bit.admin.ch/browse/EIDOMNI-869
+        // addVqPs(verifierInfo, managementEntity);
 
         if (verifierInfo.isEmpty()) {
             log.warn("No TP2.0 trust statements available – returning request object without verifier_info");
@@ -62,6 +81,38 @@ public class TrustStatementInjectionService {
                 .build();
     }
 
+    private void injectProtectedVerificationAuthorizationTrustStatement(List<VerifierInfoEntryDto> verifierInfo, String clientId) {
+        String idTs = trustStatementCacheService.getIdentityTrustStatement(clientId);
+        if (idTs == null) {
+            log.debug("No idTS available for issuer {} – skipping injection", clientId);
+            return;
+        }
+        if (!verifySignatureOrInvalidate(idTs, "idTS", clientId)) {
+            return;
+        }
+
+        addNullable(verifierInfo, trustStatementCacheService.getProtectedVerificationAuthorizationTrustStatement(clientId), "pvaTS");
+    }
+
+    /**
+     * Fetches the idTS JWT, verifies its signature, and sets it on the root level
+     * of the issuer metadata. On signature failure the cache is invalidated.
+     *
+     * @param verifierInfo the metadata to update
+     * @param issuerDid      the issuer DID to look up in the trust registry
+     */
+    private void injectIdentityTrustStatement(List<VerifierInfoEntryDto> verifierInfo, String issuerDid) {
+        String idTs = trustStatementCacheService.getIdentityTrustStatement(issuerDid);
+        if (idTs == null) {
+            log.debug("No idTS available for issuer {} – skipping injection", issuerDid);
+            return;
+        }
+        if (!verifySignatureOrInvalidate(idTs, "idTS", issuerDid)) {
+            return;
+        }
+        addNullable(verifierInfo, idTs, "idTS");
+    }
+
     private void addNullable(List<VerifierInfoEntryDto> target, String jwt, String statementType) {
         if (jwt != null) {
             target.add(VerifierInfoEntryDto.ofJwt(jwt));
@@ -70,13 +121,27 @@ public class TrustStatementInjectionService {
         }
     }
 
-    private void addVqPs(List<VerifierInfoEntryDto> target, Management managementEntity) {
-        String vqPs = managementEntity.getVqPs();
-        if (vqPs != null && !vqPs.isBlank()) {
-            target.add(VerifierInfoEntryDto.ofJwt(vqPs));
-        } else {
-            log.warn("TP2.0: vqPS not persisted for managementId={}, skipping injection",
-                    managementEntity.getId());
+    /**
+     * Verifies the signature of the given trust statement JWT via
+     * {@link TrustStatementValidator#validateSignature(String)}.
+     * If verification fails, the cache entry for the issuer DID is invalidated
+     * so that a fresh statement is fetched on the next request.
+     *
+     * @param jwt       the trust statement JWT to verify
+     * @param type      statement type label for logging ("idTS" or "piaTS")
+     * @param issuerDid issuer DID for cache invalidation and logging
+     * @return {@code true} if verification succeeded or no validator is configured;
+     *         {@code false} if verification failed (cache is invalidated)
+     */
+    private boolean verifySignatureOrInvalidate(String jwt, String type, String issuerDid) {
+        try {
+            trustStatementValidator.validateSignature(jwt);
+            return true;
+        } catch (JwtValidatorException e) {
+            log.warn("{} signature verification failed for issuer {} – invalidating cache: {}", type, issuerDid, e.getMessage());
+            trustStatementCacheService.invalidateAllTrustStatements(issuerDid);
+
+            return false;
         }
     }
 }

@@ -275,4 +275,23 @@ public class TrustStatementCacheService {
             return Optional.empty();
         }
     }
+
+    /**
+     * Invalidates all cached Trust Statements (idTS and pvaTS) for the given issuer DID.
+     *
+     * <p>Convenience method combining both invalidations. Useful when a general
+     * trust failure is detected and all statements for an issuer should be refreshed.</p>
+     *
+     * <p>In addition, it triggers the clearing of the public key and encryption metadata
+     * caches to ensure that potentially rotated keys are reloaded.</p>
+     *
+     * @param issuerDid the issuer DID whose cached trust statements should be invalidated
+     */
+    public void invalidateAllTrustStatements(String issuerDid) {
+        log.info("Invalidating all cached trust statements for issuer {}", issuerDid);
+        idTsCache.invalidate(issuerDid);
+        pvaTsCache.invalidate(issuerDid);
+        cacheMaintenanceService.evictJwkManually(issuerDid);
+        cacheMaintenanceService.evictPublicKeyManually(issuerDid);
+    }
 }

@@ -314,12 +314,27 @@
             <!-- fix CVE netty compression/http2 – force 4.2.13.Final -->
             <dependency>
                 <groupId>io.netty</groupId>
+                <artifactId>netty-transport-native-epoll</artifactId>
+                <version>4.2.13.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
                 <artifactId>netty-codec-compression</artifactId>
                 <version>4.2.13.Final</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
+                <artifactId>netty-resolver-dns</artifactId>
+                <version>4.2.13.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
                 <artifactId>netty-codec-http2</artifactId>
+                <version>4.2.13.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http3</artifactId>
                 <version>4.2.13.Final</version>
             </dependency>
             <!-- end fix -->

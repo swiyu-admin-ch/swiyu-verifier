@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Allow hsm key id and key pin to be overridden individually
+- Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  
 
 ## latest (3.0.0)
 

@@ -69,7 +69,6 @@ public class VerificationController {
                                     examples = {
                                             @ExampleObject(name = "Sample Client Metadata", value = """
                                                     {
-                                                        "client_id": "did:example:12345",
                                                         "client_name#en": "English name (all regions)",
                                                         "client_name#fr": "French name (all regions)",
                                                         "client_name#de-DE": "German name (region Germany)",

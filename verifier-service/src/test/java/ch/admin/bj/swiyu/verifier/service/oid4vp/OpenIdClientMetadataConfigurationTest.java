@@ -53,22 +53,8 @@ class OpenIdClientMetadataConfigurationTest {
 
         var metadata = config.getOpenIdClientMetadata();
 
-        assertThat(metadata.getClientId()).isEqualTo(clientId);
         assertThat(metadata.getAdditionalProperties())
                 .containsEntry("logo", "logo");
-    }
-
-    @Test
-    void initOpenIdClientMetadata_withoutClientIdAndVpFormats_throwsException() throws IOException {
-        String template = "{\"other\":\"value\"}";
-
-        when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
-
-        var exception = assertThrows(IllegalStateException.class, config::initOpenIdClientMetadata);
-
-        assertThat(exception)
-                .hasMessageContaining("Invalid OpenID client metadata")
-                .hasMessageContaining("'client_id' must not be blank");
     }
 
     @Test

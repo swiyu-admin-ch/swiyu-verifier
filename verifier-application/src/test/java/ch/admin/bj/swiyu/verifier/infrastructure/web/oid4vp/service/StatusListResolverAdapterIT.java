@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListFetchFailedExcept
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.verify.VerificationTimes;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.when;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
+@Disabled("Test fails in Github pipeline due to error starting the Mock Server. Bug: EIDOMNI-957")
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE,
         classes = {StatusListResolverAdapter.class, CachingConfig.class, CacheProperties.class})

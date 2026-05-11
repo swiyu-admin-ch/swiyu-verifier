@@ -5,12 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Latest
+## Unversioned changes
 
 ### Fixed
+- Allow hsm key id and key pin to be overridden individually
 - Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  
 
-## 3.0.0
+## latest (3.0.0)
 
 ### Added
 - OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallet to adopt it

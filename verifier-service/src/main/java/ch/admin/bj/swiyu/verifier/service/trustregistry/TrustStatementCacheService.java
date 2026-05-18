@@ -9,34 +9,41 @@ import com.github.benmanes.caffeine.cache.Expiry;
 import com.nimbusds.jwt.JWTParser;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.jspecify.annotations.NonNull;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Service that fetches and caches Trust Protocol 2.0 trust statements ({@code idTS} and {@code pvaTS})
  * from the Trust Registry sidechannel API.
  *
- * <p>Each trust statement JWT is cached until its individual {@code exp} claim expires,
- * implementing dynamic per-entry TTL via Caffeine's {@link Expiry} interface.
- * Spring's {@code @Cacheable} is intentionally <b>not</b> used here because it only supports
+ * <p>The {@code idTS} cache stores a single JWT per issuer DID, whereas the {@code pvaTS} cache
+ * stores a <em>list</em> of JWTs per verifier DID (1:N relationship). Each {@code pvaTS} authorizes
+ * a different set of protected claims ({@code authorized_fields}), so all statements must be
+ * available to cover any requested field combination.</p>
+ *
+ * <p>Dynamic per-entry TTL is implemented via Caffeine's {@link Expiry} interface.
+ * For the {@code pvaTS} list the TTL is derived from the <em>minimum</em> {@code exp} claim
+ * across all JWTs in the list, ensuring the entire list is evicted as soon as the earliest
+ * statement expires.</p>
+ *
+ * <p>Spring's {@code @Cacheable} is intentionally <b>not</b> used here because it only supports
  * a static TTL per cache, not a dynamic per-entry TTL.</p>
  *
- * <p>API failures and empty responses are negatively cached (via {@code Optional.empty()})
- * for a short duration to prevent retry storms when the Trust Registry is unavailable.</p>
+ * <p>API failures and empty responses are negatively cached for a short duration
+ * to prevent retry storms when the Trust Registry is unavailable.</p>
  *
  * <p>Only active when {@code swiyu.trust-registry.api-url} is configured.</p>
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(prefix = "swiyu.trust-registry", name = "api-url")
+@ConditionalOnExpression("'${swiyu.trust-registry.api-url:}'.length() > 0")
 public class TrustStatementCacheService {
 
     /**
@@ -61,11 +68,18 @@ public class TrustStatementCacheService {
     private final Optional<TrustStatementValidator> trustStatementValidator;
 
     /**
-     * Two separate caches keyed by their respective identifiers.
-     * Separate caches ensure that invalidating one type does not affect the other.
+     * Cache for {@code idTS} JWTs, keyed by issuer DID.
+     * Stores a single Optional JWT per issuer.
      */
     private final Cache<String, Optional<String>> idTsCache;
-    private final Cache<String, Optional<String>> pvaTsCache;
+
+    /**
+     * Cache for {@code pvaTS} JWT lists, keyed by verifier DID.
+     * Stores all active pvaTS JWTs for the verifier (1:N).
+     * {@code Optional.empty()} signals a negative cache entry: the TMS was reachable but
+     * returned no results; the next fetch will be suppressed until the negative TTL expires.
+     */
+    private final Cache<String, Optional<List<String>>> pvaTsCache;
 
     /**
      * Constructs the cache service with injected API client and configuration.
@@ -83,8 +97,8 @@ public class TrustStatementCacheService {
         this.properties = properties;
         this.cacheMaintenanceService = cacheMaintenanceService;
         this.trustStatementValidator = trustStatementValidator;
-        this.idTsCache = buildCache();
-        this.pvaTsCache = buildCache();
+        this.idTsCache = buildIdTSCache();
+        this.pvaTsCache = buildPvaTsCache();
     }
 
     /**
@@ -101,39 +115,21 @@ public class TrustStatementCacheService {
     }
 
     /**
-     * Returns the cached {@code pvaTS} (Protected Verification Authorization Trust Statement) JWT
-     * for the configured JTI, fetching it from the trust registry on a cache miss.
+     * Returns all cached {@code pvaTS} (Protected Verification Authorization Trust Statement) JWTs
+     * for the given verifier DID, fetching them from the trust registry on a cache miss.
      *
-     * <p>Phase 2 (signature verification) is performed before returning the value to the caller.</p>
+     * <p>A verifier may hold multiple {@code pvaTS} JWTs, each authorizing a different set of
+     * protected claims ({@code authorized_fields}). The caller is responsible for selecting
+     * the relevant statements based on the requested fields.</p>
      *
-     * @return the {@code pvaTS} JWT string, or {@code null} if unavailable or validation fails
+     * <p>Returns an empty list when the TMS is unavailable or returned no results.</p>
+     *
+     * @param verifierDid the verifier DID whose pvaTS statements should be retrieved
+     * @return a non-null, possibly empty list of pvaTS JWT strings
      */
-    @Nullable
-    public String getProtectedVerificationAuthorizationTrustStatement(String verifierDid) {
-        Optional<String> cached = pvaTsCache.get(verifierDid, this::fetchProtectedVerificationAuthorizationTrustStatement);
-        return cached.isPresent() ? cached.orElse(null) : null;
-    }
-
-    // -------------------------------------------------------------------------
-    // Cache invalidation
-    // -------------------------------------------------------------------------
-
-    /**
-     * Immediately invalidates the cached {@code idTS} for the configured verifier DID,
-     * forcing a fresh fetch on the next request.
-     */
-    public void invalidateIdentityTrustStatement() {
-        log.info("Invalidating cached idTS for did={}", properties.getVerifierDid());
-        idTsCache.invalidate(properties.getVerifierDid());
-    }
-
-    /**
-     * Immediately invalidates the cached {@code pvaTS} for the configured JTI,
-     * forcing a fresh fetch on the next request.
-     */
-    public void invalidateProtectedVerificationAuthorizationTrustStatement() {
-        log.info("Invalidating cached pvaTS for jti={}", properties.getPvaTsJti());
-        pvaTsCache.invalidate(properties.getPvaTsJti());
+    public List<String> getProtectedVerificationAuthorizationTrustStatements(String verifierDid) {
+        Optional<List<String>> cached = pvaTsCache.get(verifierDid, this::fetchProtectedVerificationAuthorizationTrustStatements);
+        return cached.orElse(List.of());
     }
 
     private Optional<String> fetchIdentityTrustStatement(String issuerDid) {
@@ -159,7 +155,7 @@ public class TrustStatementCacheService {
      * If no validator is configured, the check is skipped and a warning is logged.
      *
      * @param jwt       the trust statement JWT to check
-     * @param type      the statement type label for logging ("idTS" or "piaTS")
+     * @param type      the statement type label for logging ("idTS" or "pvaTS")
      * @param issuerDid the issuer DID for logging context
      * @throws JwtValidatorException if the DID URL resolved from the JWT is not on the allowlist
      */
@@ -172,49 +168,48 @@ public class TrustStatementCacheService {
         log.debug("{} allowlist check passed for issuer {}", type, issuerDid);
     }
 
-    private Optional<String> fetchProtectedVerificationAuthorizationTrustStatement(String verifierDid) {
+    /**
+     * Fetches all active {@code pvaTS} JWTs for the given verifier DID from the Trust Registry.
+     * Performs the pre-cache allowlist check on each fetched JWT.
+     * Returns {@code Optional.empty()} on API failure or when the TMS returns no results
+     * (negative caching), so the cache can distinguish "never fetched" from "fetched but empty".
+     *
+     * @param verifierDid the verifier DID to query
+     * @return an Optional wrapping the list of validated pvaTS JWT strings;
+     *         {@code Optional.empty()} for negative cache entries
+     */
+    private Optional<List<String>> fetchProtectedVerificationAuthorizationTrustStatements(String verifierDid) {
         try {
             var response = trustProtocol20Api.listPvaTS(verifierDid, true, null, null, null).block();
-            String jwt = extractFirstJwt(response != null ? response.getContent() : null, "piaTS", verifierDid);
-            if (jwt != null) {
-                validateTrustStatement(jwt, "pvaTS", verifierDid);
+            List<String> jwts = response != null ? response.getContent() : null;
+            if (jwts == null || jwts.isEmpty()) {
+                log.warn("No pvaTS trust statements found for verifier {}", verifierDid);
+                return Optional.empty();
             }
-            return Optional.ofNullable(jwt);
+            log.debug("Fetched {} pvaTS JWT(s) for verifier {}", jwts.size(), verifierDid);
+            jwts.forEach(jwt -> validateTrustStatement(jwt, "pvaTS", verifierDid));
+            return Optional.of(List.copyOf(jwts));
         } catch (JwtValidatorException e) {
-            log.warn("pvaTS signature validation failed for verifier {}: {}", verifierDid, e.getMessage());
+            log.warn("pvaTS allowlist validation failed for verifier {}: {}", verifierDid, e.getMessage());
             return Optional.empty();
         } catch (RuntimeException e) {
-            log.warn("API or network error fetching piaTS for verifier {}: {}", verifierDid, e.getMessage());
+            log.warn("API or network error fetching pvaTS for verifier {}: {}", verifierDid, e.getMessage());
             return Optional.empty();
         }
-
-    }
-
-    @Nullable
-    private String extractFirstJwt(@Nullable List<String> content, String type, String issuerDid) {
-        if (content == null || content.isEmpty()) {
-            log.warn("No {} trust statement found for issuer {}", type, issuerDid);
-            return null;
-        }
-        return content.getFirst();
     }
 
     /**
-     * Builds a Caffeine cache with dynamic per-entry TTL derived from the JWT {@code exp} claim.
+     * Builds a Caffeine cache for single-JWT entries ({@code idTS}) with dynamic TTL
+     * derived from the JWT {@code exp} claim.
      */
-    private Cache<String, Optional<String>> buildCache() {
+    private Cache<String, Optional<String>> buildIdTSCache() {
         return Caffeine.newBuilder()
                 .maximumSize(properties.getMaxCacheSize())
                 .expireAfter(buildExpiry())
                 .build();
     }
 
-    /**
-     * Returns a Caffeine {@link Expiry} that derives the per-entry TTL from the JWT {@code exp} claim.
-     * Negative entries ({@code Optional.empty()}) use a short fixed TTL to prevent retry storms.
-     * On read, the remaining duration is preserved unchanged.
-     */
-    private Expiry<String, Optional<String>> buildExpiry() {
+    private @NonNull Expiry<String, Optional<String>> buildExpiry() {
         return new Expiry<>() {
             @Override
             public long expireAfterCreate(String key, Optional<String> jwtOpt, long currentTime) {
@@ -236,9 +231,62 @@ public class TrustStatementCacheService {
     }
 
     /**
-     * Parses the JWT to extract the {@code exp} claim and computes the remaining lifetime
-     * in nanoseconds, minus the configured clock-skew buffer.
-     * If {@code maxCacheTtlSeconds} is set, the TTL is additionally capped.
+     * Builds a Caffeine cache for {@code pvaTS} JWT lists with dynamic TTL.
+     * The TTL of the list is the <em>minimum</em> remaining lifetime across all JWTs in the list,
+     * so the list is evicted and re-fetched as soon as the earliest statement expires.
+     * {@code Optional.empty()} (negative cache) uses a short fixed TTL.
+     */
+    private Cache<String, Optional<List<String>>> buildPvaTsCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(properties.getMaxCacheSize())
+                .expireAfter(new Expiry<String, Optional<List<String>>>() {
+                    @Override
+                    public long expireAfterCreate(String key, Optional<List<String>> jwtsOpt, long currentTime) {
+                        return computeNanosUntilListExpiry(jwtsOpt);
+                    }
+
+                    @Override
+                    public long expireAfterUpdate(String key, Optional<List<String>> jwtsOpt, long currentTime, long currentDuration) {
+                        return computeNanosUntilListExpiry(jwtsOpt);
+                    }
+
+                    @Override
+                    public long expireAfterRead(String key, Optional<List<String>> jwtsOpt, long currentTime, long currentDuration) {
+                        return currentDuration;
+                    }
+                })
+                .build();
+    }
+
+    /**
+     * Computes the cache TTL for an Optional list of pvaTS JWTs.
+     * For a present list the TTL is the minimum remaining lifetime across all entries.
+     * For {@code Optional.empty()} (negative cache entry) the short negative-cache TTL is used.
+     *
+     * @param jwtsOpt the Optional list of JWT strings
+     * @return TTL in nanoseconds
+     */
+    private long computeNanosUntilListExpiry(Optional<List<String>> jwtsOpt) {
+        return jwtsOpt.map(jwts -> jwts.stream()
+                        .mapToLong(this::computeNanosUntilExpiry)
+                        .min()
+                        .orElseGet(() -> TimeUnit.SECONDS.toNanos(FALLBACK_TTL_SECONDS)))
+                .orElseGet(() -> TimeUnit.SECONDS.toNanos(NEGATIVE_CACHE_TTL_SECONDS));
+    }
+
+    /**
+     * Parses the JWT payload to extract the {@code exp} claim and computes
+     * the remaining lifetime in nanoseconds, minus a clock-skew buffer.
+     *
+     * <p>If {@code maxCacheTtlSeconds} is configured, the effective TTL is
+     * {@code min(exp-based TTL, maxCacheTtlSeconds)} – this allows aligning the
+     * trust statement cache with the DID public key cache TTL to avoid serving
+     * statements whose referenced DID key has already been rotated.</p>
+     *
+     * <p>If parsing fails, {@link #FALLBACK_TTL_SECONDS} is used as fallback.</p>
+     *
+     * @param jwt the serialized JWT string
+     * @return remaining lifetime in nanoseconds (minimum 1 second)
      */
     private long computeNanosUntilExpiry(String jwt) {
         return extractExpSeconds(jwt)
@@ -248,6 +296,7 @@ public class TrustStatementCacheService {
                         log.warn("Trust statement JWT expires too soon or is already expired (exp={})", exp);
                         return TimeUnit.SECONDS.toNanos(1);
                     }
+                    // Apply optional hard upper bound
                     long maxTtl = properties.getMaxCacheTtlSeconds();
                     if (maxTtl > 0 && remainingSeconds > maxTtl) {
                         log.debug("Capping trust statement cache TTL at {}s (exp-based would be {}s)", maxTtl, remainingSeconds);
@@ -277,21 +326,21 @@ public class TrustStatementCacheService {
     }
 
     /**
-     * Invalidates all cached Trust Statements (idTS and pvaTS) for the given issuer DID.
+     * Invalidates all cached Trust Statements (idTS and pvaTS) for the given DID.
      *
      * <p>Convenience method combining both invalidations. Useful when a general
-     * trust failure is detected and all statements for an issuer should be refreshed.</p>
+     * trust failure is detected and all statements for a DID should be refreshed.</p>
      *
      * <p>In addition, it triggers the clearing of the public key and encryption metadata
      * caches to ensure that potentially rotated keys are reloaded.</p>
      *
-     * @param issuerDid the issuer DID whose cached trust statements should be invalidated
+     * @param did the DID whose cached trust statements should be invalidated
      */
-    public void invalidateAllTrustStatements(String issuerDid) {
-        log.info("Invalidating all cached trust statements for issuer {}", issuerDid);
-        idTsCache.invalidate(issuerDid);
-        pvaTsCache.invalidate(issuerDid);
-        cacheMaintenanceService.evictJwkManually(issuerDid);
-        cacheMaintenanceService.evictPublicKeyManually(issuerDid);
+    public void invalidateAllTrustStatements(String did) {
+        log.info("Invalidating all cached trust statements for DID {}", did);
+        idTsCache.invalidate(did);
+        pvaTsCache.invalidate(did);
+        cacheMaintenanceService.evictJwkManually(did);
+        cacheMaintenanceService.evictPublicKeyManually(did);
     }
 }

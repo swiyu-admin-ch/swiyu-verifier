@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@AllArgsConstructor
 public class RequestObjectService {
     public static final String AUDIENCE = "https://self-issued.me/v2";
     public static final String RESPONSE_TYPE = "vp_token";
@@ -44,23 +46,6 @@ public class RequestObjectService {
      */
     private final Optional<TrustStatementInjectionService> trustStatementInjectionService;
 
-    /**
-     * Constructor with all dependencies. {@code trustStatementInjectionService} is optional and
-     * absent when TP2.0 is disabled.
-     */
-    public RequestObjectService(ApplicationProperties applicationProperties,
-                                OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration,
-                                ManagementRepository managementRepository,
-                                ObjectMapper objectMapper,
-                                JwtSigningService jwtSigningService,
-                                Optional<TrustStatementInjectionService> trustStatementInjectionService) {
-        this.applicationProperties = applicationProperties;
-        this.openIdClientMetadataConfiguration = openIdClientMetadataConfiguration;
-        this.managementRepository = managementRepository;
-        this.objectMapper = objectMapper;
-        this.jwtSigningService = jwtSigningService;
-        this.trustStatementInjectionService = trustStatementInjectionService;
-    }
 
     /**
      * Aggregated view of the effective configuration for a single request object.
@@ -92,18 +77,18 @@ public class RequestObjectService {
         log.trace("Build the request object DTO.");
         var requestObject = buildRequestObject(managementEntity, effectiveConfig, managementEntityId);
 
-        log.trace("Inject TP2.0 trust statements (verifier_info) if integration is enabled.");
-        var enrichedRequestObject = trustStatementInjectionService
-                .map(svc -> svc.injectVerifierInfo(requestObject, managementEntity))
-                .orElse(requestObject);
-
         log.trace("If signing is desired, sign and return the JWT string, otherwise return the DTO");
         if (isSigningRequested(managementEntity)) {
+            log.trace("Inject TP2.0 trust statements (verifier_info) if integration is enabled.");
+            var enrichedRequestObject = trustStatementInjectionService
+                    .map(svc -> svc.injectVerifierInfo(requestObject, managementEntity))
+                    .orElse(requestObject);
+
             String jwt = signRequestObject(enrichedRequestObject, managementEntity, effectiveConfig);
             return new RequestObjectResult.Signed(jwt);
         } else {
             // if signing is not desired return the plain request object DTO
-            return new RequestObjectResult.Unsigned(enrichedRequestObject);
+            return new RequestObjectResult.Unsigned(requestObject);
         }
     }
 

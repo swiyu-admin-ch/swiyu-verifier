@@ -6,8 +6,7 @@ import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,7 +34,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "swiyu.trust-registry", name = "api-url")
+@ConditionalOnExpression("'${swiyu.trust-registry.api-url:}'.length() > 0")
 public class TrustStatementValidator {
 
     private final DidJwtValidator trustStatementDidJwtValidator;

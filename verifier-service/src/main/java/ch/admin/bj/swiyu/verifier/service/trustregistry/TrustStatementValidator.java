@@ -78,6 +78,7 @@ public class TrustStatementValidator {
         String didString = trustStatementDidJwtValidator.getDidString(jwtString);
         log.debug("Verifying trust statement signature for DID: {}", didString);
 
+        // See: https://jira.bit.admin.ch/browse/EIDOMNI-959 - Architectural Risk: potential DoS via expensive DID resolution in signature verification
         var didDoc = didResolverAdapter.resolveDid(didString, urlRewriteProperties.getUrlMappings());
         trustStatementDidJwtValidator.validateJwt(jwtString, didDoc);
         log.debug("Trust statement signature verification succeeded for DID: {}", didString);

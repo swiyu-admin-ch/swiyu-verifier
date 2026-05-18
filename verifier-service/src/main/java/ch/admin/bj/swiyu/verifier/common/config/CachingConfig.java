@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @EnableCaching
 public class CachingConfig {
 
-    public static final String  STATUS_LIST_CACHE = "statusListCache";
+    public static final String STATUS_LIST_CACHE = "statusListCache";
     public static final String ISSUER_PUBLIC_KEY_CACHE = "issuerPublicKeyCache";
     public static final String TRUST_STATEMENT_CACHE = "trustStatementCache";
     public static final String SIGNING_KEY_CACHE = "signingKeyCache";

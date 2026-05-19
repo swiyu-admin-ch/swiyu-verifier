@@ -159,3 +159,12 @@ monitoring:
 caching:
   status-list-cache-ttl: ${STATUS_LIST_CACHE_TTL_MILLI:0} # is not cached by default if set to 0, caching is disabled
   issuer-public-key-cache-ttl: ${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000} # 1 hour
+
+swiyu:
+    trust-registry:
+      api-url: "${SWIYU_TRUST_REGISTRY_API_URL:}"
+      customer-key: ${secret.swiyu.trust-registry.customer-key:${SWIYU_TRUST_REGISTRY_CUSTOMER_KEY:}}
+      customer-secret: ${secret.swiyu.trust-registry.customer-secret:${SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET:}}
+      max-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
+      clock-skew-buffer-seconds: ${SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS:60}
+      max-cache-ttl-seconds: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS:86400000} # fetch at least once per day by default, should there be no ttl / exp defined

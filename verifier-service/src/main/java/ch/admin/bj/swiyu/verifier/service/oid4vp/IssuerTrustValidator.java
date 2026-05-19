@@ -20,6 +20,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 public class IssuerTrustValidator {
 
     private final TrustProtocol1Validator trustProtocol1Validator;
+    private final TrustProtocol2Validator trustProtocol2Validator;
 
     /**
      * Validates whether the given issuer is trusted according to the provided management configuration.
@@ -52,6 +53,9 @@ public class IssuerTrustValidator {
             }
             if (issuerDid.startsWith("did:webvh")) {
                 // Trust Protocol 2.0
+                if(trustProtocol2Validator.isTrusted(issuerDid, vct, management)) {
+
+                }
                 
             }
         }

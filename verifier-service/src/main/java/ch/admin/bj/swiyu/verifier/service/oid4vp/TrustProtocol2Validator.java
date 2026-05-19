@@ -113,14 +113,14 @@ public class TrustProtocol2Validator {
      */
     private TrustVerificationResult evaluateTrust(String issuerDid, String vct, Management management,
             TrustAnchor trustAnchor) {
-        UrlRestriction urlRestriction = new UrlRestriction(Set.of(trustAnchor.toString()));
+        UrlRestriction urlRestriction = new UrlRestriction(Set.of(trustAnchor.trustRegistryUri()));
         List<String> statementJwts = statementProvider.getAllIssuanceStatementsFor(issuerDid);
         TrustStatementVerifier tsVerifier = new TrustStatementVerifier(statementJwts, urlRestriction, didKidParser);
         JWKSet publicKeys = getTrustPublicKeys(tsVerifier.getRequiredKeyIds());
 
         List<TokenStatusListTokenDto> statusListTokens = getStatusLists(tsVerifier.getRequiredStatusLists());
 
-        return tsVerifier.verifyIssuanceStatements(management.getTrustAnchors().getFirst().did(), issuerDid, vct,
+        return tsVerifier.verifyIssuanceStatements(trustAnchor.did(), issuerDid, vct,
                 publicKeys, statusListTokens);
     }
 
@@ -160,6 +160,9 @@ public class TrustProtocol2Validator {
      * method returns {@code null} and a warning is logged.
      */
     private TokenStatusListTokenDto validateTokenStatusListToken(String tokenStatusListTokenJwt) {
+        if (tokenStatusListTokenJwt == null || tokenStatusListTokenJwt.isEmpty()) {
+            return null;
+        }
         try {
             SignedJWT jwt = SignedJWT.parse(tokenStatusListTokenJwt);
             String kid = jwt.getHeader().getKeyID();

@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.ISSUER_NOT_ACCEPTED;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
+import java.util.Optional;
+
 /**
  * Encapsulates issuer trust validation logic, including accepted issuer lists
  * and trust-anchor / trust-statement based trust.
@@ -20,7 +22,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 public class IssuerTrustValidator {
 
     private final TrustProtocol1Validator trustProtocol1Validator;
-    private final TrustProtocol2Validator trustProtocol2Validator;
+    private final Optional<TrustProtocol2Validator> trustProtocol2Validator;
 
     /**
      * Validates whether the given issuer is trusted according to the provided management configuration.
@@ -53,8 +55,8 @@ public class IssuerTrustValidator {
             }
             if (issuerDid.startsWith("did:webvh")) {
                 // Trust Protocol 2.0
-                if(trustProtocol2Validator.isTrusted(issuerDid, vct, management)) {
-
+                if(trustProtocol2Validator.map(sv -> sv.isTrusted(issuerDid, vct, management)).orElse(false)) {
+                    return;
                 }
                 
             }

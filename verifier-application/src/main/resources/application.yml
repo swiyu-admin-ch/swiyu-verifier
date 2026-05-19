@@ -161,10 +161,12 @@ caching:
   issuer-public-key-cache-ttl: ${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000} # 1 hour
 
 swiyu:
+    # Optional: Trust Registry sidechannel API for fetching Trust Statements (idTS, piaTS).
+    # If not set, trust statement caching is disabled.
     trust-registry:
       api-url: "${SWIYU_TRUST_REGISTRY_API_URL:}"
       customer-key: ${secret.swiyu.trust-registry.customer-key:${SWIYU_TRUST_REGISTRY_CUSTOMER_KEY:}}
       customer-secret: ${secret.swiyu.trust-registry.customer-secret:${SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET:}}
       max-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
       clock-skew-buffer-seconds: ${SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS:60}
-      max-cache-ttl-seconds: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS:86400000} # fetch at least once per day by default, should there be no ttl / exp defined
+      max-cache-ttl-seconds: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS:0}

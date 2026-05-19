@@ -12,6 +12,7 @@ import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
+import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementInjectionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -39,6 +41,11 @@ public class RequestObjectService {
     private final ManagementRepository managementRepository;
     private final ObjectMapper objectMapper;
     private final JwtSigningService jwtSigningService;
+    /**
+     * Optional TP2.0 injection service. Present only when {@code swiyu.trust-registry.api-url} is configured.
+     */
+    private final Optional<TrustStatementInjectionService> trustStatementInjectionService;
+
 
     /**
      * Aggregated view of the effective configuration for a single request object.
@@ -72,7 +79,12 @@ public class RequestObjectService {
 
         log.trace("If signing is desired, sign and return the JWT string, otherwise return the DTO");
         if (isSigningRequested(managementEntity)) {
-            String jwt = signRequestObject(requestObject, managementEntity, effectiveConfig);
+            log.trace("Inject TP2.0 trust statements (verifier_info) if integration is enabled.");
+            var enrichedRequestObject = trustStatementInjectionService
+                    .map(svc -> svc.injectVerifierInfo(requestObject, managementEntity))
+                    .orElse(requestObject);
+
+            String jwt = signRequestObject(enrichedRequestObject, managementEntity, effectiveConfig);
             return new RequestObjectResult.Signed(jwt);
         } else {
             // if signing is not desired return the plain request object DTO

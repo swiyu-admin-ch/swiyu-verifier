@@ -19,12 +19,6 @@ RUN keytool -importcert \
     -storepass changeit \
     -noprompt
 
-# Check if the cert was successfully added
-RUN keytool -list \
-    -keystore $JAVA_HOME/lib/security/cacerts \
-    -storepass changeit \
-    | grep root_ca_vi || true
-
 ARG JAR_FILE=verifier-application/target/*.jar
 COPY ${JAR_FILE} /app/app.jar
 

@@ -43,7 +43,7 @@ class ManagementServiceTest {
         repository = mock(ManagementRepository.class);
         applicationProperties = mock(ApplicationProperties.class);
         managementTransactionalService = new ManagementTransactionalService(repository, applicationProperties);
-        service = new ManagementService(applicationProperties, managementTransactionalService);
+        service = new ManagementService(applicationProperties, managementTransactionalService, null, null);
     }
 
     @Test
@@ -56,7 +56,8 @@ class ManagementServiceTest {
                 false,
                 ResponseModeTypeDto.DIRECT_POST,
                 null,
-                dcqlQueryDto
+                dcqlQueryDto,
+                null
         );
         var management = mock(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);
@@ -82,6 +83,7 @@ class ManagementServiceTest {
                 null,
                 false,
                 ResponseModeTypeDto.DIRECT_POST,
+                null,
                 null,
                 null
         );
@@ -144,7 +146,8 @@ class ManagementServiceTest {
                 false,
                 ResponseModeTypeDto.DIRECT_POST_JWT,
                 null,
-                dcqlQueryDto
+                dcqlQueryDto,
+                null
         );
         var management = mock(Management.class);
         var managementCaptor = ArgumentCaptor.forClass(Management.class);

@@ -67,5 +67,37 @@ public class TrustRegistryProperties {
      * Prevents retry storms and thread exhaustion.
      */
     private long negativeCacheTtlSeconds = 30;
+
+    /**
+     * Base URL of the TMS CBS Authoring API used for On-the-Fly vqPS registration.
+     * When absent, the vqPS registration flow is disabled and no vqPS will be injected.
+     * Example: {@code https://tms.example.com}
+     */
+    private String tmsAuthoringUrl;
+
+    /**
+     * OAuth2 token endpoint URL for obtaining a bearer token to authenticate
+     * against the TMS Authoring API.
+     * Example: {@code https://eportal.example.com/oauth/token}
+     */
+    private String oauthTokenUrl;
+
+    /**
+     * OAuth2 client_id for the client_credentials grant used to obtain access tokens.
+     */
+    private String oauthClientId;
+
+    /**
+     * OAuth2 client_secret for the client_credentials grant.
+     */
+    private String oauthClientSecret;
+
+    /**
+     * Buffer in seconds subtracted from the current verification TTL when checking
+     * whether a cached vqPS is still valid. Ensures the vqPS does not expire before
+     * the verification session itself expires.
+     * Default: 60 seconds.
+     */
+    private long vqpsExpiryBufferSeconds = 60;
 }
 

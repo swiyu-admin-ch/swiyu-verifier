@@ -63,7 +63,7 @@ class PresentationVerificationUsecaseTest {
         managementRepository = mock(ManagementRepository.class);
         ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
         ManagementTransactionalService managementTransactionalService = new ManagementTransactionalService(managementRepository, applicationProperties);
-        ManagementService managementService = new ManagementService(applicationProperties, managementTransactionalService);
+        ManagementService managementService = new ManagementService(applicationProperties, managementTransactionalService, null, null);
 
         objectMapper = new ObjectMapper();
         callbackEventProducer = mock(CallbackEventProducer.class);

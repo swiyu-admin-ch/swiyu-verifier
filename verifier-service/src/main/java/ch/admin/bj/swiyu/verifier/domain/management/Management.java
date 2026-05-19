@@ -116,6 +116,14 @@ public class Management {
     @NotNull
     private ResponseSpecification responseSpecification = ResponseSpecification.builder().responseModeType(ResponseModeType.DIRECT_POST).build();
 
+    /**
+     * SHA-256 query hash linking this session to a persisted {@link ch.admin.bj.swiyu.verifier.domain.vqps.VqpsCache} entry.
+     * When set, the request object service looks up the vqPS JWT by this hash (the PK of
+     * {@code vqps_cache}) and injects it into the {@code verifier_info} array of the Authorization Request.
+     */
+    @Column(name = "vqps_query_hash")
+    private String vqpsQueryHash;
+
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 

@@ -51,7 +51,7 @@ class TrustStatementInjectionServiceTest {
         // no-op signatures by default
         doNothing().when(validator).validateSignature(anyString());
 
-        injectionService = new TrustStatementInjectionService(cacheService, applicationProperties, validator);
+        injectionService = new TrustStatementInjectionService(cacheService, applicationProperties, validator, null);
     }
 
     // --- pvaTS selection tests ---

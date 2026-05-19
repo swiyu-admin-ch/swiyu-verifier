@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
+import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.VerifierInfoEntryDto;
 import com.nimbusds.jwt.JWTParser;
@@ -17,6 +18,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -65,6 +67,13 @@ public class TrustStatementInjectionService {
     private final TrustStatementValidator trustStatementValidator;
 
     /**
+     * Optional repository for persisted vqPS cache entries.
+     * When present and the management entity carries a vqPS scope, the corresponding
+     * vqPS JWT is injected into the {@code verifier_info} array.
+     */
+    private final Optional<VqpsRepository> vqpsCacheRepository;
+
+    /**
      * Returns a new {@link RequestObjectDto} with the {@code verifier_info} array populated from
      * the active {@code idTS}, the matching {@code pvaTS} JWTs and the session-specific {@code vqPS}.
      * <p>
@@ -86,9 +95,7 @@ public class TrustStatementInjectionService {
 
         injectIdentityTrustStatement(verifierInfo, clientId);
         injectProtectedVerificationAuthorizationTrustStatements(verifierInfo, clientId, managementEntity);
-
-        // Comes with https://jira.bit.admin.ch/browse/EIDOMNI-869
-        // addVqPs(verifierInfo, managementEntity);
+        injectVqPs(verifierInfo, managementEntity);
 
         if (verifierInfo.isEmpty()) {
             log.warn("No TP2.0 trust statements available – returning request object without verifier_info");
@@ -154,6 +161,32 @@ public class TrustStatementInjectionService {
                 verifierInfo.add(VerifierInfoEntryDto.ofJwt(pvaTsJwt));
             }
         }
+    }
+
+    /**
+     * Looks up the persisted vqPS JWT for the scope stored on the management entity and,
+     * if found, appends it to the {@code verifier_info} list.
+     *
+     * <p>Per Trust Protocol 2.0, the vqPS is embedded as
+     * {@code {"format": "jwt", "data": "<jwt>"}}. The scope on the Authorization Request
+     * must match the scope used during registration.</p>
+     *
+     * @param verifierInfo     the list to append to
+     * @param managementEntity the current verification session
+     */
+    private void injectVqPs(List<VerifierInfoEntryDto> verifierInfo, Management managementEntity) {
+        String queryHash = managementEntity.getVqpsQueryHash();
+        if (queryHash == null) {
+            return;
+        }
+        if (vqpsCacheRepository.isEmpty()) {
+            log.debug("VqpsCacheRepository not available – skipping vqPS injection for hash={}", queryHash);
+            return;
+        }
+        vqpsCacheRepository.get().findById(queryHash).ifPresentOrElse(
+                entry -> verifierInfo.add(VerifierInfoEntryDto.ofJwt(entry.getJwt())),
+                () -> log.warn("No vqPS found in DB for hash={} – skipping injection", queryHash)
+        );
     }
 
     /**

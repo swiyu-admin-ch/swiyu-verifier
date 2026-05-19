@@ -100,14 +100,14 @@ jobs:
         with:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           command: monitor
-          args: --maven-aggregate-project --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG  }}
+          args: --maven-aggregate-project --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG  }} --target-reference=${{ github.ref_name }}
       - name: Monitor Snyk for vulnerabilities in image 🐳
         uses: snyk/actions/docker@master
         with:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           command: monitor
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}
-          args: --severity-threshold=high --severity-threshold=high--project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }}
+          args: --severity-threshold=high --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

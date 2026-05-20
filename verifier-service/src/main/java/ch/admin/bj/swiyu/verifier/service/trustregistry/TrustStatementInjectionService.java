@@ -165,11 +165,16 @@ public class TrustStatementInjectionService {
 
     /**
      * Looks up the persisted vqPS JWT for the scope stored on the management entity and,
-     * if found, appends it to the {@code verifier_info} list.
+     * if found and still valid, appends it to the {@code verifier_info} list.
      *
      * <p>Per Trust Protocol 2.0, the vqPS is embedded as
      * {@code {"format": "jwt", "data": "<jwt>"}}. The scope on the Authorization Request
      * must match the scope used during registration.</p>
+     *
+     * <p><b>Defense-in-depth:</b> the vqPS JWT is re-validated on every injection
+     * (signature against the configured TMS issuer DID, plus {@code exp} freshness).
+     * This means a tampered or expired DB row can never reach the signed Authorization
+     * Request, even though the row was originally written by the verifier itself.</p>
      *
      * @param verifierInfo     the list to append to
      * @param managementEntity the current verification session
@@ -184,9 +189,42 @@ public class TrustStatementInjectionService {
             return;
         }
         vqpsCacheRepository.get().findById(queryHash).ifPresentOrElse(
-                entry -> verifierInfo.add(VerifierInfoEntryDto.ofJwt(entry.getJwt())),
+                entry -> {
+                    if (isVqPsValid(entry.getJwt(), queryHash)) {
+                        verifierInfo.add(VerifierInfoEntryDto.ofJwt(entry.getJwt()));
+                    }
+                },
                 () -> log.warn("No vqPS found in DB for hash={} – skipping injection", queryHash)
         );
+    }
+
+    /**
+     * Validates a vqPS JWT before injection: signature against the configured TMS issuer DID
+     * (via the same {@link TrustStatementValidator} used for idTS/pvaTS) plus {@code exp}
+     * freshness against the current system clock.
+     *
+     * @param jwt       the compact-serialized vqPS JWT
+     * @param queryHash the cache PK – used in log messages
+     * @return {@code true} if the JWT is signature-valid and not expired; {@code false} otherwise
+     */
+    private boolean isVqPsValid(String jwt, String queryHash) {
+        try {
+            var expDate = JWTParser.parse(jwt).getJWTClaimsSet().getExpirationTime();
+            if (expDate == null || expDate.toInstant().isBefore(java.time.Instant.now())) {
+                log.warn("vqPS JWT for hash={} is missing or past exp – skipping injection", queryHash);
+                return false;
+            }
+        } catch (ParseException e) {
+            log.warn("vqPS JWT for hash={} is unparseable – skipping injection: {}", queryHash, e.getMessage());
+            return false;
+        }
+        try {
+            trustStatementValidator.validateSignature(jwt);
+            return true;
+        } catch (JwtValidatorException e) {
+            log.warn("vqPS signature verification failed for hash={} – skipping injection: {}", queryHash, e.getMessage());
+            return false;
+        }
     }
 
     /**

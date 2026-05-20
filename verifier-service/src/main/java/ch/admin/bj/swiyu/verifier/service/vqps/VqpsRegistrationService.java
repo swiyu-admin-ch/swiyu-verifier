@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -68,6 +67,7 @@ public class VqpsRegistrationService {
     private final VqpsRepository vqpsRepository;
     private final VqpsSubmissionB2BApi vqpsSubmissionB2BApi;
     private final ObjectMapper objectMapper;
+    private final VqpsPersistenceService vqpsPersistenceService;
 
     /**
      * Ensures a valid vqPS exists for the given scope and DCQL query and returns its query hash.
@@ -110,28 +110,8 @@ public class VqpsRegistrationService {
                             + ". Cannot proceed.");
         }
 
-        persistVqps(currentHash, scope, jwt, expiry);
+        vqpsPersistenceService.persistVqps(currentHash, scope, jwt, expiry);
         return currentHash;
-    }
-
-    /**
-     * Persists the vqPS cache entry in its own transaction, isolated from the reactive polling.
-     *
-     * @param queryHash the SHA-256 hash (PK)
-     * @param scope     the scope identifier for logging
-     * @param jwt       the compact-serialized vqPS JWT
-     * @param expiresAt the expiry in Unix epoch seconds
-     */
-    @Transactional
-    protected void persistVqps(String queryHash, String scope, String jwt, long expiresAt) {
-        Vqps entry = Vqps.builder()
-                .queryHash(queryHash)
-                .scope(scope)
-                .jwt(jwt)
-                .expiresAt(expiresAt)
-                .build();
-        vqpsRepository.save(entry);
-        log.info("vqPS stored in DB for scope={}, expires_at={}", scope, expiresAt);
     }
 
     /**
@@ -233,6 +213,8 @@ public class VqpsRegistrationService {
         String defaultDesc = descs.values().stream().findFirst().orElseThrow(
                 () -> new IllegalArgumentException("purposeDescription map must not be empty"));
 
+
+        // TODO: Fix this, when tergum ready...
         return new VqpsSubmissionCreateRequest()
                 .sub(applicationProperties.getClientId())
                 .scope(purpose.scope())

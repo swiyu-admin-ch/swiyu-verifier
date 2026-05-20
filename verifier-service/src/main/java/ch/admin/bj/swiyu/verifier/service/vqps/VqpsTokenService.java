@@ -22,7 +22,7 @@ import java.util.Optional;
  *
  * <p>Solves the multi-pod / refresh-token-rotation problem by persisting the current
  * token set in the shared PostgreSQL {@code token_set} table (keyed by
- * {@link EcosystemApiType#TRUST_STATEMENTS}) and coordinating token refreshes via ShedLock
+ * {@link EcosystemApiType#TRUST_STATEMENTS_AUTHORING}) and coordinating token refreshes via ShedLock
  * so that only one pod performs the actual OAuth2 grant at any time.</p>
  *
  * <p>Token acquisition strategy (in order of preference):
@@ -58,12 +58,16 @@ public class VqpsTokenService {
         lockingTaskExecutor.executeWithLock(
                 (Runnable) () -> {
                     log.info("Bootstrapping vqPS OAuth2 token set for [{}] (application startup).",
-                            EcosystemApiType.TRUST_STATEMENTS);
+                            EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
                     try {
                         requestNewTokenSet();
                     } catch (Exception e) {
-                        log.error("Could not update vqPS OAuth2 token set during bootstrap. "
-                                + "Refresh token might be already used or misconfigured.", e);
+                        // Log only the exception type and (sanitized) message – never the stack trace
+                        // or response body, which can carry refresh_token / client_secret echoes from
+                        // upstream OAuth2 errors.
+                        log.error("Could not update vqPS OAuth2 token set during bootstrap "
+                                        + "(refresh token might be already used or misconfigured). type={} message={}",
+                                e.getClass().getSimpleName(), sanitize(e.getMessage()));
                     }
                 },
                 vqpsTokenApiLockConfiguration);
@@ -80,11 +84,11 @@ public class VqpsTokenService {
      */
     @Transactional(readOnly = true)
     public String getAccessToken() {
-        return tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS)
+        return tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)
                 .map(TokenSet::getAccessToken)
                 .orElseThrow(() -> new IllegalStateException(
                         "Failed to lookup vqPS access token. No token found under key '"
-                                + EcosystemApiType.TRUST_STATEMENTS + "'."));
+                                + EcosystemApiType.TRUST_STATEMENTS_AUTHORING + "'."));
     }
 
     /**
@@ -117,16 +121,16 @@ public class VqpsTokenService {
     public TokenSet requestNewTokenSet() {
         LockAssert.assertLocked();
 
-        var existing = tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS);
+        var existing = tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
 
         TokenApi.TokenResponse tokenResponse = existing
                 .flatMap(this::tryRefreshWithDbToken)
                 .orElseGet(this::refreshWithBootstrapOrClientCredentials);
 
         TokenSet tokenSet = existing.orElseGet(TokenSet::new);
-        tokenSet.apply(EcosystemApiType.TRUST_STATEMENTS, tokenResponse);
+        tokenSet.apply(EcosystemApiType.TRUST_STATEMENTS_AUTHORING, tokenResponse);
 
-        log.info("vqPS OAuth2 token set updated successfully in DB for [{}].", EcosystemApiType.TRUST_STATEMENTS);
+        log.info("vqPS OAuth2 token set updated successfully in DB for [{}].", EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
         return tokenSetRepository.save(tokenSet);
     }
 
@@ -140,9 +144,27 @@ public class VqpsTokenService {
             log.info("vqPS OAuth2 token refreshed using refresh token from DB.");
             return Optional.of(tokenResponse);
         } catch (Exception e) {
-            log.error("Failed to refresh vqPS token with DB token. Falling back to bootstrap/client_credentials.", e);
+            // Log only the exception type and (sanitized) message – upstream OAuth2 error responses
+            // may echo back the offending refresh_token / client_secret in their body, which must
+            // never end up in the log aggregator.
+            log.error("Failed to refresh vqPS token with DB token. Falling back to bootstrap/client_credentials. "
+                    + "type={} message={}", e.getClass().getSimpleName(), sanitize(e.getMessage()));
             return Optional.empty();
         }
+    }
+
+    /**
+     * Best-effort scrubbing of exception messages before logging. Truncates long messages and
+     * masks anything that looks like an OAuth2 secret echoed back by the upstream provider.
+     */
+    private static String sanitize(String message) {
+        if (message == null) {
+            return "<no message>";
+        }
+        String trimmed = message.length() > 256 ? message.substring(0, 256) + "…" : message;
+        return trimmed
+                .replaceAll("(?i)(refresh_token|access_token|client_secret|authorization)\\s*[=:\"']\\s*[^\"',\\s}]+",
+                        "$1=***");
     }
 
     private TokenApi.TokenResponse refreshWithBootstrapOrClientCredentials() {
@@ -157,14 +179,14 @@ public class VqpsTokenService {
 
     private TokenApi.TokenResponse getTokenResponse(String refreshToken) {
         if (properties.isEnableRefreshTokenFlow() && refreshToken != null && !refreshToken.isBlank()) {
-            log.debug("Requesting vqPS token via refresh_token grant for [{}]", EcosystemApiType.TRUST_STATEMENTS);
+            log.debug("Requesting vqPS token via refresh_token grant for [{}]", EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
             return vqpsTokenApi.getNewToken(
                     properties.getOauthClientId(),
                     properties.getOauthClientSecret(),
                     refreshToken,
                     "refresh_token");
         }
-        log.debug("Requesting vqPS token via client_credentials grant for [{}]", EcosystemApiType.TRUST_STATEMENTS);
+        log.debug("Requesting vqPS token via client_credentials grant for [{}]", EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
         return vqpsTokenApi.getNewToken(
                 properties.getOauthClientId(),
                 properties.getOauthClientSecret(),

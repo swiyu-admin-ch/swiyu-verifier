@@ -28,6 +28,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
+
 /**
  * Service responsible for the On-the-Fly vqPS registration flow (EIDOMNI-819).
  *
@@ -85,7 +88,6 @@ public class VqpsRegistrationService {
      * @throws IllegalStateException if the newly fetched vqPS expires before the verification TTL,
      *                               or if the TMS submission fails or times out
      */
-    @Transactional
     public String getOrRegisterVqps(VerificationPurposeDto purpose, Object dcqlQueryJson, long verificationExpiresAt) {
         String scope = purpose.scope();
         long requiredValidUntil = verificationExpiresAt + properties.getVqpsExpiryBufferSeconds();
@@ -108,15 +110,28 @@ public class VqpsRegistrationService {
                             + ". Cannot proceed.");
         }
 
+        persistVqps(currentHash, scope, jwt, expiry);
+        return currentHash;
+    }
+
+    /**
+     * Persists the vqPS cache entry in its own transaction, isolated from the reactive polling.
+     *
+     * @param queryHash the SHA-256 hash (PK)
+     * @param scope     the scope identifier for logging
+     * @param jwt       the compact-serialized vqPS JWT
+     * @param expiresAt the expiry in Unix epoch seconds
+     */
+    @Transactional
+    protected void persistVqps(String queryHash, String scope, String jwt, long expiresAt) {
         Vqps entry = Vqps.builder()
-                .queryHash(currentHash)
+                .queryHash(queryHash)
                 .scope(scope)
                 .jwt(jwt)
-                .expiresAt(expiry)
+                .expiresAt(expiresAt)
                 .build();
         vqpsRepository.save(entry);
-        log.info("vqPS stored in DB for scope={}, expires_at={}", scope, expiry);
-        return currentHash;
+        log.info("vqPS stored in DB for scope={}, expires_at={}", scope, expiresAt);
     }
 
     /**
@@ -130,57 +145,54 @@ public class VqpsRegistrationService {
     private String submitAndPollForJwt(VerificationPurposeDto purpose, Object dcqlQueryJson) {
         VqpsSubmissionCreateRequest request = buildSubmissionRequest(purpose, dcqlQueryJson);
 
-        VqpsSubmission submission = vqpsSubmissionB2BApi.createVqpsSubmission(request).block();
-        if (submission == null) {
-            throw new IllegalStateException("TMS B2B API returned null response for vqPS submission, scope=" + purpose.scope());
-        }
-
-        log.debug("vqPS submission created with id={}, status={}", submission.getId(), submission.getStatus());
-
-        if (submission.getStatus() == VqpsSubmissionStatus.PUBLICATION_SUCCEEDED) {
-            return extractJwtFromSubmission(submission, purpose.scope());
-        }
-
-        return pollUntilPublished(submission.getId(), purpose.scope());
+        return vqpsSubmissionB2BApi.createVqpsSubmission(request)
+                .flatMap(submission -> {
+                    if (submission == null) {
+                        return Mono.error(new IllegalStateException(
+                                "TMS B2B API returned null response for vqPS submission, scope=" + purpose.scope()));
+                    }
+                    log.debug("vqPS submission created with id={}, status={}", submission.getId(), submission.getStatus());
+                    if (submission.getStatus() == VqpsSubmissionStatus.PUBLICATION_SUCCEEDED) {
+                        return Mono.just(extractJwtFromSubmission(submission, purpose.scope()));
+                    }
+                    return pollUntilPublished(submission.getId(), purpose.scope());
+                })
+                .block();
     }
 
     /**
-     * Polls the TMS B2B API until the submission reaches a terminal status.
+     * Polls the TMS B2B API reactively until the submission reaches a terminal status.
+     *
+     * <p>Uses Reactor's {@link Retry#fixedDelay} so no thread is blocked during the
+     * wait interval. Retries are triggered only for {@link PollingPendingException};
+     * terminal failures propagate immediately without further retries.</p>
      *
      * @param submissionId the UUID of the submission to poll
-     * @param scope        scope identifier for logging
-     * @return the signed vqPS JWT once published
-     * @throws IllegalStateException if publication fails or polling exceeds {@link #MAX_POLL_ATTEMPTS}
+     * @param scope        scope identifier for logging and error messages
+     * @return a {@link Mono} emitting the vqPS JWT once published
      */
-    private String pollUntilPublished(UUID submissionId, String scope) {
-        for (int attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
-            try {
-                Thread.sleep(POLL_INTERVAL.toMillis());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("Interrupted while polling for vqPS publication, scope=" + scope, e);
-            }
-
-            VqpsSubmission submission = vqpsSubmissionB2BApi.getVqpsSubmission(submissionId).block();
-            if (submission == null) {
-                log.warn("TMS B2B API returned null when polling submission id={}, attempt={}", submissionId, attempt);
-                continue;
-            }
-
-            log.debug("Polling vqPS submission id={}, status={}, attempt={}/{}", submissionId, submission.getStatus(), attempt, MAX_POLL_ATTEMPTS);
-
-            if (submission.getStatus() == VqpsSubmissionStatus.PUBLICATION_SUCCEEDED) {
-                return extractJwtFromSubmission(submission, scope);
-            }
-
-            if (submission.getStatus() == VqpsSubmissionStatus.PUBLCATION_FAILED) {
-                throw new IllegalStateException(
-                        "TMS vqPS publication failed for scope='" + scope + "', reason=" + submission.getFailureReason());
-            }
-        }
-
-        throw new IllegalStateException(
-                "Timed out waiting for vqPS publication for scope='" + scope + "' after " + MAX_POLL_ATTEMPTS + " attempts");
+    private Mono<String> pollUntilPublished(UUID submissionId, String scope) {
+        return Mono.defer(() -> vqpsSubmissionB2BApi.getVqpsSubmission(submissionId))
+                .flatMap(submission -> {
+                    if (submission == null) {
+                        return Mono.error(new IllegalStateException(
+                                "TMS B2B API returned null when polling submission id=" + submissionId));
+                    }
+                    log.debug("Polling vqPS submission id={}, status={}", submissionId, submission.getStatus());
+                    return switch (submission.getStatus()) {
+                        case PUBLICATION_SUCCEEDED -> Mono.just(extractJwtFromSubmission(submission, scope));
+                        case PUBLCATION_FAILED -> Mono.error(new IllegalStateException(
+                                "TMS vqPS publication failed for scope='" + scope + "', reason=" + submission.getFailureReason()));
+                        default -> Mono.error(new PollingPendingException(
+                                "vqPS submission " + submissionId + " still pending"));
+                    };
+                })
+                .retryWhen(Retry.fixedDelay(MAX_POLL_ATTEMPTS, POLL_INTERVAL)
+                        .filter(t -> t instanceof PollingPendingException)
+                        .onRetryExhaustedThrow((spec, signal) -> new IllegalStateException(
+                                "Timed out waiting for vqPS publication for scope='" + scope
+                                        + "' after " + MAX_POLL_ATTEMPTS + " attempts"))
+                );
     }
 
     /**
@@ -289,4 +301,15 @@ public class VqpsRegistrationService {
             throw new IllegalStateException("Failed to parse vqPS JWT exp claim", e);
         }
     }
+
+    /**
+     * Sentinel exception used exclusively to signal a pending TMS submission status
+     * to the Reactor retry mechanism. Never propagated to callers.
+     */
+    private static class PollingPendingException extends RuntimeException {
+        PollingPendingException(String message) {
+            super(message, null, true, false); // suppress stacktrace – purely a control-flow signal
+        }
+    }
+
 }

@@ -4,6 +4,9 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.net.URL;
+import java.time.Duration;
+
 /**
  * Configuration properties for the Trust Registry (TMS) integration required by Trust Protocol 2.0.
  * <p>
@@ -73,14 +76,14 @@ public class TrustRegistryProperties {
      * When absent, the vqPS registration flow is disabled and no vqPS will be injected.
      * Example: {@code https://tms.example.com}
      */
-    private String tmsAuthoringUrl;
+    private URL tmsAuthoringUrl;
 
     /**
      * OAuth2 token endpoint URL for obtaining a bearer token to authenticate
      * against the TMS Authoring API.
      * Example: {@code https://eportal.example.com/oauth/token}
      */
-    private String oauthTokenUrl;
+    private URL oauthTokenUrl;
 
     /**
      * OAuth2 client_id for the client_credentials grant used to obtain access tokens.
@@ -99,5 +102,28 @@ public class TrustRegistryProperties {
      * Default: 60 seconds.
      */
     private long vqpsExpiryBufferSeconds = 60;
+
+    /**
+     * Enables the OAuth2 refresh-token flow for obtaining TMS B2B access tokens.
+     * When {@code true}, the token service first attempts to use a refresh token
+     * (from the DB or {@link #bootstrapRefreshToken}) before falling back to
+     * {@code client_credentials}.
+     * Default: {@code false}.
+     */
+    private boolean enableRefreshTokenFlow = false;
+
+    /**
+     * A static refresh token used to bootstrap the first token set on application startup.
+     * Only evaluated when {@link #enableRefreshTokenFlow} is {@code true}.
+     * Must be treated as a secret and never logged.
+     */
+    private String bootstrapRefreshToken;
+
+    /**
+     * Interval between proactive OAuth2 token refreshes performed by the scheduler.
+     * Should be shorter than the refresh-token lifetime to avoid expiry.
+     * Default: {@code PT12H} (12 hours).
+     */
+    private Duration tokenRefreshInterval = Duration.ofHours(12);
 }
 

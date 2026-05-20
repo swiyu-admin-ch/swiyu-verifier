@@ -74,17 +74,12 @@ public class RequestObjectService {
         log.trace("Resolve the effective configuration (defaults + overrides).");
         var effectiveConfig = resolveEffectiveConfig(managementEntity);
 
-        log.trace("Build the request object DTO.");
+        log.trace("Build the request object DTO (incl. optional TP2.0 verifier_info injection).");
         var requestObject = buildRequestObject(managementEntity, effectiveConfig, managementEntityId);
 
         log.trace("If signing is desired, sign and return the JWT string, otherwise return the DTO");
         if (isSigningRequested(managementEntity)) {
-            log.trace("Inject TP2.0 trust statements (verifier_info) if integration is enabled.");
-            var enrichedRequestObject = trustStatementInjectionService
-                    .map(svc -> svc.injectVerifierInfo(requestObject, managementEntity))
-                    .orElse(requestObject);
-
-            String jwt = signRequestObject(enrichedRequestObject, managementEntity, effectiveConfig);
+            String jwt = signRequestObject(requestObject, managementEntity, effectiveConfig);
             return new RequestObjectResult.Signed(jwt);
         } else {
             // if signing is not desired return the plain request object DTO
@@ -121,7 +116,7 @@ public class RequestObjectService {
             clientMetadataBuilder.encryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported());
         }
 
-        return RequestObjectDto.builder()
+        var baseRequestObject = RequestObjectDto.builder()
                 .audience(AUDIENCE)
                 .nonce(managementEntity.getRequestNonce())
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
@@ -135,6 +130,13 @@ public class RequestObjectService {
                         managementEntityId))
                 .state(managementEntity.getOauthState().toString())
                 .build();
+
+        // Optional TP2.0 enrichment: when the trust-registry integration is enabled, inject the
+        // verifier_info array (idTS + pvaTS). The clientId already resolved in effectiveConfig
+        // doubles as the verifier DID looked up in the trust registry.
+        return trustStatementInjectionService
+                .map(svc -> svc.injectVerifierInfo(baseRequestObject, effectiveConfig.clientId()))
+                .orElse(baseRequestObject);
     }
 
     /**

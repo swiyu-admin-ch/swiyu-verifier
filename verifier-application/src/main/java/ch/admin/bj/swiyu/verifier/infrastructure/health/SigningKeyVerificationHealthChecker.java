@@ -30,12 +30,15 @@ import java.util.Map;
  *   <li>Verifies that a signer can be provided</li>
  *   <li>Tests the signing and verification process with a dummy JWT</li>
  * </ul>
+ *
+ * <p>The check can be disabled via {@code management.health.signing-key-verification-enabled=false}
+ * (env: {@code SIGNING_KEY_VERIFICATION_ENABLED=false}). When disabled, the check reports
+ * {@code UP} with {@code signingKeyVerificationMethod: disabled}.</p>
  */
 @Component
 @RequiredArgsConstructor
 public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
 
-    private static final String HEALTH_DETAIL_FAILED_DIDS = "failedDids";
     private static final String HEALTH_DETAIL_SIGNING_KEY = "signingKeyVerificationMethod";
     private static final String HEALTH_DETAIL_SIGNING_ERROR = "signingError";
     private static final String TEST_JWT_SUBJECT = "health-check-test";
@@ -49,8 +52,27 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     /** Service used to create signers for JWT signing */
     private final JwtSigningService jwtSigningService;
 
+    /** Health check configuration properties */
+    private final HealthCheckProperties healthCheckProperties;
+
+    @Override
+    protected boolean isEnabled() {
+        return healthCheckProperties.isSigningKeyVerificationEnabled();
+    }
+
+    /**
+     * Returns UP with {@code signingKeyVerificationMethod: disabled} when the check is disabled via configuration.
+     */
+    @Override
+    protected Health buildDisabledHealth() {
+        return Health.up().withDetail(HEALTH_DETAIL_SIGNING_KEY, "disabled").build();
+    }
+
     /**
      * Performs the health check by validating the signing capability.
+     *
+     * <p>If no verification method is configured (blank), the check is skipped and UP is reported,
+     * since dynamic key management does not require a statically configured key.</p>
      *
      * @param builder The health builder to populate with check results
      */
@@ -58,17 +80,22 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
     protected void performCheck(Health.Builder builder) {
         String verificationMethod = applicationProperties.getSigningKeyVerificationMethod();
 
+        if (verificationMethod == null || verificationMethod.isBlank()) {
+            builder.up().withDetail(HEALTH_DETAIL_SIGNING_KEY, "not configured");
+            return;
+        }
+
         try {
             if (verifySigningCapability(verificationMethod)) {
                 builder.up().withDetail(HEALTH_DETAIL_SIGNING_KEY, verificationMethod);
             } else {
                 builder.down().withDetail(HEALTH_DETAIL_SIGNING_KEY,
-                    "Verification failed for " + verificationMethod);
+                        "Verification failed for " + verificationMethod);
             }
         } catch (Exception e) {
             builder.down()
-                .withDetail(HEALTH_DETAIL_SIGNING_ERROR, e.getMessage())
-                .withDetail(HEALTH_DETAIL_SIGNING_KEY, verificationMethod);
+                    .withDetail(HEALTH_DETAIL_SIGNING_ERROR, e.getMessage())
+                    .withDetail(HEALTH_DETAIL_SIGNING_KEY, verificationMethod);
         }
     }
 

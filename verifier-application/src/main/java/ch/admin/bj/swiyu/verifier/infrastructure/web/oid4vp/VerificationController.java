@@ -32,8 +32,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
-
 /**
  * OpenID4VC Issuance Controller
  * <p>
@@ -71,7 +69,6 @@ public class VerificationController {
                                     examples = {
                                             @ExampleObject(name = "Sample Client Metadata", value = """
                                                     {
-                                                        "client_id": "did:example:12345",
                                                         "client_name#en": "English name (all regions)",
                                                         "client_name#fr": "French name (all regions)",
                                                         "client_name#de-DE": "German name (region Germany)",
@@ -142,10 +139,9 @@ public class VerificationController {
                     @Parameter(
                             name = "SWIYU-API-Version",
                             description = "Optional API version. Supported values: " +
-                                    "1 - This supports OID4VP ID2 with DIF Presentation Exchange), " +
-                                    "2 - This supports OID4VP 1.0",
+                                    "2 (DEFAULT) - This supports OID4VP 1.0",
                             in = ParameterIn.HEADER,
-                            schema = @Schema(type = "string", allowableValues = {"1", "2"})
+                            schema = @Schema(type = "string", allowableValues = {"2"})
                     )
             },
             externalDocs = @ExternalDocumentation(
@@ -197,10 +193,6 @@ public class VerificationController {
             // Processing rejection
             case Rejection(var rejectionDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
-
-            // Processing DIF presentation exchange presentation
-            case PresentationExchange(var standardDto) ->
-                presentationVerificationUsecase.receiveVerificationPresentation(requestId, standardDto);
 
             // Processing DCQL presentation
             case Dcql(var dcqlDto) ->

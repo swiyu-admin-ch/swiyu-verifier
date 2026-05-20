@@ -58,19 +58,18 @@ public abstract class BaseVerificationControllerTest {
                 .id(REQUEST_ID_SDJWT_MGMT_NO_SIGNATURE)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .jwtSecuredAuthorizationRequest(false)
+                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
                 .id(REQUEST_ID_SECURED)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
@@ -83,7 +82,6 @@ public abstract class BaseVerificationControllerTest {
                 .id(REQUEST_ID_NESTED_SECURED)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
@@ -97,7 +95,6 @@ public abstract class BaseVerificationControllerTest {
                 .jwtSecuredAuthorizationRequest(false)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(0)
@@ -110,7 +107,6 @@ public abstract class BaseVerificationControllerTest {
                 .jwtSecuredAuthorizationRequest(false)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
@@ -122,12 +118,11 @@ public abstract class BaseVerificationControllerTest {
                 .jwtSecuredAuthorizationRequest(false)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -135,7 +130,6 @@ public abstract class BaseVerificationControllerTest {
                 .jwtSecuredAuthorizationRequest(false)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
@@ -148,11 +142,11 @@ public abstract class BaseVerificationControllerTest {
                 .jwtSecuredAuthorizationRequest(true)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJsonDiffAlgs()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -160,11 +154,11 @@ public abstract class BaseVerificationControllerTest {
                 .jwtSecuredAuthorizationRequest(false)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJsonDiffKbAlgs()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
 
@@ -177,7 +171,6 @@ public abstract class BaseVerificationControllerTest {
                 .id(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
-                .requestedPresentation(presentationDefinition(presentationDefinitionJson()))
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
@@ -198,53 +191,11 @@ public abstract class BaseVerificationControllerTest {
         managementEntityRepository.deleteAll();
     }
 
-    PresentationDefinition presentationDefinition(String presentationDefinitionJson) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.readValue(presentationDefinitionJson, PresentationDefinition.class);
-    }
-
     DcqlQuery dcqlQuery(String dcqlQuery) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readValue(dcqlQuery, DcqlQuery.class);
     }
 
-
-
-    static String presentationDefinitionJson() {
-        return """
-                {
-                  "id": "cf244758-00f9-4fa0-83ff-6719bac358a2",
-                  "name": "Presentation Definition Name",
-                  "purpose": "Presentation Definition Purpose",
-                  "input_descriptors": [
-                    {
-                      "id": "test_descriptor_id",
-                      "purpose": "Input Descriptor Purpose",
-                      "format": {
-                        "vc+sd-jwt": {
-                          "sd-jwt_alg_values": [
-                            "ES256"
-                          ],
-                          "kb-jwt_alg_values": [
-                            "ES256"
-                          ]
-                        }
-                      },
-                      "name": "Test Descriptor Name",
-                      "constraints": {
-                        "fields": [
-                          {
-                            "path": [
-                              "$"
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-                """;
-    }
 
     private static String dcqlQueryJson() {
         return """

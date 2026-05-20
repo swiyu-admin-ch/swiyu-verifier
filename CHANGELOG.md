@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unversioned changes
+
+### Fixed
+- Allow hsm key id and key pin to be overridden individually
+- Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  
+
 ## latest (3.0.0)
 
 ### Added
@@ -38,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed a TOCTOU race condition on the VP response endpoint (`direct_post`, `direct_post.jwt`) that allowed two concurrent wallet submissions for the same session to both be accepted, leading to non-deterministic verification results.
+
+
+### Removed
+- Dropped support for SWIYU-API-Version 1, which was using DIF Presentation Exchange. Now only DCQL can be used for verification as defined in OID4VP 1.0.
 
 
 ## 2.3.0

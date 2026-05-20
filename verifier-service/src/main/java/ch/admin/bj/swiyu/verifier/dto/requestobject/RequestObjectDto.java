@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.dto.requestobject;
 
-import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
@@ -65,16 +64,6 @@ public class RequestObjectDto {
     @JsonProperty("version")
     private String version;
 
-    @JsonProperty("presentation_definition")
-    @Schema(
-        description = """
-            Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition.
-            This field is only used for requests initiated with the older Presentation Exchange (PE) format.
-            """,
-        requiredMode = Schema.RequiredMode.NOT_REQUIRED
-    )
-    private PresentationDefinitionDto presentationDefinition;
-
     @JsonProperty("dcql_query")
     @Schema(
         description = """
@@ -89,7 +78,6 @@ public class RequestObjectDto {
     @Schema(description = "A JSON object containing the Verifier metadata values providing further information about the verifier, such as name and logo. It is UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter is present.",
             example = """
                     {
-                        "client_id": "did:example:12345",
                         "client_name#en": "English name (all regions)",
                         "client_name#fr": "French name (all regions)",
                         "client_name#de-DE": "German name (region Germany)",

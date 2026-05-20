@@ -1,12 +1,12 @@
 package ch.admin.bj.swiyu.verifier.dto.management;
 
-import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
 import java.util.List;
@@ -57,13 +57,6 @@ public record CreateVerificationManagementDto(
         // TODO Once the Ecosystem broadly supports JWE, we should use direct_post_jwt as default value
         ResponseModeTypeDto responseMode,
 
-        @Schema(description = "Presentation definition according to " +
-                "https://identity.foundation/presentation-exchange/#presentation-definition")
-        @Valid
-        @Nullable
-        @JsonProperty("presentation_definition")
-        PresentationDefinitionDto presentationDefinition,
-
         @Schema(description = "Optional Parameter to override configured parameters, such as the DID used or the HSM key used in singing the request object",
                 example = """
                 {}
@@ -74,7 +67,7 @@ public record CreateVerificationManagementDto(
         ConfigurationOverrideDto configuration_override,
 
         @Valid
-        @Nullable
+        @NotNull
         @JsonProperty("dcql_query")
         DcqlQueryDto dcqlQuery
 ) {

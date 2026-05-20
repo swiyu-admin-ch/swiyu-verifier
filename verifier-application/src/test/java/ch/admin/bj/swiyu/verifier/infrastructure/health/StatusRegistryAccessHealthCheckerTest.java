@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 import org.apache.tomcat.util.http.Method;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
+@Disabled("Test fails in Github pipeline due to error starting the Mock Server. Bug: EIDOMNI-957")
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
 class StatusRegistryAccessHealthCheckerTest {

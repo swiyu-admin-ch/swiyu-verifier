@@ -53,26 +53,8 @@ class OpenIdClientMetadataConfigurationTest {
 
         var metadata = config.getOpenIdClientMetadata();
 
-        assertThat(metadata.getClientId()).isEqualTo(clientId);
-        assertThat(metadata.getVpFormats().jwtVerifiablePresentation().algorithms())
-                .first()
-                .isEqualTo("ES256");
         assertThat(metadata.getAdditionalProperties())
                 .containsEntry("logo", "logo");
-    }
-
-    @Test
-    void initOpenIdClientMetadata_withoutClientIdAndVpFormats_throwsException() throws IOException {
-        String template = "{\"other\":\"value\"}";
-
-        when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
-
-        var exception = assertThrows(IllegalStateException.class, config::initOpenIdClientMetadata);
-
-        assertThat(exception)
-                .hasMessageContaining("Invalid OpenID client metadata")
-                .hasMessageContaining("'client_id' must not be blank")
-                .hasMessageContaining("'vp_formats' must not be null");
     }
 
     @Test
@@ -109,26 +91,6 @@ class OpenIdClientMetadataConfigurationTest {
                 Arguments.of(
                         "[]",
                         "Unable to parse OpenID client metadata JSON"
-                ),
-                Arguments.of(
-                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\"}",
-                        "'vp_formats' must not be null"
-                ),
-                Arguments.of(
-                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{}}",
-                        "'vp_formats.jwt_verifiable_presentation' must not be null"
-                ),
-                Arguments.of(
-                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{}}}",
-                        "'vp_formats.jwt_verifiable_presentation.algorithms' must not be empty"
-                ),
-                Arguments.of(
-                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[]}}}",
-                        "'vp_formats.jwt_verifiable_presentation.algorithms' must not be empty"
-                ),
-                Arguments.of(
-                        "{\"client_id\":\"${VERIFIER_DID}\",\"other\":\"value\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES384\"]}}}",
-                        "'vp_formats.jwt_verifiable_presentation.algorithms' Invalid jwt values provided. Only ES256 is supported"
                 )
         );
     }

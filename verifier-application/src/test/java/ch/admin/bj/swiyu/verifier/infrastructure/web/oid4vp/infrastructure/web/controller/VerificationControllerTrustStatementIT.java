@@ -241,7 +241,7 @@ class VerificationControllerTrustStatementIT {
                 .hasSize(2)
                 .allSatisfy(entry -> {
                     assertThat(entry.get("format")).isEqualTo("jwt");
-                    assertThat((String) entry.get("data")).isNotBlank();
+                    assertThat((String) entry.get("data")).isNotBlank().isIn(List.of(idTsJwt, pvaTsJwt));
                 });
     }
 

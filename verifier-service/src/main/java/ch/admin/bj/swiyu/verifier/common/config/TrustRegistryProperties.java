@@ -35,16 +35,6 @@ public class TrustRegistryProperties {
     private String customerSecret;
 
     /**
-     * DID identifier of this verifier, used to fetch {@code idTS} and {@code pvaTS} from the TMS.
-     */
-    private String verifierDid;
-
-    /**
-     * JTI (UUID) of the Protected Verification Authorization Trust Statement (pvaTS) to fetch.
-     */
-    private String pvaTsJti;
-
-    /**
      * Maximum number of entries held in the trust statement cache.
      */
     private long maxCacheSize = 500;
@@ -61,11 +51,5 @@ public class TrustRegistryProperties {
      * Set to {@code 0} to disable the cap.
      */
     private long maxCacheTtlSeconds = 3600;
-
-    /**
-     * Short TTL in seconds used for negative cache entries when the TMS API call fails.
-     * Prevents retry storms and thread exhaustion.
-     */
-    private long negativeCacheTtlSeconds = 30;
 }
 

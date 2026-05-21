@@ -69,14 +69,6 @@
                 <version>11.0.22</version>
             </dependency>
 
-            <!-- Check again when spring-cloud-kubernetes-fabric8-config is updated -->
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-core</artifactId>
-                <version>4.5.26</version>
-                <scope>compile</scope>
-            </dependency>
-
             <!-- Check again on Spring Boot update -->
             <dependency>
                 <groupId>org.apache.commons</groupId>

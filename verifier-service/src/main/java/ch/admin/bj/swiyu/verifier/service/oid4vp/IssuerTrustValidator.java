@@ -44,25 +44,35 @@ public class IssuerTrustValidator {
         if (isAcceptedIsser(issuerDid, management)) {
             return;
         }
+        if (isTrustProtocolTrusted(issuerDid, vct, management)) {
+            return;
+        }
+        
+        throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
+    }
+
+
+    private boolean isTrustProtocolTrusted(String issuerDid, String vct, Management management) {
         var trustAnchors = management.getTrustAnchors();
         boolean trustAnchorsEmpty = trustAnchors == null || trustAnchors.isEmpty();
-        if (!trustAnchorsEmpty) {
-            if (issuerDid.startsWith("did:tdw")) {
-                // Trust Protocl 1.0
-                if (trustProtocol1Validator.hasMatchingTrustProtocol1Statement(issuerDid, vct, trustAnchors, management)) {
-                    return; // We have a valid trust statement for the vct!
-                }
-            }
-            if (issuerDid.startsWith("did:webvh")) {
-                // Trust Protocol 2.0
-                if(trustProtocol2Validator.map(sv -> sv.isTrusted(issuerDid, vct, management)).orElse(false)) {
-                    return;
-                }
-                
-            }
+        if (trustAnchorsEmpty) {
+            return false;
         }
 
-        throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
+        if (issuerDid.startsWith("did:tdw")) {
+            // Trust Protocl 1.0
+            if (trustProtocol1Validator.hasMatchingTrustProtocol1Statement(issuerDid, vct, trustAnchors, management)) {
+                return true; // We have a valid trust statement for the vct!
+            }
+        }
+        if (issuerDid.startsWith("did:webvh")) {
+            // Trust Protocol 2.0
+            if(trustProtocol2Validator.map(sv -> sv.isTrusted(issuerDid, vct, management)).orElse(false)) {
+                return true;
+            }
+        }
+        return false;
+
     }
 
     /**

@@ -43,7 +43,6 @@ class TrustStatementCacheServiceTest {
         properties.setMaxCacheSize(100);
         properties.setClockSkewBufferSeconds(0);
         properties.setMaxCacheTtlSeconds(0); // no cap in tests
-        properties.setNegativeCacheTtlSeconds(30);
 
         cacheService = new TrustStatementCacheService(
                 trustProtocol20Api,

@@ -1,13 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.trustregistry;
 
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
-import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -39,25 +32,22 @@ class TrustStatementInjectionServiceTest {
 
     private TrustStatementCacheService cacheService;
     private TrustStatementValidator validator;
-    private ApplicationProperties applicationProperties;
     private TrustStatementInjectionService injectionService;
 
     @BeforeEach
     void setUp() {
         cacheService = mock(TrustStatementCacheService.class);
         validator = mock(TrustStatementValidator.class);
-        applicationProperties = mock(ApplicationProperties.class);
-        when(applicationProperties.getClientId()).thenReturn(VERIFIER_DID);
         // no-op signatures by default
         doNothing().when(validator).validateSignature(anyString());
 
-        injectionService = new TrustStatementInjectionService(cacheService, applicationProperties, validator);
+        injectionService = new TrustStatementInjectionService(cacheService, validator);
     }
 
     // --- pvaTS selection tests ---
 
     @Test
-    void injectVerifierInfo_withMultiplePvaTs_injectsOnlyMatchingOnes() throws Exception {
+    void injectVerifierInfo_withMultiplePvaTs_injectsAllValidOnes() throws Exception {
         String pvaTsPAN = buildJwt(List.of("personal_administrative_number"), Instant.now().plusSeconds(3600));
         String pvaTsBirth = buildJwt(List.of("birth_date"), Instant.now().plusSeconds(3600));
         String pvaTsAddress = buildJwt(List.of("address"), Instant.now().plusSeconds(3600));
@@ -68,18 +58,15 @@ class TrustStatementInjectionServiceTest {
         when(cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID))
                 .thenReturn(List.of(pvaTsPAN, pvaTsBirth, pvaTsAddress));
 
-        Management management = buildManagement(List.of("personal_administrative_number", "birth_date"));
         RequestObjectDto base = RequestObjectDto.builder().build();
 
-        RequestObjectDto result = injectionService.injectVerifierInfo(base, management);
+        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID);
 
-        assertThat(result.getVerifierInfo()).hasSize(3) // idTS + pvaTsPAN + pvaTsBirth
+        assertThat(result.getVerifierInfo()).hasSize(4) // idTS + all 3 pvaTS
                 .anySatisfy(entry -> assertThat(entry.getData()).isEqualTo(idTs))
                 .anySatisfy(entry -> assertThat(entry.getData()).isEqualTo(pvaTsPAN))
-                .anySatisfy(entry -> assertThat(entry.getData()).isEqualTo(pvaTsBirth));
-
-        assertThat(result.getVerifierInfo())
-                .noneMatch(entry -> entry.getData().equals(pvaTsAddress));
+                .anySatisfy(entry -> assertThat(entry.getData()).isEqualTo(pvaTsBirth))
+                .anySatisfy(entry -> assertThat(entry.getData()).isEqualTo(pvaTsAddress));
     }
 
     @Test
@@ -88,8 +75,7 @@ class TrustStatementInjectionServiceTest {
         when(cacheService.getIdentityTrustStatement(VERIFIER_DID)).thenReturn(idTs);
         when(cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID)).thenReturn(List.of());
 
-        Management management = buildManagement(List.of("birth_date"));
-        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), management);
+        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID);
 
         assertThat(result.getVerifierInfo()).hasSize(1);
         assertThat(result.getVerifierInfo().getFirst().getData()).isEqualTo(idTs);
@@ -108,8 +94,7 @@ class TrustStatementInjectionServiceTest {
         doNothing().when(validator).validateSignature(eq(idTs));
         doThrow(new JwtValidatorException("bad sig")).when(validator).validateSignature(eq(pvaTsPAN));
 
-        Management management = buildManagement(List.of("personal_administrative_number"));
-        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), management);
+        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID);
 
         // idTS injected, pvaTS skipped
         assertThat(result.getVerifierInfo()).hasSize(1);
@@ -124,9 +109,8 @@ class TrustStatementInjectionServiceTest {
         when(cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID)).thenReturn(List.of());
         doThrow(new JwtValidatorException("bad sig")).when(validator).validateSignature(eq(idTs));
 
-        Management management = buildManagement(List.of("birth_date"));
         RequestObjectDto base = RequestObjectDto.builder().build();
-        RequestObjectDto result = injectionService.injectVerifierInfo(base, management);
+        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID);
 
         assertThat(result.getVerifierInfo()).isNull();
         verify(cacheService).invalidateAllTrustStatements(VERIFIER_DID);
@@ -142,8 +126,7 @@ class TrustStatementInjectionServiceTest {
         when(cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID))
                 .thenReturn(List.of(pvaTsNoFields));
 
-        Management management = buildManagement(List.of("birth_date"));
-        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), management);
+        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID);
 
         assertThat(result.getVerifierInfo()).hasSize(2);
     }
@@ -153,32 +136,14 @@ class TrustStatementInjectionServiceTest {
         when(cacheService.getIdentityTrustStatement(VERIFIER_DID)).thenReturn(null);
         when(cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID)).thenReturn(List.of());
 
-        Management management = buildManagement(List.of("birth_date"));
         RequestObjectDto base = RequestObjectDto.builder().clientId("test").build();
-        RequestObjectDto result = injectionService.injectVerifierInfo(base, management);
+        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID);
 
         assertThat(result).isSameAs(base);
     }
 
     // --- helpers ---
 
-    private static Management buildManagement(List<String> requestedFields) {
-        List<DcqlClaim> claims = requestedFields.stream()
-                .map(f -> DcqlClaim.builder().path(List.of(f)).build())
-                .toList();
-        DcqlCredential credential = DcqlCredential.builder()
-                .id("cred1")
-                .format("dc+sd-jwt")
-                .meta(DcqlCredentialMeta.builder().build())
-                .claims(claims)
-                .build();
-        DcqlQuery query = DcqlQuery.builder().credentials(List.of(credential)).build();
-
-        return Management.builder()
-                .dcqlQuery(query)
-                .configurationOverride(ConfigurationOverride.builder().build())
-                .build();
-    }
 
     private static String buildJwt(List<String> authorizedFields, Instant exp) throws Exception {
         JWTClaimsSet claims = new JWTClaimsSet.Builder()

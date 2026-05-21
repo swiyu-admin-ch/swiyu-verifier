@@ -129,10 +129,6 @@
         <!-- Cloud Kubernetes config -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-kubernetes-fabric8-config</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
         <!-- End  Spring Cloud -->
@@ -297,13 +293,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- fix CVE-2023-3635, delete once fabric8 is updated -->
-            <dependency>
-                <groupId>com.squareup.okio</groupId>
-                <artifactId>okio</artifactId>
-                <version>3.16.4</version>
-            </dependency>
-            <!-- end fix -->
             <!-- fix CVE-2021-0341 - Force newer okhttp3 version -->
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>

@@ -27,7 +27,6 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
         - Spring Data JPA (`spring-boot-starter-data-jpa`)
         - Spring Actuator (`spring-boot-starter-actuator`)
         - Spring OAuth2 Resource Server (`spring-boot-starter-oauth2-resource-server`)
-        - Spring Cloud Kubernetes Config (`spring-cloud-starter-kubernetes-fabric8-config`)
         - Spring Cloud Bootstrap (`spring-cloud-starter-bootstrap`)
 
 - **Persistence & Database**

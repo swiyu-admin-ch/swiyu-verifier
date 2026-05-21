@@ -4,7 +4,6 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -81,7 +80,7 @@ public class TrustProtocol2Validator {
     public boolean isTrusted(String issuerDid, String vct, Management management) {
         Map<String, TrustVerificationResult> verificationResults = management.getTrustAnchors().stream()
                 .collect(Collectors.toMap(TrustAnchor::did,
-                        trustAnchor -> evaluateTrust(issuerDid, vct, management, trustAnchor)));
+                        trustAnchor -> evaluateTrust(issuerDid, vct, trustAnchor)));
         // TODO EIDOMNI-867 Save verification result for the business verifier instead
         // of rejecting the VC
         return verificationResults.values().stream().anyMatch(result -> result.markers().isTrustedIssuer());
@@ -111,8 +110,7 @@ public class TrustProtocol2Validator {
      *
      * @return the verification result containing {@link TrustMarkers}
      */
-    private TrustVerificationResult evaluateTrust(String issuerDid, String vct, Management management,
-            TrustAnchor trustAnchor) {
+    private TrustVerificationResult evaluateTrust(String issuerDid, String vct, TrustAnchor trustAnchor) {
         UrlRestriction urlRestriction = new UrlRestriction(Set.of(trustAnchor.trustRegistryUri()));
         List<String> statementJwts = statementProvider.getAllIssuanceStatementsFor(issuerDid);
         TrustStatementVerifier tsVerifier = new TrustStatementVerifier(statementJwts, urlRestriction, didKidParser);

@@ -107,6 +107,27 @@ public class TrustStatementCacheService {
     }
 
 
+    /**
+     * Retrieves every Trust Protocol 2.0 issuance statement that is relevant for the given
+     * {@code issuerDid}.  The method performs a single {@link Mono#zip} call that concurrently
+     * invokes the four side‑channel endpoints:
+     * <ul>
+     *   <li>{@code GET /idTS/{issuerDid}}</li>
+     *   <li>{@code GET /activePiTLS}</li>
+     *   <li>{@code GET /activeNcTLS}</li>
+     *   <li>{@code GET /listPiaTS}</li>
+     * </ul>
+     *
+     * <p>The response of {@code listPiaTS} is a {@link PagedModelString} containing a list of
+     * JWT strings, while the other three endpoints return a plain {@link String} JWT.  This
+     * method flattens all returned JWTs into a single {@link List<String>} preserving no
+     * particular order.</p>
+     *
+     * @param issuerDid the DID of the credential issuer for which issuance statements are required
+     * @return a mutable {@link List} containing the {@code idTS}, {@code piTLS}, {@code ncTLS}
+     *         JWTs and all JWTs returned by {@code listPiaTS}; the list may be empty if every
+     *         call returns {@code null} or an empty page
+     */
     public List<String> getAllIssuanceStatementsFor(String issuerDid) {
         var responses = Mono.zip(
             trustProtocol20Api.getIdTS(issuerDid),
@@ -130,6 +151,14 @@ public class TrustStatementCacheService {
     }
 
 
+    /**
+     * Extracts the list of JWT strings from a {@link PagedModelString}.  If the supplied
+     * {@code pagedModelString} is {@code null} or its {@code content} property is {@code null},
+     * an empty immutable list is returned.
+     *
+     * @param pagedModelString the model object returned by the Trust Registry API; may be {@code null}
+     * @return an immutable list of JWTs contained in the model, or an empty list if none are present
+     */
     private List<String> getListOfStatements(PagedModelString pagedModelString) {
         if (pagedModelString == null || pagedModelString.getContent() == null) {
             return List.of();

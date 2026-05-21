@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unversioned changes
 
+### Added
+- Trust Protocol 2.0 support, automatically fetching trust statements from the configured api url SWIYU_TRUST_REGISTRY_API_URL.
+  (Note: Ensure that Trust Protocol 2.0 is supported by the other ecosystem components you use before integrating this feature)
+- Support using Trust Protocol 2.0 as source of trust instead of manually maintaining a list of trusted dids. 
+  This requires setting trust anchors with the correct trust regirsty url to ensure trust statements are not from the wrong source.
+
 ### Fixed
 - Allow hsm key id and key pin to be overridden individually
 - Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  

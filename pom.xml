@@ -57,7 +57,9 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
-        <generic-java-lib.version>1.4.0</generic-java-lib.version>
+        <generic-java-lib.version>1.6.0</generic-java-lib.version>
+        <openapi-generator-maven-plugin.version>7.19.0</openapi-generator-maven-plugin.version>
+
     </properties>
 
     <dependencyManagement>
@@ -69,20 +71,19 @@
                 <version>11.0.22</version>
             </dependency>
 
-            <!-- Check again when spring-cloud-kubernetes-fabric8-config is updated -->
-            <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-core</artifactId>
-                <version>4.5.26</version>
-                <scope>compile</scope>
-            </dependency>
-
             <!-- Check again on Spring Boot update -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.20.0</version>
                 <scope>compile</scope>
+            </dependency>
+
+            <!-- CVE fix: HTTP Request Smuggling in netty-codec-http (SNYK-JAVA-IONETTY-16438737/16438923/16438934) -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http</artifactId>
+                <version>4.2.13.Final</version>
             </dependency>
 
             <dependency>

@@ -28,8 +28,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 /**
  * Unit tests for {@link VqpsRegistrationService}.
@@ -42,7 +40,6 @@ class VqpsRegistrationServiceTest {
     private ApplicationProperties applicationProperties;
     private VqpsRepository vqpsRepository;
     private VqpsSubmissionB2BApi vqpsSubmissionB2BApi;
-    private VqpsPersistenceService vqpsPersistenceService;
     private VqpsRegistrationService service;
     @BeforeEach
     void setUp() {
@@ -50,16 +47,15 @@ class VqpsRegistrationServiceTest {
         applicationProperties = mock(ApplicationProperties.class);
         vqpsRepository = mock(VqpsRepository.class);
         vqpsSubmissionB2BApi = mock(VqpsSubmissionB2BApi.class);
-        vqpsPersistenceService = mock(VqpsPersistenceService.class);
         when(trustRegistryProperties.getVqpsExpiryBufferSeconds()).thenReturn(0L);
         when(applicationProperties.getClientId()).thenReturn(CLIENT_ID);
+        when(vqpsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         service = new VqpsRegistrationService(
                 trustRegistryProperties,
                 applicationProperties,
                 vqpsRepository,
                 vqpsSubmissionB2BApi,
-                new ObjectMapper(),
-                vqpsPersistenceService
+                new ObjectMapper()
         );
     }
     @Test
@@ -118,7 +114,10 @@ class VqpsRegistrationServiceTest {
         String hash = service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL);
         assertThat(hash).isNotBlank();
         verify(vqpsSubmissionB2BApi).createVqpsSubmission(any());
-        verify(vqpsPersistenceService).persistVqps(eq(hash), eq(SCOPE), eq(jwt), anyLong());
+        verify(vqpsRepository).save(argThat(vqps ->
+                vqps.getQueryHash().equals(hash)
+                        && vqps.getScope().equals(SCOPE)
+                        && vqps.getJwt().equals(jwt)));
     }
     @Test
     void getOrRegisterVqps_whenNewJwtExpiresTooSoon_throwsIllegalStateException() {
@@ -150,7 +149,7 @@ class VqpsRegistrationServiceTest {
     @Test
     void getOrRegisterVqps_withPublicationFailed_throwsIllegalStateException() {
         VqpsSubmission failed = new VqpsSubmission()
-                .id(UUID.randomUUID()).status(VqpsSubmissionStatus.PUBLCATION_FAILED).failureReason("error");
+                .id(UUID.randomUUID()).status(VqpsSubmissionStatus.PUBLICATION_FAILED);
         when(vqpsSubmissionB2BApi.createVqpsSubmission(any())).thenReturn(Mono.just(failed));
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL))

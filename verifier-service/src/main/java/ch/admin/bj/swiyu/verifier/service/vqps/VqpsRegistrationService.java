@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
+import org.springframework.transaction.annotation.Transactional;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,13 +50,6 @@ import reactor.util.retry.Retry;
 @ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0")
 public class VqpsRegistrationService {
 
-    /** Language tag keys used to map localized strings to VqpsSubmissionCreateRequest fields. */
-    private static final String LANG_EN = "en";
-    private static final String LANG_DE_CH = "de-CH";
-    private static final String LANG_FR_CH = "fr-CH";
-    private static final String LANG_IT_CH = "it-CH";
-    private static final String LANG_RM_CH = "rm-CH";
-
     /** Polling interval when waiting for TMS to publish the vqPS. */
     private static final Duration POLL_INTERVAL = Duration.ofSeconds(2);
 
@@ -67,7 +61,6 @@ public class VqpsRegistrationService {
     private final VqpsRepository vqpsRepository;
     private final VqpsSubmissionB2BApi vqpsSubmissionB2BApi;
     private final ObjectMapper objectMapper;
-    private final VqpsPersistenceService vqpsPersistenceService;
 
     /**
      * Ensures a valid vqPS exists for the given scope and DCQL query and returns its query hash.
@@ -88,6 +81,7 @@ public class VqpsRegistrationService {
      * @throws IllegalStateException if the newly fetched vqPS expires before the verification TTL,
      *                               or if the TMS submission fails or times out
      */
+    @Transactional
     public String getOrRegisterVqps(VerificationPurposeDto purpose, Object dcqlQueryJson, long verificationExpiresAt) {
         String scope = purpose.scope();
         long requiredValidUntil = verificationExpiresAt + properties.getVqpsExpiryBufferSeconds();
@@ -110,7 +104,12 @@ public class VqpsRegistrationService {
                             + ". Cannot proceed.");
         }
 
-        vqpsPersistenceService.persistVqps(currentHash, scope, jwt, expiry);
+        vqpsRepository.save(Vqps.builder()
+                .queryHash(currentHash)
+                .scope(scope)
+                .jwt(jwt)
+                .expiresAt(expiry)
+                .build());
         return currentHash;
     }
 
@@ -134,6 +133,10 @@ public class VqpsRegistrationService {
                     log.debug("vqPS submission created with id={}, status={}", submission.getId(), submission.getStatus());
                     if (submission.getStatus() == VqpsSubmissionStatus.PUBLICATION_SUCCEEDED) {
                         return Mono.just(extractJwtFromSubmission(submission, purpose.scope()));
+                    }
+                    if (submission.getStatus() == VqpsSubmissionStatus.PUBLICATION_FAILED) {
+                        return Mono.error(new IllegalStateException(
+                                "TMS vqPS publication failed for scope='" + purpose.scope() + "', reason=" + submission.getPublicationFailureReason()));
                     }
                     return pollUntilPublished(submission.getId(), purpose.scope());
                 })
@@ -161,8 +164,8 @@ public class VqpsRegistrationService {
                     log.debug("Polling vqPS submission id={}, status={}", submissionId, submission.getStatus());
                     return switch (submission.getStatus()) {
                         case PUBLICATION_SUCCEEDED -> Mono.just(extractJwtFromSubmission(submission, scope));
-                        case PUBLCATION_FAILED -> Mono.error(new IllegalStateException(
-                                "TMS vqPS publication failed for scope='" + scope + "', reason=" + submission.getFailureReason()));
+                        case PUBLICATION_FAILED -> Mono.error(new IllegalStateException(
+                                "TMS vqPS publication failed for scope='" + scope + "', reason=" + submission.getPublicationFailureReason()));
                         default -> Mono.error(new PollingPendingException(
                                 "vqPS submission " + submissionId + " still pending"));
                     };
@@ -205,31 +208,11 @@ public class VqpsRegistrationService {
      * @return a fully populated {@link VqpsSubmissionCreateRequest}
      */
     private VqpsSubmissionCreateRequest buildSubmissionRequest(VerificationPurposeDto purpose, Object dcqlQueryJson) {
-        Map<String, String> names = purpose.purposeName();
-        Map<String, String> descs = purpose.purposeDescription();
-
-        String defaultName = names.values().stream().findFirst().orElseThrow(
-                () -> new IllegalArgumentException("purposeName map must not be empty"));
-        String defaultDesc = descs.values().stream().findFirst().orElseThrow(
-                () -> new IllegalArgumentException("purposeDescription map must not be empty"));
-
-
-        // TODO: Fix this, when tergum ready...
         return new VqpsSubmissionCreateRequest()
                 .sub(applicationProperties.getClientId())
                 .scope(purpose.scope())
-                .purposeName(defaultName)
-                .purposeNameHashEn(names.get(LANG_EN))
-                .purposeNameHashDeCH(names.get(LANG_DE_CH))
-                .purposeNameHashFrCH(names.get(LANG_FR_CH))
-                .purposeNameHashItCH(names.get(LANG_IT_CH))
-                .purposeNameHashRmCH(names.get(LANG_RM_CH))
-                .purposeDescription(defaultDesc)
-                .purposeDescriptionHashEn(descs.get(LANG_EN))
-                .purposeDescriptionHashDeCH(descs.get(LANG_DE_CH))
-                .purposeDescriptionHashFrCH(descs.get(LANG_FR_CH))
-                .purposeDescriptionHashItCH(descs.get(LANG_IT_CH))
-                .purposeDescriptionHashRmCH(descs.get(LANG_RM_CH))
+                .purposeName(purpose.purposeName())
+                .purposeDescription(purpose.purposeDescription())
                 .query(dcqlQueryJson);
     }
 

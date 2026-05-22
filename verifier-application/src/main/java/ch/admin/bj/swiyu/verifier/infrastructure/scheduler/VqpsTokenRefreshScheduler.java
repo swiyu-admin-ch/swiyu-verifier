@@ -55,7 +55,7 @@ public class VqpsTokenRefreshScheduler {
     public void refreshTokenIfDue() {
         log.debug("Checking if vqPS token refresh is due");
 
-        Optional<TokenSet> tokenSet = tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS);
+        Optional<TokenSet> tokenSet = tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
 
         boolean refreshDue = tokenSet
                 .map(ts -> ts.getLastRefresh()

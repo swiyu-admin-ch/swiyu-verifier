@@ -3,21 +3,19 @@ package ch.admin.bj.swiyu.verifier.service.trustregistry;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.VerifierInfoEntryDto;
+import com.nimbusds.jwt.JWTParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Injects Trust Protocol 2.0 trust statements into the JWT-Secured Authorization Request.
@@ -40,6 +38,7 @@ import java.util.stream.Collectors;
 @ConditionalOnBean(TrustStatementCacheService.class)
 public class TrustStatementInjectionService {
 
+    private final ApplicationProperties applicationProperties;
     private final TrustStatementCacheService trustStatementCacheService;
 
     /**
@@ -77,7 +76,7 @@ public class TrustStatementInjectionService {
         var clientId = override.verifierDidOrDefault(applicationProperties.getClientId());
 
         injectIdentityTrustStatement(verifierInfo, clientId);
-        injectProtectedVerificationAuthorizationTrustStatements(verifierInfo, clientId, managementEntity);
+        injectProtectedVerificationAuthorizationTrustStatements(verifierInfo, clientId);
         injectVqPs(verifierInfo, managementEntity);
 
         if (verifierInfo.isEmpty()) {

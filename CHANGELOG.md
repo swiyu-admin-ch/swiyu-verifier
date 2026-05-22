@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unversioned changes
 
+### Added
+- **On-the-Fly vqPS Registration (Trust Protocol 2.0):** The verifier can now automatically register Verification Query Public Statements (vqPS) with the Trust Management System (TMS) when a new verification session is created. This is an optional feature and requires the following new environment variables to be set:
+- **New `verification_purpose` field on `POST /management`:** The management API now accepts an optional `verification_purpose` object containing `scope`, `purpose_name` (localized map) and `purpose_description` (localized map). When provided together with `SWIYU_TMS_AUTHORING_URL`, the verifier registers or reuses a vqPS for the given purpose and injects it into the signed Authorization Request sent to the wallet.
+
 ### Fixed
 - Allow hsm key id and key pin to be overridden individually
 - Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  

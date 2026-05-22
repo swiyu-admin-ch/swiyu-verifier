@@ -9,12 +9,11 @@ concurrency:
   cancel-in-progress: true
 
 # Least privilege: this job builds/loads a local image (no push) and uploads SARIF,
-# and comments coverage on the PR. It does not publish packages or create attestations.
+# writes the coverage summary to the job summary, and does not publish packages or create attestations.
 permissions:
   actions: read
   contents: read
   security-events: write
-  pull-requests: write  # allow coverage comment
 
 jobs:
   docker-security-scan:

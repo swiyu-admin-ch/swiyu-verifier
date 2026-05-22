@@ -80,17 +80,7 @@ public class JwtSigningService {
      */
     private SignerProvider createSignerProvider(String keyId, String keyPin) throws IllegalArgumentException, KeyStrategyException {
         var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);
-        if (StringUtils.isNotEmpty(keyId)) {
-            defaultSignatureConfiguration.getHsm().setKeyId(keyId);
-        }
-        if (StringUtils.isNotEmpty(keyPin)) {
-            defaultSignatureConfiguration.getHsm().setKeyPin(keyPin);
-        }
-        return createSignerProvider(defaultSignatureConfiguration);
-    }
-
-    private SignerProvider createSignerProvider(SignatureConfiguration signatureConfiguration) throws IllegalArgumentException, KeyStrategyException {
-        return new SignerProvider(jwsSignatureFacade.createSigner(signatureConfiguration));
+        return new SignerProvider(jwsSignatureFacade.createSigner(defaultSignatureConfiguration, keyId, keyPin));
     }
 
     /**

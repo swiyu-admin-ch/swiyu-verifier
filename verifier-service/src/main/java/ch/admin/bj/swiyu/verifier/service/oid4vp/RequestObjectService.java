@@ -12,6 +12,7 @@ import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
+import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementInjectionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -39,6 +41,11 @@ public class RequestObjectService {
     private final ManagementRepository managementRepository;
     private final ObjectMapper objectMapper;
     private final JwtSigningService jwtSigningService;
+    /**
+     * Optional TP2.0 injection service. Present only when {@code swiyu.trust-registry.api-url} is configured.
+     */
+    private final Optional<TrustStatementInjectionService> trustStatementInjectionService;
+
 
     /**
      * Aggregated view of the effective configuration for a single request object.
@@ -67,7 +74,7 @@ public class RequestObjectService {
         log.trace("Resolve the effective configuration (defaults + overrides).");
         var effectiveConfig = resolveEffectiveConfig(managementEntity);
 
-        log.trace("Build the request object DTO.");
+        log.trace("Build the request object DTO (incl. optional TP2.0 verifier_info injection).");
         var requestObject = buildRequestObject(managementEntity, effectiveConfig, managementEntityId);
 
         log.trace("If signing is desired, sign and return the JWT string, otherwise return the DTO");
@@ -109,7 +116,7 @@ public class RequestObjectService {
             clientMetadataBuilder.encryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported());
         }
 
-        return RequestObjectDto.builder()
+        var baseRequestObject = RequestObjectDto.builder()
                 .audience(AUDIENCE)
                 .nonce(managementEntity.getRequestNonce())
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
@@ -123,6 +130,13 @@ public class RequestObjectService {
                         managementEntityId))
                 .state(managementEntity.getOauthState().toString())
                 .build();
+
+        // Optional TP2.0 enrichment: when the trust-registry integration is enabled, inject the
+        // verifier_info array (idTS + pvaTS). The clientId already resolved in effectiveConfig
+        // doubles as the verifier DID looked up in the trust registry.
+        return trustStatementInjectionService
+                .map(svc -> svc.injectVerifierInfo(baseRequestObject, effectiveConfig.clientId()))
+                .orElse(baseRequestObject);
     }
 
     /**

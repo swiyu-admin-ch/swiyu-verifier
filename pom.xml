@@ -35,6 +35,7 @@
         <javacrumbs.shedlock.version>7.6.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.0</springdoc-openapi-starter-webmvc-ui.version>
+        <openapi-generator-maven-plugin.version>7.19.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
@@ -104,6 +105,11 @@
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-jwt-util</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-ts-verifier</artifactId>
                 <version>${generic-java-lib.version}</version>
             </dependency>
         </dependencies>

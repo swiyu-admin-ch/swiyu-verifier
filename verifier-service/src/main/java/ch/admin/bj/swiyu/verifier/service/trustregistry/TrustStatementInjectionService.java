@@ -201,61 +201,6 @@ public class TrustStatementInjectionService {
         }
     }
 
-//    /**
-//     * Extracts the flat set of claim path leaf values (field names) from all DCQL credential
-//     * queries in the session. These are used to match against the {@code authorized_fields}
-//     * arrays of the cached pvaTS JWTs.
-//     *
-//     * <p>Only the last element of each path array is used as the field identifier, consistent
-//     * with how TP 2.0 specifies {@code authorized_fields} as a list of claim names.</p>
-//     *
-//     * @param managementEntity the current session
-//     * @return a set of field name strings; never {@code null}
-//     */
-//    private Set<String> extractRequestedFieldPaths(Management managementEntity) {
-//        var dcqlQuery = managementEntity.getDcqlQuery();
-//        if (dcqlQuery == null || dcqlQuery.getCredentials() == null) {
-//            return Set.of();
-//        }
-//        return dcqlQuery.getCredentials().stream()
-//                .map(DcqlCredential::getClaims)
-//                .filter(claims -> claims != null)
-//                .flatMap(Collection::stream)
-//                .map(DcqlClaim::getPath)
-//                .filter(path -> path != null && !path.isEmpty())
-//                .map(path -> String.valueOf(path.getLast()))
-//                .collect(Collectors.toSet());
-//    }
-//
-//    /**
-//     * Returns {@code true} if the given pvaTS JWT's {@code authorized_fields} claim contains
-//     * at least one field from the requested set. Parses the JWT payload without signature
-//     * verification (the signature check happens separately via {@link #verifySignatureOrInvalidate}).
-//     *
-//     * @param pvaTsJwt        the pvaTS JWT string
-//     * @param requestedFields the set of field names requested by the DCQL query
-//     * @return {@code true} if there is any overlap between authorized and requested fields
-//     */
-//    private boolean pvaTsCoversRequestedFields(String pvaTsJwt, Set<String> requestedFields) {
-//        if (requestedFields.isEmpty()) {
-//            return true;
-//        }
-//        try {
-//            var claims = JWTParser.parse(pvaTsJwt).getJWTClaimsSet();
-//            var authorizedFields = claims.getStringListClaim(AUTHORIZED_FIELDS_CLAIM);
-//            if (authorizedFields == null || authorizedFields.isEmpty()) {
-//                log.debug("pvaTS has no {} claim – including unconditionally", AUTHORIZED_FIELDS_CLAIM);
-//                return true;
-//            }
-//            boolean matches = authorizedFields.stream().anyMatch(requestedFields::contains);
-//            log.debug("pvaTS authorized_fields={} covers requested={}: {}", authorizedFields, requestedFields, matches);
-//            return matches;
-//        } catch (ParseException e) {
-//            log.warn("Failed to parse pvaTS JWT payload for authorized_fields extraction: {}", e.getMessage());
-//            return false;
-//        }
-//    }
-
     /**
      * Verifies the signature of the given trust statement JWT via
      * {@link TrustStatementValidator#validateSignature(String)}.

@@ -159,6 +159,7 @@ class TrustStatementInjectionServiceTest {
 
     // --- helpers ---
 
+
     private static String buildJwt(List<String> authorizedFields, Instant exp) throws Exception {
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .claim("authorized_fields", authorizedFields)
@@ -178,3 +179,4 @@ class TrustStatementInjectionServiceTest {
         return jwt.serialize();
     }
 }
+

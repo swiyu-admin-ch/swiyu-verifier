@@ -182,7 +182,7 @@ swiyu:
       max-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
       clock-skew-buffer-seconds: ${SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS:60}
       max-cache-ttl-seconds: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS:0}
-      # Optional: TMS B2B Authoring API for On-the-Fly vqPS registration (EIDOMNI-819).
+      # Optional: TMS B2B Authoring API for On-the-Fly vqPS registration
       # If not set, the vqPS registration flow is disabled.
       tms-authoring-url: "${SWIYU_TMS_AUTHORING_URL:}"
       oauth-token-url: "${SWIYU_TMS_OAUTH_TOKEN_URL:}"

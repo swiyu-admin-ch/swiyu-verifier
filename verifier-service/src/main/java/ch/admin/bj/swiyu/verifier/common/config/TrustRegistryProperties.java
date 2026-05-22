@@ -56,12 +56,6 @@ public class TrustRegistryProperties {
     private long maxCacheTtlSeconds = 3600;
 
     /**
-     * Short TTL in seconds used for negative cache entries when the TMS API call fails.
-     * Prevents retry storms and thread exhaustion.
-     */
-//    private long negativeCacheTtlSeconds = 30;
-
-    /**
      * Base URL of the TMS CBS Authoring API used for On-the-Fly vqPS registration.
      * When absent, the vqPS registration flow is disabled and no vqPS will be injected.
      * Example: {@code https://tms.example.com}

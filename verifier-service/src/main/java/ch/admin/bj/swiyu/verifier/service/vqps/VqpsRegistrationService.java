@@ -81,7 +81,6 @@ public class VqpsRegistrationService {
      * @throws IllegalStateException if the newly fetched vqPS expires before the verification TTL,
      *                               or if the TMS submission fails or times out
      */
-    @Transactional
     public String getOrRegisterVqps(VerificationPurposeDto purpose, Object dcqlQueryJson, long verificationExpiresAt) {
         String scope = purpose.scope();
         long requiredValidUntil = verificationExpiresAt + properties.getVqpsExpiryBufferSeconds();

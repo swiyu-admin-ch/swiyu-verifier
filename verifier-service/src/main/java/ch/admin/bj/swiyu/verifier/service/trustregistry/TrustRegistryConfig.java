@@ -69,7 +69,6 @@ public class TrustRegistryConfig {
         return new TrustProtocol20Api(trustRegistryApiClient);
     }
 
-
     /**
      * Creates a {@link DidJwtValidator} restricted to the configured Trust Registry host.
      *

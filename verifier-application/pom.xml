@@ -281,6 +281,14 @@
             <version>5.15.0</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Trust Statement builder – used in integration tests to build idTS / pvaTS JWTs -->
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-ts-builder</artifactId>
+            <version>1.6.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <!-- End Testing Tools -->
 

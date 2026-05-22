@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unversioned changes
+
+### Fixed
+- Allow hsm key id and key pin to be overridden individually
+- Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  
+
+### Removed
+- fabric8 dependency is removed due to incompatibility with spring boot 4. External configurations are now can still be used with the techniques described in https://docs.spring.io/spring-boot/reference/features/external-config.html For example using `spring.config.import`
+
+
 ## latest (3.0.0)
 
 ### Added
@@ -13,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recursive SD-JWT disclosure resolution and validation:
   - Resolve nested `_sd` entries in objects and arrays, inserting claim name/value pairs from disclosures at the `_sd` level and recursively processing the inserted values.
 - Added `Swiss Government Root CA VI` to image
+- All four runtime health checks can now be individually disabled via configuration (see `management.health.*` properties) `(#949)`:
+  - `SIGNING_KEY_VERIFICATION_ENABLED` – disables the signing-key verification check (default: `true`). Set to `false` when using dynamic key management without a statically configured `DID_VERIFICATION_METHOD`. When disabled, the check reports `UP` with detail `signingKeyVerificationMethod: disabled`. The check also automatically reports `UP` (detail: `not configured`) when `DID_VERIFICATION_METHOD` is empty.
+  - `CALLBACK_HEALTH_ENABLED` – disables the stale-callback check (default: `true`).
+  - `STATUS_REGISTRY_HEALTH_ENABLED` – disables the status-registry accessibility check (default: `true`).
+  - `IDENTIFIER_REGISTRY_HEALTH_ENABLED` – disables the identifier-registry DID-resolution check (default: `true`).
 
 ### Changed
 - Migrated to Spring Boot 4.0.6 (Spring Framework 7):

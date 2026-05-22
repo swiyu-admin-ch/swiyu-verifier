@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,10 +25,6 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OpenidClientMetadataDto {
-
-    @NotBlank
-    @JsonProperty("client_id")
-    private String clientId;
 
     @JsonProperty("jwks")
     @Schema(description = """

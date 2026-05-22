@@ -184,6 +184,10 @@ On the base registry the public key is published. To generate the public key for
 | STATUS_LIST_CACHE_TTL_MILLI       | TTL in milliseconds how long a status list result should be cached. If 0 or less will not cache status lists.                                                                                              | int              | 0            |
 | ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI | TTL in milliseconds how long a public key result should be cached                                                                                                                                          | int              | 3600000 (1h) |
 | MAX_COMPRESSED_CIPHER_TEXT_LENGTH | Maximum allowed size of a compressed ciphertext the service will process                                                                                                                                   | int              | 100000       |
+| SIGNING_KEY_VERIFICATION_ENABLED  | Enables or disables the signing-key verification health check. Set to `false` when using dynamic key management without a statically configured `DID_VERIFICATION_METHOD`. When disabled (or when `DID_VERIFICATION_METHOD` is empty), the health check reports `UP` instead of `DOWN`. | bool             | true         |
+| CALLBACK_HEALTH_ENABLED           | Enables or disables the stale-callback health check.                                                                                                                                                       | bool             | true         |
+| STATUS_REGISTRY_HEALTH_ENABLED    | Enables or disables the status-registry accessibility health check.                                                                                                                                        | bool             | true         |
+| IDENTIFIER_REGISTRY_HEALTH_ENABLED| Enables or disables the identifier-registry DID-resolution health check.                                                                                                                                   | bool             | true         |
 
 ### Kubernetes Vault Keys
 

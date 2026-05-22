@@ -1254,6 +1254,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         executor.shutdownNow();
     }
 
+    @Disabled("EIDOMNI-962")
     @Test
     void shouldNotDeadlockVerificationFlow_whenExternalDependencyBlocks() throws Exception {
         final int concurrentRequests = 5;

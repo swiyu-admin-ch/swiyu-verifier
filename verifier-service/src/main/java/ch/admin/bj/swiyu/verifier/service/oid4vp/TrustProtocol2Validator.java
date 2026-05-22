@@ -32,6 +32,9 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Service that validates trust according to the Swiss‑Trust‑Protocol 2.0.
@@ -117,9 +120,17 @@ public class TrustProtocol2Validator {
         JWKSet publicKeys = getTrustPublicKeys(tsVerifier.getRequiredKeyIds());
 
         List<TokenStatusListTokenDto> statusListTokens = getStatusLists(tsVerifier.getRequiredStatusLists());
-
-        return tsVerifier.verifyIssuanceStatements(trustAnchor.did(), issuerDid, vct,
+        TrustVerificationResult result = tsVerifier.verifyIssuanceStatements(trustAnchor.did(), issuerDid, vct,
                 publicKeys, statusListTokens);
+        TrustMarkers markers = result.markers();
+        log.debug("Validated Trust Marks for {} with result: identity {}, compliant actor {}, vct {} is governed use case {}, governed use case authorization {}",
+            issuerDid, markers.identityTrustMarker(), 
+            markers.compliantActorTrustMarker(), 
+            vct, 
+            markers.governedUseCaseTrustMarker(), 
+            markers.governedUseCaseAuthorizationTrustMarker()
+        );
+        return result;
     }
 
     /**
@@ -128,9 +139,15 @@ public class TrustProtocol2Validator {
      * filtered out.
      */
     private List<TokenStatusListTokenDto> getStatusLists(Set<String> statusListsUris) {
-        List<String> statusListJwts = statusListsUris.stream().map(statusListResolverAdapter::resolveStatusList)
-                .toList();
-        return statusListJwts.stream().map(this::validateTokenStatusListToken).filter(Objects::nonNull).toList();
+
+        List<String> statusListJwts = Flux.fromIterable(statusListsUris)
+            .flatMap(uri -> Mono.fromCallable(() -> statusListResolverAdapter.resolveStatusList(uri))
+            .subscribeOn(Schedulers.boundedElastic()))
+            .collectList()
+            .block();
+        List<TokenStatusListTokenDto> statusLists = statusListJwts.stream().map(this::validateTokenStatusListToken).filter(Objects::nonNull).toList();
+        log.trace("Fetched {} valid status lists", statusLists.size());
+        return statusLists;
     }
 
     /**

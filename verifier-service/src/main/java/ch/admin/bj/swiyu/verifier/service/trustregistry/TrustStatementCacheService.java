@@ -129,12 +129,14 @@ public class TrustStatementCacheService {
      *         call returns {@code null} or an empty page
      */
     public List<String> getAllIssuanceStatementsFor(String issuerDid) {
+        log.trace("Fetching trust statements related to issuance for {}", issuerDid);
         var responses = Mono.zip(
-            trustProtocol20Api.getIdTS(issuerDid),
-            trustProtocol20Api.getActivePiTLS(),
-            trustProtocol20Api.getActiveNcTLS(),
-            trustProtocol20Api.listPiaTS(issuerDid, true, null, null, null)
-        ).block();
+                trustProtocol20Api.getIdTS(issuerDid).defaultIfEmpty(""),
+                trustProtocol20Api.getActivePiTLS().defaultIfEmpty(""),
+                trustProtocol20Api.getActiveNcTLS().defaultIfEmpty(""),
+                trustProtocol20Api.listPiaTS(issuerDid, true, null, null, null)
+                        .defaultIfEmpty(new PagedModelString().content(List.of())))
+                .block();
 
         List<String> statements = new LinkedList<>();
         Iterator<Object> it = responses.iterator();
@@ -147,6 +149,7 @@ public class TrustStatementCacheService {
                 statements.add(statement);
             }
         }
+        log.debug("Found a total of {} trust statements for issuer {}", statements.size(), issuerDid);
         return statements;
     }
 

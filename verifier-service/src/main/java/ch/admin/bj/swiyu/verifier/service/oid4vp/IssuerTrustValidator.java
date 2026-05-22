@@ -41,7 +41,7 @@ public class IssuerTrustValidator {
      * @throws VerificationException if the issuer is not trusted
      */
     public void validateTrust(String issuerDid, String vct, Management management) {
-        if (isAcceptedIsser(issuerDid, management)) {
+        if (isAcceptedIssuer(issuerDid, management)) {
             return;
         }
         if (isTrustProtocolTrusted(issuerDid, vct, management)) {
@@ -52,6 +52,12 @@ public class IssuerTrustValidator {
     }
 
 
+    /**
+     * Validates if Trust in the Issuer for the given vct can be established using the Trust Protocol.
+     * 
+     * @return {@code true} If one of the configured trust anchors provided trust establishing statements about the issuer.
+     *         {@code false} If no trust anchors are defined, no trust protocol for the did method is supported or no valid trust statements have been found.
+     */
     private boolean isTrustProtocolTrusted(String issuerDid, String vct, Management management) {
         var trustAnchors = management.getTrustAnchors();
         boolean trustAnchorsEmpty = trustAnchors == null || trustAnchors.isEmpty();
@@ -60,12 +66,14 @@ public class IssuerTrustValidator {
         }
 
         if (issuerDid.startsWith("did:tdw")) {
-            // Trust Protocl 1.0
+            // Trust Protocol 1.0
             if (trustProtocol1Validator.hasMatchingTrustProtocol1Statement(issuerDid, vct, trustAnchors, management)) {
+                log.trace("Validate Trust with Trust Protocol 1.0 for issuer {} with vct {}", issuerDid, vct);
                 return true; // We have a valid trust statement for the vct!
             }
         }
         if (issuerDid.startsWith("did:webvh")) {
+            log.trace("Validate Trust with Trust Protocol 2.0 for issuer {} with vct {}", issuerDid, vct);
             // Trust Protocol 2.0
             if(trustProtocol2Validator.map(sv -> sv.isTrusted(issuerDid, vct, management)).orElse(false)) {
                 return true;
@@ -81,7 +89,7 @@ public class IssuerTrustValidator {
      * @param management Verification management object
      * @return true if the issuer is explicitly trusted
      */
-    private boolean isAcceptedIsser(String issuerDid, Management management) {
+    private boolean isAcceptedIssuer(String issuerDid, Management management) {
         var acceptedIssuerDids = management.getAcceptedIssuerDids();
         var acceptedIssuersEmpty = acceptedIssuerDids == null || acceptedIssuerDids.isEmpty();
         return !acceptedIssuersEmpty && acceptedIssuerDids.contains(issuerDid);

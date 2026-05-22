@@ -3,18 +3,23 @@ name: Pull Request Check
 run-name: ${{ github.repository }} is evaluating pull request
 on: [pull_request]
 
+# Cancel superseded runs on the same PR to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: this job builds/loads a local image (no push) and uploads SARIF,
+# and comments coverage on the PR. It does not publish packages or create attestations.
 permissions:
   actions: read
-  security-events: write
   contents: read
-  packages: write
-  attestations: write
-  id-token: write
+  security-events: write
   pull-requests: write  # allow coverage comment
 
 jobs:
   docker-security-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

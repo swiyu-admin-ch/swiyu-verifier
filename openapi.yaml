@@ -1017,6 +1017,18 @@ components:
             to the client.
         aud:
           type: string
+        verifier_info:
+          type: array
+          description: Trust Protocol 2.0 trust statements embedded as JWT objects.
+          items:
+            $ref: "#/components/schemas/VerifierInfoEntryDto"
+    VerifierInfoEntryDto:
+      type: object
+      properties:
+        format:
+          type: string
+        data:
+          type: string
     Link:
       type: object
       properties:

@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow hsm key id and key pin to be overridden individually
 - Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  
 
+### Removed
+- fabric8 dependency is removed due to incompatibility with spring boot 4. External configurations are now can still be used with the techniques described in https://docs.spring.io/spring-boot/reference/features/external-config.html For example using `spring.config.import`
+
+
 ## latest (3.0.0)
 
 ### Added

@@ -81,6 +81,13 @@
                 <scope>compile</scope>
             </dependency>
 
+            <!-- CVE fix: HTTP Request Smuggling in netty-codec-http (SNYK-JAVA-IONETTY-16438737/16438923/16438934) -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http</artifactId>
+                <version>4.2.13.Final</version>
+            </dependency>
+
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-jws-signature-service</artifactId>

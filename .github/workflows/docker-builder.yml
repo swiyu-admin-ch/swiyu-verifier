@@ -36,6 +36,7 @@ env:
 jobs:
   build-and-publish-image:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     permissions:
       contents: read
@@ -107,7 +108,8 @@ jobs:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           command: monitor
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}
-          args: --severity-threshold=high --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
+          # Fixed: removed a duplicated `--severity-threshold=high` flag.
+          args: --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

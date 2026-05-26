@@ -22,15 +22,12 @@ Before starting, verify:
 ### 2. Generate the OpenAPI spec
 ```bash
 cd /home/gapa/development/swiyu-verifier
-mvn verify -P generate-doc -pl verifier-application -am -DskipTests -DskipITs
+curl -s http://localhost:8080/v3/api-docs.yaml -o openapi.yaml
 ```
 
-This will:
-- Fetch `http://localhost:8080/v3/api-docs.yaml` from the already running app
-- Write the result to `openapi.yaml` in the project root
+This fetches the live API docs directly from the running app and writes them to `openapi.yaml` in the project root.
 
-> **Note:** The `pre-documentation` (start) and `post-documentation` (stop) goals of the Spring Boot Maven plugin
-> are skipped automatically because the app is already running. Only the springdoc fetch step is executed.
+> **Note:** Do NOT use `mvn verify -P generate-doc` when the app is already running in IntelliJ – the Maven plugin will try to start a second instance on port 8080 and fail.
 
 ### 3. Stop the Spring Boot application in IntelliJ
 - Press the Stop button in IntelliJ after the generation completes.

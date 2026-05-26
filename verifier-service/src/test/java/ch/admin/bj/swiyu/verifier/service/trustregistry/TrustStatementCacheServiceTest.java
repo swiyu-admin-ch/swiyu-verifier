@@ -19,6 +19,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -118,6 +120,50 @@ class TrustStatementCacheServiceTest {
         verify(trustProtocol20Api, times(2)).listPvaTS(eq(VERIFIER_DID), eq(true), any(), any(), any());
     }
 
+    /**
+     * Verifies that {@link TrustStatementCacheService#getAllIssuanceStatementsFor(String)}
+     * correctly aggregates the results of the four Trust Registry calls:
+     *
+     * <p>The test mocks each API call to return a known value, invokes the service method,
+     * and asserts that the returned list contains exactly those five JWT strings (order is not
+     * important). It also verifies that each API method is invoked exactly once, ensuring that
+     * the service does not perform extra network calls.</p>
+     *
+     * @throws Exception if JWT building or mocking fails (should not happen in this test)
+     */
+   @Test
+    void getAllIssuanceStatementsFor_whenAllProvided_thenSuccess() {
+        // --- arrange ---------------------------------------------------------
+        String idTsJwt   = "idTS-jwt";
+        String piTlsJwt  = "piTLS-jwt";
+        String ncTlsJwt  = "ncTLS-jwt";
+
+        // mock the paged response for the PIA‑TS endpoint
+        PagedModelString piaTsPage = mock(PagedModelString.class);
+        when(piaTsPage.getContent()).thenReturn(List.of("piaTS-1", "piaTS-2"));
+
+        // stub the four API calls used by getAllIssuanceStatementsFor
+        when(trustProtocol20Api.getIdTS(anyString())).thenReturn(Mono.just(idTsJwt));
+        when(trustProtocol20Api.getActivePiTLS()).thenReturn(Mono.just(piTlsJwt));
+        when(trustProtocol20Api.getActiveNcTLS()).thenReturn(Mono.just(ncTlsJwt));
+        when(trustProtocol20Api.listPiaTS(eq(VERIFIER_DID), eq(true), any(), any(), any()))
+                .thenReturn(Mono.just(piaTsPage));
+
+        // --- act -------------------------------------------------------------
+        List<String> statements = cacheService.getAllIssuanceStatementsFor(VERIFIER_DID);
+
+        // --- assert ----------------------------------------------------------
+        // we expect the three single‑value JWTs plus the two PIA‑TS entries
+        assertThat(statements)
+                .hasSize(5)
+                .containsExactlyInAnyOrder(idTsJwt, piTlsJwt, ncTlsJwt, "piaTS-1", "piaTS-2");
+
+        // verify that each API method has been called exactly once
+        verify(trustProtocol20Api, times(1)).getIdTS(eq(VERIFIER_DID));
+        verify(trustProtocol20Api, times(1)).getActivePiTLS();
+        verify(trustProtocol20Api, times(1)).getActiveNcTLS();
+        verify(trustProtocol20Api, times(1)).listPiaTS(eq(VERIFIER_DID), eq(true), any(), any(), any());
+    }
     // --- helpers ---
 
     /**

@@ -7,6 +7,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,6 +56,16 @@ public class IssuerPublicKeyLoader {
         }
     }
 
+    public JWK loadJWK(String issuerDid, String kid) throws LoadingPublicKeyOfIssuerFailedException {
+        log.trace("Fetching Public Key {} ", kid);
+        try {
+        Jwk resolverJwk = loadVerificationMethod(issuerDid, kid);
+        return parseJwk(resolverJwk);
+        } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
+            throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuerDid, kid), e);
+        }
+    }
+
     /**
      * Loads the DID document of the given <code>issuerDid</code> from the base registry and returns its
      * <a href="https://www.w3.org/TR/did-core/#verification-method-properties">verification method </a> for the given
@@ -73,21 +85,32 @@ public class IssuerPublicKeyLoader {
         return jwk;
     }
 
-    /**
-     * Generates a public key from the given JSON Web Key (JWK).
-     *
-     * @param jwk a json web token
-     * @return the public key
-     */
-    private PublicKey parsePublicKeyOfTypeJsonWebKey(Jwk jwk) {
+
+
+    private JWK parseJwk(Jwk jwk) throws LoadingPublicKeyOfIssuerFailedException {
         if (jwk == null) {
             throw new IllegalArgumentException("Failed to parse Json Web Key from verification method since no jwk was provided");
         }
         try {
             String json = objectMapper.writeValueAsString(jwk);
-            return ECKey.parse(json).toECPublicKey();
-        } catch (JsonProcessingException | JOSEException | ParseException e) {
-            throw new IllegalArgumentException("Failed to parse json web token", e);
+            return JWK.parse(json);
+        } catch (JsonProcessingException | ParseException e) {
+            throw new LoadingPublicKeyOfIssuerFailedException("Failed to parse json web token", e);
+        }
+    }
+
+    /**
+     * Generates a public key from the given JSON Web Key (JWK).
+     *
+     * @param jwk a json web token
+     * @return the public key
+     * @throws LoadingPublicKeyOfIssuerFailedException 
+     */
+    private PublicKey parsePublicKeyOfTypeJsonWebKey(Jwk jwk) throws LoadingPublicKeyOfIssuerFailedException {
+        try {
+            return parseJwk(jwk).toECKey().toPublicKey();
+        } catch (JOSEException e) {
+            throw new LoadingPublicKeyOfIssuerFailedException("Failed to cast key to ECKey", e);
         }
     }
 
@@ -118,4 +141,5 @@ public class IssuerPublicKeyLoader {
         }
         return keyIdSplit[1];
     }
+
 }

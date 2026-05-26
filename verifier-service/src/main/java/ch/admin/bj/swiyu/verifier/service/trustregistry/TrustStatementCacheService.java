@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.trustregistry;
 
 import ch.admin.bj.swiyu.core.trust.client.api.TrustProtocol20Api;
+import ch.admin.bj.swiyu.core.trust.client.model.PagedModelString;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -9,12 +10,16 @@ import com.github.benmanes.caffeine.cache.Expiry;
 import com.nimbusds.jwt.JWTParser;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.time.Instant;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -101,6 +106,69 @@ public class TrustStatementCacheService {
         this.pvaTsCache = buildPvaTsCache();
     }
 
+
+    /**
+     * Retrieves every Trust Protocol 2.0 issuance statement that is relevant for the given
+     * {@code issuerDid}.  The method performs a single {@link Mono#zip} call that concurrently
+     * invokes the four side‑channel endpoints:
+     * <ul>
+     *   <li>{@code GET /idTS/{issuerDid}}</li>
+     *   <li>{@code GET /activePiTLS}</li>
+     *   <li>{@code GET /activeNcTLS}</li>
+     *   <li>{@code GET /listPiaTS}</li>
+     * </ul>
+     *
+     * <p>The response of {@code listPiaTS} is a {@link PagedModelString} containing a list of
+     * JWT strings, while the other three endpoints return a plain {@link String} JWT.  This
+     * method flattens all returned JWTs into a single {@link List<String>} preserving no
+     * particular order.</p>
+     *
+     * @param issuerDid the DID of the credential issuer for which issuance statements are required
+     * @return a mutable {@link List} containing the {@code idTS}, {@code piTLS}, {@code ncTLS}
+     *         JWTs and all JWTs returned by {@code listPiaTS}; the list may be empty if every
+     *         call returns {@code null} or an empty page
+     */
+    public List<String> getAllIssuanceStatementsFor(String issuerDid) {
+        log.trace("Fetching trust statements related to issuance for {}", issuerDid);
+        var responses = Mono.zip(
+                trustProtocol20Api.getIdTS(issuerDid).defaultIfEmpty(""),
+                trustProtocol20Api.getActivePiTLS().defaultIfEmpty(""),
+                trustProtocol20Api.getActiveNcTLS().defaultIfEmpty(""),
+                trustProtocol20Api.listPiaTS(issuerDid, true, null, null, null)
+                        .defaultIfEmpty(new PagedModelString().content(List.of())))
+                .block();
+
+        List<String> statements = new LinkedList<>();
+        Iterator<Object> it = responses.iterator();
+        while(it.hasNext()) {
+            Object response = it.next();
+            if (response instanceof PagedModelString pageModelString) {
+                statements.addAll(getListOfStatements(pageModelString));
+            } 
+            if (response instanceof String statement) {
+                statements.add(statement);
+            }
+        }
+        log.debug("Found a total of {} trust statements for issuer {}", statements.size(), issuerDid);
+        return statements;
+    }
+
+
+    /**
+     * Extracts the list of JWT strings from a {@link PagedModelString}.  If the supplied
+     * {@code pagedModelString} is {@code null} or its {@code content} property is {@code null},
+     * an empty immutable list is returned.
+     *
+     * @param pagedModelString the model object returned by the Trust Registry API; may be {@code null}
+     * @return an immutable list of JWTs contained in the model, or an empty list if none are present
+     */
+    private List<String> getListOfStatements(PagedModelString pagedModelString) {
+        if (pagedModelString == null || pagedModelString.getContent() == null) {
+            return List.of();
+        }
+        return pagedModelString.getContent();
+    }
+
     /**
      * Returns the cached Identity Trust Statement (idTS) JWT for the given issuer DID,
      * fetching it from the trust registry if not yet cached or already expired.
@@ -181,8 +249,8 @@ public class TrustStatementCacheService {
     private Optional<List<String>> fetchProtectedVerificationAuthorizationTrustStatements(String verifierDid) {
         try {
             var response = trustProtocol20Api.listPvaTS(verifierDid, true, null, null, null).block();
-            List<String> jwts = response != null ? response.getContent() : null;
-            if (jwts == null || jwts.isEmpty()) {
+            List<String> jwts = getListOfStatements(response);
+            if (jwts.isEmpty()) {
                 log.warn("No pvaTS trust statements found for verifier {}", verifierDid);
                 return Optional.empty();
             }

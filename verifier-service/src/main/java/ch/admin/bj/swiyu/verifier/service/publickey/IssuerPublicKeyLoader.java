@@ -6,7 +6,6 @@ import ch.admin.eid.did_sidekicks.Jwk;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 
 import lombok.AllArgsConstructor;
@@ -50,7 +49,7 @@ public class IssuerPublicKeyLoader {
         try {
             log.trace("Fetching Public Key {} for issuer {}", kid, issuer);
             Jwk method = loadVerificationMethod(issuer, kid);
-            return parsePublicKeyOfTypeJsonWebKey(method);
+            return parsePublicKeyOfTypeJsonWebKey(method, issuer);
         } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
         }
@@ -60,7 +59,7 @@ public class IssuerPublicKeyLoader {
         log.trace("Fetching Public Key {} ", kid);
         try {
         Jwk resolverJwk = loadVerificationMethod(issuerDid, kid);
-        return parseJwk(resolverJwk);
+        return parseJwk(resolverJwk, issuerDid);
         } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuerDid, kid), e);
         }
@@ -87,11 +86,22 @@ public class IssuerPublicKeyLoader {
 
 
 
-    private JWK parseJwk(Jwk jwk) throws LoadingPublicKeyOfIssuerFailedException {
+    /**
+     * Parses the did document jwk to a nimbus jwk. 
+     * <br>
+     * Extends the kid to be swiss-profile-anchor compatible.
+     * Normally the kids would match exactly (string.equals). 
+     * In swiss profile anchor it was though defined that the kid in JWT must be the full did with the JWK kid as fragment.
+     * <br>
+     * <code>"kid": "{issuerDid}#{verificationMethodKid}" </code>
+     */
+    private JWK parseJwk(Jwk jwk, String issuerDid) throws LoadingPublicKeyOfIssuerFailedException {
         if (jwk == null) {
             throw new IllegalArgumentException("Failed to parse Json Web Key from verification method since no jwk was provided");
         }
         try {
+            // Create kid as used in swiss-profile-anchor
+            jwk.setKid(issuerDid+"#"+jwk.getKid());
             String json = objectMapper.writeValueAsString(jwk);
             return JWK.parse(json);
         } catch (JsonProcessingException | ParseException e) {
@@ -106,9 +116,9 @@ public class IssuerPublicKeyLoader {
      * @return the public key
      * @throws LoadingPublicKeyOfIssuerFailedException 
      */
-    private PublicKey parsePublicKeyOfTypeJsonWebKey(Jwk jwk) throws LoadingPublicKeyOfIssuerFailedException {
+    private PublicKey parsePublicKeyOfTypeJsonWebKey(Jwk jwk, String issuerDid) throws LoadingPublicKeyOfIssuerFailedException {
         try {
-            return parseJwk(jwk).toECKey().toPublicKey();
+            return parseJwk(jwk, issuerDid).toECKey().toPublicKey();
         } catch (JOSEException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to cast key to ECKey", e);
         }

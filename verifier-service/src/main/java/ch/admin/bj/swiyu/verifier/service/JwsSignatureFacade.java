@@ -28,12 +28,12 @@ public class JwsSignatureFacade {
 
 
     /**
-     * Create Signer with overridden keyId & keyPin
+     * Create Signer with overridden overrideKeyId & overrideKeyPin
      */
     @Cacheable(JWS_SIGNER_CACHE)
-    public JWSSigner createSigner(@NotNull SignatureConfiguration signatureConfiguration) throws KeyStrategyException {
+    public JWSSigner createSigner(@NotNull SignatureConfiguration signatureConfiguration, String overrideKeyId, String overrideKeyPin) throws KeyStrategyException {
         SignatureConfigurationDto dto = mapToLibConfig(signatureConfiguration);
-        return jwsSignatureService.createSigner(dto);
+        return jwsSignatureService.createSigner(dto, overrideKeyId, overrideKeyPin);
     }
 
     private SignatureConfigurationDto mapToLibConfig(SignatureConfiguration cfg) {

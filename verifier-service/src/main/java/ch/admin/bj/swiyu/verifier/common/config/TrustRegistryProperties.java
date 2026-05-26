@@ -94,7 +94,7 @@ public class TrustRegistryProperties {
      * {@code client_credentials}.
      * Default: {@code false}.
      */
-    private boolean enableRefreshTokenFlow = false;
+    private boolean enableRefreshTokenFlow;
 
     /**
      * A static refresh token used to bootstrap the first token set on application startup.

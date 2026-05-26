@@ -271,6 +271,9 @@ public class VqpsRegistrationService {
      * to the Reactor retry mechanism. Never propagated to callers.
      */
     private static class PollingPendingException extends RuntimeException {
+        @java.io.Serial
+        private static final long serialVersionUID = 1L;
+
         PollingPendingException(String message) {
             super(message, null, true, false); // suppress stacktrace – purely a control-flow signal
         }

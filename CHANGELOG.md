@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unversioned changes
+## NEXT
 
 ### Added
 - Trust Protocol 2.0 support, automatically fetching trust statements from the configured api url SWIYU_TRUST_REGISTRY_API_URL.
@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Allow hsm key id and key pin to be overridden individually
 - Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  
+
+### Changed
+- Documentation and examples updated to use `dc+sd-jwt` as the canonical SD-JWT VC media type
+  (per draft-ietf-oauth-sd-jwt-vc-09 §A.2.1). The verifier continues to accept `vc+sd-jwt`
+  on the credential `typ` header during the migration window `(#178)`.
 
 ### Removed
 - fabric8 dependency is removed due to incompatibility with spring boot 4. External configurations are now can still be used with the techniques described in https://docs.spring.io/spring-boot/reference/features/external-config.html For example using `spring.config.import`

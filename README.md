@@ -307,7 +307,7 @@ In the following example we request to have the dateOfBirth revealed to us from 
             "id": "11111111-1111-1111-1111-111111111111",
             "name": "Example Data Request",
             "format": {
-                "vc+sd-jwt": {
+                "dc+sd-jwt": {
                     "sd-jwt_alg_values": [
                         "ES256"
                     ],
@@ -338,6 +338,8 @@ In the following example we request to have the dateOfBirth revealed to us from 
     ]
 }
 ```
+
+> **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+) and `vc+sd-jwt` (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header.
 
 The response of this post call contains the URI which has to be provided to the holder.
 

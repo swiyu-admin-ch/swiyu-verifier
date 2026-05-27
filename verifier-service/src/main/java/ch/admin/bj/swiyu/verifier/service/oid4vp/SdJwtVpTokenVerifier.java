@@ -51,7 +51,8 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 @RequiredArgsConstructor
 public class SdJwtVpTokenVerifier {
 
-    // We have vc+sd-jwt only for legacy reasons. We only support sd-jwt vc specification, which uses the format dc+sd-jwt
+    // We have vc+sd-jwt only for legacy reasons (Expand-Migrate-Contract: removal tracked in a separate Contract-phase ticket).
+    // Spec: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt
     public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
     public static final List<String> SUPPORTED_JWT_ALGORITHMS = List.of("ES256");
 

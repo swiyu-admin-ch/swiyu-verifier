@@ -167,19 +167,17 @@ public class TrustStatementInjectionService {
             log.debug("VqpsCacheRepository not available – skipping vqPS injection for hash={}", queryHash);
             return Optional.empty();
         }
-        var ref = new Object() {
-            String scope = null;
-        };
-        vqpsCacheRepository.get().findById(queryHash).ifPresentOrElse(
-                entry -> {
-                    if (isVqPsValid(entry.getJwt(), queryHash)) {
-                        verifierInfo.add(VerifierInfoEntryDto.ofJwt(entry.getJwt()));
-                        ref.scope = entry.getScope();
-                    }
-                },
-                () -> log.warn("No vqPS found in DB for hash={} – skipping injection", queryHash)
-        );
-        return Optional.ofNullable(ref.scope);
+        var entry = vqpsCacheRepository.get().findById(queryHash);
+        if (entry.isEmpty()) {
+            log.warn("No vqPS found in DB for hash={} – skipping injection", queryHash);
+            return Optional.empty();
+        }
+        var vqps = entry.get();
+        if (!isVqPsValid(vqps.getJwt(), queryHash)) {
+            return Optional.empty();
+        }
+        verifierInfo.add(VerifierInfoEntryDto.ofJwt(vqps.getJwt()));
+        return Optional.ofNullable(vqps.getScope());
     }
 
     /**

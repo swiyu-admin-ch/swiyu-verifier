@@ -88,17 +88,7 @@ public class TrustRegistryProperties {
     private long vqpsExpiryBufferSeconds = 60;
 
     /**
-     * Enables the OAuth2 refresh-token flow for obtaining TMS B2B access tokens.
-     * When {@code true}, the token service first attempts to use a refresh token
-     * (from the DB or {@link #bootstrapRefreshToken}) before falling back to
-     * {@code client_credentials}.
-     * Default: {@code false}.
-     */
-    private boolean enableRefreshTokenFlow;
-
-    /**
      * A static refresh token used to bootstrap the first token set on application startup.
-     * Only evaluated when {@link #enableRefreshTokenFlow} is {@code true}.
      * Must be treated as a secret and never logged.
      */
     private String bootstrapRefreshToken;
@@ -108,6 +98,6 @@ public class TrustRegistryProperties {
      * Should be shorter than the refresh-token lifetime to avoid expiry.
      * Default: {@code PT12H} (12 hours).
      */
-    private Duration tokenRefreshInterval = Duration.ofHours(12);
+    private Duration tokenRefreshInterval;
 }
 

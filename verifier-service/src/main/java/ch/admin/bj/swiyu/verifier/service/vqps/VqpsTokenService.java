@@ -27,11 +27,8 @@ import java.util.Optional;
  *
  * <p>Token acquisition strategy (in order of preference):
  * <ol>
- *   <li>Refresh via {@code refresh_token} from the database (if present and
- *       {@code enableRefreshTokenFlow} is {@code true}).</li>
- *   <li>Refresh via the static {@code bootstrapRefreshToken} from properties (if
- *       configured and {@code enableRefreshTokenFlow} is {@code true}).</li>
- *   <li>Fallback: {@code client_credentials} grant.</li>
+ *   <li>Refresh via {@code refresh_token} from the database (if present).</li>
+ *   <li>Refresh via the static {@code bootstrapRefreshToken} from properties.</li>
  * </ol>
  * </p>
  *
@@ -40,7 +37,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0")
+@ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0 and '${swiyu.trust-registry.oauth-token-url:}'.length() > 0")
 public class VqpsTokenService {
 
     private final TrustRegistryProperties properties;
@@ -125,7 +122,7 @@ public class VqpsTokenService {
 
         TokenApi.TokenResponse tokenResponse = existing
                 .flatMap(this::tryRefreshWithDbToken)
-                .orElseGet(this::refreshWithBootstrapOrClientCredentials);
+                .orElseGet(this::refreshWithBootstrapToken);
 
         TokenSet tokenSet = existing.orElseGet(TokenSet::new);
         tokenSet.apply(EcosystemApiType.TRUST_STATEMENTS_AUTHORING, tokenResponse);
@@ -139,8 +136,12 @@ public class VqpsTokenService {
     // -------------------------------------------------------------------------
 
     private Optional<TokenApi.TokenResponse> tryRefreshWithDbToken(TokenSet dbTokenSet) {
+        String refreshToken = dbTokenSet.getRefreshToken();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return Optional.empty();
+        }
         try {
-            var tokenResponse = getTokenResponse(dbTokenSet.getRefreshToken());
+            var tokenResponse = getTokenResponse(refreshToken);
             log.info("vqPS OAuth2 token refreshed using refresh token from DB.");
             return Optional.of(tokenResponse);
         } catch (Exception e) {
@@ -167,30 +168,38 @@ public class VqpsTokenService {
                         "$1=***");
     }
 
-    private TokenApi.TokenResponse refreshWithBootstrapOrClientCredentials() {
+    /**
+     * Refreshes the token using the bootstrap refresh token from configuration.
+     *
+     * <p>The TMS B2B Authoring API requires a refresh token – {@code client_credentials}
+     * is not supported. If no bootstrap refresh token is configured, an
+     * {@link IllegalStateException} is thrown to prevent a silent no-op.</p>
+     *
+     * @return a new token response obtained via the bootstrap refresh token
+     * @throws IllegalStateException if no bootstrap refresh token is configured
+     */
+    private TokenApi.TokenResponse refreshWithBootstrapToken() {
         String bootstrap = properties.getBootstrapRefreshToken();
-        if (properties.isEnableRefreshTokenFlow() && bootstrap != null && !bootstrap.isBlank()) {
-            log.warn("vqPS: no valid DB token – falling back to bootstrap refresh token.");
-            return getTokenResponse(bootstrap);
+        if (bootstrap == null || bootstrap.isBlank()) {
+            throw new IllegalStateException(
+                    "vqPS token refresh failed: no valid DB token and no bootstrap refresh token configured. "
+                            + "Set 'swiyu.trust-registry.bootstrap-refresh-token'.");
         }
-        log.info("vqPS: using client_credentials grant (refresh token flow disabled or no bootstrap token).");
-        return getTokenResponse(null);
-    }
-
-    private TokenApi.TokenResponse getTokenResponse(String refreshToken) {
-        if (properties.isEnableRefreshTokenFlow() && refreshToken != null && !refreshToken.isBlank()) {
-            log.debug("Requesting vqPS token via refresh_token grant for [{}]", EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
-            return vqpsTokenApi.getNewToken(
-                    properties.getOauthClientId(),
-                    properties.getOauthClientSecret(),
-                    refreshToken,
-                    "refresh_token");
-        }
-        log.debug("Requesting vqPS token via client_credentials grant for [{}]", EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
+        log.warn("vqPS: no valid DB token – falling back to bootstrap refresh token.");
         return vqpsTokenApi.getNewToken(
                 properties.getOauthClientId(),
                 properties.getOauthClientSecret(),
-                "client_credentials");
+                bootstrap,
+                "refresh_token");
+    }
+
+    private TokenApi.TokenResponse getTokenResponse(String refreshToken) {
+        log.debug("Requesting vqPS token via refresh_token grant for [{}]", EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
+        return vqpsTokenApi.getNewToken(
+                properties.getOauthClientId(),
+                properties.getOauthClientSecret(),
+                refreshToken,
+                "refresh_token");
     }
 }
 

@@ -49,7 +49,7 @@ import java.util.Set;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0")
+@ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0 and '${swiyu.trust-registry.oauth-token-url:}'.length() > 0")
 public class VqpsB2BApiConfig {
 
     /**

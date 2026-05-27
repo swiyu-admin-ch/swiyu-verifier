@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.service.vqps.VqpsRegistrationService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
@@ -42,7 +41,6 @@ public class ManagementService {
 
     private final ApplicationProperties applicationProperties;
     private final ManagementTransactionalService managementTransactionalService;
-    private final ObjectMapper objectMapper;
 
     /**
      * Optional vqPS registration service, active only when TMS Authoring URL is configured.
@@ -96,8 +94,7 @@ public class ManagementService {
         if (request.verificationPurpose() != null && vqpsRegistrationService.isPresent()) {
             var purpose = request.verificationPurpose();
             long verificationExpiresAt = Instant.now().getEpochSecond() + applicationProperties.getVerificationTTL();
-            Object dcqlQueryJson = objectMapper.convertValue(request.dcqlQuery(), Object.class);
-            vqpsQueryHash = vqpsRegistrationService.get().getOrRegisterVqps(purpose, dcqlQueryJson, verificationExpiresAt);
+            vqpsQueryHash = vqpsRegistrationService.get().getOrRegisterVqps(purpose, request.dcqlQuery(), verificationExpiresAt);
             log.info("vqPS registered/cached for scope={}", purpose.scope());
         }
 

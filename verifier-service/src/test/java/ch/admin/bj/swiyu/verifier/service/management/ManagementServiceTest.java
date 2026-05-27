@@ -43,7 +43,7 @@ class ManagementServiceTest {
         repository = mock(ManagementRepository.class);
         applicationProperties = mock(ApplicationProperties.class);
         managementTransactionalService = new ManagementTransactionalService(repository, applicationProperties);
-        service = new ManagementService(applicationProperties, managementTransactionalService, null, null);
+        service = new ManagementService(applicationProperties, managementTransactionalService, null);
     }
 
     @Test

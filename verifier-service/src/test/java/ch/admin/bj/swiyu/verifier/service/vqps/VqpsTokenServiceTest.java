@@ -109,7 +109,6 @@ class VqpsTokenServiceTest {
 
     @Test
     void requestNewTokenSet_withDbRefreshToken_usesRefreshTokenGrant() {
-        when(properties.isEnableRefreshTokenFlow()).thenReturn(true);
         TokenSet existing = tokenSetWithRefreshToken(REFRESH_TOKEN_DB);
         when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.of(existing));
         when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN_DB, "refresh_token"))
@@ -119,7 +118,6 @@ class VqpsTokenServiceTest {
         service.requestNewTokenSet();
 
         verify(tokenApi).getNewToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN_DB, "refresh_token");
-        verify(tokenApi, never()).getNewToken(eq(CLIENT_ID), eq(CLIENT_SECRET), eq("client_credentials"));
     }
 
     // -------------------------------------------------------------------------
@@ -128,7 +126,6 @@ class VqpsTokenServiceTest {
 
     @Test
     void requestNewTokenSet_whenDbRefreshFails_usesBootstrapToken() {
-        when(properties.isEnableRefreshTokenFlow()).thenReturn(true);
         when(properties.getBootstrapRefreshToken()).thenReturn(BOOTSTRAP_TOKEN);
         TokenSet existing = tokenSetWithRefreshToken(REFRESH_TOKEN_DB);
         when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.of(existing));
@@ -145,40 +142,34 @@ class VqpsTokenServiceTest {
     }
 
     // -------------------------------------------------------------------------
-    // requestNewTokenSet – Scenario 3: no DB, no bootstrap → client_credentials
+    // requestNewTokenSet – Scenario 3: no DB token → bootstrap token used
     // -------------------------------------------------------------------------
 
     @Test
-    void requestNewTokenSet_withNoDbTokenAndNoBootstrap_usesClientCredentials() {
-        when(properties.isEnableRefreshTokenFlow()).thenReturn(false);
+    void requestNewTokenSet_withNoDbToken_usesBootstrapToken() {
+        when(properties.getBootstrapRefreshToken()).thenReturn(BOOTSTRAP_TOKEN);
         when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.empty());
-        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, "client_credentials"))
-                .thenReturn(new TokenApi.TokenResponse(ACCESS_TOKEN, null));
+        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, BOOTSTRAP_TOKEN, "refresh_token"))
+                .thenReturn(new TokenApi.TokenResponse(ACCESS_TOKEN, "new-refresh-token"));
         when(tokenSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.requestNewTokenSet();
 
-        verify(tokenApi).getNewToken(CLIENT_ID, CLIENT_SECRET, "client_credentials");
-        verify(tokenApi, never()).getNewToken(eq(CLIENT_ID), eq(CLIENT_SECRET), anyString(), anyString());
+        verify(tokenApi).getNewToken(CLIENT_ID, CLIENT_SECRET, BOOTSTRAP_TOKEN, "refresh_token");
     }
 
     // -------------------------------------------------------------------------
-    // requestNewTokenSet – refresh flow disabled → always client_credentials
+    // requestNewTokenSet – Scenario 4: no DB, no bootstrap → exception
     // -------------------------------------------------------------------------
 
     @Test
-    void requestNewTokenSet_whenRefreshFlowDisabled_alwaysUsesClientCredentials() {
-        when(properties.isEnableRefreshTokenFlow()).thenReturn(false);
-        when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING))
-                .thenReturn(Optional.of(tokenSetWithRefreshToken(REFRESH_TOKEN_DB)));
-        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, "client_credentials"))
-                .thenReturn(new TokenApi.TokenResponse(ACCESS_TOKEN, null));
-        when(tokenSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    void requestNewTokenSet_withNoDbTokenAndNoBootstrap_throwsIllegalStateException() {
+        when(properties.getBootstrapRefreshToken()).thenReturn(null);
+        when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.empty());
 
-        service.requestNewTokenSet();
-
-        verify(tokenApi, never()).getNewToken(eq(CLIENT_ID), eq(CLIENT_SECRET), anyString(), anyString());
-        verify(tokenApi).getNewToken(CLIENT_ID, CLIENT_SECRET, "client_credentials");
+        assertThatThrownBy(service::requestNewTokenSet)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("bootstrap-refresh-token");
     }
 
     // -------------------------------------------------------------------------
@@ -187,9 +178,9 @@ class VqpsTokenServiceTest {
 
     @Test
     void requestNewTokenSet_persistsNewTokenSetToDb() {
-        when(properties.isEnableRefreshTokenFlow()).thenReturn(false);
+        when(properties.getBootstrapRefreshToken()).thenReturn(BOOTSTRAP_TOKEN);
         when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.empty());
-        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, "client_credentials"))
+        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, BOOTSTRAP_TOKEN, "refresh_token"))
                 .thenReturn(new TokenApi.TokenResponse(ACCESS_TOKEN, "new-rt"));
         when(tokenSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

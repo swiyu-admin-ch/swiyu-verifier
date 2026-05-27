@@ -26,7 +26,7 @@ import java.time.Instant;
  */
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0")
+@ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0 and '${swiyu.trust-registry.oauth-token-url:}'.length() > 0")
 public class VqpsTokenConfig {
 
     private static final Duration LOCK_AT_MOST = Duration.ofMinutes(10);

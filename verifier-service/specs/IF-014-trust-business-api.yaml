@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Business Trust API
   description: IF-014 - B2B Trust API.
-  version: 3.28.0-SNAPSHOT
+  version: 3.30.0-SNAPSHOT
 servers:
   - url: https://swiyu-core-business-service-r.apps.p-szb-ros-shrd-npr-01.cloud.admin.ch
     description: Generated server url
@@ -67,17 +67,11 @@ paths:
                 $ref: "#/components/schemas/VqpsSubmission"
         "500":
           description: Internal Server Error
-        "504":
-          description: Gateway Timeout
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VqpsPublicationTimeout"
     post:
       tags:
         - VqpsSubmission B2B
-      summary: Request a new VQPS publication into the Trust Registry by submitting a
-        VqpsSubmission
+      summary: "Request a new VQPS publication into the Trust Registry by submitting a
+        VqpsSubmission and waits for the publication into the trust registry. "
       operationId: createVqpsSubmission
       requestBody:
         content:
@@ -106,12 +100,6 @@ paths:
                 $ref: "#/components/schemas/VqpsSubmission"
         "500":
           description: Internal Server Error
-        "504":
-          description: Gateway Timeout
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VqpsPublicationTimeout"
   /api/v1/trust/vc-schema-submissions:
     get:
       tags:
@@ -352,12 +340,6 @@ paths:
                 $ref: "#/components/schemas/VqpsSubmission"
         "500":
           description: Internal Server Error
-        "504":
-          description: Gateway Timeout
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VqpsPublicationTimeout"
   /api/v1/trust/vc-schema-submissions/{id}:
     get:
       tags:
@@ -442,16 +424,6 @@ components:
         - vc_type_metadata_validation_failed
         - vqps_publication_failed
         - vqps_publication_wait_timeout
-    VqpsPublicationTimeout:
-      type: object
-      properties:
-        vqpsSubmissionId:
-          type: string
-          format: uuid
-          description: The ID of the VQPS submission that is still being processed
-        message:
-          type: string
-          description: Message explaining the timeout
     VqpsPublicationFailureReason:
       type: string
       enum:
@@ -530,6 +502,15 @@ components:
     VqpsSubmissionCreateRequest:
       type: object
       properties:
+        waitForPublication:
+          type: boolean
+          default: true
+          description: Whether to wait for the publication result in the response. If
+            false, the response will be returned immediately after the
+            submission is created, without waiting for the publication result.
+            If true, the response will be returned only after the publication to
+            the trust registry has succeeded, failed  or a timeout occurs.
+          example: true
         sub:
           type: string
           description: identifier of the verifier in a format defined in the
@@ -577,6 +558,7 @@ components:
         - query
         - scope
         - sub
+        - waitForPublication
     CreateVcMetadata:
       type: object
       properties:
@@ -658,6 +640,7 @@ components:
         postalCode:
           type: string
           minLength: 1
+          pattern: ^[1-9]\d{3}$
         country:
           type: string
           minLength: 1
@@ -954,12 +937,12 @@ components:
     PageVcSchemaSubmission:
       type: object
       properties:
-        totalElements:
-          type: integer
-          format: int64
         totalPages:
           type: integer
           format: int32
+        totalElements:
+          type: integer
+          format: int64
         size:
           type: integer
           format: int32

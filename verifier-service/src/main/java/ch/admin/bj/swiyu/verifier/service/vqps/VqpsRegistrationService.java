@@ -8,7 +8,6 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
-import org.springframework.transaction.annotation.Transactional;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,14 +21,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
-import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-
-import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 /**
  * Service responsible for the On-the-Fly vqPS registration flow (EIDOMNI-819).
@@ -38,7 +32,8 @@ import reactor.util.retry.Retry;
  * <ol>
  *   <li>Checks the DB cache for a still-valid vqPS for the given scope.</li>
  *   <li>If absent or expiring before the verification TTL, submits the DCQL query to the
- *       TMS B2B API (IF-014), polling until publication succeeds.</li>
+ *       TMS B2B API (IF-014) with {@code waitForPublication=true}, which blocks until the
+ *       TMS has published the vqPS or returns an error – no client-side polling needed.</li>
  *   <li>Persists the returned vqPS JWT in the DB for future reuse.</li>
  * </ol>
  *
@@ -50,11 +45,6 @@ import reactor.util.retry.Retry;
 @ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0")
 public class VqpsRegistrationService {
 
-    /** Polling interval when waiting for TMS to publish the vqPS. */
-    private static final Duration POLL_INTERVAL = Duration.ofSeconds(2);
-
-    /** Maximum number of polling attempts before aborting. */
-    private static final int MAX_POLL_ATTEMPTS = 10;
 
     private final TrustRegistryProperties properties;
     private final ApplicationProperties applicationProperties;
@@ -93,7 +83,7 @@ public class VqpsRegistrationService {
         }
 
         log.info("No valid vqPS cache entry found for scope={}, submitting to TMS B2B API", scope);
-        String jwt = submitAndPollForJwt(purpose, dcqlQueryJson);
+        String jwt = submitAndAwaitJwt(purpose, dcqlQueryJson);
         long expiry = extractExpSeconds(jwt);
 
         if (expiry <= requiredValidUntil) {
@@ -113,68 +103,38 @@ public class VqpsRegistrationService {
     }
 
     /**
-     * Submits the vqPS to the TMS B2B API and polls until the publication succeeds.
+     * Submits the vqPS to the TMS B2B API with {@code waitForPublication=true} and returns the
+     * published vqPS JWT synchronously.
+     *
+     * <p>The TMS API blocks the response until publication succeeds or fails, so no
+     * client-side polling is required.</p>
      *
      * @param purpose       the transparency metadata
      * @param dcqlQueryJson the serialized DCQL query
      * @return the signed vqPS JWT from the publication result
-     * @throws IllegalStateException if publication fails or polling times out
+     * @throws IllegalStateException if publication fails or the response is invalid
      */
-    private String submitAndPollForJwt(VerificationPurposeDto purpose, Object dcqlQueryJson) {
+    private String submitAndAwaitJwt(VerificationPurposeDto purpose, Object dcqlQueryJson) {
         VqpsSubmissionCreateRequest request = buildSubmissionRequest(purpose, dcqlQueryJson);
 
-        return vqpsSubmissionB2BApi.createVqpsSubmission(request)
-                .flatMap(submission -> {
-                    if (submission == null) {
-                        return Mono.error(new IllegalStateException(
-                                "TMS B2B API returned null response for vqPS submission, scope=" + purpose.scope()));
-                    }
-                    log.debug("vqPS submission created with id={}, status={}", submission.getId(), submission.getStatus());
-                    if (submission.getStatus() == VqpsSubmissionStatus.PUBLICATION_SUCCEEDED) {
-                        return Mono.just(extractJwtFromSubmission(submission, purpose.scope()));
-                    }
-                    if (submission.getStatus() == VqpsSubmissionStatus.PUBLICATION_FAILED) {
-                        return Mono.error(new IllegalStateException(
-                                "TMS vqPS publication failed for scope='" + purpose.scope() + "', reason=" + submission.getPublicationFailureReason()));
-                    }
-                    return pollUntilPublished(submission.getId(), purpose.scope());
-                })
-                .block();
-    }
+        VqpsSubmission submission = vqpsSubmissionB2BApi.createVqpsSubmission(request).block();
+        if (submission == null) {
+            throw new IllegalStateException(
+                    "TMS B2B API returned null response for vqPS submission, scope=" + purpose.scope());
+        }
+        log.debug("vqPS submission returned with id={}, status={}", submission.getId(), submission.getStatus());
 
-    /**
-     * Polls the TMS B2B API reactively until the submission reaches a terminal status.
-     *
-     * <p>Uses Reactor's {@link Retry#fixedDelay} so no thread is blocked during the
-     * wait interval. Retries are triggered only for {@link PollingPendingException};
-     * terminal failures propagate immediately without further retries.</p>
-     *
-     * @param submissionId the UUID of the submission to poll
-     * @param scope        scope identifier for logging and error messages
-     * @return a {@link Mono} emitting the vqPS JWT once published
-     */
-    private Mono<String> pollUntilPublished(UUID submissionId, String scope) {
-        return Mono.defer(() -> vqpsSubmissionB2BApi.getVqpsSubmission(submissionId))
-                .flatMap(submission -> {
-                    if (submission == null) {
-                        return Mono.error(new IllegalStateException(
-                                "TMS B2B API returned null when polling submission id=" + submissionId));
-                    }
-                    log.debug("Polling vqPS submission id={}, status={}", submissionId, submission.getStatus());
-                    return switch (submission.getStatus()) {
-                        case PUBLICATION_SUCCEEDED -> Mono.just(extractJwtFromSubmission(submission, scope));
-                        case PUBLICATION_FAILED -> Mono.error(new IllegalStateException(
-                                "TMS vqPS publication failed for scope='" + scope + "', reason=" + submission.getPublicationFailureReason()));
-                        default -> Mono.error(new PollingPendingException(
-                                "vqPS submission " + submissionId + " still pending"));
-                    };
-                })
-                .retryWhen(Retry.fixedDelay(MAX_POLL_ATTEMPTS, POLL_INTERVAL)
-                        .filter(t -> t instanceof PollingPendingException)
-                        .onRetryExhaustedThrow((spec, signal) -> new IllegalStateException(
-                                "Timed out waiting for vqPS publication for scope='" + scope
-                                        + "' after " + MAX_POLL_ATTEMPTS + " attempts"))
-                );
+        if (submission.getStatus() == VqpsSubmissionStatus.PUBLICATION_FAILED) {
+            throw new IllegalStateException(
+                    "TMS vqPS publication failed for scope='" + purpose.scope()
+                            + "', reason=" + submission.getPublicationFailureReason());
+        }
+        if (submission.getStatus() != VqpsSubmissionStatus.PUBLICATION_SUCCEEDED) {
+            throw new IllegalStateException(
+                    "TMS vqPS submission returned unexpected status=" + submission.getStatus()
+                            + " for scope='" + purpose.scope() + "'");
+        }
+        return extractJwtFromSubmission(submission, purpose.scope());
     }
 
     /**
@@ -208,6 +168,7 @@ public class VqpsRegistrationService {
      */
     private VqpsSubmissionCreateRequest buildSubmissionRequest(VerificationPurposeDto purpose, Object dcqlQueryJson) {
         return new VqpsSubmissionCreateRequest()
+                .waitForPublication(true)
                 .sub(applicationProperties.getClientId())
                 .scope(purpose.scope())
                 .purposeName(purpose.purposeName())
@@ -266,17 +227,5 @@ public class VqpsRegistrationService {
         }
     }
 
-    /**
-     * Sentinel exception used exclusively to signal a pending TMS submission status
-     * to the Reactor retry mechanism. Never propagated to callers.
-     */
-    private static class PollingPendingException extends RuntimeException {
-        @java.io.Serial
-        private static final long serialVersionUID = 1L;
-
-        PollingPendingException(String message) {
-            super(message, null, true, false); // suppress stacktrace – purely a control-flow signal
-        }
-    }
 
 }

@@ -131,20 +131,16 @@ class VqpsRegistrationServiceTest {
                 .hasMessageContaining("before the verification TTL");
     }
     @Test
-    void getOrRegisterVqps_withAcceptedThenSucceeded_pollsAndReturnsJwt() {
-        String jwt = buildJwt(Instant.now().plus(30, ChronoUnit.DAYS));
-        UUID submissionId = UUID.randomUUID();
-        VqpsSubmission accepted = new VqpsSubmission().id(submissionId).status(VqpsSubmissionStatus.ACCEPTED);
-        VqpsSubmission succeeded = new VqpsSubmission()
-                .id(submissionId).status(VqpsSubmissionStatus.PUBLICATION_SUCCEEDED)
-                .publicationResult(new VqpsPublicationResult().jwt(jwt)
-                        .expiresAt(Date.from(Instant.now().plus(30, ChronoUnit.DAYS))));
-        when(vqpsSubmissionB2BApi.createVqpsSubmission(any())).thenReturn(Mono.just(accepted));
-        when(vqpsSubmissionB2BApi.getVqpsSubmission(submissionId)).thenReturn(Mono.just(succeeded));
+    void getOrRegisterVqps_withUnexpectedStatus_throwsIllegalStateException() {
+        // With waitForPublication=true the TMS API responds synchronously – any non-terminal
+        // status in the response is treated as unexpected (ACCEPTED should not occur anymore).
+        VqpsSubmission unexpected = new VqpsSubmission()
+                .id(UUID.randomUUID()).status(VqpsSubmissionStatus.ACCEPTED);
+        when(vqpsSubmissionB2BApi.createVqpsSubmission(any())).thenReturn(Mono.just(unexpected));
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
-        String hash = service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL);
-        assertThat(hash).isNotBlank();
-        verify(vqpsSubmissionB2BApi).getVqpsSubmission(submissionId);
+        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("unexpected status");
     }
     @Test
     void getOrRegisterVqps_withPublicationFailed_throwsIllegalStateException() {
@@ -155,17 +151,6 @@ class VqpsRegistrationServiceTest {
         assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("publication failed");
-    }
-    @Test
-    void getOrRegisterVqps_whenPollingTimesOut_throwsIllegalStateException() {
-        VqpsSubmission alwaysAccepted = new VqpsSubmission()
-                .id(UUID.randomUUID()).status(VqpsSubmissionStatus.ACCEPTED);
-        when(vqpsSubmissionB2BApi.createVqpsSubmission(any())).thenReturn(Mono.just(alwaysAccepted));
-        when(vqpsSubmissionB2BApi.getVqpsSubmission(any())).thenReturn(Mono.just(alwaysAccepted));
-        when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Timed out");
     }
     @Test
     void getOrRegisterVqps_withMalformedJwt_throwsIllegalStateException() {

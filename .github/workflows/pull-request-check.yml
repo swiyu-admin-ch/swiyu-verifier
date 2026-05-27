@@ -103,6 +103,30 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
+
+      # EIDOMNI-834 spike: parallel build of the hardened dhi.io variant.
+      # Does not gate the PR (continue-on-error on the scan) until the migration is committed.
+      - name: Build dhi (Hardened) docker image
+        id: build-dhi
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          pull: true
+          tags: pull_request_check:dhi
+          file: Dockerfile.dhi
+
+      - name: Scan dhi Docker image with Snyk 🐳
+        uses: snyk/actions/docker@master
+        continue-on-error: true # spike: hardening may surface different findings; do not block PR yet
+        with:
+          image: pull_request_check:dhi
+          args: --file=Dockerfile.dhi --severity-threshold=high --exclude-base-image-vulns
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_API: https://api.eu.snyk.io
+          SNYK_ORG: ${{ secrets.SNYK_ORG }}
+
       - name: Generate OpenAPI spec
         run: mvn -B clean verify -P generate-doc -DskipTests
       - name: Ensure spec is committed

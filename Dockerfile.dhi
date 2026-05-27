@@ -1,0 +1,50 @@
+ARG SOURCE_IMAGE=dhi.io/eclipse-temurin:21-debian13
+
+# Builder stage: extracts libgcc_s.so.1 which the didresolver native library
+# (ch.admin.eid.didresolver, Rust/UniFFI via JNA) requires at runtime.
+# The hardened dhi.io image strips this support library out.
+FROM debian:13-slim AS libs
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgcc-s1 && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM ${SOURCE_IMAGE}
+
+USER 0
+
+EXPOSE 8080
+
+# Rehydrate the runtime image with the native libs stripped by hardening.
+# Path matches Debian amd64 multiarch layout; for arm64 change to aarch64-linux-gnu.
+COPY --from=libs /usr/lib/x86_64-linux-gnu/libgcc_s.so.1 /app/lib-native/libgcc_s.so.1
+
+# CA cert import. Exec-form RUN because this hardened image has no /bin/sh.
+COPY certs/root_ca_vi.crt /certs-app/root_ca_vi.crt
+RUN ["keytool", \
+     "-importcert", \
+     "-alias", "root_ca_vi", \
+     "-file", "/certs-app/root_ca_vi.crt", \
+     "-keystore", "/opt/java/openjdk/21-jre/lib/security/cacerts", \
+     "-storepass", "changeit", \
+     "-noprompt"]
+
+ARG JAR_FILE=verifier-application/target/*.jar
+COPY ${JAR_FILE} /app/app.jar
+
+WORKDIR /app
+
+# Tell the dynamic linker where to find the rehydrated native libs.
+ENV LD_LIBRARY_PATH=/app/lib-native
+
+# No shell available, so scripts/entrypoint.sh is intentionally not used here.
+# Behaviour previously provided by that script is replaced by:
+#   - Spring profiles      -> SPRING_PROFILES_ACTIVE env var (Spring Boot native)
+#   - HTTP/S proxy options -> JAVA_TOOL_OPTIONS env var (JVM native, applied if set)
+#   - Bootclasspath extras -> not supported in this spike (would need shell glob expansion)
+USER nonroot
+
+ENTRYPOINT ["java", \
+    "-Duser.timezone=Europe/Zurich", \
+    "-Dspring.config.location=classpath:bootstrap.yml,classpath:application.yml,optional:file:/vault/secrets/database-credentials.yml", \
+    "-Dfile.encoding=UTF-8", \
+    "-jar", "/app/app.jar"]

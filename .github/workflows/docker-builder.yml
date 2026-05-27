@@ -90,6 +90,35 @@ jobs:
           build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile
 
+      # EIDOMNI-834 spike: build & push the hardened dhi.io variant with -dhi suffix
+      # so it can be pulled side-by-side with the default UBI image for evaluation.
+      - name: Extract metadata (dhi)
+        id: meta-dhi
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+            suffix=-dhi
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ inputs.environment_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.environment_tag != 'none' }}
+            type=raw,value=${{ inputs.version_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version_tag != '' }}
+
+      - name: Build and push dhi (Hardened) docker image
+        id: push-dhi
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          pull: true
+          tags: ${{ steps.meta-dhi.outputs.tags }}
+          labels: ${{ steps.meta-dhi.outputs.labels }}
+          file: Dockerfile.dhi
+
       - name: Monitor Snyk for vulnerabilities in code 📦
         uses: snyk/actions/maven-3-jdk-21@master
         env:
@@ -108,6 +137,19 @@ jobs:
           command: monitor
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}
           args: --severity-threshold=high --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_API: https://api.eu.snyk.io
+          SNYK_ORG: ${{ secrets.SNYK_ORG }}
+
+      # EIDOMNI-834 spike: Snyk monitor for the hardened dhi.io image.
+      - name: Monitor Snyk for vulnerabilities in dhi image 🐳
+        uses: snyk/actions/docker@master
+        continue-on-error: true # spike: do not fail the publish job if hardening surfaces new findings
+        with:
+          command: monitor
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}-dhi
+          args: --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }}-dhi --target-reference=${{ github.ref_name }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

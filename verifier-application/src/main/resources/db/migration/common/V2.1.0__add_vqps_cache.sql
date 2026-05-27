@@ -22,7 +22,7 @@ ALTER TABLE management
 -- Creates the shared OAuth2 token store for all swiyu ecosystem API integrations.
 -- The primary key 'api_target' maps to the EcosystemApiType enum (e.g. 'TMS_AUTHORING').
 -- This enables coordinated, cluster-safe token refresh via ShedLock across multiple pods.
-CREATE TABLE IF NOT EXISTS token_set
+CREATE TABLE token_set
 (
     api_target    VARCHAR(64) NOT NULL PRIMARY KEY,
     access_token  TEXT        NOT NULL,

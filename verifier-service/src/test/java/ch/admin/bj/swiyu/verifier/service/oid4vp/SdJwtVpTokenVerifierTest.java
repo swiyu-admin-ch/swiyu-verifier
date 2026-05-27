@@ -233,8 +233,9 @@ class SdJwtVpTokenVerifierTest {
                 .startsWith("Duplicate digest detected");
     }
 
-    @Test
-    void validateDisclosures_whenDeeplyNested_thenSuccess() throws ParseException, JOSEException {
+    @ParameterizedTest
+    @ValueSource(strings = {"vc+sd-jwt", "dc+sd-jwt"})
+    void validateDisclosures_whenDeeplyNested_thenSuccess(String credentialTyp) throws ParseException, JOSEException {
 
         List<Disclosure> disclosure = new ArrayList<>();
 
@@ -250,7 +251,7 @@ class SdJwtVpTokenVerifierTest {
 
         JWSHeader header =
                 new JWSHeader.Builder(JWSAlgorithm.ES256)
-                        .type(new JOSEObjectType("vc+sd-jwt")).build();
+                        .type(new JOSEObjectType(credentialTyp)).build();
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
         SignedJWT jwt = new SignedJWT(header, claimsSet);

@@ -143,13 +143,15 @@ jobs:
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
 
       # EIDOMNI-834 spike: Snyk monitor for the hardened dhi.io image.
+      # --project-name forces a distinct Snyk project entry so it shows up alongside
+      # (not merged with) the default UBI-based image in the Snyk dashboard.
       - name: Monitor Snyk for vulnerabilities in dhi image 🐳
         uses: snyk/actions/docker@master
         continue-on-error: true # spike: do not fail the publish job if hardening surfaces new findings
         with:
           command: monitor
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}-dhi
-          args: --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }}-dhi --target-reference=${{ github.ref_name }}
+          args: --severity-threshold=high --project-name=swiyu-verifier-dhi --project-tags:app-name=swiyu-verifier-dhi,version=${{ env.IMAGE_VERSION_TAG }}-dhi --target-reference=${{ github.ref_name }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

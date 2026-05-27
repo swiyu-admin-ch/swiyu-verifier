@@ -373,6 +373,14 @@ class VerificationControllerTrustStatementIT {
         // Verify all three JWTs are present
         var dataClaims = verifierInfo.stream().map(e -> (String) e.get("data")).toList();
         assertThat(dataClaims).containsExactlyInAnyOrder(idTsJwt, pvaTsJwt, vqpsJwt);
+
+        // Per OID4VP spec: when vqPS is present, scope MUST be set and dcql_query MUST be absent
+        assertThat(responseJwt.getJWTClaimsSet().getStringClaim("scope"))
+                .as("scope must match the vqPS scope when vqPS is injected")
+                .isEqualTo("com.example.test_scope");
+        assertThat(responseJwt.getJWTClaimsSet().getClaim("dcql_query"))
+                .as("dcql_query must be absent when scope/vqPS is used (mutually exclusive)")
+                .isNull();
     }
 
     // --- helper ---

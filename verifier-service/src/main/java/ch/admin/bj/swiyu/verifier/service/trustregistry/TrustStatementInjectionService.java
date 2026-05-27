@@ -77,7 +77,7 @@ public class TrustStatementInjectionService {
 
         injectIdentityTrustStatement(verifierInfo, clientId);
         injectProtectedVerificationAuthorizationTrustStatements(verifierInfo, clientId);
-        injectVqPs(verifierInfo, managementEntity);
+        Optional<String> vqpsScope = injectVqPs(verifierInfo, managementEntity);
 
         if (verifierInfo.isEmpty()) {
             log.warn("No TP2.0 trust statements available – returning request object without verifier_info");
@@ -85,9 +85,18 @@ public class TrustStatementInjectionService {
         }
 
         log.debug("Injecting TP2.0 verifier_info for verifier {}: {} statement(s)", verifierDid, verifierInfo.size());
-        return requestObject.toBuilder()
-                .verifierInfo(verifierInfo)
-                .build();
+
+        var builder = requestObject.toBuilder().verifierInfo(verifierInfo);
+
+        // Per OID4VP spec: when a vqPS is present, the Authorization Request MUST use
+        // the scope parameter instead of dcql_query (they are mutually exclusive).
+        vqpsScope.ifPresent(scope -> {
+            builder.scope(scope);
+            builder.dcqlQuery(null);
+            log.debug("vqPS present – replacing dcql_query with scope={}", scope);
+        });
+
+        return builder.build();
     }
 
     /**
@@ -141,35 +150,36 @@ public class TrustStatementInjectionService {
      * Looks up the persisted vqPS JWT for the scope stored on the management entity and,
      * if found and still valid, appends it to the {@code verifier_info} list.
      *
-     * <p>Per Trust Protocol 2.0, the vqPS is embedded as
-     * {@code {"format": "jwt", "data": "<jwt>"}}. The scope on the Authorization Request
-     * must match the scope used during registration.</p>
-     *
-     * <p><b>Defense-in-depth:</b> the vqPS JWT is re-validated on every injection
-     * (signature against the configured TMS issuer DID, plus {@code exp} freshness).
-     * This means a tampered or expired DB row can never reach the signed Authorization
-     * Request, even though the row was originally written by the verifier itself.</p>
+     * <p>Per OID4VP + Trust Protocol 2.0: when a vqPS is injected, the Authorization Request
+     * MUST use {@code scope} instead of {@code dcql_query} (they are mutually exclusive).
+     * This method returns the scope so the caller can apply the substitution.</p>
      *
      * @param verifierInfo     the list to append to
      * @param managementEntity the current verification session
+     * @return the vqPS scope if a valid vqPS was injected, {@link Optional#empty()} otherwise
      */
-    private void injectVqPs(List<VerifierInfoEntryDto> verifierInfo, Management managementEntity) {
+    private Optional<String> injectVqPs(List<VerifierInfoEntryDto> verifierInfo, Management managementEntity) {
         String queryHash = managementEntity.getVqpsQueryHash();
         if (queryHash == null) {
-            return;
+            return Optional.empty();
         }
         if (vqpsCacheRepository.isEmpty()) {
             log.debug("VqpsCacheRepository not available – skipping vqPS injection for hash={}", queryHash);
-            return;
+            return Optional.empty();
         }
+        var ref = new Object() {
+            String scope = null;
+        };
         vqpsCacheRepository.get().findById(queryHash).ifPresentOrElse(
                 entry -> {
                     if (isVqPsValid(entry.getJwt(), queryHash)) {
                         verifierInfo.add(VerifierInfoEntryDto.ofJwt(entry.getJwt()));
+                        ref.scope = entry.getScope();
                     }
                 },
                 () -> log.warn("No vqPS found in DB for hash={} – skipping injection", queryHash)
         );
+        return Optional.ofNullable(ref.scope);
     }
 
     /**

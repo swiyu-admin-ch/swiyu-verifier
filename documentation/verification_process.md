@@ -92,7 +92,7 @@ curl -X POST \
             {
                 "id": "11111111-1111-1111-1111-111111111111",
                 "format": {
-                    "vc+sd-jwt": {
+                    "dc+sd-jwt": {
                         "sd-jwt_alg_values": [
                             "ES256"
                         ],
@@ -125,6 +125,8 @@ curl -X POST \
 }' \
 http://localhost:8083/management/api/verifications
 ```
+
+> **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+, per [draft-ietf-oauth-sd-jwt-vc-09 §A.2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt)) and `vc+sd-jwt` (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header.
 
 To limit the accepted issuers, you can set the `accepted_issuer_dids` parameter with a list of trusted issuer DIDs. 
 Otherwise, any credential that provides the requested claims will be accepted an example here is:
@@ -164,7 +166,7 @@ List of trust anchor dids from the trust registry.
             {
                 "id": "11111111-1111-1111-1111-111111111111",
                 "format": {
-                    "vc+sd-jwt": {
+                    "dc+sd-jwt": {
                         "sd-jwt_alg_values": [
                             "ES256"
                         ],
@@ -226,7 +228,7 @@ curl -X GET \
             {
                 "id": "11111111-1111-1111-1111-111111111111",
                 "format": {
-                    "vc+sd-jwt": {
+                    "dc+sd-jwt": {
                         "sd-jwt_alg_values": [
                             "ES256"
                         ],
@@ -330,7 +332,7 @@ Actor:
     "definition_id": "00000000-0000-0000-0000-000000000000",
     "descriptor_map": [
         {
-            "format": "vc+sd-jwt",
+            "format": "dc+sd-jwt",
             "id": "11111111-1111-1111-1111-111111111111",
             "path": "$"
         }

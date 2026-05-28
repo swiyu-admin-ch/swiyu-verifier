@@ -40,16 +40,16 @@ transition period to adopt the hardened runtime:
 | Tag pattern | Base image | Entrypoint | User | Status |
 |---|---|---|---|---|
 | `ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>`         | `dhi.io/eclipse-temurin:21-debian13` (hardened, no shell) | `java …` directly | `nonroot` | **Default — recommended** |
-| `ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>-legacy`  | `eclipse-temurin:21-jre-ubi9-minimal`                     | `scripts/entrypoint.sh` | UID `1001` | Transitional — will be removed in a later release |
+| `ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>-unhardened`  | `eclipse-temurin:21-jre-ubi9-minimal`                     | `scripts/entrypoint.sh` | UID `1001` | Transitional — will be removed in a later release |
 
 - **New deployments and operators who have completed the migration** should use the default
   (unsuffixed) tag.
 - **Operators with pipelines that still depend on the shell-based entrypoint**
   (`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, `MY_SPRING_PROFILES`, `JAVA_BOOTCLASSPATH` /
-  `/lib` JCE-provider mounts) must pin to the `-legacy` suffix while they apply the
+  `/lib` JCE-provider mounts) must pin to the `-unhardened` suffix while they apply the
   changes in [`migration-guides/v2.x-to-v3.0.0.md`](migration-guides/v2.x-to-v3.0.0.md).
 - The two `Dockerfile`s in this repository (`Dockerfile.dhi` for the default, `Dockerfile`
-  for the `-legacy` variant) are both built and Snyk-scanned on every PR.
+  for the `-unhardened` variant) are both built and Snyk-scanned on every PR.
 
 ## 1. Set the environment variables
 
@@ -243,7 +243,7 @@ you do this depends on the image variant you deploy (see
   pitfalls are documented in
   [`migration-guides/v2.x-to-v3.0.0.md` §4](migration-guides/v2.x-to-v3.0.0.md).
 
-- **Legacy `-legacy` image** (transitional) — the shell entrypoint still expands
+- **Unhardened `-unhardened` image** (transitional) — the shell entrypoint still expands
   `${JAVA_BOOTCLASSPATH}` (default `./lib`) into `-Xbootclasspath/a:…`, so mounting a
   volume that contains the vendor JARs at `/app/lib` keeps working as before.
 

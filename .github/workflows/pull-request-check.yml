@@ -81,7 +81,7 @@ jobs:
         with:
           sarif_file: snyk.sarif
 
-      # EIDOMNI-834: build and scan both image variants on every PR so a regression
+      # Build and scan both image variants on every PR so a regression
       # in either Dockerfile is caught before merge. The hardened dhi.io image is
       # the default published variant; the UBI image is published under -unhardened
       # during the transition period. Both must succeed for the PR to be mergeable.

@@ -63,7 +63,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # EIDOMNI-834: during the dual-image transition period we publish two variants:
+      # During the dual-image transition period we publish two variants:
       #   - Default (unsuffixed):  hardened dhi.io image, no shell, nonroot user.
       #     ghcr.io/.../swiyu-verifier:<tag>
       #   - `-unhardened` suffix:  UBI-based image, shell + entrypoint.sh wrapper.

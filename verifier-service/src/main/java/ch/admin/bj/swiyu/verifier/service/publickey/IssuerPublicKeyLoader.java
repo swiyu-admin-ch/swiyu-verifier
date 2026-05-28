@@ -3,7 +3,9 @@ package ch.admin.bj.swiyu.verifier.service.publickey;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWK;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.security.PublicKey;
 import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class is responsible for loading the public key of an issuer from a JWT Token. The issuer is identified by its
@@ -100,11 +103,11 @@ public class IssuerPublicKeyLoader {
             throw new IllegalArgumentException("Failed to parse Json Web Key from verification method since no jwk was provided");
         }
         try {
+            Map<String, Object> json = objectMapper.convertValue(jwk, new TypeReference<>() {});
+            json.put("kid", issuerDid+"#"+jwk.getKid());
             // Create kid as used in swiss-profile-anchor
-            jwk.setKid(issuerDid+"#"+jwk.getKid());
-            String json = objectMapper.writeValueAsString(jwk);
             return JWK.parse(json);
-        } catch (JsonProcessingException | ParseException e) {
+        } catch (ParseException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to parse json web token", e);
         }
     }

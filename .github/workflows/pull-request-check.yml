@@ -81,47 +81,49 @@ jobs:
         with:
           sarif_file: snyk.sarif
 
-      - name: Build and push docker image
-        id: push
+      # EIDOMNI-834: build and scan both image variants on every PR so a regression
+      # in either Dockerfile is caught before merge. The hardened dhi.io image is
+      # the default published variant; the UBI image is published under -unhardened
+      # during the transition period. Both must succeed for the PR to be mergeable.
+
+      - name: Build hardened (default) docker image
+        id: build-dhi
         uses: docker/build-push-action@v6
         with:
           context: .
           load: true
           pull: true # Prevent old images to be used, which may trigger CVE findings
           tags: pull_request_check:latest
-          build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
-          file: Dockerfile
+          file: Dockerfile.dhi
 
-      - name: Scan Docker image with Snyk 🐳
+      - name: Scan hardened Docker image with Snyk 🐳
         uses: snyk/actions/docker@master
         continue-on-error: false
         with:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           image: pull_request_check:latest
-          args: --file=Dockerfile --severity-threshold=high --exclude-base-image-vulns
+          args: --file=Dockerfile.dhi --severity-threshold=high --exclude-base-image-vulns
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
 
-      # EIDOMNI-834 spike: parallel build of the hardened dhi.io variant.
-      # Does not gate the PR (continue-on-error on the scan) until the migration is committed.
-      - name: Build dhi (Hardened) docker image
-        id: build-dhi
+      - name: Build unhardened docker image
+        id: build-unhardened
         uses: docker/build-push-action@v6
         with:
           context: .
           load: true
           pull: true
-          tags: pull_request_check:dhi
-          file: Dockerfile.dhi
+          tags: pull_request_check:unhardened
+          file: Dockerfile
 
-      - name: Scan dhi Docker image with Snyk 🐳
+      - name: Scan unhardened Docker image with Snyk 🐳
         uses: snyk/actions/docker@master
-        continue-on-error: true # spike: hardening may surface different findings; do not block PR yet
+        continue-on-error: false
         with:
-          image: pull_request_check:dhi
-          args: --file=Dockerfile.dhi --severity-threshold=high --exclude-base-image-vulns
+          image: pull_request_check:unhardened
+          args: --file=Dockerfile --severity-threshold=high --exclude-base-image-vulns
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

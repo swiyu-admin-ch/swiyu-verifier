@@ -1,0 +1,46 @@
+# Example: HSM-backed signing via the Securosys Primus JCE provider.
+#
+# Layered on top of the published hardened swiyu-verifier image. Securosys
+# Primus is configured through a vendor JCE provider JAR plus a runtime config
+# string assembled from the standard HSM_* environment variables by
+# HSMProperties.getSecurosysStringConfig() (see verifier-service).
+#
+# Prerequisite: you have a licensed copy of the Primus JCE artifact (e.g.
+# primusX-java11.jar). Place it at `vendor/primusX-java11.jar` in the build
+# context — this image will bake it onto the bootclasspath.
+#
+# At deployment time set:
+#   SIGNING_KEY_MANAGEMENT_METHOD=<method-id your build registers for Primus>
+#   HSM_HOST=<primus host or proxy hostname>
+#   HSM_PORT=<primus / proxy port>
+#   HSM_USER=<primus user>
+#   HSM_PASSWORD=<primus password>
+#   HSM_PROXY_USER, HSM_PROXY_PASSWORD   (optional, when connecting through primusProxy)
+#   HSM_USER_PIN, HSM_KEY_ID, HSM_KEY_PIN
+# These are consumed by the swiyu-jws-signature-service library directly from
+# the environment — no entrypoint wrapper is involved.
+
+ARG VERIFIER_IMAGE=ghcr.io/swiyu-admin-ch/swiyu-verifier:3.0.0
+
+FROM ${VERIFIER_IMAGE}
+USER 0
+
+# Vendor JCE provider JAR. The hardened image has no shell, so we cannot expand
+# a /lib glob at startup — the JAR is referenced explicitly via
+# -Xbootclasspath/a: in the ENTRYPOINT below.
+COPY vendor/primusX-java11.jar /app/lib-ext/primusX-java11.jar
+
+# If the Primus JCE you obtained from Securosys ships a native helper library,
+# stage it the same way as in Dockerfile.sunpkcs11 — copy the .so into
+# /app/lib-native/ (which is already on LD_LIBRARY_PATH) together with any
+# transitive system-lib dependencies (libssl3, libgssapi-krb5-2, libkrb5-3, …)
+# from a debian:13-slim builder stage.
+
+USER nonroot
+
+ENTRYPOINT ["java", \
+    "-Duser.timezone=Europe/Zurich", \
+    "-Dspring.config.location=classpath:bootstrap.yml,classpath:application.yml,optional:file:/vault/secrets/database-credentials.yml", \
+    "-Dfile.encoding=UTF-8", \
+    "-Xbootclasspath/a:/app/lib-ext/primusX-java11.jar", \
+    "-jar", "/app/app.jar"]

@@ -116,6 +116,7 @@ jobs:
           load: true
           pull: true
           tags: pull_request_check:unhardened
+          build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile
 
       - name: Scan unhardened Docker image with Snyk 🐳

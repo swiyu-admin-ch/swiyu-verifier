@@ -123,6 +123,7 @@ jobs:
           pull: true
           tags: ${{ steps.meta-unhardened.outputs.tags }}
           labels: ${{ steps.meta-unhardened.outputs.labels }}
+          build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile
 
       - name: Monitor Snyk for vulnerabilities in code 📦

@@ -192,6 +192,8 @@ On the base registry the public key is published. To generate the public key for
 | SWIYU_TMS_OAUTH_TOKEN_URL         | OAuth2 token endpoint used to obtain an access token for the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                        | URL              | none         |
 | SWIYU_TMS_OAUTH_CLIENT_ID         | OAuth2 client ID for authenticating against the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                                     | string           | none         |
 | SWIYU_TMS_OAUTH_CLIENT_SECRET     | OAuth2 client secret for authenticating against the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                                 | string           | none         |
+| SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN | (Optional, secret) Initial OAuth2 refresh token for the TMS API. Rotated tokens are persisted in the `token_set` table and shared across pods.                                             | string            | none         |
+| SWIYU_TMS_TOKEN_REFRESH_INTERVAL  | Interval for proactive TMS access-token refreshes ([ISO 8601 duration](https://en.wikipedia.org/wiki/ISO_8601#Durations)). Must be shorter than the refresh-token lifetime.                | ISO-8601 duration | PT12H        |
 
 ### Kubernetes Vault Keys
 
@@ -200,6 +202,11 @@ On the base registry the public key is published. To generate the public key for
 | secret.db.username | Username to connect to the Verifier Database                                                     |
 | secret.db.password | Username to connect to the Verifier Database                                                     |
 | secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable |
+| secret.swiyu.trust-registry.tms-oauth-client-secret     | TMS OAuth2 client secret – alternative to `SWIYU_TMS_OAUTH_CLIENT_SECRET`.                  |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Initial TMS OAuth2 refresh token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`.      |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Initial TMS OAuth2 refresh token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`.      |
+| secret.swiyu.trust-registry.tms-oauth-client-secret   | OAuth2 client secret for the TMS B2B Authoring API – alternative to `SWIYU_TMS_OAUTH_CLIENT_SECRET`. |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Static OAuth2 refresh token used to bootstrap the first TMS access token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`. |
 
 ### HSM - Hardware Security Module
 

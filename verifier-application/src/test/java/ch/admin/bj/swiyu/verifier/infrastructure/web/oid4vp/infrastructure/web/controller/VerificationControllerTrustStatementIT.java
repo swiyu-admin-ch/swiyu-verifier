@@ -191,34 +191,8 @@ class VerificationControllerTrustStatementIT {
 
         // --- arrange: build JWTs with ephemeral key ---
         ECKey ecKey = new ECKeyGenerator(Curve.P_256).generate();
-        ECDSASigner signer = new ECDSASigner(ecKey);
-
-        Instant now = Instant.now();
-        Instant expiry = now.plus(1, ChronoUnit.DAYS);
-
-        SignedJWT idTs = new IdTsBuilder()
-                .withKid(TRUST_REGISTRY_KID)
-                .withSubject(VERIFIER_SUBJECT_DID)
-                .withValidity(now, expiry)
-                .withStatus(1, "https://status.example.ch/list/1")
-                .addEntityName("Test Issuer AG")
-                .withIsStateActor(false)
-                .addRegistryId("UID", "CHE-000.000.000")
-                .build();
-        idTs.sign(signer);
-
-        SignedJWT pvaTs = new PvaTsBuilder()
-                .withKid(TRUST_REGISTRY_KID)
-                .withSubject(VERIFIER_SUBJECT_DID)
-                .withValidity(Instant.now(), Instant.now().plus(365, ChronoUnit.DAYS))
-                .withStatus(7, "https://status.example.ch/list/1")
-                .withJti("550e8400-e29b-41d4-a716-446655440000")
-                .withAuthorizedFields(List.of("last_name", "first_name"))
-                .build();
-        pvaTs.sign(signer);
-
-        String idTsJwt = idTs.serialize();
-        String pvaTsJwt = pvaTs.serialize();
+        String idTsJwt = buildSignedIdTsJwt(ecKey);
+        String pvaTsJwt = buildSignedPvaTsJwt(ecKey, List.of("last_name", "first_name"));
 
         // --- arrange: stub cache & validator ---
         when(trustStatementCacheService.getIdentityTrustStatement(VERIFIER_DID)).thenReturn(idTsJwt);
@@ -275,42 +249,16 @@ class VerificationControllerTrustStatementIT {
 
         // --- arrange: build trust statement JWTs ---
         ECKey ecKey = new ECKeyGenerator(Curve.P_256).generate();
-        ECDSASigner signer = new ECDSASigner(ecKey);
-
-        Instant now = Instant.now();
-        Instant expiry = now.plus(1, ChronoUnit.DAYS);
-
-        SignedJWT idTs = new IdTsBuilder()
-                .withKid(TRUST_REGISTRY_KID)
-                .withSubject(VERIFIER_SUBJECT_DID)
-                .withValidity(now, expiry)
-                .withStatus(1, "https://status.example.ch/list/1")
-                .addEntityName("Test Issuer AG")
-                .withIsStateActor(false)
-                .addRegistryId("UID", "CHE-000.000.000")
-                .build();
-        idTs.sign(signer);
-
-        SignedJWT pvaTs = new PvaTsBuilder()
-                .withKid(TRUST_REGISTRY_KID)
-                .withSubject(VERIFIER_SUBJECT_DID)
-                .withValidity(now, now.plus(365, ChronoUnit.DAYS))
-                .withStatus(7, "https://status.example.ch/list/1")
-                .withJti("550e8400-e29b-41d4-a716-446655440000")
-                .withAuthorizedFields(List.of("last_name", "first_name"))
-                .build();
-        pvaTs.sign(signer);
-
-        String idTsJwt = idTs.serialize();
-        String pvaTsJwt = pvaTs.serialize();
+        String idTsJwt = buildSignedIdTsJwt(ecKey);
+        String pvaTsJwt = buildSignedPvaTsJwt(ecKey, List.of("last_name", "first_name"));
 
         // --- arrange: build vqPS JWT and persist it in DB ---
-        String vqpsJwt = buildSignedVqpsJwt("com.example.test_scope", now.plus(30, ChronoUnit.DAYS));
+        String vqpsJwt = buildSignedVqpsJwt("com.example.test_scope", Instant.now().plus(30, ChronoUnit.DAYS));
         vqpsRepository.save(Vqps.builder()
                 .queryHash(VQPS_QUERY_HASH)
                 .scope("com.example.test_scope")
                 .jwt(vqpsJwt)
-                .expiresAt(now.plus(30, ChronoUnit.DAYS).getEpochSecond())
+                .expiresAt(Instant.now().plus(30, ChronoUnit.DAYS).getEpochSecond())
                 .build());
 
         // --- arrange: persist Management entity referencing the vqPS hash ---
@@ -354,7 +302,7 @@ class VerificationControllerTrustStatementIT {
                 .getResponse()
                 .getContentAsString();
 
-        // --- assert: parse JWT payload without signature verification ---
+        // --- assert ---
         SignedJWT responseJwt = SignedJWT.parse(responseJwtString);
         List<Map<String, Object>> verifierInfo = (List<Map<String, Object>>)
                 responseJwt.getJWTClaimsSet().getClaim("verifier_info");
@@ -370,11 +318,9 @@ class VerificationControllerTrustStatementIT {
                     assertThat((String) entry.get("data")).isNotBlank();
                 });
 
-        // Verify all three JWTs are present
         var dataClaims = verifierInfo.stream().map(e -> (String) e.get("data")).toList();
         assertThat(dataClaims).containsExactlyInAnyOrder(idTsJwt, pvaTsJwt, vqpsJwt);
 
-        // Per OID4VP spec: when vqPS is present, scope MUST be set and dcql_query MUST be absent
         assertThat(responseJwt.getJWTClaimsSet().getStringClaim("scope"))
                 .as("scope must match the vqPS scope when vqPS is injected")
                 .isEqualTo("com.example.test_scope");
@@ -383,7 +329,49 @@ class VerificationControllerTrustStatementIT {
                 .isNull();
     }
 
-    // --- helper ---
+    // --- helpers ---
+
+    /**
+     * Builds a signed {@code idTS} JWT using the given EC key.
+     *
+     * @param ecKey the signing key
+     * @return compact-serialized signed idTS JWT
+     */
+    private String buildSignedIdTsJwt(ECKey ecKey) throws Exception {
+        Instant now = Instant.now();
+        SignedJWT idTs = new IdTsBuilder()
+                .withKid(TRUST_REGISTRY_KID)
+                .withSubject(VERIFIER_SUBJECT_DID)
+                .withValidity(now, now.plus(1, ChronoUnit.DAYS))
+                .withStatus(1, "https://status.example.ch/list/1")
+                .addEntityName("Test Issuer AG")
+                .withIsStateActor(false)
+                .addRegistryId("UID", "CHE-000.000.000")
+                .build();
+        idTs.sign(new ECDSASigner(ecKey));
+        return idTs.serialize();
+    }
+
+    /**
+     * Builds a signed {@code pvaTS} JWT authorizing the given fields.
+     *
+     * @param ecKey            the signing key
+     * @param authorizedFields the list of field names the pvaTS covers
+     * @return compact-serialized signed pvaTS JWT
+     */
+    private String buildSignedPvaTsJwt(ECKey ecKey, List<String> authorizedFields) throws Exception {
+        Instant now = Instant.now();
+        SignedJWT pvaTs = new PvaTsBuilder()
+                .withKid(TRUST_REGISTRY_KID)
+                .withSubject(VERIFIER_SUBJECT_DID)
+                .withValidity(now, now.plus(365, ChronoUnit.DAYS))
+                .withStatus(7, "https://status.example.ch/list/1")
+                .withJti("550e8400-e29b-41d4-a716-446655440000")
+                .withAuthorizedFields(authorizedFields)
+                .build();
+        pvaTs.sign(new ECDSASigner(ecKey));
+        return pvaTs.serialize();
+    }
 
     /**
      * Builds a proper vqPS JWT using {@link VqPsBuilder} – ensures the correct

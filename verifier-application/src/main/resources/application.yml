@@ -188,5 +188,6 @@ swiyu:
       oauth-token-url: "${SWIYU_TMS_OAUTH_TOKEN_URL:}"
       oauth-client-id: "${SWIYU_TMS_OAUTH_CLIENT_ID:}"
       oauth-client-secret: "${secret.swiyu.trust-registry.tms-oauth-client-secret:${SWIYU_TMS_OAUTH_CLIENT_SECRET:}}"
-      token-refresh-interval: "PT12H"
+      bootstrap-refresh-token: "${secret.swiyu.trust-registry.tms-bootstrap-refresh-token:${SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN:}}"
+      token-refresh-interval: "${SWIYU_TMS_TOKEN_REFRESH_INTERVAL:PT12H}"
 

@@ -31,7 +31,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0")
+@ConditionalOnExpression("'${swiyu.trust-registry.tms-authoring-url:}'.length() > 0 and '${swiyu.trust-registry.oauth-token-url:}'.length() > 0")
 public class VqpsTokenRefreshScheduler {
 
     private final TrustRegistryProperties properties;

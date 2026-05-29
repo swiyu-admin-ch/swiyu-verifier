@@ -1,11 +1,38 @@
 ARG SOURCE_IMAGE=dhi.io/eclipse-temurin:21-debian13
 
-# Builder stage: extracts libgcc_s.so.1 which the didresolver native library
-# (ch.admin.eid.didresolver, Rust/UniFFI via JNA) requires at runtime.
+# Stage: extracts libgcc_s.so.1 which the didresolver native library requires.
 FROM debian:13-slim AS libs
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libgcc-s1 && \
     rm -rf /var/lib/apt/lists/*
+
+# Stage: builds an updated OS CA bundle that includes every *.crt under certs/.
+# The hardened runtime image has no shell, so update-ca-certificates must run
+# here where /bin/sh is available.
+FROM debian:13-slim AS ca-bundle
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+# Drop in every project-provided CA. Each file must be PEM-encoded with the
+# .crt extension; update-ca-certificates picks them up automatically.
+COPY certs/*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+
+# Stage: produces a Java cacerts keystore that includes every *.crt under
+# certs/. We work on top of the same base image so the resulting cacerts file
+# layout (PKCS12/JKS, JDK 21) is bit-for-bit compatible with the runtime image.
+# A shell-capable temurin tag is used here so we can loop with `for`.
+FROM eclipse-temurin:21-jre AS java-cacerts
+COPY certs/*.crt /certs-app/
+RUN cp "$JAVA_HOME/lib/security/cacerts" /tmp/cacerts && \
+    for cert in /certs-app/*.crt; do \
+        alias="$(basename "${cert}" .crt)"; \
+        keytool -importcert -noprompt -trustcacerts \
+            -alias "${alias}" \
+            -file "${cert}" \
+            -keystore /tmp/cacerts \
+            -storepass changeit; \
+    done
 
 FROM ${SOURCE_IMAGE}
 
@@ -16,15 +43,18 @@ EXPOSE 8080
 # Rehydrate the runtime image with the native libs stripped by hardening.
 COPY --from=libs /usr/lib/x86_64-linux-gnu/libgcc_s.so.1 /app/lib-native/libgcc_s.so.1
 
-# CA cert import. Exec-form RUN because this hardened image has no /bin/sh.
-COPY certs/root_ca_vi.crt /certs-app/root_ca_vi.crt
-RUN ["keytool", \
-     "-importcert", \
-     "-alias", "root_ca_vi", \
-     "-file", "/certs-app/root_ca_vi.crt", \
-     "-keystore", "/opt/java/openjdk/21-jre/lib/security/cacerts", \
-     "-storepass", "changeit", \
-     "-noprompt"]
+# CA certs — two stores must be updated:
+#
+# 1. Java cacerts — used by the JDK TLS stack (RestClient, Netty's JDK SSL
+#    engine, plain HTTPS). Pre-built in the java-cacerts stage so we can loop
+#    over every certs/*.crt without needing a shell here.
+#
+# 2. OS CA bundle — used by tools and libraries that read the system store
+#    (Netty native OpenSSL, curl-like libs, etc.). Pre-built in the ca-bundle
+#    stage. Both stages process the same certs/*.crt set, so adding a new CA
+#    only requires dropping the .crt into certs/.
+COPY --from=java-cacerts /tmp/cacerts /opt/java/openjdk/21-jre/lib/security/cacerts
+COPY --from=ca-bundle /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 ARG JAR_FILE=verifier-application/target/*.jar
 COPY ${JAR_FILE} /app/app.jar

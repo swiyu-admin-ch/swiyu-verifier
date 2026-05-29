@@ -51,6 +51,21 @@ COPY --from=hsm-libs /usr/lib/softhsm/libsofthsm2.so                  /app/lib-n
 # See pkcs11.cfg.example in this directory for a starting template.
 COPY examples/hsm/pkcs11.cfg.example /app/hsm/pkcs11.cfg
 
+# CA certificates: the base swiyu-issuer image already trusts every *.crt that
+# was placed under certs/ at base-image build time (see certs/readme.md). If
+# your HSM appliance / HSM proxy uses a TLS certificate issued by a CA that is
+# NOT in that set, add it here with the same two-store pattern used in the
+# base image, for example:
+#
+#   COPY my-hsm-ca.crt /tmp/my-hsm-ca.crt
+#   RUN ["keytool", "-importcert", "-noprompt", "-trustcacerts", \
+#        "-alias", "my-hsm-ca", "-file", "/tmp/my-hsm-ca.crt", \
+#        "-cacerts", "-storepass", "changeit"]
+#   # If a tool/library reads the OS bundle directly (e.g. Netty native OpenSSL),
+#   # also append the cert to /etc/ssl/certs/ca-certificates.crt via a
+#   # debian:13-slim builder stage that runs update-ca-certificates
+#   # (see the ca-bundle stage in ../../Dockerfile.dhi).
+
 USER nonroot
 
 # SunPKCS11 is bundled with the JDK — no -Xbootclasspath/a: required.

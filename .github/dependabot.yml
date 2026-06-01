@@ -12,49 +12,63 @@
 version: 2
 updates:
   - package-ecosystem: "maven"
-    directories: 
-      - "/"
-      - "/verifier-application"
-      - "/verifier-service"
+    # Use the Maven multi-module root only; Dependabot scans child pom.xml files recursively.
+    directory: "/"
+    schedule:
+      interval: "weekly"
     groups:
+      # Spring ecosystem updates (Boot/Framework/Cloud/Statemachine/SpringDoc + embedded servers).
+      # Keep major updates separate for manual review of potentially breaking framework changes.
       spring:
         patterns:
-          - "org.springframework.*"
+          - "org.springframework*"
           - "org.springdoc*"
+          - "org.apache.tomcat.embed*"
+          - "org.eclipse.jetty*"
+          - "io.undertow*"
         update-types:
           - "patch"
           - "minor"
+
+      # Internal SWIYU libraries and modules (both published libs and project-internal artifacts).
       swiyu:
         patterns:
-          - "ch.admin.*"
+          - "ch.admin*"
           - "io.github.swiyu*"
+
+      # Security-relevant crypto/JWT stack, isolated for dedicated review.
       cryptography:
         patterns:
+          - "com.nimbusds*"
           - "org.bouncycastle*"
-          - "com.nimbus*"
-      database:
+          - "com.authlete*"
+          - "io.jsonwebtoken*"
+
+      # Runtime infrastructure: database, ORM/migrations, networking, logging, observability.
+      infrastructure:
         patterns:
-          - "org.flywaydb*"
           - "org.postgresql*"
+          - "com.mysql*"
+          - "org.mariadb.jdbc*"
           - "org.hibernate*"
-          - "org.testcontainers*"
-      monitoring:
-        patterns:
+          - "org.flywaydb*"
+          - "org.liquibase*"
+          - "io.netty*"
+          - "com.squareup.okhttp3*"
+          - "com.squareup.okio*"
+          - "ch.qos.logback*"
+          - "org.apache.logging.log4j*"
+          - "net.logstash.logback*"
           - "io.micrometer*"
           - "io.prometheus*"
-      logging:
+          - "io.zipkin.brave*"
+
+      # Everything else (tests, build tooling, processors, caching, scheduling, utilities, helpers).
+      # "*" ensures no Maven dependency or plugin update remains ungrouped.
+      tooling:
         patterns:
-          - "ch.qos.logback*"
-          - "net.logstash*"
-      utility:
-        patterns:
-          - "org.projectlombok*"
-          - "com.tngtech.archunit*"
-          - "org.mock-server*"
-          - "net.javacrumbs.shedlock*"
-          - "net.java.dev.jna*" # For didresolver
-    schedule:
-      interval: "weekly"
+          - "*"
+
   - package-ecosystem: "docker"
     directory: "/"
     schedule:

@@ -75,5 +75,12 @@ updates:
       interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
+    labels:
+      - "dependencies"
+      - "github-actions"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"

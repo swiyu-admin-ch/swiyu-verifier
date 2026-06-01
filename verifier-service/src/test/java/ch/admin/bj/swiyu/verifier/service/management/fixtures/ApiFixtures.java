@@ -29,7 +29,7 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementWithoutResponseMode(List<String> acceptedIssuerDids, DcqlQueryDto dcqlQueryDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, null, dcqlQueryDto);
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, null, dcqlQueryDto, null);
     }
 
     public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
@@ -37,6 +37,7 @@ public class ApiFixtures {
         return new CreateVerificationManagementDto(
                 List.of("did:example:123"), null,
                 isJWTSecured, ResponseModeTypeDto.DIRECT_POST,
+                null,
                 null,
                 null
         );

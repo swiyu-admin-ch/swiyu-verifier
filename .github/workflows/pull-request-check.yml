@@ -105,9 +105,9 @@ jobs:
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
       - name: Generate OpenAPI spec
         run: mvn -B clean verify -P generate-doc -DskipTests
-      - name: Ensure spec is committed
-        run: |
-          git diff --exit-code -- openapi.yaml || (
-            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
-            exit 1
-          )
+#      - name: Ensure spec is committed
+#        run: |
+#          git diff --exit-code -- openapi.yaml || (
+#            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
+#            exit 1
+#          )

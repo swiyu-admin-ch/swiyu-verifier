@@ -187,7 +187,13 @@ On the base registry the public key is published. To generate the public key for
 | SIGNING_KEY_VERIFICATION_ENABLED  | Enables or disables the signing-key verification health check. Set to `false` when using dynamic key management without a statically configured `DID_VERIFICATION_METHOD`. When disabled (or when `DID_VERIFICATION_METHOD` is empty), the health check reports `UP` instead of `DOWN`. | bool             | true         |
 | CALLBACK_HEALTH_ENABLED           | Enables or disables the stale-callback health check.                                                                                                                                                       | bool             | true         |
 | STATUS_REGISTRY_HEALTH_ENABLED    | Enables or disables the status-registry accessibility health check.                                                                                                                                        | bool             | true         |
-| IDENTIFIER_REGISTRY_HEALTH_ENABLED| Enables or disables the identifier-registry DID-resolution health check.                                                                                                                                   | bool             | true         |
+| IDENTIFIER_REGISTRY_HEALTH_ENABLED| Enables or disables the identifier-registry DID-resolution health check.                                                                                                                   | bool             | true         |
+| SWIYU_TMS_AUTHORING_URL           | Base URL of the TMS B2B Authoring API (IF-014) used for On-the-Fly vqPS registration. If not set, the vqPS registration feature is disabled.                                               | URL              | none         |
+| SWIYU_TMS_OAUTH_TOKEN_URL         | OAuth2 token endpoint used to obtain an access token for the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                        | URL              | none         |
+| SWIYU_TMS_OAUTH_CLIENT_ID         | OAuth2 client ID for authenticating against the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                                     | string           | none         |
+| SWIYU_TMS_OAUTH_CLIENT_SECRET     | OAuth2 client secret for authenticating against the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                                 | string           | none         |
+| SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN | (Optional, secret) Initial OAuth2 refresh token for the TMS API. Rotated tokens are persisted in the `token_set` table and shared across pods.                                             | string            | none         |
+| SWIYU_TMS_TOKEN_REFRESH_INTERVAL  | Interval for proactive TMS access-token refreshes ([ISO 8601 duration](https://en.wikipedia.org/wiki/ISO_8601#Durations)). Must be shorter than the refresh-token lifetime.                | ISO-8601 duration | PT12H        |
 
 ### Kubernetes Vault Keys
 
@@ -196,6 +202,11 @@ On the base registry the public key is published. To generate the public key for
 | secret.db.username | Username to connect to the Verifier Database                                                     |
 | secret.db.password | Username to connect to the Verifier Database                                                     |
 | secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable |
+| secret.swiyu.trust-registry.tms-oauth-client-secret     | TMS OAuth2 client secret – alternative to `SWIYU_TMS_OAUTH_CLIENT_SECRET`.                  |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Initial TMS OAuth2 refresh token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`.      |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Initial TMS OAuth2 refresh token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`.      |
+| secret.swiyu.trust-registry.tms-oauth-client-secret   | OAuth2 client secret for the TMS B2B Authoring API – alternative to `SWIYU_TMS_OAUTH_CLIENT_SECRET`. |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Static OAuth2 refresh token used to bootstrap the first TMS access token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`. |
 
 ### HSM - Hardware Security Module
 
@@ -296,6 +307,27 @@ endpoint.
 What data is requested can be selected by adding in additional fields only containing "path".
 Filters are currently only supported for `$.vct` - the Verifiable Credential Type.
 In the following example we request to have the dateOfBirth revealed to us from a Credential with the type "test-sdjwt".
+
+#### Optional: vqPS Registration (Trust Protocol 2.0)
+
+If `SWIYU_TMS_AUTHORING_URL` is configured, you can optionally provide a `verification_purpose` object in the request body. The verifier will then automatically register (or reuse) a Verification Query Public Statement (vqPS) with the TMS and inject it into the signed Authorization Request sent to the wallet. This allows wallets to display a verified, human-readable purpose for the verification.
+
+```json
+{
+  "dcql_query": { ... },
+  "verification_purpose": {
+    "scope": "com.example.age_verification",
+    "purpose_name": {
+      "en": "Age Verification",
+      "de-CH": "Altersverifikation"
+    },
+    "purpose_description": {
+      "en": "We verify that you are of legal age.",
+      "de-CH": "Wir prüfen, ob Sie volljährig sind."
+    }
+  }
+}
+```
 
 ```json
 {

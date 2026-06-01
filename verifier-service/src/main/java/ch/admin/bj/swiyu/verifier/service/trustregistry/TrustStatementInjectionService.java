@@ -1,15 +1,21 @@
 package ch.admin.bj.swiyu.verifier.service.trustregistry;
 
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.VerifierInfoEntryDto;
+import com.nimbusds.jwt.JWTParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Injects Trust Protocol 2.0 trust statements into the JWT-Secured Authorization Request.
@@ -32,6 +38,7 @@ import java.util.List;
 @ConditionalOnBean(TrustStatementCacheService.class)
 public class TrustStatementInjectionService {
 
+    private final ApplicationProperties applicationProperties;
     private final TrustStatementCacheService trustStatementCacheService;
 
     /**
@@ -42,6 +49,13 @@ public class TrustStatementInjectionService {
      * fresh statement is fetched next time.
      */
     private final TrustStatementValidator trustStatementValidator;
+
+    /**
+     * Optional repository for persisted vqPS cache entries.
+     * When present and the management entity carries a vqPS scope, the corresponding
+     * vqPS JWT is injected into the {@code verifier_info} array.
+     */
+    private final Optional<VqpsRepository> vqpsCacheRepository;
 
     /**
      * Returns a new {@link RequestObjectDto} with the {@code verifier_info} array populated from
@@ -55,11 +69,15 @@ public class TrustStatementInjectionService {
      *                      per-management override into account)
      * @return a new {@link RequestObjectDto} instance with the {@code verifier_info} array set
      */
-    public RequestObjectDto injectVerifierInfo(RequestObjectDto requestObject, String verifierDid) {
+    public RequestObjectDto injectVerifierInfo(RequestObjectDto requestObject, String verifierDid, Management managementEntity) {
         List<VerifierInfoEntryDto> verifierInfo = new ArrayList<>();
 
-        injectIdentityTrustStatement(verifierInfo, verifierDid);
-        injectProtectedVerificationAuthorizationTrustStatements(verifierInfo, verifierDid);
+        var override = managementEntity.getConfigurationOverride();
+        var clientId = override.verifierDidOrDefault(applicationProperties.getClientId());
+
+        injectIdentityTrustStatement(verifierInfo, clientId);
+        injectProtectedVerificationAuthorizationTrustStatements(verifierInfo, clientId);
+        Optional<String> vqpsScope = injectVqPs(verifierInfo, managementEntity);
 
         if (verifierInfo.isEmpty()) {
             log.warn("No TP2.0 trust statements available – returning request object without verifier_info");
@@ -67,9 +85,18 @@ public class TrustStatementInjectionService {
         }
 
         log.debug("Injecting TP2.0 verifier_info for verifier {}: {} statement(s)", verifierDid, verifierInfo.size());
-        return requestObject.toBuilder()
-                .verifierInfo(verifierInfo)
-                .build();
+
+        var builder = requestObject.toBuilder().verifierInfo(verifierInfo);
+
+        // Per OID4VP spec: when a vqPS is present, the Authorization Request MUST use
+        // the scope parameter instead of dcql_query (they are mutually exclusive).
+        vqpsScope.ifPresent(scope -> {
+            builder.scope(scope);
+            builder.dcqlQuery(null);
+            log.debug("vqPS present – replacing dcql_query with scope={}", scope);
+        });
+
+        return builder.build();
     }
 
     /**
@@ -116,6 +143,69 @@ public class TrustStatementInjectionService {
             if (verifySignatureOrInvalidate(pvaTsJwt, "pvaTS", verifierDid)) {
                 verifierInfo.add(VerifierInfoEntryDto.ofJwt(pvaTsJwt));
             }
+        }
+    }
+
+    /**
+     * Looks up the persisted vqPS JWT for the scope stored on the management entity and,
+     * if found and still valid, appends it to the {@code verifier_info} list.
+     *
+     * <p>Per OID4VP + Trust Protocol 2.0: when a vqPS is injected, the Authorization Request
+     * MUST use {@code scope} instead of {@code dcql_query} (they are mutually exclusive).
+     * This method returns the scope so the caller can apply the substitution.</p>
+     *
+     * @param verifierInfo     the list to append to
+     * @param managementEntity the current verification session
+     * @return the vqPS scope if a valid vqPS was injected, {@link Optional#empty()} otherwise
+     */
+    private Optional<String> injectVqPs(List<VerifierInfoEntryDto> verifierInfo, Management managementEntity) {
+        String queryHash = managementEntity.getVqpsQueryHash();
+        if (queryHash == null) {
+            return Optional.empty();
+        }
+        if (vqpsCacheRepository.isEmpty()) {
+            log.debug("VqpsCacheRepository not available – skipping vqPS injection for hash={}", queryHash);
+            return Optional.empty();
+        }
+        var entry = vqpsCacheRepository.get().findById(queryHash);
+        if (entry.isEmpty()) {
+            log.warn("No vqPS found in DB for hash={} – skipping injection", queryHash);
+            return Optional.empty();
+        }
+        var vqps = entry.get();
+        if (!isVqPsValid(vqps.getJwt(), queryHash)) {
+            return Optional.empty();
+        }
+        verifierInfo.add(VerifierInfoEntryDto.ofJwt(vqps.getJwt()));
+        return Optional.ofNullable(vqps.getScope());
+    }
+
+    /**
+     * Validates a vqPS JWT before injection: signature against the configured TMS issuer DID
+     * (via the same {@link TrustStatementValidator} used for idTS/pvaTS) plus {@code exp}
+     * freshness against the current system clock.
+     *
+     * @param jwt       the compact-serialized vqPS JWT
+     * @param queryHash the cache PK – used in log messages
+     * @return {@code true} if the JWT is signature-valid and not expired; {@code false} otherwise
+     */
+    private boolean isVqPsValid(String jwt, String queryHash) {
+        try {
+            var expDate = JWTParser.parse(jwt).getJWTClaimsSet().getExpirationTime();
+            if (expDate == null || expDate.toInstant().isBefore(java.time.Instant.now())) {
+                log.warn("vqPS JWT for hash={} is missing or past exp – skipping injection", queryHash);
+                return false;
+            }
+        } catch (ParseException e) {
+            log.warn("vqPS JWT for hash={} is unparseable – skipping injection: {}", queryHash, e.getMessage());
+            return false;
+        }
+        try {
+            trustStatementValidator.validateSignature(jwt);
+            return true;
+        } catch (JwtValidatorException e) {
+            log.warn("vqPS signature verification failed for hash={} – skipping injection: {}", queryHash, e.getMessage());
+            return false;
         }
     }
 

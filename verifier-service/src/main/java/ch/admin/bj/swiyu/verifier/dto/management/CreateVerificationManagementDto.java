@@ -69,6 +69,14 @@ public record CreateVerificationManagementDto(
         @Valid
         @NotNull
         @JsonProperty("dcql_query")
-        DcqlQueryDto dcqlQuery
+        DcqlQueryDto dcqlQuery,
+
+        @Valid
+        @Nullable
+        @Schema(description = "Optional transparency metadata for registration at the TMS. " +
+                "When present, the verifier registers the DCQL query and injects the resulting vqPS " +
+                "into subsequent Authorization Requests.")
+        @JsonProperty("verification_purpose")
+        VerificationPurposeDto verificationPurpose
 ) {
 }

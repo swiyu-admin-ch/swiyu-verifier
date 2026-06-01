@@ -135,7 +135,7 @@ public class RequestObjectService {
         // verifier_info array (idTS + pvaTS). The clientId already resolved in effectiveConfig
         // doubles as the verifier DID looked up in the trust registry.
         return trustStatementInjectionService
-                .map(svc -> svc.injectVerifierInfo(baseRequestObject, effectiveConfig.clientId()))
+                .map(svc -> svc.injectVerifierInfo(baseRequestObject, effectiveConfig.clientId(), managementEntity))
                 .orElse(baseRequestObject);
     }
 

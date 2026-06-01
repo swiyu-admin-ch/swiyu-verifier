@@ -853,6 +853,11 @@ components:
           example: {}
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
+        verification_purpose:
+          $ref: "#/components/schemas/VerificationPurpose"
+          description: "Optional transparency metadata for registration at the TMS.\
+            \ When present, the verifier registers the DCQL query and injects the\
+            \ resulting vqPS into subsequent Authorization Requests."
       required:
       - dcql_query
     ResponseModeType:
@@ -879,6 +884,34 @@ components:
       required:
       - did
       - trust_registry_uri
+    VerificationPurpose:
+      type: object
+      properties:
+        scope:
+          type: string
+          description: "Unique scope identifier for this specific query, e.g. 'com.example.age_verification'"
+          example: com.example.age_verification
+          minLength: 1
+        purpose_name:
+          type: object
+          additionalProperties:
+            type: string
+          description: Localized purpose names (max 50 chars per value). Key is language
+            tag (e.g. 'de-ch').
+          example:
+            de-ch: Altersverifikation
+          minProperties: 1
+        purpose_description:
+          type: object
+          additionalProperties:
+            type: string
+          description: Localized purpose descriptions (max 500 chars per value). Key
+            is language tag (e.g. 'de-ch').
+          minProperties: 1
+      required:
+      - purpose_description
+      - purpose_name
+      - scope
     JWKSet:
       type: object
       properties:

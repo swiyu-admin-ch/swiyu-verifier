@@ -71,7 +71,8 @@ class CreateVerificationManagementValidatorTest {
                 null, // jwtSecuredAuthorizationRequest
                 null, // responseMode
                 null, // configuration_override
-                dcqlQuery
+                dcqlQuery,
+                null
         );
     }
 

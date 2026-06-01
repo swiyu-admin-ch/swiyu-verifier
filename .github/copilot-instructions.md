@@ -15,19 +15,21 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
 
 - **Primary Programming Language**
     - **Java 21** (defined via `java.version` in the parent `pom.xml`)
-    - **Kotlin runtime present** via `kotlin-stdlib`, but the repository is primarily Java-based
+    - **Kotlin runtime present** via `kotlin-stdlib` (required by the BBS signature library), but all application code is Java.
 
 - **Main Frameworks**
-    - **Spring Boot 3.4.x** (parent: `spring-boot-starter-parent` `3.4.12`)
+    - **Spring Boot 4.0.6** (parent: `spring-boot-starter-parent` `4.0.6`)
+    - **Spring Cloud 2025.1.1** (BOM via `spring-cloud-dependencies`)
     - **Spring Framework / Spring Ecosystem**, including:
         - Spring Web (`spring-boot-starter-web`)
-        - Spring WebFlux (`spring-boot-starter-webflux`)
         - Spring Security (`spring-boot-starter-security`)
         - Spring Validation (`spring-boot-starter-validation`)
         - Spring Data JPA (`spring-boot-starter-data-jpa`)
         - Spring Actuator (`spring-boot-starter-actuator`)
         - Spring OAuth2 Resource Server (`spring-boot-starter-oauth2-resource-server`)
-        - Spring Cloud Bootstrap (`spring-cloud-starter-bootstrap`)
+        - Spring Cloud Kubernetes Config (`spring-cloud-starter-kubernetes-fabric8-config`, in `verifier-application` only)
+        - Spring Cloud Bootstrap (`spring-cloud-starter-bootstrap`, in `verifier-application` only)
+        - Note: `spring-webflux` is pulled in transitively but the `spring-boot-starter-webflux` starter is **not** used — the web layer is Spring MVC.
 
 - **Persistence & Database**
     - **PostgreSQL** as the primary database (`org.postgresql:postgresql`)
@@ -48,12 +50,15 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
     - **Micrometer Tracing + Brave bridge** for tracing
     - **ShedLock** for scheduled task locking
     - **JsonPath** for JSON assertions and processing
-    - **DID / SWIYU-specific libraries**, including:
+    - **DID / SWIYU-specific libraries** (all under group `ch.admin.swiyu`, currently version `1.5.0`):
         - `swiyu-jws-signature-service`
         - `swiyu-did-resolver-adapter`
         - `swiyu-jwe-util`
         - `swiyu-jwt-util`
+        - `swiyu-jwt-validator`
         - `didresolver`
+        - `swiyu-ts-builder` (test scope only, used by `verifier-application` integration tests)
+    - **Kotlin runtime** (`kotlin-stdlib`) is required at runtime for the BBS signature library — both modules pull it in.
 
 - **Testing Frameworks & Test Utilities**
     - **JUnit 5** / Jupiter
@@ -164,10 +169,11 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
 
 - **Repository / Persistence Layer**
     - **Rule:** Persistence lives in the **domain module/package area**, not in controllers.
-    - **Rule:** Repository interfaces are currently located in:
-        - `ch.admin.bj.swiyu.verifier.domain.management`
-        - `ch.admin.bj.swiyu.verifier.domain.callback`
-    - **Examples:** `ManagementRepository`, `CallbackEventRepository`
+    - **Rule:** Repository interfaces are currently located under `verifier-service` in:
+        - `ch.admin.bj.swiyu.verifier.domain.management` — `ManagementRepository`
+        - `ch.admin.bj.swiyu.verifier.domain.callback` — `CallbackEventRepository`
+        - `ch.admin.bj.swiyu.verifier.domain.ecosystem` — `TokenSetRepository`
+        - `ch.admin.bj.swiyu.verifier.domain.vqps` — `VqpsRepository`
     - **Rule:** JPA entities and persistence-backed aggregates remain in `..domain..` packages.
 
 - **DTO Layer**
@@ -187,6 +193,8 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
         - `ch.admin.bj.swiyu.verifier.domain.management.dcql`
         - `ch.admin.bj.swiyu.verifier.domain.statuslist`
         - `ch.admin.bj.swiyu.verifier.domain.callback`
+        - `ch.admin.bj.swiyu.verifier.domain.ecosystem`
+        - `ch.admin.bj.swiyu.verifier.domain.vqps`
     - **Rule:** Domain classes represent business concepts and rules, not HTTP or infrastructure concerns.
 
 - **Shared / Common Layer**
@@ -210,13 +218,14 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
 - **Rule:** Repository access must happen from the service/domain side, not from the web layer.
 - **Rule:** Do not introduce dependencies from `verifier-service` to `verifier-application`.
 
-- **Rule:** Respect the repository’s existing ArchUnit constraints:
+- **Rule:** Respect the repository’s existing ArchUnit constraints (see `ArchitectureTest` in `verifier-service` and `RestControllerHaveIFTagArchTest` in `verifier-application`):
     - no cycles between slices/packages
     - no field injection
     - Spring services/components must be stateless and use final dependencies
     - `@RestController` classes must live in `..web..` and end with `Controller`
     - `@Service` classes must live in `..service..` and end with `Service`
     - repositories belong in `..domain..`
+    - every `@RestController` must carry a `@Tag` annotation with a unique `IF-xxx` interface code in its name (enforced for the public API documentation)
 
 - **Guideline:** The service module already enforces a layered design with ArchUnit, especially around `domain`, `service`, `dto`, and `common`. New code must align with these boundaries instead of bypassing them.
 
@@ -224,12 +233,11 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
 
 - **Rule:** Mapping between HTTP/API DTOs, service models, and domain objects is done with **explicit mapper classes**, not with ad-hoc conversion inside controllers.
 - **Rule:** Prefer the existing manual mapping approach used in classes such as:
-    - `ManagementMapper`
-    - `DcqlMapper`
-    - `VerificationMapper`
-    - `RequestObjectMapper`
-    - `CallbackMapper`
-    - `VerificationPresentationMapper`
+    - `ManagementMapper` (in `..service.management`)
+    - `DcqlMapper` (in `..service.management`)
+    - `VerificationMapper` (in `..service.oid4vp`)
+    - `CallbackMapper` (in `..service.callback`)
+    - `VerificationPresentationMapper` (in `..dto`)
 - **Rule:** Do **not** introduce MapStruct unless explicitly requested. No MapStruct-based mapping was found in the current repository.
 - **Guideline:** Some mapping and normalization uses Jackson `ObjectMapper` internally where JSON transformation is part of the contract. Keep that logic centralized in dedicated mapper/resolver classes.
 

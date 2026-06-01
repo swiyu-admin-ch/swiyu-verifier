@@ -1,6 +1,9 @@
 package ch.admin.bj.swiyu.verifier.service.trustregistry;
 
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
+import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -13,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,6 +37,7 @@ class TrustStatementInjectionServiceTest {
     private TrustStatementCacheService cacheService;
     private TrustStatementValidator validator;
     private TrustStatementInjectionService injectionService;
+    private Management managementEntity;
 
     @BeforeEach
     void setUp() {
@@ -41,7 +46,17 @@ class TrustStatementInjectionServiceTest {
         // no-op signatures by default
         doNothing().when(validator).validateSignature(anyString());
 
-        injectionService = new TrustStatementInjectionService(cacheService, validator);
+        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
+        when(applicationProperties.getClientId()).thenReturn(VERIFIER_DID);
+
+        managementEntity = mock(Management.class);
+        ConfigurationOverride override = mock(ConfigurationOverride.class);
+        when(managementEntity.getConfigurationOverride()).thenReturn(override);
+        when(override.verifierDidOrDefault(anyString())).thenReturn(VERIFIER_DID);
+        when(managementEntity.getVqpsQueryHash()).thenReturn(null);
+
+        injectionService = new TrustStatementInjectionService(
+                applicationProperties, cacheService, validator, Optional.empty());
     }
 
     // --- pvaTS selection tests ---
@@ -60,7 +75,7 @@ class TrustStatementInjectionServiceTest {
 
         RequestObjectDto base = RequestObjectDto.builder().build();
 
-        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID);
+        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID, managementEntity);
 
         assertThat(result.getVerifierInfo()).hasSize(4) // idTS + all 3 pvaTS
                 .anySatisfy(entry -> assertThat(entry.getData()).isEqualTo(idTs))
@@ -75,7 +90,7 @@ class TrustStatementInjectionServiceTest {
         when(cacheService.getIdentityTrustStatement(VERIFIER_DID)).thenReturn(idTs);
         when(cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID)).thenReturn(List.of());
 
-        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID);
+        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID, managementEntity);
 
         assertThat(result.getVerifierInfo()).hasSize(1);
         assertThat(result.getVerifierInfo().getFirst().getData()).isEqualTo(idTs);
@@ -94,7 +109,7 @@ class TrustStatementInjectionServiceTest {
         doNothing().when(validator).validateSignature(eq(idTs));
         doThrow(new JwtValidatorException("bad sig")).when(validator).validateSignature(eq(pvaTsPAN));
 
-        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID);
+        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID, managementEntity);
 
         // idTS injected, pvaTS skipped
         assertThat(result.getVerifierInfo()).hasSize(1);
@@ -110,7 +125,7 @@ class TrustStatementInjectionServiceTest {
         doThrow(new JwtValidatorException("bad sig")).when(validator).validateSignature(eq(idTs));
 
         RequestObjectDto base = RequestObjectDto.builder().build();
-        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID);
+        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID, managementEntity);
 
         assertThat(result.getVerifierInfo()).isNull();
         verify(cacheService).invalidateAllTrustStatements(VERIFIER_DID);
@@ -126,7 +141,7 @@ class TrustStatementInjectionServiceTest {
         when(cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID))
                 .thenReturn(List.of(pvaTsNoFields));
 
-        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID);
+        RequestObjectDto result = injectionService.injectVerifierInfo(RequestObjectDto.builder().build(), VERIFIER_DID, managementEntity);
 
         assertThat(result.getVerifierInfo()).hasSize(2);
     }
@@ -137,7 +152,7 @@ class TrustStatementInjectionServiceTest {
         when(cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID)).thenReturn(List.of());
 
         RequestObjectDto base = RequestObjectDto.builder().clientId("test").build();
-        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID);
+        RequestObjectDto result = injectionService.injectVerifierInfo(base, VERIFIER_DID, managementEntity);
 
         assertThat(result).isSameAs(base);
     }

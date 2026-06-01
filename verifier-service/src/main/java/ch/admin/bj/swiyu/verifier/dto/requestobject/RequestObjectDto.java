@@ -71,10 +71,25 @@ public class RequestObjectDto {
         description = """
             DCQL query object as an Authorization Request parameter.
             This field is used for requests initiated with the DCQL format and contains the Digital Credentials Query Language (DCQL) query.
+            Mutually exclusive with the {@code scope} parameter: only one of the two may be present.
             """,
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
     private DcqlQueryDto dcqlQuery;
+
+    /**
+     * OAuth2 scope parameter. When a vqPS is present in {@code verifier_info}, this field
+     * MUST be set to the scope registered in the vqPS and {@code dcql_query} MUST be omitted.
+     * Mutually exclusive with {@code dcql_query}.
+     */
+    @JsonProperty("scope")
+    @Schema(description = """
+            OAuth2 scope value identifying the DCQL query registered in the vqPS.
+            MUST be present when a vqPS is injected into verifier_info.
+            Mutually exclusive with dcql_query.
+            """,
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    private String scope;
 
     @JsonProperty("client_metadata")
     @Schema(description = "A JSON object containing the Verifier metadata values providing further information about the verifier, such as name and logo. It is UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter is present.",

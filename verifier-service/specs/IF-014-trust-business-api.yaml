@@ -1,0 +1,1007 @@
+openapi: 3.1.0
+info:
+  title: Business Trust API
+  description: IF-014 - B2B Trust API.
+  version: 3.30.0-SNAPSHOT
+servers:
+  - url: https://swiyu-core-business-service-r.apps.p-szb-ros-shrd-npr-01.cloud.admin.ch
+    description: Generated server url
+security:
+  - OIDC: []
+    bearer-jwt: []
+tags:
+  - name: TrustAddDidsSubmission B2B
+    description: TrustAddDidsSubmission B2B API
+  - name: VcSchemaSubmission B2B
+    description: VcSchemaSubmission B2B API
+  - name: TrustOnboardingSubmission B2B
+    description: TrustOnboardingSubmission B2B API
+  - name: VqpsSubmission B2B
+    description: Verification Query Public Statement Submission B2B API
+paths:
+  /api/v1/trust/vqps-submissions:
+    get:
+      tags:
+        - VqpsSubmission B2B
+      summary: Get all VqpsSubmissions for a partner
+      operationId: getVqpsSubmissions
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: "Sorting criteria in the format: property,(asc|desc). Default sort
+            order is ascending. Multiple sort criteria are supported."
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedModelVqpsSubmission"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VqpsSubmission"
+        "500":
+          description: Internal Server Error
+    post:
+      tags:
+        - VqpsSubmission B2B
+      summary: "Request a new VQPS publication into the Trust Registry by submitting a
+        VqpsSubmission and waits for the publication into the trust registry. "
+      operationId: createVqpsSubmission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VqpsSubmissionCreateRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VqpsSubmission"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VqpsSubmission"
+        "500":
+          description: Internal Server Error
+  /api/v1/trust/vc-schema-submissions:
+    get:
+      tags:
+        - VcSchemaSubmission B2B
+      summary: Get all VcSchemaSubmissions for partner.
+      operationId: getVcSchemaSubmissions
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: "Sorting criteria in the format: property,(asc|desc). Default sort
+            order is ascending. Multiple sort criteria are supported."
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageVcSchemaSubmission"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+    post:
+      tags:
+        - VcSchemaSubmission B2B
+      operationId: createVcSchemaSubmission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVcMetadata"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VcSchemaSubmission"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+  /api/v1/trust/trust-onboarding-submission/proof-of-possessions:
+    get:
+      tags:
+        - TrustOnboardingSubmission B2B
+      summary: Get all proof of possessions for the current pending trust onboarding
+        submission of the partner.
+      operationId: getProofOfPossessions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProofOfPossession"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+    post:
+      tags:
+        - TrustOnboardingSubmission B2B
+      summary: Upload ALL proof of possessions for a pending trust onboarding
+        submission of the partner. The proofs are generated with the didtoolbox
+      operationId: submitProofOfPossessions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProofOfPossessionSubmission"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrustOnboardingSubmission"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+  /api/v1/trust/trust-add-dids-submissions:
+    post:
+      tags:
+        - TrustAddDidsSubmission B2B
+      summary: Create a new submission to add additional DIDs to a trusted partner
+      operationId: createSubmission
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrustAdditionalDidsSubmissionCreateRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrustAdditionalDidsSubmissionResponseDto"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+  /api/v1/trust/trust-add-dids-submissions/{trustAddDidsSubmissionId}:
+    get:
+      tags:
+        - TrustAddDidsSubmission B2B
+      summary: Get a trust add-DIDs submission by ID
+      operationId: getSubmission
+      parameters:
+        - name: trustAddDidsSubmissionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrustAdditionalDidsSubmissionResponseDto"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+    post:
+      tags:
+        - TrustAddDidsSubmission B2B
+      summary: Submit proofs of possession for the submission
+      operationId: submitWithProofsOfPossession
+      parameters:
+        - name: trustAddDidsSubmissionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrustAdditionalDidsSubmissionUpdateRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrustAdditionalDidsSubmissionResponseDto"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+  /api/v1/trust/vqps-submissions/{id}:
+    get:
+      tags:
+        - VqpsSubmission B2B
+      summary: Get a VqpsSubmission by id
+      operationId: getVqpsSubmission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VqpsSubmission"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VqpsSubmission"
+        "500":
+          description: Internal Server Error
+  /api/v1/trust/vc-schema-submissions/{id}:
+    get:
+      tags:
+        - VcSchemaSubmission B2B
+      operationId: getVcSchemaSubmission
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VcSchemaSubmission"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+components:
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        errorCode:
+          $ref: "#/components/schemas/ApiErrorCode"
+        message:
+          type: string
+        additionalDetails:
+          type: array
+          items:
+            type: string
+    ApiErrorCode:
+      type: string
+      description: |2
+               | Value                                       | Description                                                                           |
+               | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+               | data_invalid                                | Indicates that the given data was invalid in syntax or semantic.                      |
+               | data_invalid_virus_detected                 | Indicates that the given data contains a virus.                                       |
+               | resource_not_found                          | Indicates that the requested data was not found in the given context.                 |
+               | resource_forbidden                          | Indicates that the requested data is not available with the permissions used.         |
+               | action_forbidden                            | Indicates that the requested action could not be processed with the permissions used. |
+               | partner_is_not_governmental                 | Indicates that the partner is not governmental.                                       |
+               | business_data_integrity_violation           | Indicates that a business data integrity violation occurred.                          |
+               | crypto_integrity_validation_failed          | Indicates that the crypto integrity validation failed.                                |
+               | did_resolve_failed                          | Indicates that the DID resolution failed.                                             |
+               | document_not_found                          | Indicates that the document was not found.                                            |
+               | identifier_validation_failed                | Indicates that the identifier validation failed.                                      |
+               | invalid_pagination                          | Indicates that the pagination parameters are invalid.                                 |
+               | max_size_exceeded                           | Indicates that the maximum size was exceeded.                                         |
+               | object_count_limit_reached                  | Indicates that the object count limit was reached.                                    |
+               | status_list_validation_failed               | Indicates that the status list validation failed.                                     |
+               | trust_onboarding_document_validation_failed | Indicates that the trust onboarding document validation failed.                       |
+               | vc_schema_submission_not_found              | Indicates that the VC schema submission was not found.                                |
+               | vc_type_metadata_validation_failed          | Indicates that the VC type metadata validation failed.                                |
+      enum:
+        - data_invalid
+        - data_invalid_virus_detected
+        - resource_not_found
+        - resource_forbidden
+        - action_forbidden
+        - partner_is_not_governmental
+        - business_data_integrity_violation
+        - crypto_integrity_validation_failed
+        - did_resolve_failed
+        - document_not_found
+        - identifier_validation_failed
+        - invalid_pagination
+        - max_size_exceeded
+        - object_count_limit_reached
+        - status_list_validation_failed
+        - trust_onboarding_document_validation_failed
+        - vc_schema_submission_not_found
+        - vc_type_metadata_validation_failed
+        - vqps_publication_failed
+        - vqps_publication_wait_timeout
+    VqpsPublicationFailureReason:
+      type: string
+      enum:
+        - UNKNOWN
+    VqpsPublicationResult:
+      type: object
+      description: Result of a VQPS publication process, containing the published JWT
+        and its metadata.
+      properties:
+        jti:
+          type: string
+          description: JSON Web Token Identifier, a UUIDv4 provided by the statement
+            issuer to facilitate easier matching in cross reference documents
+            like the verifiers metadata. This is the same as in the jti claim of
+            the vqpsJwt.
+          example: f8a8ced4-d11e-4a05-ac76-57f95eba36cd
+          minLength: 1
+        jwt:
+          type: string
+          description: The Verification Query Public Statement (base64Url encoded signed
+            JWT) as it was published in the trust registry
+          example: eyJhbGciOiJFUzI1NiIsInR5cCI6InN3aXl1LXZlcmlmaWNhdGlvbi1xdWVyeS1wdWJsaWMtc3RhdGVtZW50K2p3dCIsImtpZCI6ImRpZDpleGFtcGxlOnZlcmlmaWNhdGlvbi1zdGF0bWVudC1pc3N1ZXIja2V5LTEiLCJwcm9maWxlX3ZlcnNpb24iOiJzd2lzcy1wcm9maWxlLXRydXN0OjEuMC4wIn0.eyJqdGkiOiIwN2YyODlkNS04YjFmLTQ2MDQtYmY3Mi01M2JkY2I3MWVlMDUiLCJzdWIiOiJkaWQ6ZXhhbXBsZTp2ZXJpZmllciIsImlhdCI6MTY5MDM2MDk2OCwiZXhwIjoxNzUzNDMyOTY4LCJwdXJwb3NlX25hbWUiOiJiZWlzcGllbCBhYmZyYWdlIiwicHVycG9zZV9uYW1lI2RlLWNoIjoiYmVpc3BpZWwgYWJmcmFnZSIsInB1cnBvc2VfZGVzY3JpcHRpb24iOiJmcmFnZSBhYiB6dW0gYmVpc3BpZWwiLCJwdXJwb3NlX2Rlc2NyaXB0aW9uI2RlLWNoIjoiZnJhZ2UgYWIgenVtIGJlaXNwaWVsIiwicmVxdWVzdCI6eyJ0eXBlIjoiRENRTCIsInNjb3BlIjoiY29tLmV4YW1wbGUuaWRlbnRpdHlDYXJkQ3JlZGVudGlhbF9wcmVzZW50YXRpb24iLCJxdWVyeSI6eyJjcmVkZW50aWFscyI6W3siaWQiOiJteV9jcmVkZW50aWFsIiwiZm9ybWF0IjoiZGMrc2Qtand0IiwibWV0YSI6eyJ2Y3RfdmFsdWVzIjpbImh0dHBzOi8vY3JlZGVudGlhbHMuZXhhbXBsZS5jb20vaWRlbnRpdHlfY3JlZGVudGlhbCJdfSwiY2xhaW1zIjpbeyJwYXRoIjpbImxhc3RfbmFtZSJdfV19XX19fQ.<signature>
+          minLength: 1
+        expiresAt:
+          type: string
+          format: date-time
+          description: Expiry of validity time. This is the same as in the jti claim of
+            the vqpsJwt.
+      required:
+        - expiresAt
+        - jti
+        - jwt
+    VqpsSubmission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        partnerId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          format: int64
+        status:
+          $ref: "#/components/schemas/VqpsSubmissionStatus"
+        publicationResult:
+          $ref: "#/components/schemas/VqpsPublicationResult"
+          description: The publication result, only present when in status
+            PUBLICATION_SUCCEEDED
+        publicationFailureReason:
+          $ref: "#/components/schemas/VqpsPublicationFailureReason"
+          description: The failure reason, only present when in status PUBLICATION_FAILED
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-10-29T09:35:16.809924Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-10-29T09:35:16.809924Z
+      required:
+        - createdAt
+        - id
+        - partnerId
+        - status
+        - updatedAt
+        - version
+    VqpsSubmissionStatus:
+      type: string
+      enum:
+        - ACCEPTED
+        - PUBLICATION_SUCCEEDED
+        - PUBLICATION_FAILED
+    JsonNode: {}
+    VqpsSubmissionCreateRequest:
+      type: object
+      properties:
+        waitForPublication:
+          type: boolean
+          default: true
+          description: Whether to wait for the publication result in the response. If
+            false, the response will be returned immediately after the
+            submission is created, without waiting for the publication result.
+            If true, the response will be returned only after the publication to
+            the trust registry has succeeded, failed  or a timeout occurs.
+          example: true
+        sub:
+          type: string
+          description: identifier of the verifier in a format defined in the
+            swiss-profile-anchor 1.0
+          example: did:tdw:DEADBEEF0000000000000000000000000000000000000000000000000000000000000000000000000000000000000:identifier-data-service-d.bit.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000
+        purpose_name:
+          type: object
+          additionalProperties:
+            type: string
+          description: Name of the purpose (max 40 chars)
+          example:
+            default: Purpose name
+            de: Zweckname
+            fr: Nom de l'objectif
+        purpose_description:
+          type: object
+          additionalProperties:
+            type: string
+          description: Description of the purpose (max 1000 chars)
+          example:
+            default: This purpose allows verification of identity
+            de: Dieser Zweck ermöglicht die Identitätsprüfung
+            fr: Cet objectif permet la vérification d'identité
+        scope:
+          type: string
+          description: a string in accordance to the "scope" parameter defined in OpenID4VP.
+        query:
+          $ref: "#/components/schemas/JsonNode"
+          description: The DCQL query
+          example:
+            credentials:
+              - id: some_identity_credential
+                format: dc+sd-jwt
+                meta:
+                  vct_values:
+                    - https://credentials.example.com/identity_credential
+                claims:
+                  - path:
+                      - last_name
+                  - path:
+                      - first_name
+      required:
+        - purpose_description
+        - purpose_name
+        - query
+        - scope
+        - sub
+        - waitForPublication
+    CreateVcMetadata:
+      type: object
+      properties:
+        vcTypeMetadata:
+          type: string
+          description: JSON of VcMetadataType in String format.
+          example: |-
+            {
+                "vct": "https://registry-url.ch/eid-v1",
+                "name": "XYZ Credential",
+                "description": "",
+                "extends": "",
+                "extends#integrity": "",
+                "schema_uri": "https://url-to-json-schema-which-defines-type"
+            }
+          minLength: 1
+      required:
+        - vcTypeMetadata
+    VcSchemaSubmission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          minLength: 1
+        partnerId:
+          type: string
+          format: uuid
+          minLength: 1
+        version:
+          type: integer
+          format: int64
+        status:
+          $ref: "#/components/schemas/VcSchemaSubmissionStatus"
+        file:
+          type: string
+          minLength: 1
+        failureReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-10-29T09:35:16.809924Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-10-29T09:35:16.809924Z
+      required:
+        - createdAt
+        - file
+        - id
+        - partnerId
+        - status
+        - updatedAt
+        - version
+    VcSchemaSubmissionStatus:
+      type: string
+      enum:
+        - ACCEPTED
+        - SUCCEEDED
+        - FAILED
+    ProofOfPossessionSubmission:
+      type: object
+      properties:
+        proofOfPossessions:
+          type: array
+          items:
+            type: string
+      required:
+        - proofOfPossessions
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+          minLength: 1
+        postalCode:
+          type: string
+          minLength: 1
+          pattern: ^[1-9]\d{3}$
+        country:
+          type: string
+          minLength: 1
+        region:
+          type: string
+      required:
+        - city
+        - country
+        - postalCode
+    BusinessPartnerType:
+      type: string
+      description: >
+        | Value                        |
+        Description                                                   |
+
+        | ---------------------------- |
+        ------------------------------------------------------------- |
+
+        | GOVERNMENTAL_INSTITUTION     | Governmental institutions like JPD or
+        ASTRA                   |
+
+        | BUSINESS                     | Business entities and
+        corporations                            |
+
+        | INDIVIDUAL                   | Individual
+        persons                                            |
+
+        | UNKNOWN                      | Unknown type (legacy partners, will be
+        classified)            |
+      enum:
+        - GOVERNMENTAL_INSTITUTION
+        - BUSINESS
+        - INDIVIDUAL
+        - UNKNOWN
+    Contact:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+        lastName:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+          minLength: 1
+        address:
+          $ref: "#/components/schemas/Address"
+      required:
+        - email
+        - firstName
+        - lastName
+        - phone
+    Language:
+      type: string
+      enum:
+        - EN
+        - DE
+        - FR
+        - IT
+        - RM
+    MultiLanguageText:
+      type: object
+      properties:
+        de:
+          type: string
+        fr:
+          type: string
+        it:
+          type: string
+        en:
+          type: string
+        rm:
+          type: string
+    ProofOfPossession:
+      type: object
+      properties:
+        did:
+          type: string
+          minLength: 1
+        nonce:
+          type: string
+          minLength: 1
+        status:
+          $ref: "#/components/schemas/ProofOfPossessionStatus"
+        verifiedAt:
+          type: string
+          format: date-time
+      required:
+        - did
+        - nonce
+        - status
+    ProofOfPossessionStatus:
+      type: string
+      enum:
+        - VALID
+        - NOT_SUPPLIED
+    Signatory:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+        lastName:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          minLength: 1
+          pattern: ^[a-zA-Z0-9.!#$%&'*+=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$
+      required:
+        - email
+        - firstName
+        - lastName
+        - phone
+    SigningRule:
+      type: string
+      enum:
+        - SINGLE_SIGNATURE
+        - JOINT_SIGNATURE_TWO
+        - JOINT_SIGNATURE_THREE
+    TrustOnboardingSubmission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        partnerId:
+          type: string
+          format: uuid
+        entityName:
+          $ref: "#/components/schemas/MultiLanguageText"
+        entityEmail:
+          type: string
+        address:
+          $ref: "#/components/schemas/Address"
+        contactPerson:
+          $ref: "#/components/schemas/Contact"
+        version:
+          type: integer
+          format: int64
+        status:
+          $ref: "#/components/schemas/TrustOnboardingSubmissionStatus"
+        proofOfPossessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProofOfPossession"
+        businessPartnerType:
+          $ref: "#/components/schemas/BusinessPartnerType"
+          description: Type of business partner
+        signingRule:
+          $ref: "#/components/schemas/SigningRule"
+          description: The rule how it can be signed, null for INDIVIDUAL business partner
+            type
+        signatories:
+          type: array
+          description: The required signatories, null or empty for INDIVIDUAL business
+            partner type
+          items:
+            $ref: "#/components/schemas/Signatory"
+        registryIds:
+          type: object
+          additionalProperties:
+            type: string
+        isRegisteredInCommercialRegister:
+          type: boolean
+          description: Whether or not the entity is registered in the commercial register
+        rejectionReason:
+          type: string
+        declineReason:
+          type: string
+        partnerNote:
+          type: string
+        correspondingLanguage:
+          $ref: "#/components/schemas/Language"
+        submittedAt:
+          type: string
+          format: date-time
+          example: 2024-10-29T09:35:16.809924Z
+        initiatedAt:
+          type: string
+          format: date-time
+          example: 2024-10-29T09:35:16.809924Z
+        createdAt:
+          type: string
+          format: date-time
+          example: 2024-10-29T09:35:16.809924Z
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2024-10-29T09:35:16.809924Z
+      required:
+        - address
+        - contactPerson
+        - createdAt
+        - entityEmail
+        - entityName
+        - id
+        - partnerId
+        - proofOfPossessions
+        - registryIds
+        - status
+        - updatedAt
+        - version
+    TrustOnboardingSubmissionStatus:
+      type: string
+      enum:
+        - UNSUBMITTED
+        - SUBMITTED
+        - SUCCEEDED
+        - REJECTED
+        - INFORMATION_REQUESTED
+    TrustAdditionalDidsSubmissionCreateRequestDto:
+      type: object
+      properties:
+        permissionDid:
+          type: string
+          minLength: 1
+        didsToAdd:
+          type: array
+          items:
+            type: string
+      required:
+        - didsToAdd
+        - permissionDid
+    TrustAdditionalDidsSubmissionResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nonce:
+          type: string
+          format: uuid
+        permissionDid:
+          type: string
+        didsToAdd:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum:
+            - UNSUBMITTED
+            - UNSUBMITTED_TIMEOUT
+            - SUBMITTED
+            - SUCCEEDED
+            - REJECTED
+      required:
+        - didsToAdd
+        - id
+        - nonce
+        - permissionDid
+        - status
+    TrustAdditionalDidsSubmissionUpdateRequestDto:
+      type: object
+      properties:
+        proofOfPossessions:
+          type: array
+          items:
+            type: string
+      required:
+        - proofOfPossessions
+    PageMetadata:
+      type: object
+      properties:
+        size:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          format: int64
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int64
+    PagedModelVqpsSubmission:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/VqpsSubmission"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    PageVcSchemaSubmission:
+      type: object
+      properties:
+        totalPages:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/VcSchemaSubmission"
+        number:
+          type: integer
+          format: int32
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
+        numberOfElements:
+          type: integer
+          format: int32
+        empty:
+          type: boolean
+    PageableObject:
+      type: object
+      properties:
+        offset:
+          type: integer
+          format: int64
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        paged:
+          type: boolean
+        pageNumber:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        unpaged:
+          type: boolean
+    SortObject:
+      type: object
+      properties:
+        empty:
+          type: boolean
+        sorted:
+          type: boolean
+        unsorted:
+          type: boolean
+  securitySchemes:
+    bearer-jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: jwt
+    prometheus:
+      type: http
+      scheme: basic
+    OIDC:
+      type: openIdConnect
+      description: OAuth2-Authentication
+      openIdConnectUrl: https://swiyu-oauth-mock-server-d.apps.p-szb-ros-shrd-npr-01.cloud.admin.ch/.well-known/openid-configuration

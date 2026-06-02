@@ -1,24 +1,27 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
-
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# Dependabot version update configuration.
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Update strategy:
+#   • Weekly patch + minor updates are automated via Dependabot (label: patch-minor).
+#   • Major updates are intentionally excluded here and must be applied manually,
+#     because they carry breaking-change risk and require deliberate review.
 
 version: 2
 updates:
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # Maven – Weekly: patch + minor only
+  # ════════════════════════════════════════════════════════════════════════════
   - package-ecosystem: "maven"
-    # Use the Maven multi-module root only; Dependabot scans child pom.xml files recursively.
     directory: "/"
     schedule:
       interval: "weekly"
+    labels:
+      - "dependencies"
+      - "patch-minor"
+    commit-message:
+      prefix: "chore(deps)"
     groups:
-      # Spring ecosystem updates (Boot/Framework/Cloud/Statemachine/SpringDoc + embedded servers).
-      # Keep major updates separate for manual review of potentially breaking framework changes.
       spring:
         patterns:
           - "org.springframework*"
@@ -26,26 +29,25 @@ updates:
           - "org.apache.tomcat.embed*"
           - "org.eclipse.jetty*"
           - "io.undertow*"
-        update-types:
-          - "patch"
-          - "minor"
+        update-types: ["patch", "minor"]
 
-      # Internal SWIYU libraries and modules (both published libs and project-internal artifacts).
+      # Internal swiyu / Swiss e-ID libraries – all update types (no major-version risk gate)
       swiyu:
         patterns:
           - "ch.admin*"
           - "io.github.swiyu*"
 
-      # Security-relevant crypto/JWT stack, isolated for dedicated review.
       cryptography:
+        # Auth/encryption libs – silent API breaks possible; kept in their own PR
         patterns:
           - "com.nimbusds*"
           - "org.bouncycastle*"
           - "com.authlete*"
           - "io.jsonwebtoken*"
+        update-types: ["patch", "minor"]
 
-      # Runtime infrastructure: database, ORM/migrations, networking, logging, observability.
       infrastructure:
+        # DB drivers, migrations, networking, observability
         patterns:
           - "org.postgresql*"
           - "com.mysql*"
@@ -62,14 +64,48 @@ updates:
           - "io.micrometer*"
           - "io.prometheus*"
           - "io.zipkin.brave*"
+        update-types: ["patch", "minor"]
 
-      # Everything else (tests, build tooling, processors, caching, scheduling, utilities, helpers).
-      # "*" ensures no Maven dependency or plugin update remains ungrouped.
       tooling:
+        # Tests, build plugins, processors, utilities – catch-all
         patterns:
           - "*"
+        update-types: ["patch", "minor"]
 
+  # ════════════════════════════════════════════════════════════════════════════
+  # Docker – Weekly: patch + minor only
+  # ════════════════════════════════════════════════════════════════════════════
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "patch-minor"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      docker:
+        patterns:
+          - "*"
+        update-types: ["patch", "minor"]
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # GitHub Actions – Weekly: patch + minor only
+  # ════════════════════════════════════════════════════════════════════════════
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "patch-minor"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types: ["patch", "minor"]

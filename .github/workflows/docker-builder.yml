@@ -74,7 +74,7 @@ jobs:
 
       - name: Extract metadata (hardened, default)
         id: meta-dhi
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           # Disable latest tag
@@ -101,7 +101,7 @@ jobs:
 
       - name: Extract metadata (unhardened)
         id: meta-unhardened
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |

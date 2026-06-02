@@ -1,0 +1,76 @@
+# Example: HSM-backed signing via the JDK-bundled SunPKCS11 provider.
+#
+# Layered on top of the published hardened swiyu-verifier image. SunPKCS11 is
+# part of the JDK, so no vendor JCE JAR is required — but the verifier still
+# needs (a) the vendor PKCS#11 native library (.so), (b) any C-runtime libs the
+# vendor .so transitively depends on, and (c) a Sun PKCS#11 config file. The
+# hardened base image strips most of (b), so we re-hydrate those libs here.
+#
+# At deployment time set:
+#   SIGNING_KEY_MANAGEMENT_METHOD=pkcs11
+#   HSM_CONFIG_PATH=/app/hsm/pkcs11.cfg
+#   HSM_USER_PIN=<pin to unlock the HSM slot>
+#   HSM_KEY_ID=<key label / alias / id>
+#   HSM_KEY_PIN=<optional per-key pin>
+#
+# The example uses SoftHSM2 as a stand-in vendor module for testing. Replace
+# `libsofthsm2` with your actual HSM client package (Thales/Luna Cryptoki,
+# nCipher, AWS CloudHSM, …) and adjust pkcs11.cfg accordingly.
+
+ARG VERIFIER_IMAGE=ghcr.io/swiyu-admin-ch/swiyu-verifier:3.0.0
+
+# Stage 1: stage the vendor PKCS#11 .so plus its transitive system libs.
+# Use `ldd path/to/vendor.so` on a Debian 13 host to discover what your vendor
+# library actually needs and extend the apt-get line accordingly.
+FROM debian:13-slim AS hsm-libs
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libssl3 \
+        libgssapi-krb5-2 \
+        libkrb5-3 \
+        libsofthsm2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# If your vendor library ships as a tarball rather than a Debian package, COPY
+# it explicitly instead, for example:
+#   COPY thales/libCryptoki2_64.so /vendor/libCryptoki2_64.so
+
+# Stage 2: layer onto the hardened verifier image.
+FROM ${VERIFIER_IMAGE}
+USER 0
+
+# Drop the libs into /app/lib-native, which the verifier image already exposes
+# via LD_LIBRARY_PATH. The dynamic linker will pick them up from there.
+COPY --from=hsm-libs /usr/lib/x86_64-linux-gnu/libssl.so.3            /app/lib-native/
+COPY --from=hsm-libs /usr/lib/x86_64-linux-gnu/libcrypto.so.3         /app/lib-native/
+COPY --from=hsm-libs /usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2    /app/lib-native/
+COPY --from=hsm-libs /usr/lib/x86_64-linux-gnu/libkrb5.so.3           /app/lib-native/
+COPY --from=hsm-libs /usr/lib/softhsm/libsofthsm2.so                  /app/lib-native/libsofthsm2.so
+
+# Sun PKCS#11 config. `library = …` must match the .so path placed above.
+# See pkcs11.cfg.example in this directory for a starting template.
+COPY examples/hsm/pkcs11.cfg.example /app/hsm/pkcs11.cfg
+
+# CA certificates: the base swiyu-issuer image already trusts every *.crt that
+# was placed under certs/ at base-image build time (see certs/readme.md). If
+# your HSM appliance / HSM proxy uses a TLS certificate issued by a CA that is
+# NOT in that set, add it here with the same two-store pattern used in the
+# base image, for example:
+#
+#   COPY my-hsm-ca.crt /tmp/my-hsm-ca.crt
+#   RUN ["keytool", "-importcert", "-noprompt", "-trustcacerts", \
+#        "-alias", "my-hsm-ca", "-file", "/tmp/my-hsm-ca.crt", \
+#        "-cacerts", "-storepass", "changeit"]
+#   # If a tool/library reads the OS bundle directly (e.g. Netty native OpenSSL),
+#   # also append the cert to /etc/ssl/certs/ca-certificates.crt via a
+#   # debian:13-slim builder stage that runs update-ca-certificates
+#   # (see the ca-bundle stage in ../../Dockerfile.dhi).
+
+USER nonroot
+
+# SunPKCS11 is bundled with the JDK — no -Xbootclasspath/a: required.
+ENTRYPOINT ["java", \
+    "-Duser.timezone=Europe/Zurich", \
+    "-Dspring.config.location=classpath:bootstrap.yml,classpath:application.yml,optional:file:/vault/secrets/database-credentials.yml", \
+    "-Dfile.encoding=UTF-8", \
+    "-jar", "/app/app.jar"]

@@ -62,8 +62,18 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata
-        id: meta
+
+      # During the dual-image transition period we publish two variants:
+      #   - Default (unsuffixed):  hardened dhi.io image, no shell, nonroot user.
+      #     ghcr.io/.../swiyu-verifier:<tag>
+      #   - `-unhardened` suffix:  UBI-based image, shell + entrypoint.sh wrapper.
+      #     ghcr.io/.../swiyu-verifier:<tag>-unhardened
+      # Operators who cannot migrate to the hardened image yet must pin to the
+      # `-unhardened` suffix until they have completed the migration. The
+      # unhardened variant will be removed in a later release.
+
+      - name: Extract metadata (hardened, default)
+        id: meta-dhi
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
@@ -78,15 +88,41 @@ jobs:
             type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
             type=raw,value=${{ inputs.environment_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.environment_tag != 'none' }}
             type=raw,value=${{ inputs.version_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version_tag != '' }}
-      - name: Build and push docker image
-        id: push
+      - name: Build and push hardened (default) docker image
+        id: push-dhi
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           pull: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-dhi.outputs.tags }}
+          labels: ${{ steps.meta-dhi.outputs.labels }}
+          file: Dockerfile.dhi
+
+      - name: Extract metadata (unhardened)
+        id: meta-unhardened
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+            suffix=-unhardened
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ inputs.environment_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.environment_tag != 'none' }}
+            type=raw,value=${{ inputs.version_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version_tag != '' }}
+      - name: Build and push unhardened docker image
+        id: push-unhardened
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          pull: true
+          tags: ${{ steps.meta-unhardened.outputs.tags }}
+          labels: ${{ steps.meta-unhardened.outputs.labels }}
           build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile
 
@@ -101,13 +137,25 @@ jobs:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           command: monitor
           args: --maven-aggregate-project --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG  }} --target-reference=${{ github.ref_name }}
-      - name: Monitor Snyk for vulnerabilities in image 🐳
+
+      # Image variants are tracked as distinct Snyk projects so findings don't merge.
+      - name: Monitor Snyk for vulnerabilities in hardened image 🐳
         uses: snyk/actions/docker@master
         with:
-          # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           command: monitor
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}
-          args: --severity-threshold=high --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
+          args: --severity-threshold=high --project-name=swiyu-verifier --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_API: https://api.eu.snyk.io
+          SNYK_ORG: ${{ secrets.SNYK_ORG }}
+
+      - name: Monitor Snyk for vulnerabilities in unhardened image 🐳
+        uses: snyk/actions/docker@master
+        with:
+          command: monitor
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}-unhardened
+          args: --severity-threshold=high --project-name=swiyu-verifier-unhardened --project-tags:app-name=swiyu-verifier-unhardened,version=${{ env.IMAGE_VERSION_TAG }}-unhardened --target-reference=${{ github.ref_name }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

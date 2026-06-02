@@ -23,6 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation and examples updated to use `dc+sd-jwt` as the canonical SD-JWT VC media type
   (per draft-ietf-oauth-sd-jwt-vc-09 §A.2.1). The verifier continues to accept `vc+sd-jwt`
   on the credential `typ` header during the migration window `(#178)`.
+- **Docker image:** the published image is now hardened. The default
+  (unsuffixed) tag `ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>` builds from
+  `dhi.io/eclipse-temurin:21-debian13`, runs as the pre-configured `nonroot` user
+  and contains no shell. During a transition period the previous UBI-based image
+  remains available under the `-unhardened` suffix
+  (`ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>-unhardened`). Operators who cannot
+  immediately adopt the hardened runtime **must pin to the `-unhardened` tag** until
+  they have completed the migration steps in
+  [`migration-guides/v2.x-to-v3.0.0.md`](migration-guides/v2.x-to-v3.0.0.md);
+  the `-unhardened` variant will be removed in a later release. `(#834)`.
 
 ### Removed
 - fabric8 dependency is removed due to incompatibility with spring boot 4. External configurations are now can still be used with the techniques described in https://docs.spring.io/spring-boot/reference/features/external-config.html For example using `spring.config.import`

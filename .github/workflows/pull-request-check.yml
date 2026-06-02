@@ -46,7 +46,7 @@ jobs:
             verifier-application/target/site/jacoco/index.html
 
       - name: Setup Node.js (for coverage summary script)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
       - name: Add coverage to summary

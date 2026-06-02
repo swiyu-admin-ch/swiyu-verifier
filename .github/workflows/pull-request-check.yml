@@ -3,6 +3,8 @@ name: Pull Request Check
 run-name: ${{ github.repository }} is evaluating pull request
 on: [pull_request]
 
+# Least privilege: this job builds/loads a local image (no push) and uploads SARIF,
+# writes the coverage summary to the job summary, and does not publish packages or create attestations.
 # Cancel superseded runs on the same PR to save CI minutes.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -92,7 +94,7 @@ jobs:
 
       - name: Build hardened (default) docker image
         id: build-dhi
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # 10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           load: true
@@ -124,7 +126,7 @@ jobs:
           file: Dockerfile
 
       - name: Scan unhardened Docker image with Snyk 🐳
-        uses: snyk/actions/docker@master
+        uses: snyk/actions/docker@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
         continue-on-error: false
         with:
           image: pull_request_check:unhardened

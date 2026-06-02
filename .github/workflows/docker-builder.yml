@@ -75,7 +75,7 @@ jobs:
 
       - name: Extract metadata (hardened, default)
         id: meta-dhi
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           # Disable latest tag
@@ -91,7 +91,7 @@ jobs:
             type=raw,value=${{ inputs.version_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version_tag != '' }}
       - name: Build and push hardened (default) docker image
         id: push-dhi
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           push: true
@@ -141,11 +141,12 @@ jobs:
 
       # Image variants are tracked as distinct Snyk projects so findings don't merge.
       - name: Monitor Snyk for vulnerabilities in hardened image 🐳
-        uses: snyk/actions/docker@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
+        uses: snyk/actions/docker@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # 9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
         with:
           command: monitor
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION_TAG }}
-          args: --severity-threshold=high --project-name=swiyu-verifier --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
+          # Fixed: removed a duplicated `--severity-threshold=high` flag.
+          args: --project-name=swiyu-verifier --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

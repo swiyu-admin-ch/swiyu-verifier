@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -38,6 +39,7 @@ public class MonitoringSecurityConfig {
     }
 
     @Bean
+    @Order(90)
     public SecurityFilterChain securityFilterChainForMonitoring(HttpSecurity http) throws Exception {
         return http
                 // Apply security settings to API endpoints, Swagger UI, API documentation and actuator endpoints

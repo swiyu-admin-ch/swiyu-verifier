@@ -22,7 +22,7 @@ RUN update-ca-certificates
 # certs/. We work on top of the same base image so the resulting cacerts file
 # layout (PKCS12/JKS, JDK 21) is bit-for-bit compatible with the runtime image.
 # A shell-capable temurin tag is used here so we can loop with `for`.
-FROM eclipse-temurin:21-jre AS java-cacerts
+FROM eclipse-temurin:25-jre AS java-cacerts
 COPY certs/*.crt /certs-app/
 RUN cp "$JAVA_HOME/lib/security/cacerts" /tmp/cacerts && \
     for cert in /certs-app/*.crt; do \

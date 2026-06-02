@@ -31,11 +31,11 @@
             **/org/**/*.java, **/com/**/*.java
         </sonar.exclusions>
         <!-- dependency versions -->
-        <archunit-junit5.verion>1.4.1</archunit-junit5.verion>
-        <javacrumbs.shedlock.version>7.6.0</javacrumbs.shedlock.version>
+        <archunit-junit5.verion>1.4.2</archunit-junit5.verion>
+        <javacrumbs.shedlock.version>7.7.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.0</springdoc-openapi-starter-webmvc-ui.version>
-        <openapi-generator-maven-plugin.version>7.19.0</openapi-generator-maven-plugin.version>
+        <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
@@ -50,9 +50,9 @@
             **/*Dto.java,**/config/*,**/generated/*,**/*Exception.java,**/*Constants.java,**/*Registry.java,**/*Config.java,**/*Mock*,**/*Application.java
         </sonar.coverage.exclusions>
 
-        <editorconfig-maven-plugin.version>0.1.3</editorconfig-maven-plugin.version>
+        <editorconfig-maven-plugin.version>0.2.0</editorconfig-maven-plugin.version>
         <nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
-        <kotlin-stdlib.version>2.3.10</kotlin-stdlib.version>
+        <kotlin-stdlib.version>2.3.21</kotlin-stdlib.version>
         <jna.version>5.18.1</jna.version>
         <sd-jwt.version>1.7</sd-jwt.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>

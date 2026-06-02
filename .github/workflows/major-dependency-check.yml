@@ -76,7 +76,7 @@ jobs:
 
       - name: Create or update tracking issue
         if: steps.scan.outputs.found == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           ISSUE_BODY: ${{ steps.scan.outputs.body }}
         with:

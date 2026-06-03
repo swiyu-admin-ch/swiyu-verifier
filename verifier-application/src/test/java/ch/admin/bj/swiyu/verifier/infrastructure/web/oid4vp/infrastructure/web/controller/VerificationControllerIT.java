@@ -131,7 +131,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant - should be made redundant by IssuerTrustValidator")
     void shouldFailOnNotAcceptedIssuer() throws Exception {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock("suspicious_issuer_id", "suspicious_issuer_id#key-1");
         var sdJWT = emulator.createSDJWTMock();
@@ -140,16 +139,20 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error_description").value(containsString("Issuer not in list of accepted issuers")));
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant - should be made redundant by IssuerTrustValidator")
+    @Disabled("Behavior changed: IssuerTrustValidator now requires explicit trust configuration. " +
+              "When both acceptedIssuerDids AND trustAnchors are empty, all credentials are rejected. " +
+              "This test assumed empty list = any issuer allowed, which is no longer the case.")
     void shouldSucceedOnNoAcceptedIssuers() throws Exception {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock("some_issuer_id", "some_issuer_id#key-1");
         var sdJWT = emulator.createSDJWTMock();
@@ -219,7 +222,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @ParameterizedTest
     @FieldSource("DEFAULT_REQUEST_OBJECT_SOURCE")
-    @Disabled("Check in EIDOMNI-926 if test is redundant - Potentially made redundant by BlackboxIt?")
     void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess(UUID requestObjectId) throws Exception {
         assertThat(requestObjectId).isIn(DEFAULT_REQUEST_OBJECT_SOURCE); // Nonsense Assert to stop linters going insane about unused field
         // GIVEN
@@ -241,10 +243,11 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private void sendPresentation(UUID requestObjectId, String vpToken) throws Exception {
         var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
         ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
         if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST) {
             mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
                             .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                            .formField("vp_token", vpToken))
+                            .formField("vp_token", dcqlVpToken))
                     .andExpect(status().isOk());
         } else if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST_JWT) {
             // JWKS & encryptionMethod are normally provided in Request Object
@@ -255,7 +258,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, encryptionMethod)
                             .keyID(publicKey.getKeyID()).build(),
                     new JWTClaimsSet.Builder()
-                            .claim("vp_token", vpToken).build().toPayload()
+                            .claim("vp_token", dcqlVpToken).build().toPayload()
             );
             jweObject.encrypt(new ECDHEncrypter(publicKey));
             mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
@@ -271,7 +274,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "2"})
-    @Disabled("Check in EIDOMNI-926 if test is redundant - Potentially made redundant by BlackboxIt?")
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess(String input) throws Exception {
         Integer statusListIndex = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
@@ -294,10 +296,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isOk()).andReturn();
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -306,7 +310,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @ParameterizedTest
     @CsvSource(value = {"0:credential_revoked", "1:credential_suspended", "3:credential_revoked"}, delimiter = ':')
-    @Disabled("Check in EIDOMNI-926 if test is redundant - Wrong Format?")
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenFail(String input, String errorCodeName) throws Exception {
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
@@ -329,10 +332,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response, so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest()).andReturn();
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -377,7 +382,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant - Wrong Format?")
     void twoTimesSameDisclosures_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -394,10 +398,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_credential"))
                 .andExpect(jsonPath("$.error_description").value("Request contains non-distinct disclosures"));
@@ -408,7 +414,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant - Wrong Format?")
+    @Disabled("Management entity REQUEST_DIFFERENT_KB_ALGS was migrated to DCQL format and no longer enforces " +
+              "kb-jwt algorithm restrictions. The presentationDefinitionJsonDiffKbAlgs() config is unused.")
     void wrongKeyBindingAlgorithm_thenError() throws Exception {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -434,7 +441,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant")
     void sdjwtPremature_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -445,10 +451,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT credential is not yet valid"));
@@ -459,7 +467,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant")
     void sdJWTExpired_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -471,10 +478,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT credential is expired"));
@@ -485,7 +494,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant")
     void sdJWTAdditionalDisclosure_thenError() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -498,10 +506,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT problem with disclosures and _sd field"));
@@ -512,13 +522,11 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant")
     void shouldSucceedVerifyingNestedSDJWTCredentialSD_thenSuccess() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "did:example:12345");
-        vpToken = SDJWTCredentialMock.createMultipleVPTokenMock(vpToken);
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
@@ -532,13 +540,11 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"vc+sd-jwt", "dc+sd-jwt"})
-    @Disabled("Check in EIDOMNI-926 if test is redundant")
     void shouldSucceedVerifyingCredentialWithLegacyCNFFormat_thenSuccess(String credentialFormat) throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock(true, credentialFormat);
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "did:example:12345");
-        vpToken = SDJWTCredentialMock.createMultipleVPTokenMock(vpToken);
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
@@ -548,7 +554,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant")
     void shouldFailVerifyingCredentialOnInvalidStatuslistSignature_thenError() throws Exception {
         Integer statusListIndex = Integer.parseInt("2");
         // GIVEN
@@ -573,10 +578,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description").value("Failed to verify JWT: Issuer public key does not match signature!"));
@@ -584,7 +591,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant or could be made into a regular test")
     void shouldVerifyingSDJWTCredentialSDWithDifferentPrivKey_thenException() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock(new ECKeyGenerator(Curve.P_256).generate());
@@ -594,17 +600,18 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description").value("Signature mismatch"));
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant or could be made into a regular test")
     void sendIdxOutOfStatusListBounds_thenException() throws Exception {
 
         // GIVEN
@@ -621,10 +628,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "did:example:12345");
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description", containsString("The VC cannot be validated as the remote list does not contain this VC!")))
@@ -635,7 +644,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant or could be made into a regular test")
     void statusListResponseBodyTooBig_thenException() throws Exception {
 
         // GIVEN
@@ -650,10 +658,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "did:example:12345");
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_credential"))
                 .andExpect(jsonPath("error_description", containsString(expectedErrorMesssage)))
@@ -666,20 +676,25 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant or could be made into a regular test")
     void expiredProof_thenException() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "did:example:12345", Instant.now().minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()).getEpochSecond(), "kb+jwt");
+        // Use window + 10s to reliably be outside the acceptable proof time window
+        // (boundary at exactly window seconds is not considered expired: isBefore is strict)
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "did:example:12345",
+                Instant.now().minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds() + 10).getEpochSecond(),
+                "kb+jwt");
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
         // WHEN / THEN
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+                        .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -1207,14 +1222,13 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    @Disabled("Check in EIDOMNI-926 if test is redundant or fix using dcql")
     void shouldHandleConcurrentVerificationRequests_whenExternalDependencyBlocks() throws Exception {
 
         final SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         final String sdJwt = emulator.createSDJWTMock();
         String vpToken = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, "did:example:12345");
-        vpToken = SDJWTCredentialMock.createMultipleVPTokenMock(vpToken);
 
+        final String finalVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         final CountDownLatch didCallStarted = new CountDownLatch(1);
 
@@ -1232,7 +1246,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final HikariPoolMXBean pool = hikariPool();
 
         final ExecutorService executor = Executors.newSingleThreadExecutor();
-        final String finalVpToken = vpToken;
         executor.submit(() -> {
             try {
                 mock.perform(
@@ -1254,7 +1267,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         executor.shutdownNow();
     }
 
-    @Disabled("EIDOMNI-962")
+    @Disabled("EIDOMNI-962: Race condition in test design - pool.getActiveConnections() is checked before " +
+              "all submitted threads have actually started, making the assertion trivially true and the test unreliable.")
     @Test
     void shouldNotDeadlockVerificationFlow_whenExternalDependencyBlocks() throws Exception {
         final int concurrentRequests = 5;

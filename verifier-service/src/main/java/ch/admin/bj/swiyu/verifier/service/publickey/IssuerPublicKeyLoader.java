@@ -3,10 +3,13 @@ package ch.admin.bj.swiyu.verifier.service.publickey;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.eid.did_sidekicks.Jwk;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.security.PublicKey;
 import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class is responsible for loading the public key of an issuer from a JWT Token. The issuer is identified by its
@@ -48,9 +52,19 @@ public class IssuerPublicKeyLoader {
         try {
             log.trace("Fetching Public Key {} for issuer {}", kid, issuer);
             Jwk method = loadVerificationMethod(issuer, kid);
-            return parsePublicKeyOfTypeJsonWebKey(method);
+            return parsePublicKeyOfTypeJsonWebKey(method, issuer);
         } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
             throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
+        }
+    }
+
+    public JWK loadJWK(String issuerDid, String kid) throws LoadingPublicKeyOfIssuerFailedException {
+        log.trace("Fetching Public Key {} ", kid);
+        try {
+        Jwk resolverJwk = loadVerificationMethod(issuerDid, kid);
+        return parseJwk(resolverJwk, issuerDid);
+        } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
+            throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuerDid, kid), e);
         }
     }
 
@@ -73,21 +87,43 @@ public class IssuerPublicKeyLoader {
         return jwk;
     }
 
+
+
+    /**
+     * Parses the did document jwk to a nimbus jwk. 
+     * <br>
+     * Extends the kid to be swiss-profile-anchor compatible.
+     * Normally the kids would match exactly (string.equals). 
+     * In swiss profile anchor it was though defined that the kid in JWT must be the full did with the JWK kid as fragment.
+     * <br>
+     * <code>"kid": "{issuerDid}#{verificationMethodKid}" </code>
+     */
+    private JWK parseJwk(Jwk jwk, String issuerDid) throws LoadingPublicKeyOfIssuerFailedException {
+        if (jwk == null) {
+            throw new IllegalArgumentException("Failed to parse Json Web Key from verification method since no jwk was provided");
+        }
+        try {
+            Map<String, Object> json = objectMapper.convertValue(jwk, new TypeReference<>() {});
+            json.put("kid", issuerDid+"#"+jwk.getKid());
+            // Create kid as used in swiss-profile-anchor
+            return JWK.parse(json);
+        } catch (ParseException e) {
+            throw new LoadingPublicKeyOfIssuerFailedException("Failed to parse json web token", e);
+        }
+    }
+
     /**
      * Generates a public key from the given JSON Web Key (JWK).
      *
      * @param jwk a json web token
      * @return the public key
+     * @throws LoadingPublicKeyOfIssuerFailedException 
      */
-    private PublicKey parsePublicKeyOfTypeJsonWebKey(Jwk jwk) {
-        if (jwk == null) {
-            throw new IllegalArgumentException("Failed to parse Json Web Key from verification method since no jwk was provided");
-        }
+    private PublicKey parsePublicKeyOfTypeJsonWebKey(Jwk jwk, String issuerDid) throws LoadingPublicKeyOfIssuerFailedException {
         try {
-            String json = objectMapper.writeValueAsString(jwk);
-            return ECKey.parse(json).toECPublicKey();
-        } catch (JsonProcessingException | JOSEException | ParseException e) {
-            throw new IllegalArgumentException("Failed to parse json web token", e);
+            return parseJwk(jwk, issuerDid).toECKey().toPublicKey();
+        } catch (JOSEException e) {
+            throw new LoadingPublicKeyOfIssuerFailedException("Failed to cast key to ECKey", e);
         }
     }
 
@@ -118,4 +154,5 @@ public class IssuerPublicKeyLoader {
         }
         return keyIdSplit[1];
     }
+
 }

@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.Status;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -23,18 +23,20 @@ class IdentifierRegistryHealthCheckerTest {
     private final String didId1 = "did:webvh:scid:example.com";
     private final String didId2 = "did:webvh:scid:test.com";
 
-
     @Mock
     DidResolverFacade didResolverFacade;
     @Mock
     DidDoc didDoc;
+    @Mock
+    HealthCheckProperties healthCheckProperties;
+
     List<String> didIds = List.of(didId1, didId2);
 
     private IdentifierRegistryHealthChecker identifierRegistryHealthChecker;
 
     @BeforeEach
     void setUp() {
-        this.identifierRegistryHealthChecker = new IdentifierRegistryHealthChecker(didResolverFacade, didIds);
+        this.identifierRegistryHealthChecker = new IdentifierRegistryHealthChecker(didResolverFacade, didIds, healthCheckProperties);
     }
 
 

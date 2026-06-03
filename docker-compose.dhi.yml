@@ -1,0 +1,39 @@
+services:
+  verifier_postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: "verifier_user"
+      POSTGRES_PASSWORD: "secret"
+      POSTGRES_DB: "verifier_db"
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U verifier_user -d verifier_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  verifier-service:
+    image: swiyu-verifier:dhi-local
+    build:
+      context: .
+      dockerfile: Dockerfile.dhi
+    ports:
+      - "8080:8080"
+    depends_on:
+      verifier_postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      EXTERNAL_URL: ${EXTERNAL_URL:-http://localhost:8083}
+      OPENID_CLIENT_METADATA_FILE: ${OPENID_CLIENT_METADATA_FILE:-classpath:client_metadata.json}
+      VERIFIER_DID: ${VERIFIER_DID:-did:example:dummy}
+      DID_VERIFICATION_METHOD: ${DID_VERIFICATION_METHOD:-did:example:dummy#assert-key-01}
+      SIGNING_KEY: ${SIGNING_KEY:-}
+      POSTGRES_USER: verifier_user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: verifier_db
+      POSTGRES_JDBC: jdbc:postgresql://verifier_postgres:5432/verifier_db
+      # Override spring.datasource.url from application-local.yml (which hardcodes localhost:5434
+      # for IDE-based dev). Inside the container we must reach the postgres service by name.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://verifier_postgres:5432/verifier_db

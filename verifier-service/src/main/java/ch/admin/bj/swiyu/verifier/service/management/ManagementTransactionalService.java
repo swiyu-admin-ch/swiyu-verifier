@@ -48,22 +48,28 @@ public class ManagementTransactionalService {
 
     /**
      * Persists a new Management aggregate in its own transaction.
+     *
+     * @param dcqlQuery                     the parsed DCQL query
+     * @param request                       the creation request DTO
+     * @param trustAnchors                  resolved trust anchors
+     * @param responseSpecificationBuilder  builder for the response specification
+     * @param vqpsQueryHash                 optional SHA-256 query hash linking this session to a cached vqPS JWT (PK of {@code vqps_cache})
      */
     @Transactional
-    public Management saveNewManagement(PresentationDefinition presentationDefinition,
-                                        DcqlQuery dcqlQuery,
+    public Management saveNewManagement(DcqlQuery dcqlQuery,
                                         CreateVerificationManagementDto request,
                                         List<TrustAnchor> trustAnchors,
-                                        ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder) {
+                                        ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder,
+                                        String vqpsQueryHash) {
         return repository.save(Management.builder()
             .expirationInSeconds(applicationProperties.getVerificationTTL())
-            .requestedPresentation(presentationDefinition)
             .dcqlQuery(dcqlQuery)
             .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
             .responseSpecification(responseSpecificationBuilder.build())
             .acceptedIssuerDids(request.acceptedIssuerDids())
             .trustAnchors(trustAnchors)
             .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
+            .vqpsQueryHash(vqpsQueryHash)
             .build()
             .resetExpiresAt());
     }

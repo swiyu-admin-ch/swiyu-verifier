@@ -32,6 +32,25 @@ be accessible by the wallet.
 > - Registered yourself on the swiyuprobeta portal
 > - Registered yourself on the api self-service portal
 
+## Container image variants
+
+Starting with v3.0.0 we publish **two image variants** to GHCR so existing operators have a
+transition period to adopt the hardened runtime:
+
+| Tag pattern | Base image | Entrypoint | User | Status |
+|---|---|---|---|---|
+| `ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>`         | `dhi.io/eclipse-temurin:21-debian13` (hardened, no shell) | `java …` directly | `nonroot` | **Default — recommended** |
+| `ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>-unhardened`  | `eclipse-temurin:21-jre-ubi9-minimal`                     | `scripts/entrypoint.sh` | UID `1001` | Transitional — will be removed in a later release |
+
+- **New deployments and operators who have completed the migration** should use the default
+  (unsuffixed) tag.
+- **Operators with pipelines that still depend on the shell-based entrypoint**
+  (`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, `MY_SPRING_PROFILES`, `JAVA_BOOTCLASSPATH` /
+  `/lib` JCE-provider mounts) must pin to the `-unhardened` suffix while they apply the
+  changes in [`migration-guides/v2.x-to-v3.0.0.md`](migration-guides/v2.x-to-v3.0.0.md).
+- The two `Dockerfile`s in this repository (`Dockerfile.dhi` for the default, `Dockerfile`
+  for the `-unhardened` variant) are both built and Snyk-scanned on every PR.
+
 ## 1. Set the environment variables
 
 A sample compose file for an entire setup of both components and a database can be found
@@ -61,23 +80,11 @@ verifier-agent-management>**/swagger-ui/index.html**
 
 To see more details and examples of the verification process please consult the [documentation](documentation/verification_process.md).
 
-## Digital Credentials Query Language (DCQL) Transition
+## Digital Credentials Query Language (DCQL)
 
 ### Overview
 The verifier service now supports the Digital Credentials Query Language (DCQL) as specified in the OpenID for Verifiable Presentations (OID4VP) Standard 1.0. This replaces the previous DIF Presentation Exchange (PE) specification that was integrated into the "claims" request parameter.
 
-### Why DCQL?
-- **Standards Compliance**: Ensures compliance with the OID4VP Standard 1.0
-- **Enhanced Flexibility**: DCQL provides a JSON-encoded query language for simpler and more flexible presentation requests
-- **Improved Privacy**: Enables precise specification of credential requirements and individual claims, supporting selective disclosure
-- **Complex Scenarios Support**: Allows encoding constraints for credential combinations and expressing various alternatives
-
-### Key Interface Changes
-The service now supports both DCQL and PE formats through:
-- Optional `dcql_query` parameter alongside existing `presentation_definition`
-- API version headers for backward compatibility:
-  - Version "1": Supports OID4VP ID2 with DIF Presentation Exchange
-  - Version "2": Supports OID4VP 1.0 with DCQL
 
 ### Verification Flow with DCQL
 1. **Creation**: Business Verifier creates verification request with DCQL query
@@ -186,7 +193,6 @@ On the base registry the public key is published. To generate the public key for
 | MONITORING_BASIC_AUTH_ENABLED     | Enables basic auth protection of the /actuator/prometheus endpoint. (Default: false)                                                                                                                       |
 | MONITORING_BASIC_AUTH_USERNAME    | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                                                                      |
 | MONITORING_BASIC_AUTH_PASSWORD    | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                                                                      |
-| STAGE                             | Sets the profiles for the images in the entrypoint file.                                                                                                                                                   |
 | EXTERNAL_URL                      | URL of this deployed instance in order to add it to the request                                                                                                                                            | URL              | None         |
 | VERIFIER_DID                      | DID of this service-instance to identify the requester                                                                                                                                                     | string (did:tdw) | none         |
 | DID_VERIFICATION_METHOD           | The full DID with fragment as used to find the public key for sd-jwt VCs in the DID Document. eg: `did:tdw:<base-registry-url>:<issuer_uuid>#<sd-jwt-public-key-fragment>`                                 | string (did:tdw) | none         |
@@ -196,6 +202,16 @@ On the base registry the public key is published. To generate the public key for
 | STATUS_LIST_CACHE_TTL_MILLI       | TTL in milliseconds how long a status list result should be cached. If 0 or less will not cache status lists.                                                                                              | int              | 0            |
 | ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI | TTL in milliseconds how long a public key result should be cached                                                                                                                                          | int              | 3600000 (1h) |
 | MAX_COMPRESSED_CIPHER_TEXT_LENGTH | Maximum allowed size of a compressed ciphertext the service will process                                                                                                                                   | int              | 100000       |
+| SIGNING_KEY_VERIFICATION_ENABLED  | Enables or disables the signing-key verification health check. Set to `false` when using dynamic key management without a statically configured `DID_VERIFICATION_METHOD`. When disabled (or when `DID_VERIFICATION_METHOD` is empty), the health check reports `UP` instead of `DOWN`. | bool             | true         |
+| CALLBACK_HEALTH_ENABLED           | Enables or disables the stale-callback health check.                                                                                                                                                       | bool             | true         |
+| STATUS_REGISTRY_HEALTH_ENABLED    | Enables or disables the status-registry accessibility health check.                                                                                                                                        | bool             | true         |
+| IDENTIFIER_REGISTRY_HEALTH_ENABLED| Enables or disables the identifier-registry DID-resolution health check.                                                                                                                   | bool             | true         |
+| SWIYU_TMS_AUTHORING_URL           | Base URL of the TMS B2B Authoring API (IF-014) used for On-the-Fly vqPS registration. If not set, the vqPS registration feature is disabled.                                               | URL              | none         |
+| SWIYU_TMS_OAUTH_TOKEN_URL         | OAuth2 token endpoint used to obtain an access token for the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                        | URL              | none         |
+| SWIYU_TMS_OAUTH_CLIENT_ID         | OAuth2 client ID for authenticating against the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                                     | string           | none         |
+| SWIYU_TMS_OAUTH_CLIENT_SECRET     | OAuth2 client secret for authenticating against the TMS B2B Authoring API. Required when `SWIYU_TMS_AUTHORING_URL` is set.                                                                 | string           | none         |
+| SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN | (Optional, secret) Initial OAuth2 refresh token for the TMS API. Rotated tokens are persisted in the `token_set` table and shared across pods.                                             | string            | none         |
+| SWIYU_TMS_TOKEN_REFRESH_INTERVAL  | Interval for proactive TMS access-token refreshes ([ISO 8601 duration](https://en.wikipedia.org/wiki/ISO_8601#Durations)). Must be shorter than the refresh-token lifetime.                | ISO-8601 duration | PT12H        |
 
 ### Kubernetes Vault Keys
 
@@ -204,6 +220,11 @@ On the base registry the public key is published. To generate the public key for
 | secret.db.username | Username to connect to the Verifier Database                                                     |
 | secret.db.password | Username to connect to the Verifier Database                                                     |
 | secret.signing_key | Private Key used to sign the request object sent to the holder - alternative to the env variable |
+| secret.swiyu.trust-registry.tms-oauth-client-secret     | TMS OAuth2 client secret – alternative to `SWIYU_TMS_OAUTH_CLIENT_SECRET`.                  |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Initial TMS OAuth2 refresh token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`.      |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Initial TMS OAuth2 refresh token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`.      |
+| secret.swiyu.trust-registry.tms-oauth-client-secret   | OAuth2 client secret for the TMS B2B Authoring API – alternative to `SWIYU_TMS_OAUTH_CLIENT_SECRET`. |
+| secret.swiyu.trust-registry.tms-bootstrap-refresh-token | Static OAuth2 refresh token used to bootstrap the first TMS access token – alternative to `SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN`. |
 
 ### HSM - Hardware Security Module
 
@@ -213,8 +234,29 @@ the [Sun PKCS11 provider](https://docs.oracle.com/en/java/javase/22/security/pkc
 specific option.
 Note that for creating the keys it is expected that the public key is provided as self-signed certificate.
 
-For vendor specific options it is necessary to provide the library in the java classpath. For this mount or add the necessary jars to the docker container.
-Provide the environment variable `JAVA_BOOTCLASSPATH` to the directory which should be added to the classpath.
+For vendor specific options it is necessary to provide the library in the Java classpath. How
+you do this depends on the image variant you deploy (see
+[Container image variants](#container-image-variants)):
+
+- **Default hardened image** (`dhi.io`-based, distroless-style, no shell) — the entrypoint
+  invokes `java` directly, so a classpath directory cannot be expanded at startup. Vendor
+  JARs must be baked into a derived image and referenced explicitly via `-Xbootclasspath/a:`,
+  and vendor PKCS#11 native libraries (`.so`) need their transitive C-runtime dependencies
+  staged in because the hardened base image strips them. Ready-made example Dockerfiles for
+  both common setups are in [`examples/hsm/`](examples/hsm/):
+    - [`examples/hsm/Dockerfile.sunpkcs11`](examples/hsm/Dockerfile.sunpkcs11) — JDK-bundled
+      SunPKCS11 bridge against a vendor module (SoftHSM2, Thales Luna, nCipher, …).
+    - [`examples/hsm/Dockerfile.securosys`](examples/hsm/Dockerfile.securosys) — Securosys
+      Primus JCE provider via the vendor JAR.
+
+  The pattern (multi-stage build to stage native libs into `/app/lib-native/`, vendor JAR
+  baked into `/app/lib-ext/`, explicit `-Xbootclasspath/a:` in `ENTRYPOINT`) and the common
+  pitfalls are documented in
+  [`migration-guides/v2.x-to-v3.0.0.md` §4](migration-guides/v2.x-to-v3.0.0.md).
+
+- **Unhardened `-unhardened` image** (transitional) — the shell entrypoint still expands
+  `${JAVA_BOOTCLASSPATH}` (default `./lib`) into `-Xbootclasspath/a:…`, so mounting a
+  volume that contains the vendor JARs at `/app/lib` keeps working as before.
 
 
 | Variable                      | Description                                                                                                                                                                                |
@@ -305,6 +347,27 @@ What data is requested can be selected by adding in additional fields only conta
 Filters are currently only supported for `$.vct` - the Verifiable Credential Type.
 In the following example we request to have the dateOfBirth revealed to us from a Credential with the type "test-sdjwt".
 
+#### Optional: vqPS Registration (Trust Protocol 2.0)
+
+If `SWIYU_TMS_AUTHORING_URL` is configured, you can optionally provide a `verification_purpose` object in the request body. The verifier will then automatically register (or reuse) a Verification Query Public Statement (vqPS) with the TMS and inject it into the signed Authorization Request sent to the wallet. This allows wallets to display a verified, human-readable purpose for the verification.
+
+```json
+{
+  "dcql_query": { ... },
+  "verification_purpose": {
+    "scope": "com.example.age_verification",
+    "purpose_name": {
+      "en": "Age Verification",
+      "de-CH": "Altersverifikation"
+    },
+    "purpose_description": {
+      "en": "We verify that you are of legal age.",
+      "de-CH": "Wir prüfen, ob Sie volljährig sind."
+    }
+  }
+}
+```
+
 ```json
 {
     "id": "00000000-0000-0000-0000-000000000000",
@@ -315,7 +378,7 @@ In the following example we request to have the dateOfBirth revealed to us from 
             "id": "11111111-1111-1111-1111-111111111111",
             "name": "Example Data Request",
             "format": {
-                "vc+sd-jwt": {
+                "dc+sd-jwt": {
                     "sd-jwt_alg_values": [
                         "ES256"
                     ],
@@ -346,6 +409,8 @@ In the following example we request to have the dateOfBirth revealed to us from 
     ]
 }
 ```
+
+> **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+) and `vc+sd-jwt` (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header.
 
 The response of this post call contains the URI which has to be provided to the holder.
 

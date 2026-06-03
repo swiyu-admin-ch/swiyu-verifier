@@ -1,0 +1,9 @@
+# Example Sun PKCS#11 provider configuration consumed by HSM_CONFIG_PATH.
+# Reference: https://docs.oracle.com/en/java/javase/21/security/pkcs11-reference-guide1.html
+#
+# `library` must point at the vendor PKCS#11 .so placed under /app/lib-native/
+# by the derived image (see Dockerfile.sunpkcs11).
+
+name = swiyu-verifier
+library = /app/lib-native/libsofthsm2.so
+slotListIndex = 0

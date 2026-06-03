@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.dto.requestobject;
 
-import ch.admin.bj.swiyu.verifier.dto.definition.PresentationDefinitionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
@@ -12,6 +11,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
  * Should be sent as JWT signed by the verifier.
@@ -20,7 +21,7 @@ import lombok.NoArgsConstructor;
  * <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-aud-of-a-request-object">OID4VP Changes to RequestObjectDto</a>
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(name = "RequestObject", description = """
     OID4VP Request Object sent to the Wallet as response after receiving an Authorization Request.
@@ -65,31 +66,35 @@ public class RequestObjectDto {
     @JsonProperty("version")
     private String version;
 
-    @JsonProperty("presentation_definition")
-    @Schema(
-        description = """
-            Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition.
-            This field is only used for requests initiated with the older Presentation Exchange (PE) format.
-            """,
-        requiredMode = Schema.RequiredMode.NOT_REQUIRED
-    )
-    private PresentationDefinitionDto presentationDefinition;
-
     @JsonProperty("dcql_query")
     @Schema(
         description = """
             DCQL query object as an Authorization Request parameter.
             This field is used for requests initiated with the DCQL format and contains the Digital Credentials Query Language (DCQL) query.
+            Mutually exclusive with the {@code scope} parameter: only one of the two may be present.
             """,
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
     private DcqlQueryDto dcqlQuery;
 
+    /**
+     * OAuth2 scope parameter. When a vqPS is present in {@code verifier_info}, this field
+     * MUST be set to the scope registered in the vqPS and {@code dcql_query} MUST be omitted.
+     * Mutually exclusive with {@code dcql_query}.
+     */
+    @JsonProperty("scope")
+    @Schema(description = """
+            OAuth2 scope value identifying the DCQL query registered in the vqPS.
+            MUST be present when a vqPS is injected into verifier_info.
+            Mutually exclusive with dcql_query.
+            """,
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    private String scope;
+
     @JsonProperty("client_metadata")
     @Schema(description = "A JSON object containing the Verifier metadata values providing further information about the verifier, such as name and logo. It is UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter is present.",
             example = """
                     {
-                        "client_id": "did:example:12345",
                         "client_name#en": "English name (all regions)",
                         "client_name#fr": "French name (all regions)",
                         "client_name#de-DE": "German name (region Germany)",
@@ -119,4 +124,14 @@ public class RequestObjectDto {
 
     @JsonProperty("aud")
     private String audience;
+
+    /**
+     * Trust Protocol 2.0: array of trust statements ({@code idTS}, {@code pvaTS}, {@code vqPS})
+     * injected into the JWT-Secured Authorization Request.
+     * Each entry has the form {@code {"format": "jwt", "data": "<jwt-string>"}}.
+     * This field is omitted when no trust statements are available (TP2.0 disabled or fetch failure).
+     */
+    @JsonProperty("verifier_info")
+    @Schema(description = "Trust Protocol 2.0 trust statements embedded as JWT objects.")
+    private List<VerifierInfoEntryDto> verifierInfo;
 }

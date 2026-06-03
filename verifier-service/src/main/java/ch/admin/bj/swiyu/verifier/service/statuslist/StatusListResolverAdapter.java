@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -30,7 +30,7 @@ public class StatusListResolverAdapter {
     private final ApplicationProperties applicationProperties;
     private final CacheProperties cacheProperties;
 
-    @Cacheable(value = STATUS_LIST_CACHE, condition = "@cacheProperties.statusListCacheTtl > 0L")
+    @Cacheable(value = STATUS_LIST_CACHE, condition = "#root.target.cacheProperties.statusListCacheTtl > 0L")
     public String resolveStatusList(String uri) {
 
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
@@ -44,7 +44,7 @@ public class StatusListResolverAdapter {
 
             if (!containsValidHost(rewrittenUrl)) {
                 throw new IllegalArgumentException("StatusList %s does not contain a valid host from %s"
-                        .formatted(rewrittenUrl, applicationProperties.getAcceptedStatusListHosts()));
+                        .formatted(rewrittenUrl, applicationProperties.getAcceptedRegistryHosts()));
             }
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Malformed URL %s in StatusList".formatted(rewrittenUrl), e);
@@ -54,7 +54,7 @@ public class StatusListResolverAdapter {
                 .get()
                 .uri(rewrittenUrl)
                 .retrieve()
-                .onStatus(status -> status != HttpStatus.OK, response ->
+                .onStatus(status -> status != HttpStatusCode.valueOf(200), response ->
                         Mono.error(new StatusListFetchFailedException(
                                 "Status list with uri: %s could not be retrieved".formatted(rewrittenUrl))))
                 .bodyToMono(String.class)
@@ -82,13 +82,13 @@ public class StatusListResolverAdapter {
 
     private boolean containsValidHost(String rewrittenUrl) throws MalformedURLException {
 
-        var acceptedStatusListHosts = applicationProperties.getAcceptedStatusListHosts();
+        var acceptedStatusListHosts = applicationProperties.getAcceptedRegistryHosts();
         var url = URI.create(rewrittenUrl).toURL();
 
         if (isEmpty(acceptedStatusListHosts)) {
             return true;
         }
 
-        return applicationProperties.getAcceptedStatusListHosts().contains(url.getHost());
+        return applicationProperties.getAcceptedRegistryHosts().contains(url.getHost());
     }
 }

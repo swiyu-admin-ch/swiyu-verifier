@@ -6,9 +6,6 @@ import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResponseResolver;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Unsigned;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Signed;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.*;
@@ -31,8 +28,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
-
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 
 /**
  * OpenID4VC Issuance Controller
@@ -71,7 +66,6 @@ public class VerificationController {
                                     examples = {
                                             @ExampleObject(name = "Sample Client Metadata", value = """
                                                     {
-                                                        "client_id": "did:example:12345",
                                                         "client_name#en": "English name (all regions)",
                                                         "client_name#fr": "French name (all regions)",
                                                         "client_name#de-DE": "German name (region Germany)",
@@ -109,20 +103,11 @@ public class VerificationController {
             }
     )
     public ResponseEntity<Object> getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
-        RequestObjectResult result = requestObjectService.assembleRequestObject(requestId);
-
-        return switch (result) {
-            // JWT Request Object
-            case Signed(var jwt) -> ResponseEntity
+        String jwt = requestObjectService.assembleRequestObject(requestId);
+        return ResponseEntity
                     .ok()
                     .contentType(new MediaType("application", "oauth-authz-req+jwt"))
                     .body(jwt);
-            // Unsecured Request Object
-            case Unsigned(var requestObject) -> ResponseEntity
-                    .ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(requestObject);
-        };
     }
 
     @Timed
@@ -142,10 +127,9 @@ public class VerificationController {
                     @Parameter(
                             name = "SWIYU-API-Version",
                             description = "Optional API version. Supported values: " +
-                                    "1 - This supports OID4VP ID2 with DIF Presentation Exchange), " +
-                                    "2 - This supports OID4VP 1.0",
+                                    "2 (DEFAULT) - This supports OID4VP 1.0",
                             in = ParameterIn.HEADER,
-                            schema = @Schema(type = "string", allowableValues = {"1", "2"})
+                            schema = @Schema(type = "string", allowableValues = {"2"})
                     )
             },
             externalDocs = @ExternalDocumentation(
@@ -197,10 +181,6 @@ public class VerificationController {
             // Processing rejection
             case Rejection(var rejectionDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
-
-            // Processing DIF presentation exchange presentation
-            case PresentationExchange(var standardDto) ->
-                presentationVerificationUsecase.receiveVerificationPresentation(requestId, standardDto);
 
             // Processing DCQL presentation
             case Dcql(var dcqlDto) ->

@@ -1,6 +1,8 @@
 package ch.admin.bj.swiyu.verifier.dto.management.dcql;
 
 import ch.admin.bj.swiyu.verifier.dto.definition.DcqlClaimPath;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
@@ -15,6 +17,7 @@ import java.util.List;
  */
 @Schema(description = "Represents an individual claim object within the 'claims' array of a Credential Query according to " +
         "https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.3")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record DcqlClaimDto(
 
 

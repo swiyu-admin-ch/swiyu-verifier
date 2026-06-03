@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.13</version>
+        <version>4.0.6</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -31,15 +31,17 @@
             **/org/**/*.java, **/com/**/*.java
         </sonar.exclusions>
         <!-- dependency versions -->
-        <archunit-junit5.verion>1.4.1</archunit-junit5.verion>
-        <javacrumbs.shedlock.version>7.6.0</javacrumbs.shedlock.version>
+        <archunit-junit5.verion>1.4.2</archunit-junit5.verion>
+        <javacrumbs.shedlock.version>7.7.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
-        <springdoc-openapi-starter-webmvc-ui.version>2.8.12</springdoc-openapi-starter-webmvc-ui.version>
+        <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
+        <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <json-path.version>2.10.0</json-path.version>
-        <spring-cloud-dependencies.version>2024.0.0</spring-cloud-dependencies.version>
-        <bcprov-jdk18on.version>1.83</bcprov-jdk18on.version>
-        <bcpkix-jdk18on.version>1.83</bcpkix-jdk18on.version>
+        <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
+        <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
+        <bcpkix-jdk18on.version>1.84</bcpkix-jdk18on.version>
+        <postgres.version>42.7.11</postgres.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>
             **/*Dto.java,**/domain/*
@@ -48,28 +50,42 @@
             **/*Dto.java,**/config/*,**/generated/*,**/*Exception.java,**/*Constants.java,**/*Registry.java,**/*Config.java,**/*Mock*,**/*Application.java
         </sonar.coverage.exclusions>
 
-        <editorconfig-maven-plugin.version>0.1.3</editorconfig-maven-plugin.version>
-        <nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
-        <kotlin-stdlib.version>2.3.10</kotlin-stdlib.version>
+        <editorconfig-maven-plugin.version>0.2.0</editorconfig-maven-plugin.version>
+        <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
+        <kotlin-stdlib.version>2.3.21</kotlin-stdlib.version>
         <jna.version>5.18.1</jna.version>
-        <sd-jwt.version>1.7</sd-jwt.version>
-        <didresolver.version>2.6.0</didresolver.version>
+        <sd-jwt.version>1.9</sd-jwt.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
-        <generic-java-lib.version>1.3.0</generic-java-lib.version>
+        <generic-java-lib.version>1.6.1</generic-java-lib.version>
+        <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
+
     </properties>
 
     <dependencyManagement>
         <dependencies>
-
-            <!-- fix for check again once spring-boot-parent > 3.4.13 -->
+            <!-- fix CVE-2026-43512 -->
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>2.18.6</version>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-core</artifactId>
+                <version>11.0.22</version>
             </dependency>
-            <!-- end fix -->
+
+            <!-- Check again on Spring Boot update -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.20.0</version>
+                <scope>compile</scope>
+            </dependency>
+
+            <!-- CVE fix: HTTP Request Smuggling in netty-codec-http (SNYK-JAVA-IONETTY-16438737/16438923/16438934) -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http</artifactId>
+                <version>4.2.15.Final</version>
+            </dependency>
 
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
@@ -89,6 +105,11 @@
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-jwt-util</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-ts-verifier</artifactId>
                 <version>${generic-java-lib.version}</version>
             </dependency>
         </dependencies>

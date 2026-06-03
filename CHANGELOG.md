@@ -5,24 +5,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - 2026-04-07
+## NEXT
 
 ### Added
-- OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallets to adopt it. `(#-656)`
-- Added possibility to configure `maxCompressedCipherTextLength` for JWE encryption of the VP response. The default value is 100000 and should only be changed in exclusive scenarios. `(#-801)`
-- Recursive SD-JWT disclosure resolution and validation: resolves nested `_sd` entries in objects and arrays, inserting claim name/value pairs from disclosures at the `_sd` level and recursively processing inserted values. `(#-696)`
-- Added `aud` claim to the JWT-Secured Authorization Request (JAR). `(#-653)`
-- Added `Swiss Government Root CA VI` to the container image. `(#-683)`
+- **On-the-Fly vqPS Registration (Trust Protocol 2.0):** The verifier can now automatically register Verification Query Public Statements (vqPS) with the Trust Management System (TMS) when a new verification session is created. This is an optional feature and requires the following new environment variables to be set:
+- **New `verification_purpose` field on `POST /management`:** The management API now accepts an optional `verification_purpose` object containing `scope`, `purpose_name` (localized map) and `purpose_description` (localized map). When provided together with `SWIYU_TMS_AUTHORING_URL`, the verifier registers or reuses a vqPS for the given purpose and injects it into the signed Authorization Request sent to the wallet.
+- **Trust Protocol 2.0 support**, automatically fetching trust statements from the configured api url SWIYU_TRUST_REGISTRY_API_URL.
+  (Note: Ensure that Trust Protocol 2.0 is supported by the other ecosystem components you use before integrating this feature)
+- Support using Trust Protocol 2.0 as source of trust instead of manually maintaining a list of trusted dids. 
+  This requires setting trust anchors with the correct trust regirsty url to ensure trust statements are not from the wrong source.
+
+### Fixed
+- Allow hsm key id and key pin to be overridden individually
+- Remove $.client_metadata.client_id, it is an unsued remnant from an earlier version which was still required to be set  
 
 ### Changed
-- Updated `spring-boot-starter-parent` to version 3.4.13.
+- Documentation and examples updated to use `dc+sd-jwt` as the canonical SD-JWT VC media type
+  (per draft-ietf-oauth-sd-jwt-vc-09 §A.2.1). The verifier continues to accept `vc+sd-jwt`
+  on the credential `typ` header during the migration window `(#178)`.
+- Renamed the configuration property `application.accepted-status-list-hosts` to
+  `application.accepted-registry-hosts`.
+- **Docker image:** the published image is now hardened. The default
+  (unsuffixed) tag `ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>` builds from
+  `dhi.io/eclipse-temurin:21-debian13`, runs as the pre-configured `nonroot` user
+  and contains no shell. During a transition period the previous UBI-based image
+  remains available under the `-unhardened` suffix
+  (`ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>-unhardened`). Operators who cannot
+  immediately adopt the hardened runtime **must pin to the `-unhardened` tag** until
+  they have completed the migration steps in
+  [`migration-guides/v2.x-to-v3.0.0.md`](migration-guides/v2.x-to-v3.0.0.md);
+  the `-unhardened` variant will be removed in a later release. `(#834)`.
+
+### Removed
+- fabric8 dependency is removed due to incompatibility with spring boot 4. External configurations are now can still be used with the techniques described in https://docs.spring.io/spring-boot/reference/features/external-config.html For example using `spring.config.import`
+- Dropped support for unsigned request objects (not supported by profile anymore)
+
+
+## latest (3.0.0)
+
+### Added
+- OAuth 2.0 state parameter is now included in request object. Will not be enforced yet to allow wallet to adopt it
+- Added possibility to configure the `maxCompressedCipherTextLength` for the JWE encryption of the VP response. The default value is 100000, which is sufficient for most cases and should only be changed in very exclusive scenarios.
+- Recursive SD-JWT disclosure resolution and validation:
+  - Resolve nested `_sd` entries in objects and arrays, inserting claim name/value pairs from disclosures at the `_sd` level and recursively processing the inserted values.
+- Added `Swiss Government Root CA VI` to image
+- All four runtime health checks can now be individually disabled via configuration (see `management.health.*` properties) `(#949)`:
+  - `SIGNING_KEY_VERIFICATION_ENABLED` – disables the signing-key verification check (default: `true`). Set to `false` when using dynamic key management without a statically configured `DID_VERIFICATION_METHOD`. When disabled, the check reports `UP` with detail `signingKeyVerificationMethod: disabled`. The check also automatically reports `UP` (detail: `not configured`) when `DID_VERIFICATION_METHOD` is empty.
+  - `CALLBACK_HEALTH_ENABLED` – disables the stale-callback check (default: `true`).
+  - `STATUS_REGISTRY_HEALTH_ENABLED` – disables the status-registry accessibility check (default: `true`).
+  - `IDENTIFIER_REGISTRY_HEALTH_ENABLED` – disables the identifier-registry DID-resolution check (default: `true`).
+
+### Changed
+- Migrated to Spring Boot 4.0.6 (Spring Framework 7):
+  - Upgraded Spring Cloud to 2025.1.1 and springdoc-openapi to 3.0.0.
+  - Added dedicated starters for extracted autoconfiguration modules: `spring-boot-starter-webclient`,
+    `spring-boot-starter-flyway`, `spring-boot-jackson2`, and `spring-boot-health`.
+  - Retained Jackson 2 (`com.fasterxml.jackson`) via `spring-boot-jackson2` and
+    `spring.http.converters.preferred-json-mapper=jackson2` (Boot 4 defaults to Jackson 3).
+  - Replaced `HttpStatus` with `HttpStatusCode` in `ApiErrorDto` and `StatusListResolverAdapter` to support
+    non-standard HTTP status codes no longer present in the `HttpStatus` enum in Spring Framework 7.
+  - Removed `@Configuration` from `@ConfigurationProperties` classes (`CacheProperties`, `UrlRewriteProperties`,
+    `VerificationProperties`, `ApplicationProperties`) to prevent CGLIB proxy conflicts with Lombok.
+  - Removed `CacheManagerCustomizer` implementation from `CacheCustomizer` (API removed in Spring Boot 4);
+    cache names are now configured directly in `CachingConfig`.
+  - Migrated health contributor imports to `org.springframework.boot.health.contributor`.
+  - Upgraded Testcontainers to 2.0 (module artifacts renamed, e.g. `junit-jupiter` → `testcontainers-junit-jupiter`).
+  - Replaced `@Mock` with `@MockitoBean` for Spring-managed beans in `@SpringBootTest` integration tests.
 
 ### Fixed
 - Fixed a TOCTOU race condition on the VP response endpoint (`direct_post`, `direct_post.jwt`) that allowed two concurrent wallet submissions for the same session to both be accepted, leading to non-deterministic verification results.
-- Fixed actuator env configuration parsing. `(#-800)`
-- Fixed incorrect default behaviour when `DCQL multiple=false`. `(#-800)`
-- Fixed `require_cryptographic_holder_binding` to correctly control whether holder binding validation is enforced. `(#-751)`
-- Fixed `maxCompressedCipherTextLength` to be configurable via environment variable to prevent excessive memory usage. `(#-801)`
+
+
+### Removed
+- Dropped support for SWIYU-API-Version 1, which was using DIF Presentation Exchange. Now only DCQL can be used for verification as defined in OID4VP 1.0.
 
 
 ## 2.3.0

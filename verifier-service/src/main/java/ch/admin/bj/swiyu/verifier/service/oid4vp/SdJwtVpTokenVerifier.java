@@ -36,6 +36,7 @@ import org.springframework.util.CollectionUtils;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
@@ -51,7 +52,8 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 @RequiredArgsConstructor
 public class SdJwtVpTokenVerifier {
 
-    // We have vc+sd-jwt only for legacy reasons. We only support sd-jwt vc specification, which uses the format dc+sd-jwt
+    // We have vc+sd-jwt only for legacy reasons (Expand-Migrate-Contract: removal tracked in a separate Contract-phase ticket).
+    // Spec: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt
     public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
     public static final List<String> SUPPORTED_JWT_ALGORITHMS = List.of("ES256");
 
@@ -334,11 +336,19 @@ public class SdJwtVpTokenVerifier {
         var claims = objectMapper.convertValue(claimSet.getClaims(), JsonNode.class);
 
         // 3.1 - For each Disclosure provided Calculate the digest over the base64url-encoded string
-        Map<String, Disclosure> digestToDisclosure = disclosures.stream().collect(Collectors.toMap(Disclosure::digest, d -> d));
+        // Reject immediately if the same disclosure appears more than once (identical digest)
+        Map<String, Disclosure> digestToDisclosure = disclosures.stream().collect(
+                Collectors.toMap(
+                        Disclosure::digest,
+                        Function.identity(),
+                        (existing, duplicate) -> {
+                            throw credentialError(MALFORMED_CREDENTIAL, "Request contains non-distinct disclosures");
+                        }
+                ));
 
         log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntityId);
 
-        Set<String> usedDigests = new HashSet<>();
+        List<String> usedDigests = new LinkedList<>();
 
         JsonNode processed = processNode(claims, digestToDisclosure, usedDigests);
 
@@ -366,7 +376,7 @@ public class SdJwtVpTokenVerifier {
 
     private JsonNode processNode(JsonNode node,
                                  Map<String, Disclosure> digestMap,
-                                 Set<String> usedDigests) {
+                                 List<String> usedDigests) {
         if (node.isObject()) {
             return processObjectNode((ObjectNode) node, digestMap, usedDigests);
         }
@@ -380,7 +390,7 @@ public class SdJwtVpTokenVerifier {
 
     private JsonNode processObjectNode(ObjectNode object,
                                        Map<String, Disclosure> digestMap,
-                                       Set<String> usedDigests) {
+                                       List<String> usedDigests) {
         // if no _sd key present, just recurse into fields
         if (!object.has("_sd")) {
             Iterator<String> fields = object.fieldNames();
@@ -413,7 +423,7 @@ public class SdJwtVpTokenVerifier {
     private void handleSdArray(ObjectNode object,
                                ArrayNode sdArray,
                                Map<String, Disclosure> digestMap,
-                               Set<String> usedDigests) {
+                               List<String> usedDigests) {
         for (JsonNode digestNode : sdArray) {
             String digest = digestNode.asText();
 
@@ -445,23 +455,30 @@ public class SdJwtVpTokenVerifier {
 
     private JsonNode processArrayNode(ArrayNode array,
                                       Map<String, Disclosure> digestMap,
-                                      Set<String> usedDigests) {
+                                      List<String> usedDigests) {
         ArrayNode newArray = objectMapper.createArrayNode();
 
         for (JsonNode element : array) {
             if (element.isObject() && element.has("...")) {
                 String digest = element.get("...").asText();
 
-                if (!digestMap.containsKey(digest)) continue;
+                JsonNode value;
 
-                usedDigests.add(digest);
-                var disclosure = digestMap.get(digest);
+                if (digestMap.containsKey(digest)) {
+                    usedDigests.add(digest);
+                    var disclosure = digestMap.get(digest);
 
-                if (disclosure.getClaimName() != null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
-                    throw credentialError(MALFORMED_CREDENTIAL, "Illegal non-array disclosure found");
+                    if (disclosure.getClaimName() != null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
+                        throw credentialError(MALFORMED_CREDENTIAL, "Illegal non-array disclosure found");
+                    }
+
+                    value = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
+                } else {
+                    // if value is not requested, add digest to array otherwise index access won't work
+                    value = objectMapper.convertValue(digest, JsonNode.class);
                 }
 
-                var value = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
+
                 newArray.add(processNode(value, digestMap, usedDigests));
             } else {
                 newArray.add(processNode(element, digestMap, usedDigests));

@@ -2,7 +2,6 @@ openapi: 3.1.0
 info:
   title: Verifier API
   description: Generic Verifier service
-  version: "0.1"
 servers:
 - url: http://localhost:8080
   description: Generated server url
@@ -45,13 +44,12 @@ paths:
           format: uuid
       - name: SWIYU-API-Version
         in: header
-        description: "Optional API version. Supported values: 1 - This supports OID4VP\
-          \ ID2 with DIF Presentation Exchange), 2 - This supports OID4VP 1.0"
+        description: "Optional API version. Supported values: 2 (DEFAULT) - This supports\
+          \ OID4VP 1.0"
         required: false
         schema:
           type: string
           enum:
-          - "1"
           - "2"
       requestBody:
         content:
@@ -100,8 +98,8 @@ paths:
       tags:
       - Verfifier OID4VP API
       summary: Get Request Object
-      description: Can return a RequestObjectDto as JSON Object or a SignedJwt String
-        depending of JAR (JWT secured authorization request) flag in verifier management
+      description: Can return a RequestObjectDto as JSON Object or a SignedJWT String
+        depending on JAR (JWT secured authorization request) flag in verifier management
       operationId: getRequestObject
       parameters:
       - name: request_id
@@ -158,7 +156,6 @@ paths:
                 Sample Client Metadata:
                   description: Sample Client Metadata
                   value:
-                    client_id: did:example:12345
                     client_name#en: English name (all regions)
                     client_name#fr: French name (all regions)
                     client_name#de-DE: German name (region Germany)
@@ -324,6 +321,69 @@ paths:
             application/json:
               schema:
                 type: object
+  /actuator/env:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator web endpoint 'env'
+      operationId: environment
+      parameters:
+      - name: pattern
+        in: query
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                type: object
+        "200":
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+  /actuator/env/{toMatch}:
+    get:
+      tags:
+      - Actuator
+      summary: Actuator web endpoint 'env-toMatch'
+      operationId: environmentEntry
+      parameters:
+      - name: toMatch
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                type: object
+        "200":
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+        "404":
+          description: Not Found
 components:
   schemas:
     VerificationPresentationUnion:
@@ -343,13 +403,6 @@ components:
           oneOf:
           - type: string
           - {}
-        presentation_submission:
-          type: string
-          description: The presentation submission as defined in DIF presentation
-            submission (used for Standard and PE presentations)
-          example:
-            id: a30e3b91-fb77-4d22-95fa-871689c322e2
-            definition_id: 32f54163-7166-48f1-93d8-ff217bdb0653
         error:
           type: string
           description: Error code for rejection (used for REJECTION)
@@ -371,6 +424,11 @@ components:
           type: string
           description: Encrypted response JWE string (used for DCQLE)
           example: eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0...
+        state:
+          type: string
+          description: |
+            The OAuth State is an opaque value used by the client to maintain state between the request and callback.<br>
+            If provided in the request object the state string <em>MUST</em> be returned in the response.
     ApiErrorDto:
       type: object
       properties:
@@ -380,42 +438,6 @@ components:
           type: string
         detail:
           type: string
-    Constraint:
-      type: object
-      properties:
-        id:
-          type: string
-          description: (Optional) unique string with no conflict with another id in
-            the Presentation Definition
-        name:
-          type: string
-          description: (Optional) If present human-friendly name which describes the
-            target field
-        purpose:
-          type: string
-          description: (Optional) Purpose for which the data is requested
-        format:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/FormatAlgorithm"
-          description: (Optional) If present object with one or more properties matching
-            the registered Claim Format
-        fields:
-          type: array
-          description: Selection which properties are requested of the holder
-          example:
-          - path:
-            - $.vct
-            filter:
-              type: string
-              const: test-sdjwt
-          - path:
-            - $.dateOfBirth
-          items:
-            $ref: "#/components/schemas/Field"
-          minItems: 1
-      required:
-      - fields
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -661,99 +683,6 @@ components:
       required:
       - type
       - values
-    Field:
-      type: object
-      properties:
-        path:
-          type: array
-          description: (Mandatory) Array of one or more JSONPath string expressions
-          items:
-            type: string
-          minItems: 1
-        id:
-          type: string
-          description: (Optional) If present value MUST be a string that is unique
-        name:
-          type: string
-          description: (Optional) If present human-friendly name which describes the
-            target field
-        purpose:
-          type: string
-          description: (Optional) If present describes purpose for which the field
-            is requested
-        filter:
-          $ref: "#/components/schemas/Filter"
-          description: (Optional) If present object with one or more properties matching
-            the registered Claim Format
-      required:
-      - path
-    Filter:
-      type: object
-      properties:
-        type:
-          type: string
-          default: string
-          description: (Optional) If present value MUST be 'string'
-          example: string
-          pattern: string
-        const:
-          type: string
-          description: (Optional) If present value MUST be a string / no pattern
-          example: vct-as-in-issuer-metadata
-    FormatAlgorithm:
-      type: object
-      properties:
-        sd-jwt_alg_values:
-          type: array
-          description: (Required) algorithms string from the SDJWT family
-          items:
-            type: string
-          minItems: 1
-        kb-jwt_alg_values:
-          type: array
-          description: (Required) algorithms defining the keybinding algorithm for
-            SDJWT family
-          items:
-            type: string
-          minItems: 1
-      required:
-      - kb-jwt_alg_values
-      - sd-jwt_alg_values
-    InputDescriptor:
-      type: object
-      properties:
-        id:
-          type: string
-          description: (Mandatory) unique string with no conflict with another id
-            in the Presentation Definition
-          example: 11111111-1111-1111-1111-111111111111
-          minLength: 1
-        name:
-          type: string
-          description: (Optional) If present human-friendly name which describes the
-            target field
-          example: Example Data Request
-        purpose:
-          type: string
-          description: (Optional) Purpose for which the data is requested
-          example: We collect this data to test our verifier
-        format:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/FormatAlgorithm"
-          description: (Optional) If present object with one or more properties matching
-            the registered Claim Format
-          example:
-            vc+sd-jwt:
-              sd-jwt_alg_values:
-              - ES256
-              kb-jwt_alg_values:
-              - ES256
-        constraints:
-          $ref: "#/components/schemas/Constraint"
-      required:
-      - constraints
-      - id
     ManagementResponse:
       type: object
       properties:
@@ -764,8 +693,6 @@ components:
           type: string
         state:
           $ref: "#/components/schemas/VerificationStatus"
-        presentation_definition:
-          $ref: "#/components/schemas/PresentationDefinition"
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
         wallet_response:
@@ -774,44 +701,6 @@ components:
           type: string
         verification_deeplink:
           type: string
-    PresentationDefinition:
-      type: object
-      properties:
-        id:
-          type: string
-          description: "A unique ID for the desired context. Can be any String, but\
-            \ using a UUID is recommended."
-          example: 00000000-0000-0000-0000-000000000000
-        name:
-          type: string
-          description: (Optional) If present human-friendly string intended to constitute
-            a distinctive designation of the Presentation Definition
-          example: Test Verification
-        purpose:
-          type: string
-          description: (Optional) Purpose for which the presentation definition is
-            requested and used for
-          example: We want to test a new Verifier
-        format:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/FormatAlgorithm"
-          description: (Optional) If present object with one or more properties matching
-            the registered Claim Format.
-          example:
-            vc+sd-jwt:
-              sd-jwt_alg_values:
-              - ES256
-              kb-jwt_alg_values:
-              - ES256
-        input_descriptors:
-          type: array
-          description: Input Descriptors are objects used to describe the information
-            a Verifier requires of a Holder
-          items:
-            $ref: "#/components/schemas/InputDescriptor"
-      required:
-      - input_descriptors
     ResponseData:
       type: object
       properties:
@@ -885,6 +774,7 @@ components:
       - invalid_presentation_definition_uri
       - invalid_presentation_definition_reference
       - jwt_premature
+      - invalid_token_status_list
     VerificationStatus:
       type: string
       enum:
@@ -956,9 +846,6 @@ components:
             <li>direct_post - the wallet sends a clear text response</li>
             <li>direct_post.jwt - the wallet sends an encrypted response</li>
             </ul>
-        presentation_definition:
-          $ref: "#/components/schemas/PresentationDefinition"
-          description: Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition
         configuration_override:
           $ref: "#/components/schemas/ConfigurationOverrideDto"
           description: "Optional Parameter to override configured parameters, such\
@@ -966,6 +853,13 @@ components:
           example: {}
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
+        verification_purpose:
+          $ref: "#/components/schemas/VerificationPurpose"
+          description: "Optional transparency metadata for registration at the TMS.\
+            \ When present, the verifier registers the DCQL query and injects the\
+            \ resulting vqPS into subsequent Authorization Requests."
+      required:
+      - dcql_query
     ResponseModeType:
       type: string
       description: Supported response_mode as defined in OID4VP
@@ -990,6 +884,34 @@ components:
       required:
       - did
       - trust_registry_uri
+    VerificationPurpose:
+      type: object
+      properties:
+        scope:
+          type: string
+          description: "Unique scope identifier for this specific query, e.g. 'com.example.age_verification'"
+          example: com.example.age_verification
+          minLength: 1
+        purpose_name:
+          type: object
+          additionalProperties:
+            type: string
+          description: Localized purpose names (max 50 chars per value). Key is language
+            tag (e.g. 'de-ch').
+          example:
+            de-ch: Altersverifikation
+          minProperties: 1
+        purpose_description:
+          type: object
+          additionalProperties:
+            type: string
+          description: Localized purpose descriptions (max 500 chars per value). Key
+            is language tag (e.g. 'de-ch').
+          minProperties: 1
+      required:
+      - purpose_description
+      - purpose_name
+      - scope
     JWKSet:
       type: object
       properties:
@@ -1018,23 +940,6 @@ components:
           type: string
         "y":
           type: string
-    OpenIdClientMetadataVpFormat:
-      type: object
-      properties:
-        jwt_vp:
-          $ref: "#/components/schemas/OpenIdClientMetadataVpFormatAlg"
-      required:
-      - jwt_vp
-    OpenIdClientMetadataVpFormatAlg:
-      type: object
-      properties:
-        alg:
-          type: array
-          items:
-            type: string
-          minItems: 1
-      required:
-      - alg
     OpenIdClientMetadataVpFormatSdJwt:
       type: object
       properties:
@@ -1058,18 +963,6 @@ components:
         Additional Verifier metadata parameters MAY be defined and used, as described in [RFC7591].
         The Wallet MUST ignore any unrecognized parameters.
       properties:
-        version:
-          type: string
-        additionalProperties:
-          type: object
-          additionalProperties: {}
-          writeOnly: true
-        client_id:
-          type: string
-          minLength: 1
-        vp_formats:
-          $ref: "#/components/schemas/OpenIdClientMetadataVpFormat"
-          deprecated: true
         jwks:
           $ref: "#/components/schemas/JWKSet"
           description: |
@@ -1091,9 +984,9 @@ components:
           description: |
             An object containing a list of name/value pairs, where the name is a Credential Format Identifier and the
             value defines format-specific parameters that a Verifier supports.
-      required:
-      - client_id
-      - vp_formats
+        additionalProperties:
+          type: object
+          additionalProperties: {}
     RequestObject:
       type: object
       description: |
@@ -1119,11 +1012,6 @@ components:
           type: string
         version:
           type: string
-        presentation_definition:
-          $ref: "#/components/schemas/PresentationDefinition"
-          description: |
-            Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition.
-            This field is only used for requests initiated with the older Presentation Exchange (PE) format.
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
           description: |
@@ -1137,7 +1025,6 @@ components:
             \ is present."
           example: |-
             {
-                "client_id": "did:example:12345",
                 "client_name#en": "English name (all regions)",
                 "client_name#fr": "French name (all regions)",
                 "client_name#de-DE": "German name (region Germany)",
@@ -1155,6 +1042,25 @@ components:
                 }
             }
         state:
+          type: string
+          description: |
+            An opaque value used by the client to maintain
+            state between the request and callback.  The authorization
+            server includes this value when redirecting the user-agent back
+            to the client.
+        aud:
+          type: string
+        verifier_info:
+          type: array
+          description: Trust Protocol 2.0 trust statements embedded as JWT objects.
+          items:
+            $ref: "#/components/schemas/VerifierInfoEntryDto"
+    VerifierInfoEntryDto:
+      type: object
+      properties:
+        format:
+          type: string
+        data:
           type: string
     Link:
       type: object

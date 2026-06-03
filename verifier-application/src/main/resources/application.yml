@@ -41,9 +41,11 @@ application:
 
   url-rewrite:
     mapping: "${URL_REWRITE_MAPPING:{}}"
-  accepted-status-list-hosts:
+  accepted-registry-hosts:
     - "status-reg.trust-infra.swiyu-int.admin.ch"
     - "status-reg.trust-infra.swiyu.admin.ch"
+    - "identifier-reg.trust-infra.swiyu.admin.ch"
+    - "identifier-reg.trust-infra.swiyu-int.admin.ch"
 
   # ---- OpenID4VP Part ----
 
@@ -61,8 +63,12 @@ verification:
 
 
 spring:
+  jackson:
+    constructor-detector: use-properties-based
   http:
-    client:
+    converters:
+      preferred-json-mapper: jackson2
+    clients:
       read-timeout: 10s # 10 seconds for reading the response
       connect-timeout: 5s # 5 seconds until tcp handshake is done
   datasource:
@@ -126,6 +132,18 @@ management:
         application.hsm.host,
         application.hsm.port
   health:
+    # Set to false if no static signing key is configured (e.g. dynamic key management via ConfigurationOverride).
+    # Env: SIGNING_KEY_VERIFICATION_ENABLED
+    signing-key-verification-enabled: ${SIGNING_KEY_VERIFICATION_ENABLED:true}
+    # Set to false to disable the stale-callback health check.
+    # Env: CALLBACK_HEALTH_ENABLED
+    callback-enabled: ${CALLBACK_HEALTH_ENABLED:true}
+    # Set to false to disable the status-registry accessibility health check.
+    # Env: STATUS_REGISTRY_HEALTH_ENABLED
+    status-registry-enabled: ${STATUS_REGISTRY_HEALTH_ENABLED:true}
+    # Set to false to disable the identifier-registry DID resolution health check.
+    # Env: IDENTIFIER_REGISTRY_HEALTH_ENABLED
+    identifier-registry-enabled: ${IDENTIFIER_REGISTRY_HEALTH_ENABLED:true}
     livenessState:
       enabled: true
     readinessState:
@@ -155,3 +173,23 @@ monitoring:
 caching:
   status-list-cache-ttl: ${STATUS_LIST_CACHE_TTL_MILLI:0} # is not cached by default if set to 0, caching is disabled
   issuer-public-key-cache-ttl: ${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000} # 1 hour
+
+swiyu:
+    # Optional: Trust Registry sidechannel API for fetching Trust Statements (idTS, piaTS).
+    # If not set, trust statement caching is disabled.
+    trust-registry:
+      api-url: "${SWIYU_TRUST_REGISTRY_API_URL:}"
+      customer-key: ${secret.swiyu.trust-registry.customer-key:${SWIYU_TRUST_REGISTRY_CUSTOMER_KEY:}}
+      customer-secret: ${secret.swiyu.trust-registry.customer-secret:${SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET:}}
+      max-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
+      clock-skew-buffer-seconds: ${SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS:60}
+      max-cache-ttl-seconds: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS:0}
+      # Optional: TMS B2B Authoring API for On-the-Fly vqPS registration
+      # If not set, the vqPS registration flow is disabled.
+      tms-authoring-url: "${SWIYU_TMS_AUTHORING_URL:}"
+      oauth-token-url: "${SWIYU_TMS_OAUTH_TOKEN_URL:}"
+      oauth-client-id: "${SWIYU_TMS_OAUTH_CLIENT_ID:}"
+      oauth-client-secret: "${secret.swiyu.trust-registry.tms-oauth-client-secret:${SWIYU_TMS_OAUTH_CLIENT_SECRET:}}"
+      bootstrap-refresh-token: "${secret.swiyu.trust-registry.tms-bootstrap-refresh-token:${SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN:}}"
+      token-refresh-interval: "${SWIYU_TMS_TOKEN_REFRESH_INTERVAL:PT12H}"
+

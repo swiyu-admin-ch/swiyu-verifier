@@ -11,10 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.CollectionUtils;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -26,6 +23,7 @@ class DcqlUtilTest {
     void setUp() throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         // OID4VP 1.0 7.3 Claims Path Pointer Example https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-7.3
+        // all numbers are float, as sdjwt lib marshalls all numbers to float
         Map<String, Object> exampleData = objectMapper.readValue("""
                 {
                   "vct": "https://www.oid4vp.example.com/university",
@@ -47,8 +45,9 @@ class DcqlUtilTest {
                   ],
                   "nationalities": ["British", "Betelgeusian"],
                   "boolean_value": true,
-                  "integer_number": 98,
-                  "float_number": 55.5
+                  "integer_number": 98.0,
+                  "float_number": 55.5,
+                  "lucky_numbers": [7.0, 3.14, 42.0]
                 }
                 """, Map.class);
         sdJwt = mock(SdJwt.class);
@@ -269,6 +268,30 @@ class DcqlUtilTest {
         var meta = new DcqlCredentialMeta(null, List.of("https://www.oid4vp.example.com/university", "https://www.oid4vp.example.com/doesNotExist"), null);
         var filtered = assertDoesNotThrow(() -> DcqlUtil.filterByVct(List.of(sdJwt), meta));
         assertFalse(CollectionUtils.isEmpty(filtered));
+    }
+
+    /**
+     * checks value of numbers in array, if one matches, the selection is valid
+     */
+    @Test
+    void validateRequestedClaims_withNumberValidation_doesNotThrow() {
+        var numberList = new ArrayList<>();
+        numberList.add("lucky_numbers");
+        numberList.add(null);
+        var requestClaim = new DcqlClaim(null, numberList, List.of(7));
+        assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
+    }
+
+    /**
+     * checks value of numbers in array, if one matches, the selection is valid
+     */
+    @Test
+    void validateRequestedClaims_withFloatNumberValidation_doesNotThrow() {
+        var numberList = new ArrayList<>();
+        numberList.add("lucky_numbers");
+        numberList.add(null);
+        var requestClaim = new DcqlClaim(null, numberList, List.of(3.14));
+        assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
     }
 
     private DcqlClaim createSimpleDCQLClaim(Object... claimPath) {

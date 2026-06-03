@@ -18,7 +18,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <version>1.16.3</version>
+            <version>1.16.5</version>
         </dependency>
 
         <dependency>
@@ -33,6 +33,10 @@
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-did-resolver-adapter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-ts-verifier</artifactId>
         </dependency>
 
         <!-- JWT Library -->
@@ -64,11 +68,6 @@
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
             <version>${jna.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.swiyu-admin-ch</groupId>
-            <artifactId>didresolver</artifactId>
-            <version>${didresolver.version}</version>
         </dependency>
 
         <!-- SD-JWT -->
@@ -158,7 +157,7 @@
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>26.0.2</version>
+            <version>26.1.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -168,6 +167,19 @@
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jwt-util</artifactId>
+        </dependency>
+
+        <!-- High-performance in-memory caching with per-entry TTL support (TP2.0) -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- JWT validation via DID-based Flow B for Trust Statement signature verification -->
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-jwt-validator</artifactId>
+            <version>${generic-java-lib.version}</version>
         </dependency>
     </dependencies>
 
@@ -184,6 +196,43 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${openapi-generator-maven-plugin.version}</version>
+                <configuration>
+                    <configOptions>
+                        <inputSpecRootDirectory>${project.basedir}/specs</inputSpecRootDirectory>
+                        <sourceFolder>main/java</sourceFolder>
+                        <interfaceOnly>true</interfaceOnly>
+                        <dateLibrary>java21</dateLibrary>
+                        <useJakartaEe>true</useJakartaEe>
+                        <openApiNullable>false</openApiNullable>
+                    </configOptions>
+                    <output>${project.build.directory}/generated-sources</output>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>swiyu-core-trust-sidechannel-client-generator</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <generatorName>java</generatorName>
+                            <library>webclient</library>
+                            <modelPackage>ch.admin.bj.swiyu.core.trust.client.model</modelPackage>
+                            <apiPackage>ch.admin.bj.swiyu.core.trust.client.api</apiPackage>
+                            <invokerPackage>ch.admin.bj.swiyu.core.trust.client.invoker</invokerPackage>
+                            <groupId>ch.admin.bj.swiyu</groupId>
+                            <artifactId>swiyu-core-trust-sidechannel-api-client</artifactId>
+                            <artifactVersion>${project.version}</artifactVersion>
+                            <inputSpec>${project.basedir}/specs/IF-007-Trust-Registry-Data-Services.yaml</inputSpec>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -235,7 +284,63 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>3.5.6</version>
+            </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${openapi-generator-maven-plugin.version}</version>
+                <configuration>
+                    <configOptions>
+                        <inputSpecRootDirectory>${project.basedir}/specs</inputSpecRootDirectory>
+                        <sourceFolder>main/java</sourceFolder>
+                        <interfaceOnly>true</interfaceOnly>
+                        <dateLibrary>java21</dateLibrary>
+                        <useJakartaEe>true</useJakartaEe>
+                        <openApiNullable>false</openApiNullable>
+                    </configOptions>
+                    <output>${project.build.directory}/generated-sources</output>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>swiyu-core-trust-sidechannel-client-generator</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <generatorName>java</generatorName>
+                            <library>webclient</library>
+                            <modelPackage>ch.admin.bj.swiyu.core.trust.client.model</modelPackage>
+                            <apiPackage>ch.admin.bj.swiyu.core.trust.client.api</apiPackage>
+                            <invokerPackage>ch.admin.bj.swiyu.core.trust.client.invoker</invokerPackage>
+                            <groupId>ch.admin.bj.swiyu</groupId>
+                            <artifactId>swiyu-core-trust-sidechannel-api-client</artifactId>
+                            <artifactVersion>${project.version}</artifactVersion>
+                            <inputSpec>${project.basedir}/specs/IF-007-Trust-Registry-Data-Services.yaml</inputSpec>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>swiyu-core-trust-business-generator</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <generatorName>java</generatorName>
+                            <library>webclient</library>
+                            <modelPackage>ch.admin.bj.swiyu.core.trust.client.model</modelPackage>
+                            <apiPackage>ch.admin.bj.swiyu.core.trust.client.api</apiPackage>
+                            <invokerPackage>ch.admin.bj.swiyu.core.trust.client.invoker</invokerPackage>
+                            <groupId>ch.admin.bj.swiyu</groupId>
+                            <artifactId>swiyu-core-trust-business-api-client</artifactId>
+                            <artifactVersion>${project.version}</artifactVersion>
+                            <inputSpec>${project.basedir}/specs/IF-014-trust-business-api.yaml</inputSpec>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
 

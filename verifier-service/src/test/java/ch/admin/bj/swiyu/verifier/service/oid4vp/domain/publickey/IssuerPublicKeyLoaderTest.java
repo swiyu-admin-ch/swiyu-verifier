@@ -8,16 +8,29 @@ import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.eid.did_sidekicks.DidDoc;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
+import ch.admin.eid.did_sidekicks.Jwk;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.security.interfaces.ECPublicKey;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader.TRUST_STATEMENT_ISSUANCE_ENDPOINT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -84,21 +97,21 @@ class IssuerPublicKeyLoaderTest {
     @Test
     void testLoadPublicKeyWithIssuerFromTdw() throws Exception {
         // given
-        String issuerDidTdw = "did:web:tdw.example";
-        String issuerKeyId = issuerDidTdw + "#key-1";
+        String issuerDidWebvh = "did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000";
+        String issuerKeyId = issuerDidWebvh + "#key-1";
         String fragment = "key-1";
 
         try(DidDoc issuerDidDocument = DidDocFixtures.issuerDidDocWithJsonWebKey(
-                issuerDidTdw,
+                issuerDidWebvh,
                 issuerKeyId,
                 KeyFixtures.issuerPublicKeyAsJsonWebKey())) {
 
             // adapt mock to new resolveDid(did, fragment) API returning Jwk
-            when(mockedDidResolverFacade.resolveDid(issuerDidTdw, fragment))
+            when(mockedDidResolverFacade.resolveDid(issuerDidWebvh, fragment))
                     .thenReturn(issuerDidDocument.getKey(fragment));
 
             // WHEN
-            var publicKey = publicKeyLoader.loadPublicKey(issuerDidTdw, issuerKeyId);
+            var publicKey = publicKeyLoader.loadPublicKey(issuerDidWebvh, issuerKeyId);
 
             // THEN
             assertThat(publicKey.getAlgorithm()).isEqualTo("EC");
@@ -147,5 +160,26 @@ class IssuerPublicKeyLoaderTest {
         assertEquals(2, statements.size());
         assertEquals(expectedStatements.getFirst(), statements.getFirst());
         assertEquals(expectedStatements.get(1), statements.get(1));
+    }
+
+    @Test
+    void loadPublicDidKey_keyIdModification() throws JOSEException, DidResolverException, DidSidekicksException {
+        final String KEY_ID = "key-1";
+        final String DID = "did:example";
+        var testKey = new ECKeyGenerator(Curve.P_256).keyID(KEY_ID).algorithm(JWSAlgorithm.ES256).generate();
+        var testKeyJwk = new Jwk(
+            testKey.getAlgorithm().toString(),
+            testKey.getKeyID(),
+            testKey.getKeyType().toString(),
+            testKey.getCurve().toString(),
+            testKey.toPublicJWK().getX().toString(),
+            testKey.toPublicJWK().getY().toString());
+        when(mockedDidResolverFacade.resolveDid(DID, KEY_ID)).thenReturn(testKeyJwk);
+        var loadedKey = assertDoesNotThrow(() -> publicKeyLoader.loadJWK(DID, DID + "#" + KEY_ID));
+        // Evaluate that the key performs the same way
+        var jwtKid = DID + "#" + KEY_ID;
+        var jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(jwtKid).build(), new JWTClaimsSet.Builder().audience("Test").build());
+        jwt.sign(new ECDSASigner(testKey));
+        assertThat(jwt.verify(new ECDSAVerifier((ECKey) loadedKey))).as("Signature MUST be valid").isTrue();
     }
 }

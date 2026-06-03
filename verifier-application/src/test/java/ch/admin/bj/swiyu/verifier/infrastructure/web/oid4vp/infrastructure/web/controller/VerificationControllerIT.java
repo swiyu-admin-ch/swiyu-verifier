@@ -287,11 +287,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 );
 
         var sdJWT = emulator.createSDJWTMock(statusListIndex);
-        var parts = sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
-
-        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
-        var newCred = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER + StringUtils.join(sd, SdJwt.JWT_PART_DELINEATION_CHARACTER) + SdJwt.JWT_PART_DELINEATION_CHARACTER;
-        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "did:example:12345");
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "did:example:12345");
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
@@ -405,7 +401,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("invalid_credential"))
+                .andExpect(jsonPath("$.error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("$.error_description").value("Request contains non-distinct disclosures"));
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -458,7 +454,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT credential is not yet valid"));
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -485,7 +481,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT credential is expired"));
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -513,8 +509,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_credential"))
-                .andExpect(jsonPath("error_description").value("Could not verify JWT problem with disclosures and _sd field"));
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
+                .andExpect(jsonPath("error_description").value("Unused disclosures detected"));
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
@@ -585,7 +581,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Failed to verify JWT: Issuer public key does not match signature!"));
     }
 
@@ -607,7 +603,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Signature mismatch"));
     }
 
@@ -635,7 +631,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description", containsString("The VC cannot be validated as the remote list does not contain this VC!")))
                 .andReturn();
 
@@ -665,7 +661,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("vp_token", dcqlVpToken))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_credential"))
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description", containsString(expectedErrorMesssage)))
                 .andReturn();
 

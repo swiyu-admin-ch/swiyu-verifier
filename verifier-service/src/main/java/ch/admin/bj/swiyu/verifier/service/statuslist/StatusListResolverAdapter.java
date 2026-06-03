@@ -44,7 +44,7 @@ public class StatusListResolverAdapter {
 
             if (!containsValidHost(rewrittenUrl)) {
                 throw new IllegalArgumentException("StatusList %s does not contain a valid host from %s"
-                        .formatted(rewrittenUrl, applicationProperties.getAcceptedStatusListHosts()));
+                        .formatted(rewrittenUrl, applicationProperties.getAcceptedRegistryHosts()));
             }
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Malformed URL %s in StatusList".formatted(rewrittenUrl), e);
@@ -82,13 +82,13 @@ public class StatusListResolverAdapter {
 
     private boolean containsValidHost(String rewrittenUrl) throws MalformedURLException {
 
-        var acceptedStatusListHosts = applicationProperties.getAcceptedStatusListHosts();
+        var acceptedStatusListHosts = applicationProperties.getAcceptedRegistryHosts();
         var url = URI.create(rewrittenUrl).toURL();
 
         if (isEmpty(acceptedStatusListHosts)) {
             return true;
         }
 
-        return applicationProperties.getAcceptedStatusListHosts().contains(url.getHost());
+        return applicationProperties.getAcceptedRegistryHosts().contains(url.getHost());
     }
 }

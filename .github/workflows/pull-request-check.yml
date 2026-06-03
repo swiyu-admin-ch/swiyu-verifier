@@ -3,28 +3,34 @@ name: Pull Request Check
 run-name: ${{ github.repository }} is evaluating pull request
 on: [pull_request]
 
+# Least privilege: this job builds/loads a local image (no push) and uploads SARIF,
+# writes the coverage summary to the job summary, and does not publish packages or create attestations.
+# Cancel superseded runs on the same PR to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: this job builds/loads a local image (no push) and uploads SARIF,
+# writes the coverage summary to the job summary, and does not publish packages or create attestations.
 permissions:
   actions: read
-  security-events: write
   contents: read
-  packages: write
-  attestations: write
-  id-token: write
-  pull-requests: write  # allow coverage comment
+  security-events: write
 
 jobs:
   docker-security-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
         with:
           languages: java
           config-file: ./.github/codeql/codeql-config.yml
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -32,11 +38,11 @@ jobs:
       - name: Build & test with Maven (produce JaCoCo)
         run: mvn --batch-mode clean verify -DskipTests=false
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
         with:
           category: "/language:java"
       - name: Upload JaCoCo reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: jacoco-reports
           path: |
@@ -46,26 +52,26 @@ jobs:
             verifier-application/target/site/jacoco/index.html
 
       - name: Setup Node.js (for coverage summary script)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
       - name: Add coverage to summary
         run: node .github/scripts/coverage-summary.js
 
       - name: Run PMD static analysis
-        uses: pmd/pmd-github-action@v2
+        uses: pmd/pmd-github-action@d9c1f3c5940cbf5923f1354e83fa858b4496ebaa # v2
         id: pmd
         with:
           rulesets: '.github/rulesets/java/pmd_omni_ruleset.xml'
           cache: true
 
       - name: Upload PMD SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
         with:
           sarif_file: pmd-report.sarif
 
       - name: Run Snyk to check for vulnerabilities 🔍
-        uses: snyk/actions/maven-3-jdk-21@master
+        uses: snyk/actions/maven-3-jdk-21@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
         continue-on-error: false
         env:
           JAVA_HOME: '' # Snyk action sets JAVA_HOME to a path that is not compatible with the setup-java action, so we need to reset it here
@@ -77,7 +83,7 @@ jobs:
           args: --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif
       - name: Upload result as sarif to GitHub Code Scanning 📦
         if: always() # We want to upload the SARIF file even if the Snyk action fails, to have the results in the Code Scanning tab of GitHub
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
         with:
           sarif_file: snyk.sarif
 
@@ -88,7 +94,7 @@ jobs:
 
       - name: Build hardened (default) docker image
         id: build-dhi
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # 10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           load: true
@@ -97,7 +103,7 @@ jobs:
           file: Dockerfile.dhi
 
       - name: Scan hardened Docker image with Snyk 🐳
-        uses: snyk/actions/docker@master
+        uses: snyk/actions/docker@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
         continue-on-error: false
         with:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
@@ -120,7 +126,7 @@ jobs:
           file: Dockerfile
 
       - name: Scan unhardened Docker image with Snyk 🐳
-        uses: snyk/actions/docker@master
+        uses: snyk/actions/docker@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
         continue-on-error: false
         with:
           image: pull_request_check:unhardened

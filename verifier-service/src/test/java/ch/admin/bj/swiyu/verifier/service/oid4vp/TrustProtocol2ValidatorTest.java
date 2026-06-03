@@ -1,13 +1,10 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import java.text.ParseException;
 import java.util.List;
-import java.util.Set;
 
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,18 +13,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
-import ch.admin.bj.swiyu.tsverifier.statement.TrustMarkers;
-import ch.admin.bj.swiyu.tsverifier.statement.TrustVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;

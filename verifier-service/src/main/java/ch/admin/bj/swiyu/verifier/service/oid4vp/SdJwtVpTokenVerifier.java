@@ -36,6 +36,7 @@ import org.springframework.util.CollectionUtils;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
@@ -335,7 +336,15 @@ public class SdJwtVpTokenVerifier {
         var claims = objectMapper.convertValue(claimSet.getClaims(), JsonNode.class);
 
         // 3.1 - For each Disclosure provided Calculate the digest over the base64url-encoded string
-        Map<String, Disclosure> digestToDisclosure = disclosures.stream().collect(Collectors.toMap(Disclosure::digest, d -> d));
+        // Reject immediately if the same disclosure appears more than once (identical digest)
+        Map<String, Disclosure> digestToDisclosure = disclosures.stream().collect(
+                Collectors.toMap(
+                        Disclosure::digest,
+                        Function.identity(),
+                        (existing, duplicate) -> {
+                            throw credentialError(MALFORMED_CREDENTIAL, "Request contains non-distinct disclosures");
+                        }
+                ));
 
         log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntityId);
 

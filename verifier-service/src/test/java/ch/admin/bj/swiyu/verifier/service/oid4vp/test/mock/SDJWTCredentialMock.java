@@ -67,7 +67,7 @@ public class SDJWTCredentialMock {
         return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
     }
     public String createSDJWTMock(Integer statusListIndex) {
-        return createSDJWTMock(null, null, statusListIndex, "testCredentialType", getSDClaims());
+        return createSDJWTMock(null, null, statusListIndex, DEFAULT_VCT, getSDClaims());
     }
 
     public String createSDJWTMock() {

@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation and examples updated to use `dc+sd-jwt` as the canonical SD-JWT VC media type
   (per draft-ietf-oauth-sd-jwt-vc-09 §A.2.1). The verifier continues to accept `vc+sd-jwt`
   on the credential `typ` header during the migration window `(#178)`.
+- Renamed the configuration property `application.accepted-status-list-hosts` to
+  `application.accepted-registry-hosts`.
 - **Docker image:** the published image is now hardened. The default
   (unsuffixed) tag `ghcr.io/swiyu-admin-ch/swiyu-verifier:<tag>` builds from
   `dhi.io/eclipse-temurin:21-debian13`, runs as the pre-configured `nonroot` user

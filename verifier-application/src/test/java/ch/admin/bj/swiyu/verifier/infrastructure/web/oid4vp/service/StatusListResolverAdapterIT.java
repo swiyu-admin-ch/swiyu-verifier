@@ -150,7 +150,7 @@ class StatusListResolverAdapterIT {
     @Test
     void testInvalidDomain_thenIllegalArgumentException() {
         var hosts = List.of("not_example.com");
-        when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(hosts);
+        when(applicationProperties.getAcceptedRegistryHosts()).thenReturn(hosts);
 
         // For this test we want the rewritten URL to be the original URL so that the domain check runs
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);

@@ -45,5 +45,5 @@ public class ApplicationProperties {
 
     private HSMProperties hsm;
 
-    private List<String> acceptedStatusListHosts;
+    private List<String> acceptedRegistryHosts;
 }

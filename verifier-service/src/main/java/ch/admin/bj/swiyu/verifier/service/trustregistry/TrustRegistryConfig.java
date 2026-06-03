@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.core.trust.client.api.TrustProtocol20Api;
 import ch.admin.bj.swiyu.core.trust.client.invoker.ApiClient;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.UrlRestriction;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Spring configuration for the Trust Registry sidechannel API client and JWT validator.
@@ -32,6 +34,7 @@ import java.util.Set;
 public class TrustRegistryConfig {
 
     private final TrustRegistryProperties properties;
+    private final ApplicationProperties applicationProperties;
     private final WebClient webClient;
 
     /**
@@ -81,9 +84,9 @@ public class TrustRegistryConfig {
      */
     @Bean
     public DidJwtValidator trustStatementDidJwtValidator() {
-        String host = URI.create(properties.getApiUrl()).getHost();
-        log.info("Configuring trust statement JWT validator with allowed host: {}", host);
-        return new DidJwtValidator(new UrlRestriction(Set.of(host)));
+        Set<String> hosts = applicationProperties.getAcceptedRegistryHosts().stream().map(uri -> URI.create(uri).getHost()).collect(Collectors.toSet());
+        log.info("Configuring trust statement JWT validator with allowed host: {}", hosts);
+        return new DidJwtValidator(new UrlRestriction(hosts));
     }
 }
 

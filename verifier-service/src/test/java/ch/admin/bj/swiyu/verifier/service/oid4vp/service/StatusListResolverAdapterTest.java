@@ -32,7 +32,7 @@ class StatusListResolverAdapterTest {
     void resolveStatusListWithInvalidHost_throwsException() {
         String uri = "https://example.com/statuslist";
         when(urlRewriteProperties.getRewrittenUrl(uri)).thenReturn(uri);
-        when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(List.of("other.com"));
+        when(applicationProperties.getAcceptedRegistryHosts()).thenReturn(List.of("other.com"));
 
         var exception = assertThrows(IllegalArgumentException.class, () -> adapter.resolveStatusList(uri));
         assertTrue(exception.getMessage().contains("does not contain a valid host"));
@@ -42,7 +42,7 @@ class StatusListResolverAdapterTest {
     void resolveStatusListWithoutHTTPS_throwsException() {
         String uri = "http://bad_url";
         when(urlRewriteProperties.getRewrittenUrl(uri)).thenReturn(uri);
-        when(applicationProperties.getAcceptedStatusListHosts()).thenReturn(List.of());
+        when(applicationProperties.getAcceptedRegistryHosts()).thenReturn(List.of());
 
         var exception = assertThrows(IllegalArgumentException.class, () -> adapter.resolveStatusList(uri));
         assertTrue(exception.getMessage().contains("does not use HTTPS"));

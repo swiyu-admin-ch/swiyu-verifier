@@ -41,9 +41,11 @@ application:
 
   url-rewrite:
     mapping: "${URL_REWRITE_MAPPING:{}}"
-  accepted-status-list-hosts:
+  accepted-registry-hosts:
     - "status-reg.trust-infra.swiyu-int.admin.ch"
     - "status-reg.trust-infra.swiyu.admin.ch"
+    - "identifier-reg.trust-infra.swiyu.admin.ch"
+    - "identifier-reg.trust-infra.swiyu-int.admin.ch"
 
   # ---- OpenID4VP Part ----
 

@@ -15,9 +15,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -84,7 +84,7 @@ public class TrustRegistryConfig {
      */
     @Bean
     public DidJwtValidator trustStatementDidJwtValidator() {
-        Set<String> hosts = applicationProperties.getAcceptedRegistryHosts().stream().map(uri -> URI.create(uri).getHost()).collect(Collectors.toSet());
+        Set<String> hosts = new HashSet<>(applicationProperties.getAcceptedRegistryHosts());
         log.info("Configuring trust statement JWT validator with allowed host: {}", hosts);
         return new DidJwtValidator(new UrlRestriction(hosts));
     }

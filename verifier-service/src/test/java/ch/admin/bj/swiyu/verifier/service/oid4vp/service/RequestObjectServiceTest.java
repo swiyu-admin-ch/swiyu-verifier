@@ -3,16 +3,15 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 import ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
-import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
@@ -25,6 +24,7 @@ import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.text.ParseException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -99,12 +99,8 @@ class RequestObjectServiceTest {
             return signedJwt;
         });
 
-        RequestObjectResult result = service.assembleRequestObject(mgmtId);
+        String jwtString = service.assembleRequestObject(mgmtId);
 
-        assertThat(result).isInstanceOf(RequestObjectResult.Signed.class);
-        assertThat(result.isSigned()).isTrue();
-
-        String jwtString = ((RequestObjectResult.Signed) result).jwt();
         SignedJWT jwt = SignedJWT.parse(jwtString);
         // verify JWT header
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
@@ -151,12 +147,8 @@ class RequestObjectServiceTest {
             return signedJwt;
         });
 
-        RequestObjectResult result = service.assembleRequestObject(mgmtId);
+        String jwtString = service.assembleRequestObject(mgmtId);
 
-        assertThat(result).isInstanceOf(RequestObjectResult.Signed.class);
-        assertThat(result.isSigned()).isTrue();
-
-        String jwtString = ((RequestObjectResult.Signed) result).jwt();
         SignedJWT jwt = SignedJWT.parse(jwtString);
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
@@ -167,38 +159,7 @@ class RequestObjectServiceTest {
     }
 
     @Test
-    void assembleRequestObjectUnsigned_thenSuccess() {
-        mockManagement(false);
-
-        RequestObjectResult result = service.assembleRequestObject(mgmtId);
-
-        assertThat(result).isInstanceOf(RequestObjectResult.Unsigned.class);
-        assertThat(result.isSigned()).isFalse();
-
-        RequestObjectDto dto = ((RequestObjectResult.Unsigned) result).requestObject();
-        assertThat(dto.getClientId()).isEqualTo(clientId);
-    }
-
-    @Test
-    void assembleRequestObjectUnsigned_whenOverrideParameters_thenSuccess() {
-        var externalUrl = "https://overriden.example.com";
-        var overrideDid = "did:override";
-        var management = mockManagement(false);
-        var override = new ConfigurationOverride(externalUrl, overrideDid, null, null, null);
-        when(management.getConfigurationOverride()).thenReturn(override);
-
-        RequestObjectResult result = service.assembleRequestObject(mgmtId);
-
-        assertThat(result).isInstanceOf(RequestObjectResult.Unsigned.class);
-        assertThat(result.isSigned()).isFalse();
-
-        RequestObjectDto dto = ((RequestObjectResult.Unsigned) result).requestObject();
-        assertEquals(overrideDid, dto.getClientId());
-        assertThat(dto.getResponseUri()).startsWith(externalUrl);
-    }
-
-    @Test
-    void assembleRequestObjectJWTResponseType_thenSuccess() {
+    void assembleRequestObject_whenOverridde_thenSuccess() throws ParseException, JOSEException {
         var externalUrl = "https://overriden.example.com";
         var overrideDid = "did:override";
         var management = mock(Management.class);
@@ -209,6 +170,24 @@ class RequestObjectServiceTest {
         when(management.getJwtSecuredAuthorizationRequest()).thenReturn(false);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
         when(management.getOauthState()).thenReturn(UUID.randomUUID().toString());
+        JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
+        when(jwtSigningService.signJwt(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq("did:example:123#key1")
+        )).thenAnswer(invocation -> {
+            var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
+            JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
+                    .keyID("did:example:123#key1")
+                    .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
+                    .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
+                    .build();
+            SignedJWT signedJwt = new SignedJWT(header, claimsSet);
+            signedJwt.sign(jwsSigner);
+            return signedJwt;
+        });
+
 
         var responseSpecification = mock(ResponseSpecification.class);
         when(management.getResponseSpecification()).thenReturn(responseSpecification);
@@ -225,14 +204,12 @@ class RequestObjectServiceTest {
         var override = new ConfigurationOverride(externalUrl, overrideDid, null, null, null);
         when(management.getConfigurationOverride()).thenReturn(override);
 
-        RequestObjectResult result = service.assembleRequestObject(mgmtId);
+        String jwtString = service.assembleRequestObject(mgmtId);
 
-        assertThat(result).isInstanceOf(RequestObjectResult.Unsigned.class);
-        assertThat(result.isSigned()).isFalse();
-
-        RequestObjectDto dto = ((RequestObjectResult.Unsigned) result).requestObject();
-        assertEquals(overrideDid, dto.getClientId());
-        assertThat(dto.getResponseUri()).startsWith(externalUrl);
+        SignedJWT jwt = SignedJWT.parse(jwtString);
+        var claims = jwt.getJWTClaimsSet();
+        assertThat(claims.getStringClaim("client_id")).as("DID was overridden").isEqualTo(overrideDid);
+        assertThat(claims.getStringClaim("response_uri")).as("Was using overridden external url").startsWith(externalUrl);
     }
 
     @Test

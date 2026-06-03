@@ -55,16 +55,16 @@ public class RequestObjectService {
     }
 
     /**
-     * Main entry point: build a request object for the given management id and
-     * optionally sign it depending on the management configuration.
+     * Main entry point: build a JWT-Secured Authorization Request (JAR)
+     * request object for the given management id
      * <p>
      * 1. Load and validate the Management entity (domain rules).
      * 2. Resolve the effective configuration (defaults + overrides).
      * 3. Build the request object DTO.
-     * 4. If signing is desired, sign and return the JWT string, otherwise return the DTO.
+     * 4. Sign the request object
      */
     @Transactional(readOnly = true)
-    public RequestObjectResult assembleRequestObject(UUID managementEntityId) {
+    public String assembleRequestObject(UUID managementEntityId) {
 
         log.debug("Prepare request object for mgmt-id {}", managementEntityId);
 
@@ -77,22 +77,8 @@ public class RequestObjectService {
         log.trace("Build the request object DTO (incl. optional TP2.0 verifier_info injection).");
         var requestObject = buildRequestObject(managementEntity, effectiveConfig, managementEntityId);
 
-        log.trace("If signing is desired, sign and return the JWT string, otherwise return the DTO");
-        if (isSigningRequested(managementEntity)) {
-            String jwt = signRequestObject(requestObject, managementEntity, effectiveConfig);
-            return new RequestObjectResult.Signed(jwt);
-        } else {
-            // if signing is not desired return the plain request object DTO
-            return new RequestObjectResult.Unsigned(requestObject);
-        }
-    }
-
-    /**
-     * Decides whether the request object should be signed based on the
-     * Management configuration flag.
-     */
-    private static boolean isSigningRequested(Management managementEntity) {
-        return Boolean.TRUE.equals(managementEntity.getJwtSecuredAuthorizationRequest());
+        log.trace("Sign and return the JWT string");
+        return signRequestObject(requestObject, managementEntity, effectiveConfig);
     }
 
     /**

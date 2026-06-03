@@ -6,9 +6,6 @@ import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResponseResolver;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Unsigned;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectResult.Signed;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.*;
@@ -106,20 +103,11 @@ public class VerificationController {
             }
     )
     public ResponseEntity<Object> getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
-        RequestObjectResult result = requestObjectService.assembleRequestObject(requestId);
-
-        return switch (result) {
-            // JWT Request Object
-            case Signed(var jwt) -> ResponseEntity
+        String jwt = requestObjectService.assembleRequestObject(requestId);
+        return ResponseEntity
                     .ok()
                     .contentType(new MediaType("application", "oauth-authz-req+jwt"))
                     .body(jwt);
-            // Unsecured Request Object
-            case Unsigned(var requestObject) -> ResponseEntity
-                    .ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(requestObject);
-        };
     }
 
     @Timed

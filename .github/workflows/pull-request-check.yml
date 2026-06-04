@@ -25,7 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
+        uses: github/codeql-action/init@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4
         with:
           languages: java
           config-file: ./.github/codeql/codeql-config.yml
@@ -38,7 +38,7 @@ jobs:
       - name: Build & test with Maven (produce JaCoCo)
         run: mvn --batch-mode clean verify -DskipTests=false
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
+        uses: github/codeql-action/analyze@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4
         with:
           category: "/language:java"
       - name: Upload JaCoCo reports
@@ -66,12 +66,12 @@ jobs:
           cache: true
 
       - name: Upload PMD SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
+        uses: github/codeql-action/upload-sarif@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4
         with:
           sarif_file: pmd-report.sarif
 
       - name: Run Snyk to check for vulnerabilities 🔍
-        uses: snyk/actions/maven-3-jdk-21@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
+        uses: snyk/actions/maven-3-jdk-21@8e119fbb6c251787721d34ba683ed48eba792766 # master
         continue-on-error: false
         env:
           JAVA_HOME: '' # Snyk action sets JAVA_HOME to a path that is not compatible with the setup-java action, so we need to reset it here
@@ -83,7 +83,7 @@ jobs:
           args: --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif
       - name: Upload result as sarif to GitHub Code Scanning 📦
         if: always() # We want to upload the SARIF file even if the Snyk action fails, to have the results in the Code Scanning tab of GitHub
-        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4
+        uses: github/codeql-action/upload-sarif@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4
         with:
           sarif_file: snyk.sarif
 
@@ -103,7 +103,7 @@ jobs:
           file: Dockerfile.dhi
 
       - name: Scan hardened Docker image with Snyk 🐳
-        uses: snyk/actions/docker@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
+        uses: snyk/actions/docker@8e119fbb6c251787721d34ba683ed48eba792766 # master
         continue-on-error: false
         with:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
@@ -126,7 +126,7 @@ jobs:
           file: Dockerfile
 
       - name: Scan unhardened Docker image with Snyk 🐳
-        uses: snyk/actions/docker@9cf6ca713d71123d2d229cc3d7f145b96ea3c518 # master
+        uses: snyk/actions/docker@8e119fbb6c251787721d34ba683ed48eba792766 # master
         continue-on-error: false
         with:
           image: pull_request_check:unhardened

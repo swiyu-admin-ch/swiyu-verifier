@@ -25,10 +25,11 @@ git log --since="[DATE_FROM_STEP_1]" --oneline`
 Once the user provides the commit messages, generate the changelog using STRICTLY the following instructions:
 - Generate a changelog for the next release based on the provided git commit messages.
 - Group the changes by "Added", "Fixed", and "Changed".
-- Include relevant Jira ticket numbers in parentheses. -> (#XXX)
+- Include relevant Jira ticket numbers in parentheses. -> (#XXX) HINT not (EIDOMNI-xxx) but only the number itself, e.g., (#123)
 - Write concise, clear bullet points for each item.
 - Format the output in Markdown, following the "Keep a Changelog" style.
 - Only include user-facing changes, skip refactoring, documentation, and merge commits unless they affect functionality.
+- It there is already a entry for the change, do not change the description, but only add the new Jira ticket number in parentheses. For example, if there is already an entry "Added new API endpoint for user registration", and a new commit adds another Jira ticket related to this change, the entry should be updated to "Added new API endpoint for user registration (#123, #456)".
 
 ## Step 5: Update the pom.xml Files
 Directly after presenting the changelog, provide the code to update the `pom.xml` files.

@@ -60,6 +60,7 @@
         <skip.doc-generate>true</skip.doc-generate>
         <generic-java-lib.version>1.6.1</generic-java-lib.version>
         <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
+        <netty.version>4.2.15.Final</netty.version>
 
     </properties>
 
@@ -112,6 +113,39 @@
                 <artifactId>swiyu-ts-verifier</artifactId>
                 <version>${generic-java-lib.version}</version>
             </dependency>
+
+            <!-- fix CVE netty – force 4.2.15.Final -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-transport-native-epoll</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-compression</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-resolver-dns</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http2</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http3</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <!-- end fix -->
         </dependencies>
     </dependencyManagement>
 

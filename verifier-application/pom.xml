@@ -19,7 +19,6 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <version>1.16.6</version>
         </dependency>
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
@@ -300,11 +299,6 @@
                 <version>${spring-cloud-dependencies.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.data</groupId>
-                <artifactId>spring-data-commons</artifactId>
-                <version>4.0.6</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>

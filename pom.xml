@@ -65,6 +65,16 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.data</groupId>
+                <artifactId>spring-data-commons</artifactId>
+                <version>4.0.6</version>
+            </dependency>
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-registry-prometheus</artifactId>
+                <version>1.16.6</version>
+            </dependency>
             <!-- fix CVE-2026-43512 -->
             <dependency>
                 <groupId>org.apache.tomcat.embed</groupId>

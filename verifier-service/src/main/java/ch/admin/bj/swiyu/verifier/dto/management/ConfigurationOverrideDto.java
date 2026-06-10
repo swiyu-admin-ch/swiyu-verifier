@@ -3,6 +3,8 @@ package ch.admin.bj.swiyu.verifier.dto.management;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.Pattern;
+import org.hibernate.validator.constraints.URL;
 
 @Schema(description = "Override for Verifier configuration to be use for this one verification")
 public record ConfigurationOverrideDto(
@@ -10,6 +12,8 @@ public record ConfigurationOverrideDto(
                 example = "https://www.example.com/verifier")
         @Nullable
         @JsonProperty("external_url")
+        @Pattern(regexp = "^https://.*", message = "External URL must utilize https")
+        @URL
         String externalUrl,
         @Schema(description = "Override to be used in clientId instead of environment variable VERIFIER_DID",
                 example = "did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000")

@@ -368,48 +368,6 @@ If `SWIYU_TMS_AUTHORING_URL` is configured, you can optionally provide a `verifi
 }
 ```
 
-```json
-{
-    "id": "00000000-0000-0000-0000-000000000000",
-    "name": "Example Verification",
-    "purpose": "We want to test a new Verifier",
-    "input_descriptors": [
-        {
-            "id": "11111111-1111-1111-1111-111111111111",
-            "name": "Example Data Request",
-            "format": {
-                "dc+sd-jwt": {
-                    "sd-jwt_alg_values": [
-                        "ES256"
-                    ],
-                    "kb-jwt_alg_values": [
-                        "ES256"
-                    ]
-                }
-            },
-            "constraints": {
-                "fields": [
-                    {
-                        "path": [
-                            "$.vct"
-                        ],
-                        "filter": {
-                            "type": "string",
-                            "const": "test-sdjwt"
-                        }
-                    },
-                    {
-                        "path": [
-                            "$.dateOfBirth"
-                        ]
-                    }
-                ]
-            }
-        }
-    ]
-}
-```
-
 > **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+) and `vc+sd-jwt` (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header.
 
 The response of this post call contains the URI which has to be provided to the holder.

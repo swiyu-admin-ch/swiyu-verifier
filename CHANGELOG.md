@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [3.0.2]
+
+## Fixed
+- update didresolver to 2.8.2
+
+# [3.0.1]
+
+## Fixed
+- update Netty version to 4.2.15.Final to address CVE
+
 ## [3.0.0]
 
 ### Added

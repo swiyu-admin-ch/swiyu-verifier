@@ -45,11 +45,14 @@ class DcqlUtilTest {
                   ],
                   "nationalities": ["British", "Betelgeusian"],
                   "boolean_value": true,
-                  "integer_number": 98.0,
-                  "float_number": 55.5,
-                  "lucky_numbers": [7.0, 3.14, 42.0]
+                  "float_number": 55.5
                 }
                 """, Map.class);
+
+        // int are cast to long
+        exampleData.put("integer_number", 98L);
+        exampleData.put("lucky_numbers", List.of(7L, 3.14, 42L));
+
         sdJwt = mock(SdJwt.class);
         var claims = mock(JWTClaimsSet.class);
         when(sdJwt.getClaims()).thenReturn(claims);
@@ -193,7 +196,7 @@ class DcqlUtilTest {
 
     @Test
     void integerSelection_whenValue_thenSuccess() {
-        var requestClaim = new DcqlClaim(null, List.of("integer_number"), List.of(97,98,99,100));
+        var requestClaim = new DcqlClaim(null, List.of("integer_number"), List.of(98));
         assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
     }
 

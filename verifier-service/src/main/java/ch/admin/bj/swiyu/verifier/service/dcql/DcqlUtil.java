@@ -46,16 +46,14 @@ public class DcqlUtil {
         for (DcqlClaim requestedClaim : requestedClaims) {
             var claims = selectClaim(sdJwt, requestedClaim);
 
-            var requestedValues = requestedClaim.getValues();
+            List<Object> sanitizedRequestValues = requestedClaim.getValues();
 
-            if (requestedValues != null) {
-                // if number cast to double as the sdjwt uses GSON which unmarshals all numbers to double
-                requestedValues = requestedValues.stream().map(value -> value instanceof Integer number ? number.longValue() : value).toList();
+            if (sanitizedRequestValues != null) {
+                // if int cast to long
+                sanitizedRequestValues = sanitizedRequestValues.stream().map(value -> value instanceof Integer number ? number.longValue() : value).toList();
             }
 
-            // if values is present, the Wallet SHOULD return the claim only if the type
-            // and value of the claim both match exactly for at least one of the elements in the array.
-            if (requestedValues != null && Collections.disjoint(claims, requestedValues)) {
+            if (sanitizedRequestValues != null && Collections.disjoint(claims, sanitizedRequestValues)) {
                 throw new IllegalArgumentException("Not all requested claim values are satisfied");
             }
         }

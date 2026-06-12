@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Removed
+- Removed the ` client_id_scheme` from the application configuration as it is no longer used and replaced by the `client_id_prefix` configuration property with default value `decentralized_identifier`, which can be changed or set to null. Therefore, the `client_id` will be `${client_id_prefix}:${client_id}`.
+
 # [3.0.2] - 2026-06-12
 
 ## Fixed

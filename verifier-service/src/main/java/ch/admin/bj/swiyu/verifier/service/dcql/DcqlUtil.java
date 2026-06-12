@@ -50,7 +50,7 @@ public class DcqlUtil {
 
             if (requestedValues != null) {
                 // if number cast to double as the sdjwt uses GSON which unmarshals all numbers to double
-                requestedValues = requestedClaim.getValues().stream().map(value -> value instanceof Number number ? number.doubleValue() : value).toList();
+                requestedValues = requestedValues.stream().map(value -> value instanceof Integer number ? number.longValue() : value).toList();
             }
 
             // if values is present, the Wallet SHOULD return the claim only if the type

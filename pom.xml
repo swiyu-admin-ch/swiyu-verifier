@@ -5,13 +5,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.6</version>
+        <version>4.0.7</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
     <groupId>ch.admin.bj.swiyu</groupId>
     <artifactId>swiyu-verifier-parent</artifactId>
-    <version>3.0.0-SNAPSHOT</version>
+    <version>3.1.0-SNAPSHOT</version>
     <name>Swiyu verifier parent pom</name>
     <description>Generic verifier for public beta</description>
 
@@ -58,69 +58,19 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
-        <generic-java-lib.version>1.6.2</generic-java-lib.version>
+        <generic-java-lib.version>1.6.4</generic-java-lib.version>
         <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
 
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- fix CVE-2026-43512 -->
-            <dependency>
-                <groupId>org.apache.tomcat.embed</groupId>
-                <artifactId>tomcat-embed-core</artifactId>
-                <version>11.0.22</version>
-            </dependency>
-
             <!-- Check again on Spring Boot update -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.20.0</version>
                 <scope>compile</scope>
-            </dependency>
-
-            <!-- CVE fix: HTTP Request Smuggling in netty-codec-http (SNYK-JAVA-IONETTY-16438737/16438923/16438934) -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-http</artifactId>
-                <version>4.2.15.Final</version>
-            </dependency>
-            <!-- CVE fix: Allocation of Resources Without Limits or Throttling (https://security.snyk.io/vuln/SNYK-JAVA-IONETTY-17254117) -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-handler</artifactId>
-                <version>4.2.15.Final</version>
-            </dependency>
-            <!-- CVE fix: Allocation of Resources Without Limits or Throttling (https://security.snyk.io/vuln/SNYK-JAVA-ORGSPRINGFRAMEWORK-17255206) -->
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-core</artifactId>
-                <version>7.0.8</version>
-            </dependency>
-            <!-- CVE fix: Inefficient Algorithmic Complexity (https://security.snyk.io/vuln/SNYK-JAVA-ORGSPRINGFRAMEWORK-17253311)-->
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-expression</artifactId>
-                <version>7.0.8</version>
-            </dependency>
-            <!-- CVE fix: Missing Release of Memory after Effective Lifetime (https://security.snyk.io/vuln/SNYK-JAVA-ORGSPRINGFRAMEWORK-17253520)-->
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-web</artifactId>
-                <version>7.0.8</version>
-            </dependency>
-            <!-- CVE fix: Directory Traversal (https://security.snyk.io/vuln/SNYK-JAVA-ORGSPRINGFRAMEWORK-17254115)-->
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-webflux</artifactId>
-                <version>7.0.8</version>
-            </dependency>
-            <!-- CVE fix: Directory Traversal (https://security.snyk.io/vuln/SNYK-JAVA-ORGSPRINGFRAMEWORK-17254116)-->
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-webmvc</artifactId>
-                <version>7.0.8</version>
             </dependency>
 
             <dependency>
@@ -148,7 +98,7 @@
                 <artifactId>swiyu-ts-verifier</artifactId>
                 <version>${generic-java-lib.version}</version>
             </dependency>
-        </dependencies>
+          </dependencies>
     </dependencyManagement>
 
     <build>

@@ -8,7 +8,7 @@
     <parent>
         <groupId>ch.admin.bj.swiyu</groupId>
         <artifactId>swiyu-verifier-parent</artifactId>
-        <version>3.0.2</version>
+        <version>3.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>swiyu-verifier-service</artifactId>
@@ -285,62 +285,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.6</version>
-            </plugin>
-            <plugin>
-                <groupId>org.openapitools</groupId>
-                <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>${openapi-generator-maven-plugin.version}</version>
-                <configuration>
-                    <configOptions>
-                        <inputSpecRootDirectory>${project.basedir}/specs</inputSpecRootDirectory>
-                        <sourceFolder>main/java</sourceFolder>
-                        <interfaceOnly>true</interfaceOnly>
-                        <dateLibrary>java21</dateLibrary>
-                        <useJakartaEe>true</useJakartaEe>
-                        <openApiNullable>false</openApiNullable>
-                    </configOptions>
-                    <output>${project.build.directory}/generated-sources</output>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>swiyu-core-trust-sidechannel-client-generator</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <generatorName>java</generatorName>
-                            <library>webclient</library>
-                            <modelPackage>ch.admin.bj.swiyu.core.trust.client.model</modelPackage>
-                            <apiPackage>ch.admin.bj.swiyu.core.trust.client.api</apiPackage>
-                            <invokerPackage>ch.admin.bj.swiyu.core.trust.client.invoker</invokerPackage>
-                            <groupId>ch.admin.bj.swiyu</groupId>
-                            <artifactId>swiyu-core-trust-sidechannel-api-client</artifactId>
-                            <artifactVersion>${project.version}</artifactVersion>
-                            <inputSpec>${project.basedir}/specs/IF-007-Trust-Registry-Data-Services.yaml</inputSpec>
-                            <generateApiTests>false</generateApiTests>
-                            <generateModelTests>false</generateModelTests>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>swiyu-core-trust-business-generator</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <generatorName>java</generatorName>
-                            <library>webclient</library>
-                            <modelPackage>ch.admin.bj.swiyu.core.trust.client.model</modelPackage>
-                            <apiPackage>ch.admin.bj.swiyu.core.trust.client.api</apiPackage>
-                            <invokerPackage>ch.admin.bj.swiyu.core.trust.client.invoker</invokerPackage>
-                            <groupId>ch.admin.bj.swiyu</groupId>
-                            <artifactId>swiyu-core-trust-business-api-client</artifactId>
-                            <artifactVersion>${project.version}</artifactVersion>
-                            <inputSpec>${project.basedir}/specs/IF-014-trust-business-api.yaml</inputSpec>
-                            <generateApiTests>false</generateApiTests>
-                            <generateModelTests>false</generateModelTests>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
 

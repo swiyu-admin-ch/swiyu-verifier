@@ -91,7 +91,7 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet retrieves Verifier Request
-        getVerificationRequestForWallet(requestId, nonce);
+        var state = getStateFromVerificationRequest(requestId, nonce, "direct_post");
 
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
@@ -111,6 +111,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("state", state)
                         .formField("vp_token", submissionData))
                 .andExpect(status().isOk())
         );
@@ -119,6 +120,7 @@ class BlackboxIT {
         // Wallet sends error response, status should not change
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("state", state)
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really don't want to"))
                 .andExpect(status().isGone())
@@ -139,7 +141,7 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet retrieves Verifier Request
-        getVerificationRequestForWallet(requestId, nonce);
+        var state = getStateFromVerificationRequest(requestId, nonce, "direct_post");
 
         // Wallet sends valid credential
         var cred = List.of(createMockCredential_rec(nonce));
@@ -148,6 +150,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("state", state)
                         .formField("vp_token", submissionData))
                 .andExpect(status().isOk())
         );
@@ -167,7 +170,7 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet retrieves Verifier Request
-        getVerificationRequestForWallet(requestId, nonce);
+        var state = getStateFromVerificationRequest(requestId, nonce, "direct_post");
 
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
         // Wallet checks verifier metadata
@@ -183,6 +186,7 @@ class BlackboxIT {
         // Wallet sends error response
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .formField("error", "vp_formats_not_supported")
+                        .formField("state", state)
                         .formField("error_description", "I really don't want to"))
                 .andExpect(status().isOk())
         );
@@ -209,9 +213,11 @@ class BlackboxIT {
         var nonce = createResponseDto.requestNonce();
         var requestId = createResponseDto.id().toString();
 
+        // Wallet retrieves Verifier Request
+        var state = getStateFromVerificationRequest(requestId, nonce, "direct_post.jwt");
+
         // Check status, should be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
-
 
         // Wallet checks verifier metadata
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
@@ -226,6 +232,7 @@ class BlackboxIT {
         // Wallet sends error response
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("state", state)
                         .formField("response", buildJWTResponse(Map.of("error", "vp_formats_not_supported","error_description", "I don't want to"), createResponseDto.id())))
                 .andExpect(status().isOk())
         );
@@ -252,7 +259,7 @@ class BlackboxIT {
         return createResponse.state() == status;
     }
 
-    private void getVerificationRequestForWallet(String requestId, String nonce) throws ParseException, UnsupportedEncodingException, JOSEException {
+    private String getStateFromVerificationRequest(String requestId, String nonce, String expectedResponseMode) throws ParseException, UnsupportedEncodingException, JOSEException {
         MvcResult requestObjectResult = assertDoesNotThrow(() -> (mvc.perform(get(String.format("%s/%s", OID4VP_API_BASE_URL, requestId))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
@@ -266,11 +273,12 @@ class BlackboxIT {
         // checking claims
         var claims = responseJwt.getJWTClaimsSet();
         assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
-        assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
+        assertThat(claims.getStringClaim("response_mode")).isEqualTo(expectedResponseMode);
         assertThat(claims.getStringClaim("nonce")).isEqualTo(nonce);
         assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId));
         assertThat(claims.getStringClaim("state"))
                 .as("The verifier should provide a state").isNotBlank();
+        return claims.getStringClaim("state");
     }
 
     private ManagementResponseDto createVerificationRequest(String body) {

@@ -92,7 +92,7 @@ public class PresentationResponseResolver {
     private VerificationPresentationUnionDto decryptIfNecessary(Management managementEntity,
                                                                 VerificationPresentationUnionDto verificationResponse) {
         ResponseModeType responseModeType = managementEntity.getResponseSpecification().getResponseModeType();
-        if (ResponseModeType.DIRECT_POST.equals(responseModeType)) {
+        if (isDirectPostOrRejection(verificationResponse, responseModeType)) {
             return verificationResponse;
         } else if (ResponseModeType.DIRECT_POST_JWT.equals(responseModeType) && verificationResponse.isEncryptedPresentation()) {
             return jweDecryptionService.decrypt(managementEntity, verificationResponse);
@@ -102,5 +102,14 @@ public class PresentationResponseResolver {
         } else {
             throw new IllegalArgumentException("Unsupported response_mode: " + responseModeType);
         }
+    }
+
+    /**
+     * Returns {@code true} when the response must be processed without decryption:
+     * either the request uses {@code DIRECT_POST}, or the payload is a rejection.
+     */
+    private boolean isDirectPostOrRejection(VerificationPresentationUnionDto verificationResponse, ResponseModeType responseModeType) {
+        return ResponseModeType.DIRECT_POST.equals(responseModeType)
+                || (ResponseModeType.DIRECT_POST_JWT.equals(responseModeType) && verificationResponse.isRejection());
     }
 }

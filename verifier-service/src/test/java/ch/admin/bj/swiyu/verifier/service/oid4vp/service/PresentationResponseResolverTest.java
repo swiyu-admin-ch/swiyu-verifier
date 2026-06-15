@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
@@ -27,8 +28,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class PresentationResponseResolverTest {
 
@@ -185,6 +185,43 @@ class PresentationResponseResolverTest {
         assertThat(exception.getMessage()).contains("Unable to decrypt response");
     }
 
+    @Test
+    void mapToPresentationResult_whenDirectPostJwtAndRejection_thenReturnsRejectionWithoutDecrypting() {
+        var rejectionReason = "User cancelled the verification request";
+
+        JweDecryptionService jweDecryptionService = mock(JweDecryptionService.class);
+        PresentationResponseResolver resolver = new PresentationResponseResolver(jweDecryptionService);
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST_JWT);
+
+        PresentationResult result = assertDoesNotThrow(() ->
+                resolver.mapToPresentationResult(management, VPApiVersion.V1, createVerificationPresentation(rejectionReason)));
+
+        assertThat(result).isInstanceOf(PresentationResult.Rejection.class);
+        PresentationResult.Rejection rejection = (PresentationResult.Rejection) result;
+        assertThat(rejection.request().getError()).isEqualTo(VerificationClientErrorDto.CLIENT_REJECTED);
+        assertThat(rejection.request().getErrorDescription()).isEqualTo(rejectionReason);
+        verifyNoInteractions(jweDecryptionService);
+    }
+
+    @Test
+    void mapToPresentationResult_whenDirectPostJwtAndEncryptedRejection_thenReturnsRejectionWithDecrypting() throws JOSEException {
+        var rejectionReason = "User cancelled the verification request";
+
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST_JWT);
+
+        VerificationPresentationUnionDto union = VerificationPresentationUnionDto.builder()
+                .response(jweEncrypt(createRejection(rejectionReason), ecKey))
+                .build();
+
+        PresentationResult result = assertDoesNotThrow(() ->
+                presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+
+        assertThat(result).isInstanceOf(PresentationResult.Rejection.class);
+        PresentationResult.Rejection rejection = (PresentationResult.Rejection) result;
+        assertThat(rejection.request().getError()).isEqualTo(VerificationClientErrorDto.CLIENT_REJECTED);
+        assertThat(rejection.request().getErrorDescription()).isEqualTo(rejectionReason);
+    }
+
     private String jweEncrypt(String testClaims, ECKey ecKey) throws JOSEException {
         JWEObject jweObject = new JWEObject(
                 new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM)
@@ -204,5 +241,20 @@ class PresentationResponseResolverTest {
                                 .jwksPrivate(new JWKSet(ecKey).toString(false))
                                 .build())
                 .build();
+    }
+
+    private static VerificationPresentationUnionDto createVerificationPresentation(String rejectionReason) {
+        return VerificationPresentationUnionDto.builder()
+                .error(VerificationClientErrorDto.CLIENT_REJECTED)
+                .error_description(rejectionReason)
+                .build();
+    }
+
+    private static String createRejection(String rejectionReason) {
+        return new JWTClaimsSet.Builder()
+                .claim("error", VerificationClientErrorDto.CLIENT_REJECTED.toString())
+                .claim("error_description", rejectionReason)
+                .build()
+                .toString();
     }
 }

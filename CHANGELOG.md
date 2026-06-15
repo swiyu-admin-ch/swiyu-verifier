@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 - update casting logic which was fixed in sdjwt library v1.9
 
+## Changed
+- oauthState must be sent in verification response otherwise the verifier rejects the response.
+
 # [3.0.2] - 2026-06-12
 
 ## Fixed

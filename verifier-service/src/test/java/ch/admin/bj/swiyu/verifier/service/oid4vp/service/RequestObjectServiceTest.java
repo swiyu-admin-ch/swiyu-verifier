@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -125,7 +126,13 @@ class RequestObjectServiceTest {
         var overrideDid = "did:override";
         var verificationMethod = "did:override#key1";
         var management = mockManagement(true);
-        var override = new ConfigurationOverride(externalUrl, overrideDid, verificationMethod, null, null);
+        var logoUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=";
+        var clientMetadata = Map.of(
+
+                "client_name", "Override Client",
+                "logo_uri", logoUri
+        );
+        var override = new ConfigurationOverride(externalUrl, overrideDid, verificationMethod, null, null, clientMetadata);
         when(management.getConfigurationOverride()).thenReturn(override);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
@@ -155,6 +162,10 @@ class RequestObjectServiceTest {
         assertEquals(verificationMethod, jwt.getHeader().getKeyID());
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(overrideDid);
         assertThat(jwt.getJWTClaimsSet().getClaim("response_uri").toString()).startsWith(externalUrl);
+        @SuppressWarnings("unchecked")
+        var clientMetadata = (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("client_metadata");
+        assertThat(clientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
+        assertThat(clientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
 
     }
 
@@ -168,7 +179,7 @@ class RequestObjectServiceTest {
         when(management.isExpired()).thenReturn(false);
         when(management.getRequestNonce()).thenReturn(nonce);
         when(management.getJwtSecuredAuthorizationRequest()).thenReturn(false);
-        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
         when(management.getOauthState()).thenReturn(UUID.randomUUID().toString());
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(jwtSigningService.signJwt(
@@ -201,7 +212,13 @@ class RequestObjectServiceTest {
         when(responseSpecification.getJwks()).thenReturn(jwkSet.toString());
         when(responseSpecification.getEncryptedResponseEncValuesSupported()).thenReturn(List.of());
 
-        var override = new ConfigurationOverride(externalUrl, overrideDid, null, null, null);
+        var logoUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=";
+        var clientMetadata = Map.of(
+
+                "client_name", "Override Client",
+                "logo_uri", logoUri
+        );
+        var override = new ConfigurationOverride(externalUrl, overrideDid, null, null, null, clientMetadata);
         when(management.getConfigurationOverride()).thenReturn(override);
 
         String jwtString = service.assembleRequestObject(mgmtId);
@@ -210,6 +227,11 @@ class RequestObjectServiceTest {
         var claims = jwt.getJWTClaimsSet();
         assertThat(claims.getStringClaim("client_id")).as("DID was overridden").isEqualTo(overrideDid);
         assertThat(claims.getStringClaim("response_uri")).as("Was using overridden external url").startsWith(externalUrl);
+        @SuppressWarnings("unchecked")
+        var clientMetadata = (Map<String, Object>) claims.getClaim("client_metadata");
+
+        assertThat(clientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
+        assertThat(clientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
     }
 
     @Test
@@ -257,7 +279,7 @@ class RequestObjectServiceTest {
         when(management.isExpired()).thenReturn(false);
         when(management.getRequestNonce()).thenReturn(nonce);
         when(management.getJwtSecuredAuthorizationRequest()).thenReturn(needsJwsAuthorizationRequest);
-        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
         var responseVerification = mock(ResponseSpecification.class);
         when(management.getResponseSpecification()).thenReturn(responseVerification);
         when(responseVerification.getResponseModeType()).thenReturn(ResponseModeType.DIRECT_POST);

@@ -102,12 +102,22 @@ public class RequestObjectService {
             clientMetadataBuilder.encryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported());
         }
 
+        // Build a per-request copy of client_metadata so that per-verification overrides
+        // (e.g. client_name, logo_uri, client_id) never mutate the global singleton map.
+        var builtMetadata = clientMetadataBuilder.build();
+        var overrides = managementEntity.getConfigurationOverride().clientMetadata();
+        if (overrides != null && !overrides.isEmpty()) {
+            var patchedProps = new java.util.HashMap<>(builtMetadata.getAdditionalProperties());
+            patchedProps.putAll(overrides);
+            builtMetadata.setAdditionalProperties(patchedProps);
+        }
+
         var baseRequestObject = RequestObjectDto.builder()
                 .audience(AUDIENCE)
                 .nonce(managementEntity.getRequestNonce())
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
                 .clientId(effectiveConfig.clientId())
-                .clientMetadata(clientMetadataBuilder.build())
+                .clientMetadata(builtMetadata)
                 .clientIdScheme(applicationProperties.getClientIdScheme())
                 .responseType(RESPONSE_TYPE)
                 .responseMode(ManagementMapper.toResponseModeDto(responseSpecification.getResponseModeType()))

@@ -188,7 +188,7 @@ public class SdJwtVpTokenVerifier {
         // Validate Holder Binding Proof JWT
         JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding,
                 Optional.ofNullable(management.getConfigurationOverride())
-                        .orElse(new ConfigurationOverride(null, null, null, null, null)));
+                        .orElse(new ConfigurationOverride(null, null, null, null, null, null)));
         validateNonce(keyBindingClaims, management.getRequestNonce());
         validateSDHash(sdJwt, keyBindingClaims);
     }

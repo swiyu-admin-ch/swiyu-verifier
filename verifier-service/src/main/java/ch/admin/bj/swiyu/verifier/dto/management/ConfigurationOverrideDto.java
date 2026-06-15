@@ -6,6 +6,8 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Pattern;
 import org.hibernate.validator.constraints.URL;
 
+import java.util.Map;
+
 @Schema(description = "Override for Verifier configuration to be use for this one verification")
 public record ConfigurationOverrideDto(
         @Schema(description = "Override for the EXTERNAL_URL - the url the wallet should call, to fetch the request object and send the verification response to.",
@@ -34,6 +36,25 @@ public record ConfigurationOverrideDto(
                 example = "11111")
         @Nullable
         @JsonProperty("key_pin")
-        String keyPin
+        String keyPin,
+        @Schema(description = """
+                Optional overrides for individual fields of the client_metadata embedded in the signed
+                authorization request JWT. Keys follow the OID4VP client_metadata naming conventions,
+                including locale-tagged variants (e.g. "client_name#en", "client_name#de-CH",
+                "logo_uri", "client_id"). Values present here take precedence over the values read
+                from the configured client-metadata-file.
+                """,
+                example = """
+                {
+
+                  "client_name": "My Client Name",
+                  "client_name#en": "My Client Name",
+                  "client_name#de-CH": "Mein Kundenname",
+                  "logo_uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII="
+                }
+                """)
+        @Nullable
+        @JsonProperty("client_metadata")
+        Map<String, Object> clientMetadata
 ) {
 }

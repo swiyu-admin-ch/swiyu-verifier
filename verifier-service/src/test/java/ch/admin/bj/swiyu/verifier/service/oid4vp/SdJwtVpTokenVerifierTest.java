@@ -70,7 +70,7 @@ class SdJwtVpTokenVerifierTest {
         when(management.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(management.getTrustAnchors()).thenReturn(List.of());
         when(management.getRequestNonce()).thenReturn(TEST_NONCE);
-        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
 
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
@@ -244,7 +244,7 @@ class SdJwtVpTokenVerifierTest {
                 .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
                 .trustAnchors(List.of())
                 .requestNonce(TEST_NONCE)
-                .configurationOverride(new ConfigurationOverride(null, null, null, null, null))
+                .configurationOverride(new ConfigurationOverride(null, null, null, null, null, null))
                 .build();
 
         var claimsForSdJWT = getClaimsFromSdJwt(disclosure);

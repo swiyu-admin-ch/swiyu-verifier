@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.URL;
 
 import java.util.Map;
@@ -41,7 +42,7 @@ public record ConfigurationOverrideDto(
                 Optional overrides for individual fields of the client_metadata embedded in the signed
                 authorization request JWT. Keys follow the OID4VP client_metadata naming conventions,
                 including locale-tagged variants (e.g. "client_name#en", "client_name#de-CH",
-                "logo_uri", "client_id"). Values present here take precedence over the values read
+                "logo_uri"). Values present here take precedence over the values read
                 from the configured client-metadata-file.
                 """,
                 example = """
@@ -55,6 +56,12 @@ public record ConfigurationOverrideDto(
                 """)
         @Nullable
         @JsonProperty("client_metadata")
-        Map<String, Object> clientMetadata
+        Map<
+                @Pattern(regexp = "^(client_name(#[a-zA-Z0-9-]+)?|logo_uri(#[a-zA-Z0-9-]+)?)$",
+                        message = "Invalid client_metadata key. Only client_name and logo_uri (with optional language tags) are allowed.")
+                String,
+                @Size(max = 1048576, message = "Metadata value exceeds maximum allowed size of 1MB")
+                String
+        > clientMetadata
 ) {
 }

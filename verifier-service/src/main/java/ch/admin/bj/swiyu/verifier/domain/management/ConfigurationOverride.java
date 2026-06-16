@@ -18,7 +18,7 @@ public record ConfigurationOverride(
          * variants (e.g. {@code client_name#en}, {@code logo_uri}). When present, these entries
          * take precedence over the values loaded from the configured client-metadata-file.
          */
-        Map<String, Object> clientMetadata) {
+        Map<String, String> clientMetadata) {
 
     public String externalUrlOrDefault(String defaultValue) {
         return StringUtils.getIfBlank(externalUrl, () -> defaultValue);

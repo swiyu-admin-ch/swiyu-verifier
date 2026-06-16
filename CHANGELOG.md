@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - update casting logic which was fixed in sdjwt library v1.9
+- check `_sd_alg` value in SD-JWT verifier to ensure it is a supported algorithm (currently only `sha-256` is supported)
 
 # [3.0.2] - 2026-06-12
 

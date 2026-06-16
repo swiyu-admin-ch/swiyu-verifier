@@ -94,6 +94,7 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
+          sbom: true
           push: true
           pull: true
           tags: ${{ steps.meta-dhi.outputs.tags }}
@@ -120,6 +121,7 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
+          sbom: true
           push: true
           pull: true
           tags: ${{ steps.meta-unhardened.outputs.tags }}

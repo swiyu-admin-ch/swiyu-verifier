@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialMetaDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;

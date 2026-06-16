@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.management.*;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
@@ -91,7 +92,7 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet retrieves Verifier Request
-        var state = getStateFromVerificationRequest(requestId, nonce, "direct_post");
+        var state = getStateFromVerificationRequest(requestId, nonce, ResponseModeType.DIRECT_POST);
 
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
@@ -141,7 +142,7 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet retrieves Verifier Request
-        var state = getStateFromVerificationRequest(requestId, nonce, "direct_post");
+        var state = getStateFromVerificationRequest(requestId, nonce, ResponseModeType.DIRECT_POST);
 
         // Wallet sends valid credential
         var cred = List.of(createMockCredential_rec(nonce));
@@ -170,7 +171,7 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet retrieves Verifier Request
-        var state = getStateFromVerificationRequest(requestId, nonce, "direct_post");
+        var state = getStateFromVerificationRequest(requestId, nonce, ResponseModeType.DIRECT_POST);
 
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
         // Wallet checks verifier metadata
@@ -214,7 +215,7 @@ class BlackboxIT {
         var requestId = createResponseDto.id().toString();
 
         // Wallet retrieves Verifier Request
-        var state = getStateFromVerificationRequest(requestId, nonce, "direct_post.jwt");
+        var state = getStateFromVerificationRequest(requestId, nonce, ResponseModeType.DIRECT_POST_JWT);
 
         // Check status, should be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
@@ -259,7 +260,7 @@ class BlackboxIT {
         return createResponse.state() == status;
     }
 
-    private String getStateFromVerificationRequest(String requestId, String nonce, String expectedResponseMode) throws ParseException, UnsupportedEncodingException, JOSEException {
+    private String getStateFromVerificationRequest(String requestId, String nonce, ResponseModeType expectedResponseMode) throws ParseException, UnsupportedEncodingException, JOSEException {
         MvcResult requestObjectResult = assertDoesNotThrow(() -> (mvc.perform(get(String.format("%s/%s", OID4VP_API_BASE_URL, requestId))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
@@ -273,7 +274,7 @@ class BlackboxIT {
         // checking claims
         var claims = responseJwt.getJWTClaimsSet();
         assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
-        assertThat(claims.getStringClaim("response_mode")).isEqualTo(expectedResponseMode);
+        assertThat(claims.getStringClaim("response_mode")).isEqualTo(expectedResponseMode.toString());
         assertThat(claims.getStringClaim("nonce")).isEqualTo(nonce);
         assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), requestId));
         assertThat(claims.getStringClaim("state"))

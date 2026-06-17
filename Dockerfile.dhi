@@ -41,7 +41,7 @@ USER 0
 EXPOSE 8080
 
 # Rehydrate the runtime image with the native libs stripped by hardening.
-COPY --from=libs /usr/lib/x86_64-linux-gnu/libgcc_s.so.1 /app/lib-native/libgcc_s.so.1
+COPY --from=libs --chown=root:root --chmod=644 /usr/lib/*-linux-gnu/libgcc_s.so.1 /usr/lib/
 
 # CA certs — two stores must be updated:
 #
@@ -60,9 +60,6 @@ ARG JAR_FILE=verifier-application/target/*.jar
 COPY ${JAR_FILE} /app/app.jar
 
 WORKDIR /app
-
-# Tell the dynamic linker where to find the rehydrated native libs.
-ENV LD_LIBRARY_PATH=/app/lib-native
 
 # Hardened image has no shell, so there is no entrypoint wrapper script.
 # Equivalents for the env-vars the previous wrapper exposed:

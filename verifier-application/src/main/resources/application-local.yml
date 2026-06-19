@@ -5,7 +5,6 @@ application:
   signing-key-verification-method: "did:example:12345#key-1"
   external-url: "http://${server.host}:${server.port}"
   client_id: "did:example:12345"
-  client_id_scheme: "did"
   client-metadata-file: "classpath:client_metadata.json"
 
 spring:
@@ -22,7 +21,7 @@ spring:
     log-resolved-exception: false # see https://stackoverflow.com/a/77147791
   jpa:
     hibernate:
-      ddl-auto: create # when starting locally we connect to the db from compose.yml and generate the schema from hibernate
+      ddl-auto: validate
 
 logging:
   level:

@@ -3,7 +3,7 @@
 application:
   external-url: "${EXTERNAL_URL:}"
   client_id: "${VERIFIER_DID:}"
-  client_id_scheme: "did"
+  client_id_prefix: "decentralized_identifier"
   signing_key: "${secret.signing_key:${SIGNING_KEY:}}"
   signing-key-verification-method: "${DID_VERIFICATION_METHOD:}"
   client-metadata-file: "${OPENID_CLIENT_METADATA_FILE:}"
@@ -112,7 +112,7 @@ management:
         local.server.port
         server.ports,
         application.signing-key-verification-method,
-        application.client_id_scheme,
+        application.client_id_prefix,
         application.client_id,
         application.external-url,
         application.deeplink-schema,

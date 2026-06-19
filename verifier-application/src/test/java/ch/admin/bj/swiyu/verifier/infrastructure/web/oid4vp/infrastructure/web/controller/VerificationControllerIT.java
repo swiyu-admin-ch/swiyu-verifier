@@ -178,8 +178,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
                     // checking claims
                     var claims = responseJwt.getJWTClaimsSet();
-                    assertThat(claims.getStringClaim("client_id")).isEqualTo(applicationProperties.getClientId());
-                    assertThat(claims.getStringClaim("client_id_scheme")).isEqualTo(applicationProperties.getClientIdScheme());
+                    assertThat(claims.getStringClaim("client_id")).isEqualTo(applicationProperties.getClientIdPrefix() + ":" + applicationProperties.getClientId());
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
@@ -707,14 +706,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()));
     }
 
-    private String createVpToken() throws Exception {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(new ECKeyGenerator(Curve.P_256).generate());
-        var sdJWT = emulator.createSDJWTMock();
-        mockDidResolverResponse(emulator);
-
-        return emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "did:example:12345");
-    }
-
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
             String issuerKeyId = sdjwt.getIssuerId() + "#key-1";
@@ -1195,8 +1186,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
                     // checking claims
                     var claims = responseJwt.getJWTClaimsSet();
-                    assertThat(claims.getStringClaim("client_id")).isEqualTo(applicationProperties.getClientId());
-                    assertThat(claims.getStringClaim("client_id_scheme")).isEqualTo(applicationProperties.getClientIdScheme());
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post.jwt");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();

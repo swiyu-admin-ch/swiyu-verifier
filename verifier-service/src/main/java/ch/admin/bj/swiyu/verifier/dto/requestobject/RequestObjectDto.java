@@ -40,13 +40,6 @@ public class RequestObjectDto {
     @JsonProperty("client_id")
     private String clientId;
 
-    /**
-     * information on how the client_id has to be interpreted.
-     * For our purposes will be likely always did
-     */
-    @JsonProperty("client_id_scheme")
-    private String clientIdScheme;
-
     @JsonProperty("response_type")
     private String responseType;
 

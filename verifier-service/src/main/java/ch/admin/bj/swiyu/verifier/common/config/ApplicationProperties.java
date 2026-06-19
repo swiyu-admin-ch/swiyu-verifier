@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.common.config;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -22,8 +23,8 @@ public class ApplicationProperties {
     @NotNull
     private String clientId;
 
-    @NotNull
-    private String clientIdScheme;
+    @Nullable
+    private String clientIdPrefix;
 
     @NotEmpty
     private String deeplinkSchema;

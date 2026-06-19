@@ -5,8 +5,10 @@ import ch.admin.bj.swiyu.verifier.dto.definition.DcqlClaimPath;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -38,6 +40,8 @@ public record DcqlClaimDto(
         @DcqlClaimPath
         List<Object> path, // REQUIRED
 
+        @Nullable
+        @Size(min = 1, message = "values must contain at least one element if present")
         @Schema(description = "OPTIONAL. A non-empty array of strings, integers or boolean values that specifies " +
                 "the expected values of the claim. If the values property is present, the Wallet SHOULD return " +
                 "the claim only if the type and value of the claim both match exactly for at least one of the " +

@@ -30,7 +30,7 @@ import lombok.Getter;
 | malformed_credential                        | The credential presented during validation isnt valid according to the format specification in question                              |
 | holder_binding_mismatch                     | The holder has provided invalid proof that the credential is under their control.                                                    |
 | client_rejected                             | The holder rejected the verification request.                                                                                        |
-| issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                    |
+| issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verification request.                                                    |
 | authorization_request_missing_error_param   | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.                  |
 | authorization_request_object_not_found      | The requested verification process cannot be found.                                                                                  |
 | verification_process_closed                 | The requested verification process is already closed.                                                                                |

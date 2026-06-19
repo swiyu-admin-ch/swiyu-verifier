@@ -56,6 +56,8 @@ public class SdJwtVpTokenVerifier {
     // Spec: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt
     public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
     public static final List<String> SUPPORTED_JWT_ALGORITHMS = List.of("ES256");
+    public static final List<String> SUPPORTED_SDJWT_ALGORITHMS = List.of("sha-256");
+    public static final String SDJWT_ALG_CLAIM = "_sd_alg";
 
     private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
 
@@ -355,8 +357,11 @@ public class SdJwtVpTokenVerifier {
         // 3.5 Remove _sd keys
         removeSdKeys(processed);
 
-        // 3.6 Remove _sd_alg
-        ((ObjectNode) processed).remove("_sd_alg");
+        // 3.6 Check if correct _sd_alg-value Remove _sd_alg
+        if (processed.hasNonNull(SDJWT_ALG_CLAIM) && !SUPPORTED_SDJWT_ALGORITHMS.contains(processed.get(SDJWT_ALG_CLAIM).asText())) {
+            throw credentialError(INVALID_FORMAT, "Unsupported _sd_alg value: %s".formatted(processed.get(SDJWT_ALG_CLAIM).asText()));
+        }
+        ((ObjectNode) processed).remove(SDJWT_ALG_CLAIM);
 
         // 4. Check duplicate digests
         if (usedDigests.size() != new HashSet<>(usedDigests).size()) {

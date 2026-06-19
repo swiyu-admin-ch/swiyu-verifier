@@ -215,6 +215,36 @@ class SdJwtVpTokenVerifierTest {
     }
 
     @Test
+    void processDisclosures_whitIncorrectSdAlg_thenError() throws ParseException, JOSEException {
+
+        List<Disclosure> disclosure = new ArrayList<>();
+
+        SDObjectBuilder builder = new SDObjectBuilder("sha-512");
+
+        var nameDisc = new Disclosure("name", "Max Muster");
+        builder.putSDClaim(nameDisc);
+        disclosure.add(nameDisc);
+
+        JWSHeader header =
+                new JWSHeader.Builder(JWSAlgorithm.ES256)
+                        .type(new JOSEObjectType("dc+sd-jwt")).build();
+
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(builder.build(true));
+        SignedJWT jwt = new SignedJWT(header, claimsSet);
+        ECKey privateKey = new ECKeyGenerator(Curve.P_256).generate();
+        JWSSigner signer = new ECDSASigner(privateKey);
+        jwt.sign(signer);
+
+        SDJWT sdJwt = new SDJWT(jwt.serialize(), disclosure);
+        SdJwt sdjwt = new SdJwt(sdJwt.toString());
+        sdjwt.setClaims(claimsSet);
+
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        var test = assertThrows(VerificationException.class, () -> verifier.validateDisclosures(sdjwt, management));
+        assertThat(test.getErrorDescription()).as("Should throw understandable error message indicating the unsupported algorithm").isEqualTo("Unsupported _sd_alg value: sha-512");
+    }
+
+    @Test
     void processDisclosuresRecursive_withDuplicatedDigest_thenError() throws ParseException {
 
         List<Disclosure> disclosure = new ArrayList<>();

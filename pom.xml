@@ -33,9 +33,9 @@
         <!-- dependency versions -->
         <archunit-junit5.verion>1.4.2</archunit-junit5.verion>
         <javacrumbs.shedlock.version>7.7.0</javacrumbs.shedlock.version>
-        <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
-        <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
+        <openapi-generator-maven-plugin.version>7.23.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
@@ -53,7 +53,7 @@
         <editorconfig-maven-plugin.version>0.2.0</editorconfig-maven-plugin.version>
         <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
         <kotlin-stdlib.version>2.4.0</kotlin-stdlib.version>
-        <jna.version>5.19.0</jna.version>
+        <jna.version>5.19.1</jna.version>
         <sd-jwt.version>1.9</sd-jwt.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>

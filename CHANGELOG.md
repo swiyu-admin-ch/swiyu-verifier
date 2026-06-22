@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - update `DcqlClaimDto` to prevent business verifier to send an empty `values` list (which is not allowed by the spec)
 - check `_sd_alg` value in SD-JWT verifier to ensure it is a supported algorithm (currently only `sha-256` is supported)
 
+## Changed
+- oauthState must be sent in verification response otherwise the verifier rejects the response.
+
 # [3.0.2] - 2026-06-12
 
 ## Fixed

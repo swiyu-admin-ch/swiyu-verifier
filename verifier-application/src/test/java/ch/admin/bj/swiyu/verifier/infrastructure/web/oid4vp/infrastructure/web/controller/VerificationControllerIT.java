@@ -42,6 +42,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.sql.DataSource;
@@ -88,7 +89,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private MockMvc mock;
     @Autowired
     private ManagementRepository managementEntityRepository;
-    @Autowired
+    @MockitoSpyBean
     private ApplicationProperties applicationProperties;
     @Autowired
     private VerificationProperties verificationProperties;
@@ -167,6 +168,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldGetRequestObject() throws Exception {
+        var prefix = "prefix";
+        var expectedClientIdWithPrefix = prefix + ":" + applicationProperties.getClientId();
+        when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
         mock.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
@@ -178,7 +182,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
                     // checking claims
                     var claims = responseJwt.getJWTClaimsSet();
-                    assertThat(claims.getStringClaim("client_id")).isEqualTo(applicationProperties.getClientIdPrefix() + ":" + applicationProperties.getClientId());
+                    assertThat(claims.getStringClaim("client_id")).isEqualTo(expectedClientIdWithPrefix);
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
@@ -187,6 +191,20 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     assertDcqlIsComplete(claims);
 
                     assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
+                });
+    }
+
+    @Test
+    void shouldGetRequestObject_withoutClientIdPrefix() throws Exception {
+        var expectedClientIdWithPrefix = applicationProperties.getClientId();
+        when(applicationProperties.getClientIdPrefix()).thenReturn(null);
+        mock.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
+                        .accept("application/oauth-authz-req+jwt"))
+                .andExpect(status().isOk())
+                .andDo(result -> {
+                    var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
+                    var claims = responseJwt.getJWTClaimsSet();
+                    assertThat(claims.getStringClaim("client_id")).isEqualTo(expectedClientIdWithPrefix);
                 });
     }
 
@@ -702,7 +720,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mock.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdPrefix() + ":" + applicationProperties.getClientId()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()));
     }
 

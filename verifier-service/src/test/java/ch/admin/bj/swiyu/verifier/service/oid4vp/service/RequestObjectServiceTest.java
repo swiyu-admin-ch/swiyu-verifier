@@ -163,9 +163,9 @@ class RequestObjectServiceTest {
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(overrideDid);
         assertThat(jwt.getJWTClaimsSet().getClaim("response_uri").toString()).startsWith(externalUrl);
         @SuppressWarnings("unchecked")
-        var clientMetadata = (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("client_metadata");
-        assertThat(clientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
-        assertThat(clientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
+        var extractedClientMetadata = (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("client_metadata");
+        assertThat(extractedClientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
+        assertThat(extractedClientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
 
     }
 
@@ -260,10 +260,10 @@ class RequestObjectServiceTest {
         assertThat(claims.getStringClaim("client_id")).as("DID was overridden").isEqualTo(overrideDidResult);
         assertThat(claims.getStringClaim("response_uri")).as("Was using overridden external url").startsWith(externalUrl);
         @SuppressWarnings("unchecked")
-        var clientMetadata = (Map<String, Object>) claims.getClaim("client_metadata");
+        var extractedClientMetadata = (Map<String, Object>) claims.getClaim("client_metadata");
 
-        assertThat(clientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
-        assertThat(clientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
+        assertThat(extractedClientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
+        assertThat(extractedClientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
     }
 
     @Test

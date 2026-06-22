@@ -19,6 +19,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,6 @@ public class RequestObjectService {
     public static final String AUDIENCE = "https://self-issued.me/v2";
     public static final String RESPONSE_TYPE = "vp_token";
 
-    public static final JWSAlgorithm USED_JWS_ALGORITHM = JWSAlgorithm.ES256;
     private final ApplicationProperties applicationProperties;
     private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementRepository managementRepository;
@@ -116,15 +116,15 @@ public class RequestObjectService {
                 .audience(AUDIENCE)
                 .nonce(managementEntity.getRequestNonce())
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
-                .clientId(effectiveConfig.clientId())
+                .clientId(getClientId(effectiveConfig))
                 .clientMetadata(builtMetadata)
-                .clientIdScheme(applicationProperties.getClientIdScheme())
+
                 .responseType(RESPONSE_TYPE)
                 .responseMode(ManagementMapper.toResponseModeDto(responseSpecification.getResponseModeType()))
                 .responseUri(String.format("%s/oid4vp/api/request-object/%s/response-data",
                         effectiveConfig.externalUrl(),
                         managementEntityId))
-                .state(managementEntity.getOauthState().toString())
+                .state(managementEntity.getOauthState())
                 .build();
 
         // Optional TP2.0 enrichment: when the trust-registry integration is enabled, inject the
@@ -133,6 +133,14 @@ public class RequestObjectService {
         return trustStatementInjectionService
                 .map(svc -> svc.injectVerifierInfo(baseRequestObject, effectiveConfig.clientId(), managementEntity))
                 .orElse(baseRequestObject);
+    }
+
+    private String getClientId(EffectiveRequestObjectConfig effectiveConfig) {
+         if (StringUtils.isBlank(applicationProperties.getClientIdPrefix())) {
+            return effectiveConfig.clientId();
+         }
+
+         return applicationProperties.getClientIdPrefix() + ":" + effectiveConfig.clientId();
     }
 
     /**

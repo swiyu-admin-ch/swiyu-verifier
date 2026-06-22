@@ -54,6 +54,12 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
+      - name: Cache PGP keys for pgpverify-maven-plugin
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae# v5.0.5
+        with:
+          path: ~/.m2/repository/pgpkeys-cache
+          key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
+          restore-keys: pgp-keys-
       - name: Build with Maven
         run: mvn --batch-mode clean generate-resources install
 

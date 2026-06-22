@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Added
+- Integrate `pgpverify-maven-plugin` to cryptographically verify PGP signatures of all third-party dependencies during the build. The build fails if an artifact has no signature or an invalid signature. PGP keys are cached in CI/CD to avoid redundant downloads `(#836)`.
+
 ## Removed
 - Removed the ` client_id_scheme` from the application configuration as it is no longer used and replaced by the `client_id_prefix` configuration property with default value `decentralized_identifier`, which can be changed or set to null. Therefore, the `client_id` will be `${client_id_prefix}:${client_id}`.
 

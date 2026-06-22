@@ -44,6 +44,9 @@ public class ApplicationProperties {
     @NotNull
     private Integer maxCompressedCipherTextLength;
 
+    @NotNull
+    private Integer maxVcsAccepted;
+
     private HSMProperties hsm;
 
     private List<String> acceptedRegistryHosts;

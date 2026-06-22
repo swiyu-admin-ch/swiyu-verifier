@@ -104,13 +104,7 @@
 
     <build>
         <plugins>
-            <!-- EIDOMNI-836: PGP provenance verification for all third-party dependencies.
-                 Cryptographically verifies that every resolved artifact was signed by its
-                 declared upstream publisher, preventing the use of tampered or injected JARs.
-                 Keys are resolved from public HKP key servers and cached locally under
-                 ~/.m2/repository/pgpkeys-cache for subsequent offline builds.
-                 The trust map (pgp/keys.list) controls which PGP key fingerprints are
-                 accepted per artifact – or marks internal artifacts as NOCHECK. -->
+            <!-- PGP provenance verification for all third-party dependencies.-->
             <plugin>
                 <groupId>org.simplify4u.plugins</groupId>
                 <artifactId>pgpverify-maven-plugin</artifactId>
@@ -129,16 +123,12 @@
                          ${maven.multiModuleProjectDirectory} always resolves to the root
                          of the multi-module project, regardless of which sub-module runs. -->
                     <keysMapLocation>${maven.multiModuleProjectDirectory}/pgp/keys.list</keysMapLocation>
-                    <!-- Also verify the POM files – they are part of the published artifact set
-                         and can be tampered with just as easily as the JARs. -->
                     <verifyPomFiles>true</verifyPomFiles>
-                    <!-- Use all three well-known HKP servers simultaneously (load-balance=true).
-                         Keys are cached locally under ~/.m2/repository/pgpkeys-cache after the
-                         first successful fetch, so subsequent offline or air-gapped builds can
-                         still validate artifacts whose keys are already in the cache.
-                         To skip verification locally (e.g., no internet): mvn -Dpgpverify.skip=true -->
+                    <!--  To skip verification locally mvn -Dpgpverify.skip=true -->
                     <pgpKeyServer>hkps://keys.openpgp.org, hkps://keyserver.ubuntu.com</pgpKeyServer>
                     <pgpKeyServerLoadBalance>true</pgpKeyServerLoadBalance>
+                    <failNoSignature>true</failNoSignature>
+                    <failWeakSignature>true</failWeakSignature>
                 </configuration>
             </plugin>
 

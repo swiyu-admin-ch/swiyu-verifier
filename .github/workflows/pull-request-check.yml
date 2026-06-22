@@ -38,7 +38,7 @@ jobs:
       - name: Cache PGP keys for pgpverify-maven-plugin
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
         with:
-          path: ~/.m2/repository/bouncycastle
+          path: ~/.m2/repository/pgpkeys-cache
           key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
           restore-keys: pgp-keys-
       - name: Build & test with Maven (produce JaCoCo)

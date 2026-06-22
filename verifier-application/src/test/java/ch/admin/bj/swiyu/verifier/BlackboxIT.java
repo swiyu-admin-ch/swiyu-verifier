@@ -324,7 +324,7 @@ class BlackboxIT {
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
-        return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
+        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + ACCEPTED_ISSUER);
     }
 
     private String createMockCredential_rec(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
@@ -332,7 +332,7 @@ class BlackboxIT {
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMockWithRecursiveListArray();
-        return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
+        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + ACCEPTED_ISSUER);
     }
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {

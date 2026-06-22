@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# PGP Trust Map – swiyu-verifier (EIDOMNI-836)
+# PGP Trust Map – swiyu-verifier
 # ─────────────────────────────────────────────────────────────────────────────
 # Format:
 #   groupId:artifactId:version = 0xFULL_FINGERPRINT   pin to exact key

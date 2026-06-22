@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PGP Trust Map – swiyu-verifier (EIDOMNI-836)
+# ─────────────────────────────────────────────────────────────────────────────
+# Format:
+#   groupId:artifactId:version = 0xFULL_FINGERPRINT   pin to exact key
+#   groupId:artifactId:* = any                  any valid PGP signature
+#   groupId:artifactId:version = noSig                skip verification (no public key / internal)
+#
+# All entries are evaluated top-to-bottom; the FIRST matching rule wins.
+#
+# Maintenance:
+#   When adding a new dependency or upgrading an existing one, run:
+#     mvn pgpverify:show -Dartifact=<groupId>:<artifactId>:<version>
+#   and review the displayed fingerprint(s).  To pin a specific key, add a
+#   Tier-1 entry with the full 40-character fingerprint.
+#
+# Security posture:
+#   NOCHECK  – Internal or legacy artifacts without PGP signatures.
+#              Verified through internal supply-chain controls instead of PGP.
+#   Tier-1   – Critical external libraries pinned to a known signing key.
+#              Build fails if a different key signs the artifact.
+#   Tier-2   – All remaining public artifacts: a valid PGP signature is
+#              required, but the signing key is not yet pinned.  Upgrade to
+#              Tier-1 once the upstream vendor's key has been confirmed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NOCHECK – internal / private artifacts (no public PGP signatures attached)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Internal swiyu libraries published via the private BIT Nexus repository.
+# Supply-chain integrity for these artifacts is enforced by the internal
+# CI/CD pipeline, Nexus access controls, and the team's code-review process.
+ch.admin.swiyu:*:* = noSig
+ch.admin.bj.swiyu:*:* = noSig
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NOCHECK – Legacy public artifacts (Industry-Standard Exceptions)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# aopalliance is a legacy standard from 2007 on Maven Central that predates
+# mandatory PGP signatures.
+aopalliance:aopalliance:* = noSig
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Tier-2 – Wildcard catch-all: valid signature required, key not yet pinned.
+# Every artifact that reaches this rule MUST carry a cryptographically valid
+# PGP signature.  failNoSignature=true (configured in pom.xml) ensures the
+# build breaks immediately if any signature is missing.
+# ══════════════════════════════════════════════════════════════════════════════
+*:*:* = any

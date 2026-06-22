@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
@@ -88,6 +89,7 @@ class PresentationVerificationUsecaseTest {
         when(managementEntity.getExpiresAt()).thenReturn(System.currentTimeMillis() + 900_000L);
         when(managementEntity.getId()).thenReturn(managementId);
         when(managementEntity.isProcessStillOpen()).thenReturn(true);
+        when(managementEntity.getState()).thenReturn(VerificationStatus.IN_PROGRESS);
     }
 
     @Test

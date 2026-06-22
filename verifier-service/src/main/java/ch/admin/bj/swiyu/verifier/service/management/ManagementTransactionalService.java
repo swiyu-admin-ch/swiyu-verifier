@@ -42,6 +42,7 @@ public class ManagementTransactionalService {
         if (management.isExpired()) {
             repository.deleteById(id);
             log.info("Deleted management for id since it is expired: {}", management.getId());
+            throw new VerificationNotFoundException(id);
         }
         return management;
     }

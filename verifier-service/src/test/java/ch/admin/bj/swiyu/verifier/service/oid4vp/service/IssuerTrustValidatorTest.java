@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.IssuerTrustValidator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.SdJwtVpTokenVerifier;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.IssuerDataLoader;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class IssuerTrustValidatorTest {
 
     @Mock
-    IssuerPublicKeyLoader issuerPublicKeyLoader;
+    IssuerDataLoader issuerDataLoader;
 
     @Mock
     SdJwtVpTokenVerifier sdJwtVpTokenVerifier;

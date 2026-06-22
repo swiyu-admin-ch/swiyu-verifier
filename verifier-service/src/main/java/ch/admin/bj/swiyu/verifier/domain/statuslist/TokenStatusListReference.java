@@ -1,14 +1,13 @@
 package ch.admin.bj.swiyu.verifier.domain.statuslist;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.ECDSAVerifier;
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
@@ -16,8 +15,6 @@ import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.security.PublicKey;
-import java.security.interfaces.ECPublicKey;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Optional;
@@ -41,15 +38,8 @@ import java.util.Set;
 class TokenStatusListReference extends StatusListReference {
 
 
-    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, IssuerPublicKeyLoader issuerPublicKeyLoader, String referencedTokenIssuer, int maxBufferSize) {
-        super(adapter, statusListReferenceClaims, issuerPublicKeyLoader, referencedTokenIssuer, maxBufferSize);
-    }
-
-    private static JWSVerifier toJwsVerifier(PublicKey publicKey) throws JOSEException {
-        if (publicKey instanceof ECPublicKey ecPublicKey) {
-            return new ECDSAVerifier(ecPublicKey);
-        }
-        throw new IllegalArgumentException("Unsupported public key type: " + publicKey.getClass().getName());
+    public TokenStatusListReference(StatusListResolverAdapter adapter, Map<String, Object> statusListReferenceClaims, DidJwtValidator credentialDidJwtValidator, DidResolverFacade didResolverFacade, String referencedTokenIssuer, int maxBufferSize) {
+        super(adapter, statusListReferenceClaims, credentialDidJwtValidator, didResolverFacade, referencedTokenIssuer, maxBufferSize);
     }
 
     /**
@@ -170,7 +160,7 @@ class TokenStatusListReference extends StatusListReference {
         if (!"statuslist+jwt".equals(vcType)) {
             throw statusListError(String.format("Failed to verify JWT: Status List is not of type statuslist+jwt, was instead %s", vcType));
         }
-        // Step 2: validate the signature of the VC
+        // Step 2: domain check — status list issuer must match the VC issuer (prevents status list substitution)
         try {
             // See https://connect2id.com/products/nimbus-jose-jwt/examples/validating-jwt-access-tokens#framework
             new DefaultJWTClaimsVerifier<>(
@@ -178,16 +168,19 @@ class TokenStatusListReference extends StatusListReference {
                     new JWTClaimsSet.Builder().issuer(getReferencedTokenIssuer()).build(),
                     Set.of("iss")
             ).verify(vc.getJWTClaimsSet(), null);
-            var issuer = vc.getJWTClaimsSet().getIssuer();
-            var publicKey = getIssuerPublicKeyLoader().loadPublicKey(issuer, vc.getHeader().getKeyID());
-            if (!vc.verify(toJwsVerifier(publicKey))) {
-                throw statusListError("Failed to verify JWT: Issuer public key does not match signature!");
+        } catch (BadJWTException | ParseException e) {
+            throw statusListError("Failed to verify JWT: Issuer mismatch. " + e.getMessage(), e);
+        }
+        // Step 3: Flow B — validate kid URL (host whitelist + absolute kid), resolve DID, verify signature
+        String jwtString = vc.serialize();
+        try {
+            getCredentialDidJwtValidator().getAndValidateResolutionUrl(jwtString);
+            String didString = getCredentialDidJwtValidator().getDidString(jwtString);
+            try (var didDoc = getDidResolverFacade().resolveDid(didString)) {
+                getCredentialDidJwtValidator().validateJwt(jwtString, didDoc);
             }
-        } catch (LoadingPublicKeyOfIssuerFailedException | ParseException | JOSEException |
-                 IllegalArgumentException e) {
-            throw statusListError("Failed to verify JWT: Could not verify against issuer public key", e);
-        } catch (BadJWTException e) {
-            throw statusListError(String.format("Failed to verify JWT: Invalid JWT token. %s", e.getMessage()), e);
+        } catch (JwtValidatorException | DidSidekicksException e) {
+            throw statusListError("Failed to verify JWT: " + e.getMessage(), e);
         }
     }
 

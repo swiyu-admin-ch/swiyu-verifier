@@ -1,5 +1,8 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -9,8 +12,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -43,9 +44,16 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorRespo
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
 /**
- * Verifies SD-JWT trust statements (which are themselves VP tokens) using the
- * same core verification logic as regular VP tokens, but with trust-specific
- * semantics.
+ * Verifies SD-JWT VP tokens and trust statements (which are themselves SD-JWT VCs) using
+ * a unified validation pipeline that enforces PARENT-ADR-027 / PARENT-ADR-035:
+ *
+ * <ul>
+ *   <li>The {@code iss} claim is never used for public-key resolution. Trust is established
+ *       exclusively via the absolute {@code kid} JWT header attribute.</li>
+ *   <li>Relative {@code kid} values are rejected to prevent key-confusion attacks.</li>
+ *   <li>DID resolution is restricted to the configured base-registry allowlist to protect
+ *       against SSRF / "Phone Home" attacks (EIDSEC-141).</li>
+ * </ul>
  */
 @Service
 @Slf4j
@@ -61,7 +69,12 @@ public class SdJwtVpTokenVerifier {
 
     private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
 
-    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
+    /**
+     * Validator that enforces kid-based DID resolution with host allowlist.
+     * Ignores the {@code iss} claim for key resolution (ADR-027 / ADR-035).
+     */
+    private final DidJwtValidator credentialDidJwtValidator;
+    private final DidResolverFacade didResolverFacade;
     private final StatusListReferenceFactory statusListReferenceFactory;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
@@ -85,31 +98,57 @@ public class SdJwtVpTokenVerifier {
     }
 
     /**
-     * Verifies the given jwt according to basic JWT requirements (header, times, signature).
+     * Verifies the given JWT according to basic JWT requirements (header, times, signature).
      *
-     * @param sdJwt to be verified, without resolving selective disclosures. Will be updated to have jws header and jwt claims
+     * <p>Enforces PARENT-ADR-027 / PARENT-ADR-035:</p>
+     * <ul>
+     *   <li>Key resolution uses the absolute {@code kid} header value exclusively –
+     *       the {@code iss} claim is never consulted for key lookup.</li>
+     *   <li>The {@code kid} must be an absolute DID URL (e.g.
+     *       {@code did:webvh:example.com:abc123#key-1}). Relative kids are rejected.</li>
+     *   <li>DID resolution is restricted to the configured base-registry allowlist.</li>
+     * </ul>
+     *
+     * @param sdJwt            to be verified, without resolving selective disclosures.
+     *                         Will be updated to have jws header and jwt claims.
+     * @param managementEntity the management entity (used for logging only)
      */
     protected void verifyVerifiableCredentialJWT(SdJwt sdJwt, Management managementEntity) {
         try {
             SignedJWT nimbusJwt = SignedJWT.parse(sdJwt.getJwt());
             var header = nimbusJwt.getHeader();
             validateHeader(header);
-            var claims = nimbusJwt.getJWTClaimsSet();
-            // Only technical verification here; issuer trust is validated at service layer
-            var publicKey = issuerPublicKeyLoader.loadPublicKey(claims.getIssuer(), header.getKeyID());
-            log.trace("Loaded issuer public key for id {}", managementEntity.getId());
-            // Verify the JWS signature of the JWT
-            if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey))) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Signature mismatch");
+
+            // Step 1: Pre-flight – validate that the kid resolves to an allowed registry host.
+            // This check is fast (no HTTP call) and prevents malicious JWTs from ever
+            // triggering a DID resolution against a foreign host (SSRF / "Phone Home" defense).
+            credentialDidJwtValidator.getAndValidateResolutionUrl(sdJwt.getJwt());
+
+            // Step 2: Extract the DID from the kid header (never from iss).
+            String didString = credentialDidJwtValidator.getDidString(sdJwt.getJwt());
+
+            // Step 3: Resolve the DID Document via our existing adapter.
+            // Step 4: Validate signature, exp, and nbf. The iss claim is intentionally ignored.
+            try (var didDoc = didResolverFacade.resolveDid(didString)) {
+                credentialDidJwtValidator.validateJwt(sdJwt.getJwt(), didDoc);
             }
+
             log.trace("Successfully verified signature of id {}", managementEntity.getId());
-            validateJwtTimes(claims);
+
+            var claims = nimbusJwt.getJWTClaimsSet();
             sdJwt.setHeader(header);
             sdJwt.setClaims(claims);
         } catch (ParseException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
-        } catch (LoadingPublicKeyOfIssuerFailedException | JOSEException e) {
+        } catch (JwtValidatorException e) {
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
+        } catch (DidResolverException e) {
+            throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE,
+                    "Failed to resolve DID document: " + e.getMessage());
+        } catch (Exception e) {
+            // Catches DidSidekicksException and AutoCloseable.close() exceptions
+            throw credentialError(PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE,
+                    "Failed to validate JWT credential: " + e.getMessage());
         }
     }
 

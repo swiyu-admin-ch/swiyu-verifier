@@ -7,7 +7,6 @@ import ch.admin.eid.did_sidekicks.Jwk;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWK;
 
 import lombok.AllArgsConstructor;
@@ -15,24 +14,28 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 
-import java.security.PublicKey;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 
 /**
- * This class is responsible for loading the public key of an issuer from a JWT Token. The issuer is identified by its
- * DID (Decentralized Identifier) which is stored in the <code>iss</code> claim of the JWT Token. The public key is
- * identified by the <code>kid</code> attribute in the header of the JWT Token.
+ * Loads issuer-related data required for credential verification via DID-based resolution.
  * <p>
- * See SD-JWT-based Verifiable Credentials (SD-JWT VC) specification
- * <a href="https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-04.html#section-3.5">Section 3.5 (did document
- * resolution)</a>
+ * Provides two capabilities:
+ * <ul>
+ *   <li>Loading a {@link JWK} for a given issuer DID and absolute {@code kid} header value,
+ *       used by trust protocol 2 signature verification.</li>
+ *   <li>Loading raw trust statement JWTs from a trust registry endpoint,
+ *       used by trust protocol 1 validation.</li>
+ * </ul>
+ * Key resolution is performed exclusively via the {@code kid} header (absolute DID URL),
+ * in accordance with PARENT-ADR-027 / PARENT-ADR-035. The {@code iss} claim is not used
+ * for key resolution.
  */
 @AllArgsConstructor
 @Service
 @Slf4j
-public class IssuerPublicKeyLoader {
+public class IssuerDataLoader {
 
     /**
      * Adapter for loading a DID Documents by a DID (Decentralized Identifier).
@@ -42,21 +45,6 @@ public class IssuerPublicKeyLoader {
     private final DidResolverFacade didResolverFacade;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Loads the public key of the issuer with the given <code>issuer</code> and <code>kid</code>.
-     *
-     * @return The public key of the issuer.
-     * @throws LoadingPublicKeyOfIssuerFailedException if the public key could not be loaded
-     */
-    public PublicKey loadPublicKey(String issuer, String kid) throws LoadingPublicKeyOfIssuerFailedException {
-        try {
-            log.trace("Fetching Public Key {} for issuer {}", kid, issuer);
-            Jwk method = loadVerificationMethod(issuer, kid);
-            return parsePublicKeyOfTypeJsonWebKey(method, issuer);
-        } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
-            throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
-        }
-    }
 
     public JWK loadJWK(String issuerDid, String kid) throws LoadingPublicKeyOfIssuerFailedException {
         log.trace("Fetching Public Key {} ", kid);
@@ -112,20 +100,6 @@ public class IssuerPublicKeyLoader {
         }
     }
 
-    /**
-     * Generates a public key from the given JSON Web Key (JWK).
-     *
-     * @param jwk a json web token
-     * @return the public key
-     * @throws LoadingPublicKeyOfIssuerFailedException 
-     */
-    private PublicKey parsePublicKeyOfTypeJsonWebKey(Jwk jwk, String issuerDid) throws LoadingPublicKeyOfIssuerFailedException {
-        try {
-            return parseJwk(jwk, issuerDid).toECKey().toPublicKey();
-        } catch (JOSEException e) {
-            throw new LoadingPublicKeyOfIssuerFailedException("Failed to cast key to ECKey", e);
-        }
-    }
 
     /**
      *

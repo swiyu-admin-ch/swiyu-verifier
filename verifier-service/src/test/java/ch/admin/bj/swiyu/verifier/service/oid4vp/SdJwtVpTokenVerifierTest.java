@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -11,7 +13,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.bj.swiyu.verifier.service.publickey.IssuerDataLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
@@ -34,21 +37,25 @@ import java.text.ParseException;
 import java.util.*;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for {@link SdJwtVpTokenVerifier} focusing on trust evaluation and holder binding audience checks.
+ * Unit tests for {@link SdJwtVpTokenVerifier} focusing on trust evaluation, holder binding audience checks,
+ * and ADR-027 / ADR-035 compliance (kid-based key resolution, iss ignored, host allowlist).
  */
 class SdJwtVpTokenVerifierTest {
 
     private static final String TEST_NONCE = "test-nonce";
 
-    private IssuerPublicKeyLoader issuerPublicKeyLoader;
+    private DidJwtValidator credentialDidJwtValidator;
+    private DidResolverFacade didResolverFacade;
+    private IssuerDataLoader issuerDataLoader;
     private StatusListReferenceFactory statusListReferenceFactory;
     private ApplicationProperties applicationProperties;
     private VerificationProperties verificationProperties;
@@ -57,8 +64,10 @@ class SdJwtVpTokenVerifierTest {
     private SdJwtVpTokenVerifier verifier;
 
     @BeforeEach
-    void setUp() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
-        issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
+    void setUp() throws Exception {
+        credentialDidJwtValidator = mock(DidJwtValidator.class);
+        didResolverFacade = mock(DidResolverFacade.class);
+        issuerDataLoader = mock(IssuerDataLoader.class);
         statusListReferenceFactory = mock(StatusListReferenceFactory.class);
         applicationProperties = mock(ApplicationProperties.class);
         verificationProperties = mock(VerificationProperties.class);
@@ -72,13 +81,24 @@ class SdJwtVpTokenVerifierTest {
         when(management.getRequestNonce()).thenReturn(TEST_NONCE);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
 
-        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        // Default happy-path setup for credentialDidJwtValidator (ADR-027 / ADR-035 compliant).
+        // getAndValidateResolutionUrl validates kid format + host allowlist (no HTTP call).
+        when(credentialDidJwtValidator.getAndValidateResolutionUrl(anyString()))
+                .thenReturn("https://identifier-reg.trust-infra.swiyu.admin.ch/api/v1/did/DEFAULT_ISSUER_ID");
+        // getDidString extracts the DID from the kid header – never reads the iss claim.
+        when(credentialDidJwtValidator.getDidString(anyString())).thenReturn(DEFAULT_ISSUER_ID);
+        // validateJwt verifies signature + exp + nbf via the resolved DID Document.
+        doNothing().when(credentialDidJwtValidator).validateJwt(anyString(), any(ch.admin.eid.did_sidekicks.DidDoc.class));
 
-        // Status list verification is out of scope of this unit, so we simulate "no status entries"
+        // Resolve DID Document – returns AutoCloseable mock so try-with-resources works.
+        var mockDidDoc = mock(ch.admin.eid.did_sidekicks.DidDoc.class);
+        when(didResolverFacade.resolveDid(anyString())).thenReturn(mockDidDoc);
+
+        // Status list verification is out of scope of this unit, so we simulate "no status entries".
         when(statusListReferenceFactory.createStatusListReferences(any(), any())).thenReturn(List.of());
 
-        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        verifier = new SdJwtVpTokenVerifier(credentialDidJwtValidator, didResolverFacade,
+                statusListReferenceFactory, applicationProperties, verificationProperties);
     }
 
     @Test
@@ -86,8 +106,6 @@ class SdJwtVpTokenVerifierTest {
         // Arrange: VC issued by third party, not directly trusted via acceptedIssuerDids
         var vcIssuerDid = "did:example:third";
         var vcIssuerKid = vcIssuerDid + "#key-1";
-        when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
 
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
@@ -98,14 +116,16 @@ class SdJwtVpTokenVerifierTest {
         var trustRegistryUrl = "https://trust-registry.example.com";
         var trustIssuerDid = "did:example:trust";
         var trustIssuerKid = trustIssuerDid + "#key-1";
-        when(issuerPublicKeyLoader.loadPublicKey(trustIssuerDid, trustIssuerKid))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+
+        // credentialDidJwtValidator is mocked in setUp() to always succeed for any JWT.
+        // The DID extracted from kid is returned as trustIssuerDid for the trust statement JWT.
+        when(credentialDidJwtValidator.getDidString(anyString())).thenReturn(trustIssuerDid);
 
         // Important: subject of trust statement must match vcIssuerDid so that isProvidingTrust() returns true
         var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, vcIssuerDid);
         when(management.getTrustAnchors())
                 .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
-        when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
+        when(issuerDataLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
                 .thenReturn(List.of(trustStatement));
 
         // Act
@@ -118,6 +138,81 @@ class SdJwtVpTokenVerifierTest {
         assertThat(verified.getHeader()).isNotNull();
     }
 
+    // ─── ADR-027 / ADR-035 compliance tests ────────────────────────────────────
+
+    /**
+     * ADR-027 / ADR-035: A JWT with no {@code iss} claim but a valid, absolute {@code kid}
+     * and a correct signature MUST be accepted. The {@code iss} claim must never be required
+     * for key resolution.
+     */
+    @Test
+    void verifyVerifiableCredentialJWT_whenIssClaimAbsent_thenSuccess() throws JOSEException, ParseException {
+        // Arrange: build a JWT that has NO iss claim but a valid absolute kid
+        var emulator = new SDJWTCredentialMock();
+        var vpTokenString = emulator.createSDJWTMock();
+        // Parse and rebuild the JWT payload without the iss claim to simulate a credential without iss
+        SignedJWT original = SignedJWT.parse(vpTokenString.split("~")[0]);
+        var claimsWithoutIss = new JWTClaimsSet.Builder(original.getJWTClaimsSet())
+                .issuer(null) // remove iss
+                .build();
+        var noIssJwt = new SignedJWT(original.getHeader(), claimsWithoutIss);
+        noIssJwt.sign(new com.nimbusds.jose.crypto.ECDSASigner(KeyFixtures.issuerKey()));
+        // Reconstruct the SD-JWT string with the no-iss JWT but keep disclosures and key binding marker
+        String noIssVpToken = noIssJwt.serialize() + vpTokenString.substring(vpTokenString.indexOf('~'));
+        var sdJwt = new SdJwt(noIssVpToken);
+
+        // credentialDidJwtValidator is mocked in setUp() to succeed regardless of iss presence.
+
+        // Act & Assert: must NOT throw – iss is irrelevant for signature validation
+        assertDoesNotThrow(() -> verifier.verifyVerifiableCredentialJWT(sdJwt, management));
+    }
+
+    /**
+     * ADR-027 / ADR-035: A JWT with a relative {@code kid} (e.g., {@code key-1} without a
+     * DID prefix) MUST be rejected. Only absolute kid values are accepted.
+     */
+    @Test
+    void verifyVerifiableCredentialJWT_whenRelativeKid_thenRejected() throws JOSEException {
+        // Arrange: build a JWT with a relative kid header (no DID prefix)
+        var emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, "key-1"); // relative kid
+        var vpTokenString = emulator.createSDJWTMock();
+        var sdJwt = new SdJwt(vpTokenString);
+
+        // Simulate the validator rejecting the relative kid
+        when(credentialDidJwtValidator.getAndValidateResolutionUrl(anyString()))
+                .thenThrow(new JwtValidatorException("kid 'key-1' is not an absolute DID URL"));
+
+        // Act & Assert
+        var ex = assertThrows(VerificationException.class,
+                () -> verifier.verifyVerifiableCredentialJWT(sdJwt, management));
+        assertThat(ex.getErrorResponseCode()).isEqualTo(PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE);
+        assertThat(ex.getErrorDescription()).contains("kid 'key-1' is not an absolute DID URL");
+    }
+
+    /**
+     * ADR-027 / ADR-035 / EIDSEC-141: A JWT whose {@code kid} resolves to a DID hosted on a
+     * non-whitelisted registry MUST be rejected. This prevents SSRF / "Phone Home" attacks.
+     */
+    @Test
+    void verifyVerifiableCredentialJWT_whenNonWhitelistedHost_thenRejected() throws JOSEException {
+        // Arrange: build a JWT whose kid points to a malicious registry
+        var maliciousKid = "did:web:malicious-registry.example.com#key-1";
+        var emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, maliciousKid);
+        var vpTokenString = emulator.createSDJWTMock();
+        var sdJwt = new SdJwt(vpTokenString);
+
+        // Simulate the allowlist check rejecting the non-whitelisted host
+        when(credentialDidJwtValidator.getAndValidateResolutionUrl(anyString()))
+                .thenThrow(new JwtValidatorException(
+                        "Host 'malicious-registry.example.com' is not on the allowed registry list"));
+
+        // Act & Assert
+        var ex = assertThrows(VerificationException.class,
+                () -> verifier.verifyVerifiableCredentialJWT(sdJwt, management));
+        assertThat(ex.getErrorResponseCode()).isEqualTo(PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE);
+        assertThat(ex.getErrorDescription()).contains("malicious-registry.example.com");
+    }
+
     @Test
     void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
         // Arrange: valid SD-JWT with key binding, but audience is not our clientId
@@ -126,8 +221,7 @@ class SdJwtVpTokenVerifierTest {
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
 
-        when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
-                .thenReturn(KeyFixtures.issuerKey().toPublicKey());
+        // credentialDidJwtValidator is mocked in setUp() to always succeed.
 
         // Audience intentionally mismatched
         var wrongAudience = "did:example:someone-else";
@@ -158,7 +252,7 @@ class SdJwtVpTokenVerifierTest {
                 .claim("credentialSubject", credentialSubject)
                 .build();
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(credentialDidJwtValidator, didResolverFacade, statusListReferenceFactory, applicationProperties, verificationProperties);
 
         var ex = assertThrows(VerificationException.class, () -> verifier.processDisclosures(claimSet, List.of(disclosure), UUID.randomUUID()));
 
@@ -189,7 +283,7 @@ class SdJwtVpTokenVerifierTest {
                 .claim("credentialSubject", credentialSubject)
                 .build();
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(credentialDidJwtValidator, didResolverFacade, statusListReferenceFactory, applicationProperties, verificationProperties);
 
         var ex = assertThrows(VerificationException.class, () -> verifier.processDisclosures(claimSet, List.of(disclosure), UUID.randomUUID()));
 
@@ -210,7 +304,7 @@ class SdJwtVpTokenVerifierTest {
         var claimsForSdJWT = getClaimsFromSdJwt(disclosure);
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(credentialDidJwtValidator, didResolverFacade, statusListReferenceFactory, applicationProperties, verificationProperties);
         assertDoesNotThrow(() -> verifier.processDisclosures(claimsSet, disclosure, UUID.randomUUID()));
     }
 
@@ -239,7 +333,7 @@ class SdJwtVpTokenVerifierTest {
         SdJwt sdjwt = new SdJwt(sdJwt.toString());
         sdjwt.setClaims(claimsSet);
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(credentialDidJwtValidator, didResolverFacade, statusListReferenceFactory, applicationProperties, verificationProperties);
         var test = assertThrows(VerificationException.class, () -> verifier.validateDisclosures(sdjwt, management));
         assertThat(test.getErrorDescription()).as("Should throw understandable error message indicating the unsupported algorithm").isEqualTo("Unsupported _sd_alg value: sha-512");
     }
@@ -253,7 +347,7 @@ class SdJwtVpTokenVerifierTest {
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(credentialDidJwtValidator, didResolverFacade, statusListReferenceFactory, applicationProperties, verificationProperties);
         var ex = assertThrows(VerificationException.class, () -> verifier.processDisclosures(claimsSet, disclosure, UUID.randomUUID()));
         assertThat(ex.getErrorResponseCode())
                 .as("Should throw malformed credential error when disclosure claim name collides with existing claim")
@@ -293,7 +387,7 @@ class SdJwtVpTokenVerifierTest {
         SdJwt sdjwt = new SdJwt(sdJwt.toString());
         sdjwt.setClaims(claimsSet);
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(credentialDidJwtValidator, didResolverFacade, statusListReferenceFactory, applicationProperties, verificationProperties);
         assertDoesNotThrow(() -> verifier.validateDisclosures(sdjwt, mgmtEntity));
     }
 }

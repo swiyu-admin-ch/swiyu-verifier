@@ -59,7 +59,7 @@ public class OpenIdClientMetadataConfiguration {
         }
 
         final Properties props = new Properties();
-        props.setProperty("VERIFIER_DID", applicationProperties.getClientId());
+        props.setProperty("VERIFIER_DID", applicationProperties.getClientIdWithPrefix());
         final PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
         return helper.replacePlaceholders(template, props);
     }

@@ -100,7 +100,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
                 .andReturn());
         // Check status, should still be pending
@@ -178,7 +178,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
                 .andReturn());
         // Check status, should still be pending
@@ -224,7 +224,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
                 .andReturn());
         // Check status, should still be pending
@@ -333,7 +333,7 @@ class BlackboxIT {
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
-        return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
+        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + ACCEPTED_ISSUER);
     }
 
     private String createMockCredential_rec(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
@@ -341,7 +341,7 @@ class BlackboxIT {
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMockWithRecursiveListArray();
-        return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
+        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + ACCEPTED_ISSUER);
     }
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {

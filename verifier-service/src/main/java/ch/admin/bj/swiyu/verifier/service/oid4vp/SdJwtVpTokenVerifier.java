@@ -45,7 +45,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 
 /**
  * Verifies SD-JWT VP tokens and trust statements (which are themselves SD-JWT VCs) using
- * a unified validation pipeline that enforces PARENT-ADR-027 / PARENT-ADR-035:
+ * a unified validation pipeline
  *
  * <ul>
  *   <li>The {@code iss} claim is never used for public-key resolution. Trust is established
@@ -71,7 +71,7 @@ public class SdJwtVpTokenVerifier {
 
     /**
      * Validator that enforces kid-based DID resolution with host allowlist.
-     * Ignores the {@code iss} claim for key resolution (ADR-027 / ADR-035).
+     * Ignores the {@code iss} claim for key resolution.
      */
     private final DidJwtValidator credentialDidJwtValidator;
     private final DidResolverFacade didResolverFacade;
@@ -100,7 +100,6 @@ public class SdJwtVpTokenVerifier {
     /**
      * Verifies the given JWT according to basic JWT requirements (header, times, signature).
      *
-     * <p>Enforces PARENT-ADR-027 / PARENT-ADR-035:</p>
      * <ul>
      *   <li>Key resolution uses the absolute {@code kid} header value exclusively –
      *       the {@code iss} claim is never consulted for key lookup.</li>
@@ -121,7 +120,7 @@ public class SdJwtVpTokenVerifier {
 
             // Step 1: Pre-flight – validate that the kid resolves to an allowed registry host.
             // This check is fast (no HTTP call) and prevents malicious JWTs from ever
-            // triggering a DID resolution against a foreign host (SSRF / "Phone Home" defense).
+            // triggering a DID resolution against a foreign host.
             credentialDidJwtValidator.getAndValidateResolutionUrl(sdJwt.getJwt());
 
             // Step 2: Extract the DID from the kid header (never from iss).

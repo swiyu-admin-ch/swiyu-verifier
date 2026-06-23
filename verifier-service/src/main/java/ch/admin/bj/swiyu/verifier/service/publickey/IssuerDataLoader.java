@@ -28,8 +28,8 @@ import java.util.Map;
  *   <li>Loading raw trust statement JWTs from a trust registry endpoint,
  *       used by trust protocol 1 validation.</li>
  * </ul>
- * Key resolution is performed exclusively via the {@code kid} header (absolute DID URL),
- * in accordance with PARENT-ADR-027 / PARENT-ADR-035. The {@code iss} claim is not used
+ * Key resolution is performed exclusively via the {@code kid} header (absolute DID URL).
+ * The {@code iss} claim is not used
  * for key resolution.
  */
 @AllArgsConstructor

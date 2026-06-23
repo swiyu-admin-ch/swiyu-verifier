@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * Provides the general-purpose {@link DidJwtValidator} for credential JWT signature validation.
  *
- * <p>This configuration enforces PARENT-ADR-027 / PARENT-ADR-035 for all credential JWTs:
+ * <p>This configuration enforces validation for all credential JWTs:
  * <ul>
  *   <li>The {@code iss} claim is completely ignored for key resolution. Trust is established
  *       exclusively via the absolute {@code kid} header value.</li>

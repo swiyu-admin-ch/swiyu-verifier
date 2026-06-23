@@ -221,8 +221,6 @@ class SdJwtVpTokenVerifierTest {
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
 
-        // credentialDidJwtValidator is mocked in setUp() to always succeed.
-
         // Audience intentionally mismatched
         var wrongAudience = "did:example:someone-else";
         var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, wrongAudience);

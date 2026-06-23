@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - check `_sd_alg` value in SD-JWT verifier to ensure it is a supported algorithm (currently only `sha-256` is supported)
 
 ## Changed
+- Refactored JWT and SD-JWT signature validation to use the centralized `swiyu-jwt-validator` and `swiyu-sdjwt-validator` libraries. This enforces PARENT-ADR-027 and PARENT-ADR-035: the `iss` claim is now explicitly ignored, key resolution relies exclusively on absolute `kid` headers, and DID resolution is restricted to a configured host allowlist to prevent SSRF / "phone home" attacks `(#873)`.
 - oauthState must be sent in verification response otherwise the verifier rejects the response.
 
 # [3.0.2] - 2026-06-12

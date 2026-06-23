@@ -16,7 +16,7 @@ application:
 
   key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
   max-compressed-cipher-text-length: ${MAX_COMPRESSED_CIPHER_TEXT_LENGTH:100000}
-  max-vcs-accepted: 5
+  max-vcs-accepted: 1 # At the moment the default value is set to 1 as the dcql multiple flag is not fully supported
   # Pin to unlock the hsm
   hsm:
     user-pin: "${secret.key.hsm.pin.user:${HSM_USER_PIN:}}"

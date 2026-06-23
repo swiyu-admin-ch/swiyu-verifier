@@ -75,6 +75,8 @@ class SdJwtVpTokenVerifierTest {
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
         when(applicationProperties.getClientId()).thenReturn("did:example:verifier");
+        when(applicationProperties.getClientIdWithPrefix()).thenReturn("prefix:did:example:verifier");
+        when(applicationProperties.getClientIdWithPrefix(any())).thenReturn("prefix:did:example:verifier");
         when(management.getId()).thenReturn(UUID.randomUUID());
         when(management.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(management.getTrustAnchors()).thenReturn(List.of());
@@ -109,7 +111,7 @@ class SdJwtVpTokenVerifierTest {
 
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
-        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, applicationProperties.getClientId());
+        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, applicationProperties.getClientIdWithPrefix());
         var sdJwt = new SdJwt(vpTokenString);
 
         // Trust Statement: separate trust anchor vouches that vcIssuerDid canIssue DEFAULT_VCT
@@ -216,9 +218,7 @@ class SdJwtVpTokenVerifierTest {
     @Test
     void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
         // Arrange: valid SD-JWT with key binding, but audience is not our clientId
-        var vcIssuerDid = DEFAULT_ISSUER_ID;
-        var vcIssuerKid = DEFAULT_KID_HEADER_VALUE;
-        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
+        var emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE);
         var sdjwt = emulator.createSDJWTMock();
 
         // Audience intentionally mismatched

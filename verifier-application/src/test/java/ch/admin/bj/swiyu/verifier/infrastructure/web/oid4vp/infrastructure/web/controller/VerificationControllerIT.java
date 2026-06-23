@@ -31,6 +31,7 @@ import com.nimbusds.jwt.SignedJWT;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,6 +45,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import javax.sql.DataSource;
 import java.time.Instant;
@@ -127,9 +129,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_EXPIRED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+        postVerificationResponse(REQUEST_ID_EXPIRED, vpToken, REQUEST_ID_EXPIRED)
                 .andExpect(status().isBadRequest());
     }
 
@@ -145,9 +145,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error_description").value(containsString("Issuer not in list of accepted issuers")));
     }
@@ -212,6 +210,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldAcceptRefusalIWithValidErrorType() throws Exception {
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+                        .formField("state", REQUEST_ID_SECURED.toString())
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isOk());
@@ -263,9 +262,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
         if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST) {
-            mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
-                            .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                            .formField("vp_token", dcqlVpToken))
+            postVerificationResponse(requestObjectId, dcqlVpToken, requestObjectId)
                     .andExpect(status().isOk());
         } else if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST_JWT) {
             // JWKS & encryptionMethod are normally provided in Request Object
@@ -281,6 +278,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             jweObject.encrypt(new ECDHEncrypter(publicKey));
             mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
                             .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                            .formField("state", requestObjectId.toString())
                             .formField("response", jweObject.serialize()))
                     .andExpect(status().isOk());
         }
@@ -313,9 +311,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isOk()).andReturn();
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -349,9 +345,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest()).andReturn();
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -383,10 +377,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var submissionData = objectMapper.writeValueAsString(vpTokenMap);
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error_code").value("credential_revoked"));
 
@@ -415,9 +406,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("$.error_description").value("Request contains non-distinct disclosures"));
@@ -438,9 +427,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
         mockDidResolverResponse(emulator);
 
-        var response = mock.perform(post(String.format(responseDataUriFormat, REQUEST_DIFFERENT_KB_ALGS))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", vpToken))
+        var response = postVerificationResponse(REQUEST_DIFFERENT_KB_ALGS, vpToken, REQUEST_DIFFERENT_KB_ALGS)
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
@@ -468,9 +455,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT credential is not yet valid"));
@@ -495,9 +480,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Could not verify JWT credential is expired"));
@@ -523,9 +506,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Unused disclosures detected"));
@@ -595,9 +576,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Failed to verify JWT: Issuer public key does not match signature!"));
@@ -617,9 +596,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Signature mismatch"));
@@ -645,9 +622,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description", containsString("The VC cannot be validated as the remote list does not contain this VC!")))
@@ -675,9 +650,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description", containsString(expectedErrorMesssage)))
@@ -706,9 +679,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("vp_token", dcqlVpToken))
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -763,10 +734,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // remove unused list disclosures
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
                 .andExpect(status().isOk());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -791,10 +759,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
                 .andExpect(status().isOk());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
@@ -812,10 +777,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_NESTED_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_NESTED_SECURED, submissionData, REQUEST_ID_NESTED_SECURED)
                 .andExpect(status().isOk());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_NESTED_SECURED).orElseThrow();
@@ -845,11 +807,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 }
                 """.formatted(dcqlCredentialId, SDJWTCredentialMock.DEFAULT_VCT);
 
-        managementEntityRepository.save(Management.builder()
+        var mgmt = managementEntityRepository.save(Management.builder()
                 .id(dcqlCredentialId)
                 .jwtSecuredAuthorizationRequest(false)
                 .requestNonce(NONCE_SD_JWT_SQL)
                 .state(PENDING)
+                .oauthState(UUID.randomUUID().toString())
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
@@ -884,10 +847,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(dcqlCredentialId, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, dcqlCredentialId))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(dcqlCredentialId, submissionData, UUID.fromString(mgmt.getOauthState()))
                 .andExpect(status().isOk());
     }
 
@@ -903,10 +863,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING)
                 .andExpect(status().isOk());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
@@ -924,10 +881,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING)
                 .andExpect(status().isOk());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
@@ -943,10 +897,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
                 .andExpect(status().isBadRequest());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
@@ -965,10 +916,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
                 .andExpect(status().isBadRequest());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
@@ -985,10 +933,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
                 .andExpect(status().isBadRequest());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
@@ -1008,10 +953,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
                 .andExpect(jsonPath("$.error_description").value("Holder Binding audience mismatch. Actual: 'http://localhost:8080'. Expected: %s".formatted(clientIdWithPrefix)))
                 .andExpect(jsonPath("$.error_code").value("holder_binding_mismatch"))
                 .andExpect(status().isBadRequest());
@@ -1029,10 +971,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, sdJwt);
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -1053,10 +992,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("$.error_code").value("holder_binding_mismatch"));
@@ -1083,10 +1019,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("vp_token", submissionData))
+        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.error").value("invalid_transaction_data"));
 
@@ -1102,10 +1035,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         String encryptedResponse = "eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0...";
 
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("response", encryptedResponse))
+        postVerificationResponse(REQUEST_ID_SECURED, encryptedResponse, REQUEST_ID_SECURED)
                 .andExpect(status().is4xxClientError());
 
         // Verify that the management entity remains in pending state since the exception is thrown early
@@ -1119,11 +1049,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         String errorDescription = "User declined the verification request";
 
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("error", "access_denied")
-                        .formField("error_description", errorDescription))
+        postVerificationErrorResponse(REQUEST_ID_SECURED, REQUEST_ID_SECURED, "access_denied", errorDescription)
                 .andExpect(status().isOk());
 
         // Verify that the management entity is marked as failed due to client rejection
@@ -1138,6 +1064,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
+                        .formField("state", REQUEST_ID_SECURED.toString())
                         .formField("error", "client_rejected"))
                 .andExpect(status().isOk());
 
@@ -1149,11 +1076,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldHandleClientRejectionWithEmptyErrorDescription() throws Exception {
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("error", "vp_formats_not_supported")
-                        .formField("error_description", ""))
+        postVerificationErrorResponse(REQUEST_ID_SECURED, REQUEST_ID_SECURED, "vp_formats_not_supported", "")
                 .andExpect(status().isOk());
 
         // Verify that the management entity is marked as failed due to client rejection
@@ -1165,11 +1088,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldFailClientRejectionOnExpiredRequest() throws Exception {
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_EXPIRED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("error", "access_denied")
-                        .formField("error_description", "User cancelled"))
+        postVerificationErrorResponse(REQUEST_ID_EXPIRED, REQUEST_ID_EXPIRED, "access_denied", "User cancelled")
                 .andExpect(status().isGone());
 
         // Verify that the management entity state remains unchanged
@@ -1180,11 +1099,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldFailClientRejectionWithInvalidErrorType() throws Exception {
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("error", "invalid_error_type")
-                        .formField("error_description", "Some description"))
+        postVerificationErrorResponse(REQUEST_ID_SECURED, REQUEST_ID_SECURED, "invalid_error_type", "Some description")
                 .andExpect(status().isBadRequest());
 
         // Verify that the management entity remains in pending state
@@ -1252,11 +1167,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.submit(() -> {
             try {
-                mock.perform(
-                        post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
-                                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                                .formField("vp_token", finalVpToken)
-                );
+                postVerificationResponse(REQUEST_ID_SECURED, finalVpToken, REQUEST_ID_SECURED);
             } catch (Exception ignored) {}
         });
 
@@ -1328,5 +1239,20 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         allowDidToFinish.countDown();
         executor.shutdown();
         executor.awaitTermination(5, TimeUnit.SECONDS);
+    }
+
+    private @NonNull ResultActions postVerificationResponse(UUID requestObjectId, String dcqlVpToken, UUID state) throws Exception {
+        return mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
+                .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                .formField("state", state.toString())
+                .formField("vp_token", dcqlVpToken));
+    }
+
+    private @NonNull ResultActions postVerificationErrorResponse(UUID requestObjectId, UUID state, String error, String errorDescription) throws Exception {
+        return mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", requestObjectId))
+                .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                .formField("state", state.toString())
+                .formField("error", error)
+                .formField("error_description", errorDescription));
     }
 }

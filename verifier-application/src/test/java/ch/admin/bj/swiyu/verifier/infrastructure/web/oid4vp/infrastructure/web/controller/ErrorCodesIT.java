@@ -35,6 +35,7 @@ class ErrorCodesIT extends BaseVerificationControllerTest {
     void testExistingErrorCodesFromClientToManagement_thenSuccess() throws Exception {
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("state", REQUEST_ID_SECURED.toString())
                         .formField("error", "access_denied"))
                 .andExpect(status().isOk());
 
@@ -47,6 +48,7 @@ class ErrorCodesIT extends BaseVerificationControllerTest {
     void testExistingErrorCodesFromClientToManagement_thenSuccess(VerificationClientErrorDto verificationClientErrorCode) throws Exception {
         mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("state", REQUEST_ID_SECURED.toString())
                         .formField("error", verificationClientErrorCode.toString()))
                 .andExpect(status().isOk());
 

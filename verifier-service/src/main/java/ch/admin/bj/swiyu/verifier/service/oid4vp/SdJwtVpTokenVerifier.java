@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -98,7 +99,8 @@ public class SdJwtVpTokenVerifier {
     }
 
     /**
-     * Verifies the given JWT according to basic JWT requirements (header, times, signature).
+     * Verifies the given JWT according to basic JWT requirements (header, times, signature)
+     * and populates the {@code sdJwt} with the parsed header and claims.
      *
      * <ul>
      *   <li>Key resolution uses the absolute {@code kid} header value exclusively –
@@ -108,49 +110,60 @@ public class SdJwtVpTokenVerifier {
      *   <li>DID resolution is restricted to the configured base-registry allowlist.</li>
      * </ul>
      *
-     * @param sdJwt            to be verified, without resolving selective disclosures.
-     *                         Will be updated to have jws header and jwt claims.
+     * @param sdJwt            to be verified. Will be updated with the parsed JWS header and JWT claims.
      * @param managementEntity the management entity (used for logging only)
      */
     protected void verifyVerifiableCredentialJWT(SdJwt sdJwt, Management managementEntity) {
+        SignedJWT nimbusJwt = validateCredentialJwt(sdJwt.getJwt(), managementEntity);
         try {
-            SignedJWT nimbusJwt = SignedJWT.parse(sdJwt.getJwt());
-            var header = nimbusJwt.getHeader();
-            validateHeader(header);
+            sdJwt.setHeader(nimbusJwt.getHeader());
+            sdJwt.setClaims(nimbusJwt.getJWTClaimsSet());
+        } catch (ParseException e) {
+            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract claims from JWT token");
+        }
+    }
+
+    /**
+     * Pure validation step: parses and cryptographically verifies the JWT string.
+     * Has no side effects on the caller's domain objects.
+     *
+     * @param jwtString        the compact serialized JWT to validate
+     * @param managementEntity used for structured logging only
+     * @return the parsed and verified {@link SignedJWT}
+     * @throws VerificationException if any validation step fails
+     */
+    private SignedJWT validateCredentialJwt(String jwtString, Management managementEntity) {
+        try {
+            SignedJWT nimbusJwt = SignedJWT.parse(jwtString);
+            validateHeader(nimbusJwt.getHeader());
 
             // Step 1: Pre-flight – validate that the kid resolves to an allowed registry host.
-            // This check is fast (no HTTP call) and prevents malicious JWTs from ever
-            // triggering a DID resolution against a foreign host.
-            credentialDidJwtValidator.getAndValidateResolutionUrl(sdJwt.getJwt());
+            credentialDidJwtValidator.getAndValidateResolutionUrl(jwtString);
 
             // Step 2: Extract the DID from the kid header (never from iss).
-            String didString = credentialDidJwtValidator.getDidString(sdJwt.getJwt());
+            String didString = credentialDidJwtValidator.getDidString(jwtString);
 
             // Step 3: Resolve the DID Document via our existing adapter.
             // Step 4: Validate signature, exp, and nbf. The iss claim is intentionally ignored.
             try (var didDoc = didResolverFacade.resolveDid(didString)) {
-                credentialDidJwtValidator.validateJwt(sdJwt.getJwt(), didDoc);
+                credentialDidJwtValidator.validateJwt(jwtString, didDoc);
             }
 
             log.trace("Successfully verified signature of id {}", managementEntity.getId());
-
-            var claims = nimbusJwt.getJWTClaimsSet();
-            sdJwt.setHeader(header);
-            sdJwt.setClaims(claims);
+            return nimbusJwt;
         } catch (ParseException e) {
-            log.error("Sd-Jwt verification exception", e);
+            log.warn("SD-JWT parse error for management id {}: {}", managementEntity.getId(), e.getMessage());
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
         } catch (JwtValidatorException e) {
-            log.error("Sd-Jwt verification exception", e);
+            log.warn("SD-JWT validation failed for management id {}: {}", managementEntity.getId(), e.getMessage());
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
         } catch (DidResolverException e) {
-            log.error("Sd-Jwt verification exception", e);
+            log.warn("DID resolution failed for management id {}: {}", managementEntity.getId(), e.getMessage());
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE,
                     "Failed to resolve DID document: " + e.getMessage());
-        } catch (Exception e) {
-            // Catches DidSidekicksException and AutoCloseable.close() exceptions
-            log.error("Sd-Jwt verification exception", e);
-            throw credentialError(PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE,
+        } catch (DidSidekicksException e) {
+            log.warn("DID document operation failed for management id {}: {}", managementEntity.getId(), e.getMessage());
+            throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE,
                     "Failed to validate JWT credential: " + e.getMessage());
         }
     }

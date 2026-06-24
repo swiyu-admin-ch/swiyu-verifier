@@ -138,14 +138,18 @@ public class SdJwtVpTokenVerifier {
             sdJwt.setHeader(header);
             sdJwt.setClaims(claims);
         } catch (ParseException e) {
+            log.error("Sd-Jwt verification exception", e);
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
         } catch (JwtValidatorException e) {
+            log.error("Sd-Jwt verification exception", e);
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
         } catch (DidResolverException e) {
+            log.error("Sd-Jwt verification exception", e);
             throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE,
                     "Failed to resolve DID document: " + e.getMessage());
         } catch (Exception e) {
             // Catches DidSidekicksException and AutoCloseable.close() exceptions
+            log.error("Sd-Jwt verification exception", e);
             throw credentialError(PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE,
                     "Failed to validate JWT credential: " + e.getMessage());
         }

@@ -29,6 +29,7 @@ public class ManagementTransactionalService {
 
     private static final String LOADED_MANAGEMENT_ENTITY_FOR = "Loaded management entity for ";
     private static final String MANAGEMENT_ENTITY_NOT_FOUND = "Management entity not found: ";
+    private static final String VERIFICATION_PROCESS_CLOSED = "Verification process is already closed. Multiple submissions are not allowed";
 
     private final ManagementRepository repository;
     private final ApplicationProperties applicationProperties;
@@ -129,9 +130,7 @@ public class ManagementTransactionalService {
             timeout = 10
     )
     public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
-        var managementEntity = repository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
-                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        var managementEntity = getInProgressManagementEntity(managementEntityId);
         managementEntity.verificationSucceeded(credentialSubjectData);
     }
 
@@ -144,9 +143,7 @@ public class ManagementTransactionalService {
             timeout = 10
     )
     public void markVerificationFailed(UUID managementEntityId, VerificationException e) {
-        var managementEntity = repository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
-                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        var managementEntity = getInProgressManagementEntity(managementEntityId);
         managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
     }
 
@@ -174,4 +171,23 @@ public class ManagementTransactionalService {
     public Optional<Management> findById(UUID requestId) {
         return repository.findById(requestId);
     }
+
+    /**
+     * Returns the {@link Management} entity with the given
+     * {@code managementEntityId}
+     * that must be in {@link VerificationStatus#IN_PROGRESS}.
+     *
+     * @throws VerificationException if the entity is missing
+     *                                  or is in a terminal state
+     */
+    private Management getInProgressManagementEntity(UUID managementEntityId) {
+        var managementEntity = repository.findById(managementEntityId)
+                .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
+                        MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        if (managementEntity.getState().isTerminal()) {
+            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED, VERIFICATION_PROCESS_CLOSED);
+        }
+        return managementEntity;
+    }
+
 }

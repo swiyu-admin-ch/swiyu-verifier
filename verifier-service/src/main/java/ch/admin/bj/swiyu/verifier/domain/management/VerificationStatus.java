@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
+import java.util.Set;
+
 public enum VerificationStatus {
     PENDING,
     /**
@@ -10,4 +12,10 @@ public enum VerificationStatus {
     IN_PROGRESS,
     SUCCESS,
     FAILED;
+
+    private static final Set<VerificationStatus> TERMINAL_STATES = Set.of(SUCCESS, FAILED);
+
+    public boolean isTerminal() {
+        return TERMINAL_STATES.contains(this);
+    }
 }

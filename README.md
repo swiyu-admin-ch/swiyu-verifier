@@ -359,10 +359,12 @@ If `SWIYU_TMS_AUTHORING_URL` is configured, you can optionally provide a `verifi
   "verification_purpose": {
     "scope": "com.example.age_verification",
     "purpose_name": {
+      "default": "Age Verification",
       "en": "Age Verification",
       "de-CH": "Altersverifikation"
     },
     "purpose_description": {
+      "default": "We verify that you are of legal age.",  
       "en": "We verify that you are of legal age.",
       "de-CH": "Wir prüfen, ob Sie volljährig sind."
     }

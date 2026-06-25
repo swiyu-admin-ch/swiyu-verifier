@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 - oauthState must be sent in verification response otherwise the verifier rejects the response.
+- Uses A256GCM instead of A128GCM for encryption.
 
 # [3.0.2] - 2026-06-12
 

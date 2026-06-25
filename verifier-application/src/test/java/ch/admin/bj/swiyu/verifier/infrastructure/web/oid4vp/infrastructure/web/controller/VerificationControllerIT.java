@@ -1132,7 +1132,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     assertThat(metadata.getJwks()).isNotNull();
                     assertThat(metadata.getJwks().keys()).isNotEmpty();
                     assertThat(metadata.getEncryptedResponseEncValuesSupported()).isNotEmpty();
-                    assertThat(metadata.getEncryptedResponseEncValuesSupported()).contains("A128GCM");
+                    assertThat(metadata.getEncryptedResponseEncValuesSupported()).contains("A256GCM");
                     var encryptionKeys = JWKSet.parse(objectMapper.writeValueAsString(metadata.getJwks()));
                     assertThat(encryptionKeys.containsNonPublicKeys()).isFalse();
                     assertThat(encryptionKeys.getKeys()).isNotEmpty();

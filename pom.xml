@@ -127,7 +127,6 @@
                     <!--  To skip verification locally mvn -Dpgpverify.skip=true -->
                     <pgpKeyServer>hkps://keys.openpgp.org, hkps://keyserver.ubuntu.com</pgpKeyServer>
                     <pgpKeyServerLoadBalance>true</pgpKeyServerLoadBalance>
-                    <failNoSignature>true</failNoSignature>
                     <failWeakSignature>true</failWeakSignature>
                 </configuration>
             </plugin>

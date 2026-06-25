@@ -301,11 +301,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-classes-quic</artifactId>
-                <version>4.2.15.Final</version>
-            </dependency>
             <!-- fix CVE-2021-0341 - Force newer okhttp3 version -->
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>

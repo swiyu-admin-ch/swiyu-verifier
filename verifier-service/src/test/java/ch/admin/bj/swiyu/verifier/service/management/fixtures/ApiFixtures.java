@@ -32,17 +32,6 @@ public class ApiFixtures {
         return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, null, dcqlQueryDto, null);
     }
 
-    public static CreateVerificationManagementDto createVerificationManagementDto_Minimal(boolean isJWTSecured) {
-
-        return new CreateVerificationManagementDto(
-                List.of("did:example:123"), null,
-                isJWTSecured, ResponseModeTypeDto.DIRECT_POST,
-                null,
-                null,
-                null
-        );
-    }
-
     @NotNull
     public static DcqlQueryDto getDcqlQueryDto() {
         var langs = new ArrayList<>();

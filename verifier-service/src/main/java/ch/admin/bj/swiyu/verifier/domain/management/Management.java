@@ -218,12 +218,6 @@ public class Management {
      * @return true if both states are blank or equal, false otherwise
      */
     public boolean matchesOauthState(String state) {
-        if (StringUtils.isBlank(oauthState)) {
-            // When the expected state is not set we expect nothing
-            return StringUtils.isBlank(state);
-        }
-        // EIDOMNI-692: Remove the `|| true`
-        return oauthState.equals(state) || true; 
+        return oauthState.equals(state);
     }
-
 }

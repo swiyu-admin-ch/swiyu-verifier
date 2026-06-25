@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.dto.management;
 
+import ch.admin.bj.swiyu.verifier.common.validation.ContainsDefaultKey;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -34,17 +35,22 @@ public record VerificationPurposeDto(
 
         @Valid
         @NotEmpty
+        @ContainsDefaultKey
         @Schema(
-                description = "Localized purpose names (max 50 chars per value). Key is language tag (e.g. 'de-ch').",
-                example = "{\"de-ch\": \"Altersverifikation\"}"
+                description = "Localized purpose names (max 50 chars per value). Key is language tag (e.g. 'de-ch'). " +
+                        "Must contain a 'default' key with a non-blank value.",
+                example = "{\"default\": \"Age Verification\", \"de-ch\": \"Altersverifikation\"}"
         )
         @JsonProperty("purpose_name")
         Map<String, String> purposeName,
 
         @Valid
         @NotEmpty
+        @ContainsDefaultKey
         @Schema(
-                description = "Localized purpose descriptions (max 500 chars per value). Key is language tag (e.g. 'de-ch')."
+                description = "Localized purpose descriptions (max 500 chars per value). Key is language tag (e.g. 'de-ch'). " +
+                        "Must contain a 'default' key with a non-blank value.",
+                example = "{\"default\": \"Age Verification required for xyz\"}"
         )
         @JsonProperty("purpose_description")
         Map<String, String> purposeDescription

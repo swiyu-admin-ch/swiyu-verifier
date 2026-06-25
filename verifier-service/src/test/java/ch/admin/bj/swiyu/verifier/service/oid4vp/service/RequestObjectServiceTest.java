@@ -38,7 +38,6 @@ import static org.mockito.Mockito.when;
 
 class RequestObjectServiceTest {
 
-    private final String scheme = "test-scheme";
     private final String nonce = "nonce";
     private final UUID mgmtId = UUID.randomUUID();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -48,10 +47,12 @@ class RequestObjectServiceTest {
     private SignerProvider signerProvider;
     private RequestObjectService service;
     private JwtSigningService jwtSigningService;
+    private final String prefix = "test-prefix";
+    private ApplicationProperties applicationProperties;
 
     @BeforeEach
     void setUp() {
-        var applicationProperties = mock(ApplicationProperties.class);
+        applicationProperties = mock(ApplicationProperties.class);
         var openIdClientMetadataConfiguration = mock(OpenIdClientMetadataConfiguration.class);
 
         managementRepository = mock(ManagementRepository.class);
@@ -69,7 +70,7 @@ class RequestObjectServiceTest {
 
         // Mock application configurations
         when(applicationProperties.getClientId()).thenReturn(clientId);
-        when(applicationProperties.getClientIdScheme()).thenReturn(scheme);
+        when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("did:example:123#key1");
         when(openIdClientMetadataConfiguration.getOpenIdClientMetadata()).thenReturn(openidClientMetadataDto);
@@ -110,11 +111,10 @@ class RequestObjectServiceTest {
         var state = jwt.getJWTClaimsSet().getClaim("state");
         assertThat(state)
             .as("state should be set as of swiss-profile-verification 1.0").isNotNull()
-            .as("state should match the one provided in management object").isEqualTo(mockedManagement.getOauthState().toString());
+            .as("state should match the one provided in management object").isEqualTo(mockedManagement.getOauthState());
         assertThat(jwt.getJWTClaimsSet().getAudience()).isEqualTo(List.of(RequestObjectService.AUDIENCE));
         assertThat(jwt.getJWTClaimsSet().getClaim("nonce")).isEqualTo(nonce);
         assertThat(jwt.getJWTClaimsSet().getClaim("response_mode")).isEqualTo(ResponseModeTypeDto.DIRECT_POST.toString());
-        assertThat(jwt.getJWTClaimsSet().getClaim("client_id_scheme")).isEqualTo(scheme);
         assertThat(jwt.getJWTClaimsSet().getClaim("client_metadata")).isNotNull();
         assertThat(jwt.getJWTClaimsSet().getClaim("response_type")).isEqualTo(RequestObjectService.RESPONSE_TYPE);
     }
@@ -159,9 +159,41 @@ class RequestObjectServiceTest {
     }
 
     @Test
+    void assembleRequestObject_withoutClientPrefix_thenSuccess() throws Exception {
+        mockManagement(true);
+
+        when(applicationProperties.getClientIdPrefix()).thenReturn(null);
+        when(signerProvider.canProvideSigner()).thenReturn(true);
+        JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
+        when(signerProvider.getSigner()).thenReturn(jwsSigner);
+        when(jwtSigningService.signJwt(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq("did:example:123#key1")
+        )).thenAnswer(invocation -> {
+            var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
+            JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
+                    .keyID("did:example:123#key1")
+                    .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
+                    .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
+                    .build();
+            SignedJWT signedJwt = new SignedJWT(header, claimsSet);
+            signedJwt.sign(jwsSigner);
+            return signedJwt;
+        });
+
+        String jwtString = service.assembleRequestObject(mgmtId);
+
+        SignedJWT jwt = SignedJWT.parse(jwtString);
+        assertThat(jwt.getJWTClaimsSet().getClaimAsString("client_id")).isEqualTo(clientId);
+    }
+
+    @Test
     void assembleRequestObject_whenOverridde_thenSuccess() throws ParseException, JOSEException {
         var externalUrl = "https://overriden.example.com";
         var overrideDid = "did:override";
+        var overrideDidResult = prefix + ":" + overrideDid;
         var management = mock(Management.class);
         when(managementRepository.findById(mgmtId)).thenReturn(Optional.of(management));
         when(management.isVerificationPending()).thenReturn(true);
@@ -208,7 +240,7 @@ class RequestObjectServiceTest {
 
         SignedJWT jwt = SignedJWT.parse(jwtString);
         var claims = jwt.getJWTClaimsSet();
-        assertThat(claims.getStringClaim("client_id")).as("DID was overridden").isEqualTo(overrideDid);
+        assertThat(claims.getStringClaim("client_id")).as("DID was overridden").isEqualTo(overrideDidResult);
         assertThat(claims.getStringClaim("response_uri")).as("Was using overridden external url").startsWith(externalUrl);
     }
 

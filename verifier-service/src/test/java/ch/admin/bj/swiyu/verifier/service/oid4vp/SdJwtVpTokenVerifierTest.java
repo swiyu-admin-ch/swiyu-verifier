@@ -66,6 +66,8 @@ class SdJwtVpTokenVerifierTest {
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
         when(applicationProperties.getClientId()).thenReturn("did:example:verifier");
+        when(applicationProperties.getClientIdWithPrefix()).thenReturn("prefix:did:example:verifier");
+        when(applicationProperties.getClientIdWithPrefix(any())).thenReturn("prefix:did:example:verifier");
         when(management.getId()).thenReturn(UUID.randomUUID());
         when(management.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(management.getTrustAnchors()).thenReturn(List.of());
@@ -91,7 +93,7 @@ class SdJwtVpTokenVerifierTest {
 
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
-        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, applicationProperties.getClientId());
+        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, applicationProperties.getClientIdWithPrefix());
         var sdJwt = new SdJwt(vpTokenString);
 
         // Trust Statement: separate trust anchor vouches that vcIssuerDid canIssue DEFAULT_VCT
@@ -121,12 +123,10 @@ class SdJwtVpTokenVerifierTest {
     @Test
     void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
         // Arrange: valid SD-JWT with key binding, but audience is not our clientId
-        var vcIssuerDid = DEFAULT_ISSUER_ID;
-        var vcIssuerKid = DEFAULT_KID_HEADER_VALUE;
-        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
+        var emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE);
         var sdjwt = emulator.createSDJWTMock();
 
-        when(issuerPublicKeyLoader.loadPublicKey(vcIssuerDid, vcIssuerKid))
+        when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
 
         // Audience intentionally mismatched
@@ -212,6 +212,36 @@ class SdJwtVpTokenVerifierTest {
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
         SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
         assertDoesNotThrow(() -> verifier.processDisclosures(claimsSet, disclosure, UUID.randomUUID()));
+    }
+
+    @Test
+    void processDisclosures_whitIncorrectSdAlg_thenError() throws ParseException, JOSEException {
+
+        List<Disclosure> disclosure = new ArrayList<>();
+
+        SDObjectBuilder builder = new SDObjectBuilder("sha-512");
+
+        var nameDisc = new Disclosure("name", "Max Muster");
+        builder.putSDClaim(nameDisc);
+        disclosure.add(nameDisc);
+
+        JWSHeader header =
+                new JWSHeader.Builder(JWSAlgorithm.ES256)
+                        .type(new JOSEObjectType("dc+sd-jwt")).build();
+
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(builder.build(true));
+        SignedJWT jwt = new SignedJWT(header, claimsSet);
+        ECKey privateKey = new ECKeyGenerator(Curve.P_256).generate();
+        JWSSigner signer = new ECDSASigner(privateKey);
+        jwt.sign(signer);
+
+        SDJWT sdJwt = new SDJWT(jwt.serialize(), disclosure);
+        SdJwt sdjwt = new SdJwt(sdJwt.toString());
+        sdjwt.setClaims(claimsSet);
+
+        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        var test = assertThrows(VerificationException.class, () -> verifier.validateDisclosures(sdjwt, management));
+        assertThat(test.getErrorDescription()).as("Should throw understandable error message indicating the unsupported algorithm").isEqualTo("Unsupported _sd_alg value: sha-512");
     }
 
     @Test

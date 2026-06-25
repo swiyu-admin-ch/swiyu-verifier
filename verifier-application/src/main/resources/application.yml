@@ -3,7 +3,7 @@
 application:
   external-url: "${EXTERNAL_URL:}"
   client_id: "${VERIFIER_DID:}"
-  client_id_scheme: "did"
+  client_id_prefix: "decentralized_identifier"
   signing_key: "${secret.signing_key:${SIGNING_KEY:}}"
   signing-key-verification-method: "${DID_VERIFICATION_METHOD:}"
   client-metadata-file: "${OPENID_CLIENT_METADATA_FILE:}"
@@ -16,6 +16,7 @@ application:
 
   key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
   max-compressed-cipher-text-length: ${MAX_COMPRESSED_CIPHER_TEXT_LENGTH:100000}
+  max-vcs-accepted: 1 # At the moment the default value is set to 1 as the dcql multiple flag is not fully supported
   # Pin to unlock the hsm
   hsm:
     user-pin: "${secret.key.hsm.pin.user:${HSM_USER_PIN:}}"
@@ -112,7 +113,7 @@ management:
         local.server.port
         server.ports,
         application.signing-key-verification-method,
-        application.client_id_scheme,
+        application.client_id_prefix,
         application.client_id,
         application.external-url,
         application.deeplink-schema,

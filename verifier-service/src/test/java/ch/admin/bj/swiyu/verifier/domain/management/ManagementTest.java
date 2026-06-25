@@ -52,8 +52,6 @@ class ManagementTest {
         Management management = Management.builder().oauthState("expectedState").build();
         String state = "differentState";
         boolean result = management.matchesOauthState(state);
-        assertThat(result).as("Expected state and provided state should not match")
-        .isTrue(); // EIDOMNI-656 - Change test to expect false
-        // .isFalse();
+        assertThat(result).as("Expected state and provided state should not match").isFalse();
     }
 }

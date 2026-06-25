@@ -26,7 +26,6 @@ public class PresentationResponseResolver {
 
     /**
      * Resolves an incoming wallet response into a concrete {@code PresentationResult}.
-     *
      * Processing rules:
      * <ul>
      *   <li>The response is first decrypted if required by the {@code Management}'s response mode
@@ -92,7 +91,7 @@ public class PresentationResponseResolver {
     private VerificationPresentationUnionDto decryptIfNecessary(Management managementEntity,
                                                                 VerificationPresentationUnionDto verificationResponse) {
         ResponseModeType responseModeType = managementEntity.getResponseSpecification().getResponseModeType();
-        if (ResponseModeType.DIRECT_POST.equals(responseModeType)) {
+        if (ResponseModeType.DIRECT_POST.equals(responseModeType) || verificationResponse.isRejection()) {
             return verificationResponse;
         } else if (ResponseModeType.DIRECT_POST_JWT.equals(responseModeType) && verificationResponse.isEncryptedPresentation()) {
             return jweDecryptionService.decrypt(managementEntity, verificationResponse);

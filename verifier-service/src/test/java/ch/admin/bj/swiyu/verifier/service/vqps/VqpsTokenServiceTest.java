@@ -20,8 +20,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -39,8 +37,6 @@ class VqpsTokenServiceTest {
     private static final String ACCESS_TOKEN = "access-token-value";
     private static final String REFRESH_TOKEN_DB = "refresh-token-from-db";
     private static final String BOOTSTRAP_TOKEN = "bootstrap-refresh-token";
-    private static final String CLIENT_ID = "test-client";
-    private static final String CLIENT_SECRET = "test-secret";
 
     private TrustRegistryProperties properties;
     private TokenSetRepository tokenSetRepository;

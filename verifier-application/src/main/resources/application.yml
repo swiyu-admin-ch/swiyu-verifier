@@ -180,8 +180,6 @@ swiyu:
     # If not set, trust statement caching is disabled.
     trust-registry:
       api-url: "${SWIYU_TRUST_REGISTRY_API_URL:}"
-      customer-key: ${secret.swiyu.trust-registry.customer-key:${SWIYU_TRUST_REGISTRY_CUSTOMER_KEY:}}
-      customer-secret: ${secret.swiyu.trust-registry.customer-secret:${SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET:}}
       max-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
       clock-skew-buffer-seconds: ${SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS:60}
       max-cache-ttl-seconds: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS:0}
@@ -189,8 +187,6 @@ swiyu:
       # If not set, the vqPS registration flow is disabled.
       tms-authoring-url: "${SWIYU_TMS_AUTHORING_URL:}"
       oauth-token-url: "${SWIYU_TMS_OAUTH_TOKEN_URL:}"
-      oauth-client-id: "${SWIYU_TMS_OAUTH_CLIENT_ID:}"
-      oauth-client-secret: "${secret.swiyu.trust-registry.tms-oauth-client-secret:${SWIYU_TMS_OAUTH_CLIENT_SECRET:}}"
       bootstrap-refresh-token: "${secret.swiyu.trust-registry.tms-bootstrap-refresh-token:${SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN:}}"
       token-refresh-interval: "${SWIYU_TMS_TOKEN_REFRESH_INTERVAL:PT12H}"
 

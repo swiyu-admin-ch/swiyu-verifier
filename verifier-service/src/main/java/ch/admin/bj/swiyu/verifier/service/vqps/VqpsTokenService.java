@@ -186,20 +186,12 @@ public class VqpsTokenService {
                             + "Set 'swiyu.trust-registry.bootstrap-refresh-token'.");
         }
         log.warn("vqPS: no valid DB token – falling back to bootstrap refresh token.");
-        return vqpsTokenApi.getNewToken(
-                properties.getOauthClientId(),
-                properties.getOauthClientSecret(),
-                bootstrap,
-                "refresh_token");
+        return vqpsTokenApi.getNewToken(bootstrap, "refresh_token");
     }
 
     private TokenApi.TokenResponse getTokenResponse(String refreshToken) {
         log.debug("Requesting vqPS token via refresh_token grant for [{}]", EcosystemApiType.TRUST_STATEMENTS_AUTHORING);
-        return vqpsTokenApi.getNewToken(
-                properties.getOauthClientId(),
-                properties.getOauthClientSecret(),
-                refreshToken,
-                "refresh_token");
+        return vqpsTokenApi.getNewToken(refreshToken, "refresh_token");
     }
 }
 

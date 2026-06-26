@@ -66,9 +66,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "swiyu.trust-registry.tms-authoring-url=http://tms.example.com",
         "swiyu.trust-registry.vqps-expiry-buffer-seconds=0",
-        "swiyu.trust-registry.oauth-token-url=http://auth.example.com/token",
-        "swiyu.trust-registry.oauth-client-id=test-client",
-        "swiyu.trust-registry.oauth-client-secret=test-secret"
+        "swiyu.trust-registry.oauth-token-url=http://auth.example.com/token"
 })
 class VqpsRegistrationIT {
 

@@ -56,9 +56,6 @@ class VqpsTokenServiceTest {
         tokenSetRepository = mock(TokenSetRepository.class);
         tokenApi = mock(TokenApi.class);
 
-        when(properties.getOauthClientId()).thenReturn(CLIENT_ID);
-        when(properties.getOauthClientSecret()).thenReturn(CLIENT_SECRET);
-
         // LockProvider that always grants the lock so DefaultLockingTaskExecutor executes tasks
         LockProvider lockProvider = mock(LockProvider.class);
         when(lockProvider.lock(any())).thenReturn(
@@ -111,13 +108,13 @@ class VqpsTokenServiceTest {
     void requestNewTokenSet_withDbRefreshToken_usesRefreshTokenGrant() {
         TokenSet existing = tokenSetWithRefreshToken(REFRESH_TOKEN_DB);
         when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.of(existing));
-        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN_DB, "refresh_token"))
+        when(tokenApi.getNewToken(REFRESH_TOKEN_DB, "refresh_token"))
                 .thenReturn(new TokenApi.TokenResponse(ACCESS_TOKEN, "new-refresh-token"));
         when(tokenSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.requestNewTokenSet();
 
-        verify(tokenApi).getNewToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN_DB, "refresh_token");
+        verify(tokenApi).getNewToken(REFRESH_TOKEN_DB, "refresh_token");
     }
 
     // -------------------------------------------------------------------------
@@ -130,15 +127,15 @@ class VqpsTokenServiceTest {
         TokenSet existing = tokenSetWithRefreshToken(REFRESH_TOKEN_DB);
         when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.of(existing));
 
-        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN_DB, "refresh_token"))
+        when(tokenApi.getNewToken(REFRESH_TOKEN_DB, "refresh_token"))
                 .thenThrow(new RuntimeException("DB token invalid"));
-        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, BOOTSTRAP_TOKEN, "refresh_token"))
+        when(tokenApi.getNewToken(BOOTSTRAP_TOKEN, "refresh_token"))
                 .thenReturn(new TokenApi.TokenResponse(ACCESS_TOKEN, "bootstrap-new-refresh"));
         when(tokenSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.requestNewTokenSet();
 
-        verify(tokenApi).getNewToken(CLIENT_ID, CLIENT_SECRET, BOOTSTRAP_TOKEN, "refresh_token");
+        verify(tokenApi).getNewToken(BOOTSTRAP_TOKEN, "refresh_token");
     }
 
     // -------------------------------------------------------------------------
@@ -149,13 +146,13 @@ class VqpsTokenServiceTest {
     void requestNewTokenSet_withNoDbToken_usesBootstrapToken() {
         when(properties.getBootstrapRefreshToken()).thenReturn(BOOTSTRAP_TOKEN);
         when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.empty());
-        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, BOOTSTRAP_TOKEN, "refresh_token"))
+        when(tokenApi.getNewToken(BOOTSTRAP_TOKEN, "refresh_token"))
                 .thenReturn(new TokenApi.TokenResponse(ACCESS_TOKEN, "new-refresh-token"));
         when(tokenSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.requestNewTokenSet();
 
-        verify(tokenApi).getNewToken(CLIENT_ID, CLIENT_SECRET, BOOTSTRAP_TOKEN, "refresh_token");
+        verify(tokenApi).getNewToken(BOOTSTRAP_TOKEN, "refresh_token");
     }
 
     // -------------------------------------------------------------------------
@@ -180,7 +177,7 @@ class VqpsTokenServiceTest {
     void requestNewTokenSet_persistsNewTokenSetToDb() {
         when(properties.getBootstrapRefreshToken()).thenReturn(BOOTSTRAP_TOKEN);
         when(tokenSetRepository.findById(EcosystemApiType.TRUST_STATEMENTS_AUTHORING)).thenReturn(Optional.empty());
-        when(tokenApi.getNewToken(CLIENT_ID, CLIENT_SECRET, BOOTSTRAP_TOKEN, "refresh_token"))
+        when(tokenApi.getNewToken(BOOTSTRAP_TOKEN, "refresh_token"))
                 .thenReturn(new TokenApi.TokenResponse(ACCESS_TOKEN, "new-rt"));
         when(tokenSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

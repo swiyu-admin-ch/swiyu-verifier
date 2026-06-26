@@ -141,7 +141,7 @@ class JweDecryptionServiceTest {
 
     private String jweEncrypt(String claims, ECKey key) throws JOSEException {
         JWEObject jweObject = new JWEObject(
-                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM)
+                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
                         .keyID(key.getKeyID())
                         .build(),
                 new Payload(claims)
@@ -152,7 +152,7 @@ class JweDecryptionServiceTest {
 
     private String jweEncryptWithoutKeyId(String claims, ECKey key) throws JOSEException {
         JWEObject jweObject = new JWEObject(
-                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM)
+                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
                         .build(),
                 new Payload(claims)
         );

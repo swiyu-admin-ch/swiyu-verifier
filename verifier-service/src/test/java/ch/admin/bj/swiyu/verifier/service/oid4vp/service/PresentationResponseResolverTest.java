@@ -218,7 +218,7 @@ class PresentationResponseResolverTest {
 
     private String jweEncrypt(String testClaims, ECKey ecKey) throws JOSEException {
         JWEObject jweObject = new JWEObject(
-                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM)
+                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
                         .keyID(ecKey.getKeyID())
                         .build(),
                 new Payload(testClaims)

@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 class OpenIdClientMetadataConfigurationTest {
 
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-    private final String clientId = "test-client-id";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -40,7 +39,10 @@ class OpenIdClientMetadataConfigurationTest {
         config = new OpenIdClientMetadataConfiguration(applicationProperties, objectMapper, validator);
         config.setClientMetadataResource(clientMetadataResource);
 
+        String clientId = "test-client-id";
         when(applicationProperties.getClientId()).thenReturn(clientId);
+        String clientIdWithPrefix = "prefix:test-client-id";
+        when(applicationProperties.getClientIdWithPrefix()).thenReturn(clientIdWithPrefix);
     }
 
     @Test

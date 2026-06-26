@@ -359,56 +359,16 @@ If `SWIYU_TMS_AUTHORING_URL` is configured, you can optionally provide a `verifi
   "verification_purpose": {
     "scope": "com.example.age_verification",
     "purpose_name": {
+      "default": "Age Verification",
       "en": "Age Verification",
       "de-CH": "Altersverifikation"
     },
     "purpose_description": {
+      "default": "We verify that you are of legal age.",  
       "en": "We verify that you are of legal age.",
       "de-CH": "Wir prüfen, ob Sie volljährig sind."
     }
   }
-}
-```
-
-```json
-{
-    "id": "00000000-0000-0000-0000-000000000000",
-    "name": "Example Verification",
-    "purpose": "We want to test a new Verifier",
-    "input_descriptors": [
-        {
-            "id": "11111111-1111-1111-1111-111111111111",
-            "name": "Example Data Request",
-            "format": {
-                "dc+sd-jwt": {
-                    "sd-jwt_alg_values": [
-                        "ES256"
-                    ],
-                    "kb-jwt_alg_values": [
-                        "ES256"
-                    ]
-                }
-            },
-            "constraints": {
-                "fields": [
-                    {
-                        "path": [
-                            "$.vct"
-                        ],
-                        "filter": {
-                            "type": "string",
-                            "const": "test-sdjwt"
-                        }
-                    },
-                    {
-                        "path": [
-                            "$.dateOfBirth"
-                        ]
-                    }
-                ]
-            }
-        }
-    ]
 }
 ```
 

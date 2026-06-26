@@ -24,8 +24,9 @@ class ApplicationPropertiesTest {
 
     @BeforeEach
     void setUp() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            validator = factory.getValidator();
+        }
     }
 
     @Test
@@ -185,6 +186,7 @@ class ApplicationPropertiesTest {
         properties.setSigningKeyVerificationMethod("test-method");
         properties.setKeyManagementMethod("test-kms");
         properties.setMaxCompressedCipherTextLength(100000);
+        properties.setMaxVcsAccepted(10);
         return properties;
     }
 

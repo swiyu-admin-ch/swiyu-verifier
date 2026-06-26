@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
@@ -92,6 +93,36 @@ class PresentationResponseResolverTest {
 
         assertThat(result).isInstanceOf(PresentationResult.Dcql.class);
         assertThat(((PresentationResult.Dcql) result).request().getVpToken()).containsKey("defaultTestDcqlCredentialId");
+    }
+
+    @Test
+    void mapToPresentationResult_whenDirectPostJWT_andErrorResponseUnEncrypted_thenSuccess() {
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST_JWT);
+
+        VerificationPresentationUnionDto union = VerificationPresentationUnionDto.builder()
+                .error(VerificationClientErrorDto.VP_FORMATS_NOT_SUPPORTED)
+                .error_description("No chance")
+                .build();
+
+        PresentationResult result = assertDoesNotThrow(
+                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+
+        assertThat(result).isInstanceOf(PresentationResult.Rejection.class);
+    }
+
+    @Test
+    void mapToPresentationResult_whenDirectPost_andErrorResponseUnEncrypted_thenSuccess() {
+        Management management = createTestManagement(ResponseModeType.DIRECT_POST);
+
+        VerificationPresentationUnionDto union = VerificationPresentationUnionDto.builder()
+                .error(VerificationClientErrorDto.VP_FORMATS_NOT_SUPPORTED)
+                .error_description("No chance")
+                .build();
+
+        PresentationResult result = assertDoesNotThrow(
+                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+
+        assertThat(result).isInstanceOf(PresentationResult.Rejection.class);
     }
 
 
@@ -187,7 +218,7 @@ class PresentationResponseResolverTest {
 
     private String jweEncrypt(String testClaims, ECKey ecKey) throws JOSEException {
         JWEObject jweObject = new JWEObject(
-                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM)
+                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
                         .keyID(ecKey.getKeyID())
                         .build(),
                 new Payload(testClaims)

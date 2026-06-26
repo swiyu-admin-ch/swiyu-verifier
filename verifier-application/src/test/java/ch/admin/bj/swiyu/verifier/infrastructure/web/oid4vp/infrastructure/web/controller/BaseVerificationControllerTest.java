@@ -185,7 +185,7 @@ public abstract class BaseVerificationControllerTest {
                         .responseModeType(ResponseModeType.DIRECT_POST_JWT)
                         .jwksPrivate(jwkSet.toString(false))
                         .jwks(jwkSet.toString(true))
-                        .encryptedResponseEncValuesSupported(List.of("A128GCM"))
+                        .encryptedResponseEncValuesSupported(List.of("A256GCM"))
                         .build())
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
@@ -264,75 +264,4 @@ public abstract class BaseVerificationControllerTest {
                 }
                 """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT, requireCryptographicHolderBinding);
     }
-
-    private static String presentationDefinitionJsonDiffAlgs() {
-        return """
-                {
-                  "id": "cf244758-00f9-4fa0-83ff-6719bac358a2",
-                  "name": null,
-                  "purpose": "string",
-                  "input_descriptors": [
-                    {
-                      "id": "test_descriptor_id",
-                      "format": {
-                        "vc+sd-jwt": {
-                          "sd-jwt_alg_values": [
-                            "SHA256"
-                          ],
-                          "kb-jwt_alg_values": [
-                            "ES256"
-                          ]
-                        }
-                      },
-                      "name": "Test Descriptor Name",
-                      "constraints": {
-                        "fields": [
-                          {
-                            "path": [
-                              "$"
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-                """;
-    }
-
-    private static String presentationDefinitionJsonDiffKbAlgs() {
-        return """
-                {
-                  "id": "cf244758-00f9-4fa0-83ff-6719bac358a2",
-                  "name": null,
-                  "purpose": "string",
-                  "input_descriptors": [
-                    {
-                      "id": "test_descriptor_id",
-                      "format": {
-                        "vc+sd-jwt": {
-                          "sd-jwt_alg_values": [
-                            "ES256"
-                          ],
-                          "kb-jwt_alg_values": [
-                            "SHA256"
-                          ]
-                        }
-                      },
-                      "name": "Test Descriptor Name",
-                      "constraints": {
-                        "fields": [
-                          {
-                            "path": [
-                              "$"
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-                """;
-    }
-
 }

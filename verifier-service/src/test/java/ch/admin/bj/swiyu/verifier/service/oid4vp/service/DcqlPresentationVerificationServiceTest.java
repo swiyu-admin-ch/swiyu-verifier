@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -17,8 +18,10 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,15 +32,18 @@ class DcqlPresentationVerificationServiceTest {
 
     private PresentationVerifier sdJwtLegacyPresentationVerifier;
     private DcqlEvaluator dcqlEvaluator;
-    private ObjectMapper objectMapper;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
+    private ApplicationProperties applicationProperties;
 
     @BeforeEach
     void setUp() {
         sdJwtLegacyPresentationVerifier = mock(PresentationVerifier.class);
         dcqlEvaluator = mock(DcqlEvaluator.class);
-        objectMapper = new ObjectMapper();
-        dcqlPresentationVerificationService = new DcqlPresentationVerificationService(sdJwtLegacyPresentationVerifier, dcqlEvaluator, objectMapper);
+        ObjectMapper objectMapper = new ObjectMapper();
+        applicationProperties = mock(ApplicationProperties.class);
+
+        when(applicationProperties.getMaxVcsAccepted()).thenReturn(2);
+        dcqlPresentationVerificationService = new DcqlPresentationVerificationService(sdJwtLegacyPresentationVerifier, dcqlEvaluator, objectMapper, applicationProperties);
     }
 
     @Test
@@ -95,9 +101,9 @@ class DcqlPresentationVerificationServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void process_whenNotMultiple_throwsVerificationException(boolean useDefaultValue) {
-        Boolean multiple = useDefaultValue == true ? null: Boolean.FALSE;
+    @NullSource
+    @ValueSource(booleans = {false})
+    void process_whenNotMultiple_throwsVerificationException(Boolean multiple) {
         // Arrange
         var management = mock(Management.class);
         var credentialId = "cred-1";
@@ -109,6 +115,28 @@ class DcqlPresentationVerificationServiceTest {
         var vpToken = "vp-token-sdjwt";
         // Create Presentation with 2 credentials being presented
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken, vpToken)));
-        assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        var exp = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        assertEquals("Expected only 1 vp token for cred-1", exp.getErrorDescription());
+    }
+
+    @Test
+    void process_whenTooManyInMultiple_throwsVerificationException() {
+        // Arrange
+        var management = mock(Management.class);
+        var credentialId = "cred-1";
+        var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
+        var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
+        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, true);
+        var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
+        when(management.getDcqlQuery()).thenReturn(dcqlQuery);
+        var vpToken = "vp-token-sdjwt";
+        // Create Presentation with 2 credentials being presented
+        List<String> vpTokens = new ArrayList<>();
+        for (int i = 0; i < applicationProperties.getMaxVcsAccepted() + 1; i++) {
+            vpTokens.add(vpToken);
+        }
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, vpTokens));
+        var exp = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        assertEquals("Cannot Accept more than 2 vcs received 3", exp.getErrorDescription());
     }
 }

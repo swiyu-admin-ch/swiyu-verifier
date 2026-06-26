@@ -83,45 +83,37 @@ Process:
 curl -X POST \
   -H "Content-Type: application/json" \
   -d '{
-    "accepted_issuer_dids": [
-        "<Your ISSUER_DID>"
-    ],
-    "presentation_definition": {
-        "id": "00000000-0000-0000-0000-000000000000",
-        "input_descriptors": [
-            {
-                "id": "11111111-1111-1111-1111-111111111111",
-                "format": {
-                    "dc+sd-jwt": {
-                        "sd-jwt_alg_values": [
-                            "ES256"
-                        ],
-                        "kb-jwt_alg_values": [
-                            "ES256"
-                        ]
-                    }
-                },
-                "constraints": {
-                    "fields": [
-                        {
-                            "path": [
-                                "$.vct"
-                            ],
-                            "filter": {
-                                "type": "string",
-                                "const": "betaid-sdjwt"
-                            }
-                        },
-                        {
-                            "path": [
-                                "$.age_over_18"
-                            ]
-                        }
-                    ]
-                }
-            }
-        ]
+  "accepted_issuer_dids": [
+    "<Your ISSUER_DID>"
+  ],
+  "jwt_secured_authorization_request": true,
+  "response_mode": "direct_post",
+  "verification_purpose": {
+    "scope": "ch.some.test.scope",
+    "purpose_name": {
+      "default": "Test"
+    },
+    "purpose_description": {
+      "default": "This is a test and this its description"
     }
+  },
+  "dcql_query": {
+    "credentials": [
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "format": "dc+sd-jwt",
+        "meta": {
+          "vct_values": ["betaid-sdjwt"]
+        },
+        "claims": [
+          {
+            "path": ["age_over_18"]
+          }
+        ],
+        "require_cryptographic_holder_binding": true
+      }
+    ]
+  }
 }' \
 http://localhost:8083/management/api/verifications
 ```
@@ -158,45 +150,9 @@ List of trust anchor dids from the trust registry.
 ```json
 {
     "id": "${VERIFICATION_ID}",
-    "request_nonce": "a-nonce",
+    "request_nonce": "aIxs7p648grTy9IOQLfF1JIeSpHH2Cia",
     "state": "PENDING",
-    "presentation_definition": {
-        "id": "00000000-0000-0000-0000-000000000000",
-        "input_descriptors": [
-            {
-                "id": "11111111-1111-1111-1111-111111111111",
-                "format": {
-                    "dc+sd-jwt": {
-                        "sd-jwt_alg_values": [
-                            "ES256"
-                        ],
-                        "kb-jwt_alg_values": [
-                            "ES256"
-                        ]
-                    }
-                },
-                "constraints": {
-                    "fields": [
-                        {
-                            "path": [
-                                "$.vct"
-                            ],
-                            "filter": {
-                                "type": "string",
-                                "const": "betaid-sdjwt"
-                            }
-                        },
-                        {
-                            "path": [
-                                "$.age_over_18"
-                            ]
-                        }
-                    ]
-                }
-            }
-        ]
-    },
-    "verification_url": "https://<external url of this service>/oid4vp/api/request-object/${REQUEST_ID}",
+    "verification_url": "https://...",
     "verification_deeplink": "swiyu-verify://?client_id=..."
 }
 ```
@@ -220,45 +176,9 @@ curl -X GET \
 ```json
 {
     "id": "${VERIFICATION_ID}",
-    "request_nonce": "a-nonce",
+    "request_nonce": "aIxs7p648grTy9IOQLfF1JIeSpHH2Cia",
     "state": "PENDING",
-    "presentation_definition": {
-        "id": "00000000-0000-0000-0000-000000000000",
-        "input_descriptors": [
-            {
-                "id": "11111111-1111-1111-1111-111111111111",
-                "format": {
-                    "dc+sd-jwt": {
-                        "sd-jwt_alg_values": [
-                            "ES256"
-                        ],
-                        "kb-jwt_alg_values": [
-                            "ES256"
-                        ]
-                    }
-                },
-                "constraints": {
-                    "fields": [
-                        {
-                            "path": [
-                                "$.vct"
-                            ],
-                            "filter": {
-                                "type": "string",
-                                "const": "betaid-sdjwt"
-                            }
-                        },
-                        {
-                            "path": [
-                                "$.age_over_18"
-                            ]
-                        }
-                    ]
-                }
-            }
-        ]
-    },
-    "verification_url": "https://<external url of this service>/oid4vp/api/request-object/${REQUEST_ID}",
+    "verification_url": "https://...",
     "verification_deeplink": "swiyu-verify://?client_id=..."
 }
 ```

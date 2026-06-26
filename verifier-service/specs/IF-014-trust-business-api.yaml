@@ -7,8 +7,7 @@ servers:
   - url: https://swiyu-core-business-service-r.apps.p-szb-ros-shrd-npr-01.cloud.admin.ch
     description: Generated server url
 security:
-  - OIDC: []
-    bearer-jwt: []
+  - bearer-jwt: []
 tags:
   - name: TrustAddDidsSubmission B2B
     description: TrustAddDidsSubmission B2B API

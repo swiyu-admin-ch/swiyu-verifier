@@ -37,7 +37,7 @@ public class OpenidClientMetadataDto {
     private JwkSetDto jwks;
 
     @JsonProperty(value = "encrypted_response_enc_values_supported", defaultValue = """
-            ["A128GCM"]
+            ["A256GCM"]
             """)
     @Schema(description = """
            If present, should be non-empty array of JWE algorithms as in RFC7516.
@@ -45,7 +45,7 @@ public class OpenidClientMetadataDto {
            one of the specified algorithms is to be used.""")
     @Builder.Default
     // Setting the default value as per OID4VP 5.1 to be more explicit
-    private List<String> encryptedResponseEncValuesSupported = List.of("A128GCM");
+    private List<String> encryptedResponseEncValuesSupported = List.of("A256GCM");
 
     @JsonProperty(value = "vp_formats_supported", defaultValue =
             """

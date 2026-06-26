@@ -2,6 +2,8 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -44,6 +46,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.getSDClaims;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -178,11 +181,13 @@ class PresentationVerificationUsecaseTest {
     void receiveVerificationPresentationClientRejection_processClosed_thenThrowsException() {
         when(managementEntity.isExpired()).thenReturn(true);
         when(managementEntity.isProcessStillOpen()).thenReturn(false);
+        when(managementEntity.getState()).thenReturn(VerificationStatus.IN_PROGRESS);
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
-        assertThrows(ProcessClosedException.class, () ->
+        var err = assertThrows(VerificationException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+        assertThat(err.getErrorResponseCode()).isEqualTo(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED);
 
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
@@ -192,11 +197,13 @@ class PresentationVerificationUsecaseTest {
     void receiveVerificationPresentationClientRejection_verificationNotPending_thenThrowsException() {
         when(managementEntity.isVerificationPending()).thenReturn(false);
         when(managementEntity.isProcessStillOpen()).thenReturn(false);
+        when(managementEntity.getState()).thenReturn(VerificationStatus.IN_PROGRESS);
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
-        assertThrows(ProcessClosedException.class, () ->
+        var err = assertThrows(VerificationException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+        assertThat(err.getErrorResponseCode()).isEqualTo(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED);
 
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any());

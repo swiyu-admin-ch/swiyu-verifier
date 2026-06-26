@@ -12,10 +12,4 @@ public enum VerificationStatus {
     IN_PROGRESS,
     SUCCESS,
     FAILED;
-
-    private static final Set<VerificationStatus> TERMINAL_STATES = Set.of(SUCCESS, FAILED);
-
-    public boolean isTerminal() {
-        return TERMINAL_STATES.contains(this);
-    }
 }

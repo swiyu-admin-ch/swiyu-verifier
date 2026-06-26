@@ -157,9 +157,7 @@ public class ManagementTransactionalService {
             timeout = 10
     )
     public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
-        var managementEntity = repository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
-                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        var managementEntity = getInProgressManagementEntity(managementEntityId);
         log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
         if (!managementEntity.isProcessStillOpen()) {
             throw new ProcessClosedException();
@@ -184,7 +182,7 @@ public class ManagementTransactionalService {
         var managementEntity = repository.findById(managementEntityId)
                 .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
                         MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
-        if (managementEntity.getState().isTerminal()) {
+        if (!VerificationStatus.IN_PROGRESS.equals(managementEntity.getState())) {
             throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED, VERIFICATION_PROCESS_CLOSED);
         }
         return managementEntity;

@@ -73,7 +73,6 @@ public class DcqlPresentationVerificationService {
         return sdJwts.stream()
                 .map(sdJwt -> decoder.decode(sdJwt.getClaims().getClaims(), sdJwt.getDisclosures()))
                 .toList();
-
     }
 
     private String writeAsString(Object object) {

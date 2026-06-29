@@ -14,5 +14,5 @@ public class CacheProperties {
     private Long statusListCacheTtl;
 
     @NotNull
-    private Long issuerPublicKeyCacheTtl;
+    private Long jwkCacheTtl;
 }

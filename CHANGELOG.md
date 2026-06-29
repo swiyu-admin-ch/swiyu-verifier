@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 - oauthState must be sent in verification response otherwise the verifier rejects the response.
+- When fetching an expired Verification Management Object, will now return an error instead of returning it one last time
+- Uses A256GCM instead of A128GCM for encryption.
 
 # [3.0.2] - 2026-06-12
 

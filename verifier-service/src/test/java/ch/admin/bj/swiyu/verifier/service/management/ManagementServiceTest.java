@@ -27,6 +27,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 class ManagementServiceTest {
@@ -126,7 +128,7 @@ class ManagementServiceTest {
         when(management.getId()).thenReturn(id);
         when(repository.findById(id)).thenReturn(Optional.of(management));
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
-        service.getManagementResponseDto(id);
+        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id));
         verify(repository).deleteById(id);
     }
 

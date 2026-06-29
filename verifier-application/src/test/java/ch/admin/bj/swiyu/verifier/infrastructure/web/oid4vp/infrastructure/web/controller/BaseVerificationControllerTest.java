@@ -185,7 +185,7 @@ public abstract class BaseVerificationControllerTest {
                         .responseModeType(ResponseModeType.DIRECT_POST_JWT)
                         .jwksPrivate(jwkSet.toString(false))
                         .jwks(jwkSet.toString(true))
-                        .encryptedResponseEncValuesSupported(List.of("A128GCM"))
+                        .encryptedResponseEncValuesSupported(List.of("A256GCM"))
                         .build())
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))

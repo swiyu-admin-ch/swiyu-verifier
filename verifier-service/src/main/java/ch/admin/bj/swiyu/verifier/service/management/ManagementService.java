@@ -129,7 +129,7 @@ public class ManagementService {
 
             // Public keys used in request object
             responseSpecificationBuilder.jwks(jwkSet.toString(true));
-            responseSpecificationBuilder.encryptedResponseEncValuesSupported(List.of("A128GCM"));
+            responseSpecificationBuilder.encryptedResponseEncValuesSupported(List.of("A256GCM"));
             // Private Keys used to unpack Encryption
             responseSpecificationBuilder.jwksPrivate(jwkSet.toString(false));
         } catch (JOSEException e) {

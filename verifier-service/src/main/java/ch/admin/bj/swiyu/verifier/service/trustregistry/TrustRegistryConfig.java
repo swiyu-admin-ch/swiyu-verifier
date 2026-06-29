@@ -11,12 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpHeaders;
-import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -44,17 +40,7 @@ public class TrustRegistryConfig {
      */
     @Bean
     public ApiClient trustRegistryApiClient() {
-        var credentials = properties.getCustomerKey() + ":" + properties.getCustomerSecret();
-        var encoded = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-
-        var reConfigured = webClient.mutate()
-                .filter((request, next) -> next.exchange(
-                        ClientRequest.from(request)
-                                .header(HttpHeaders.AUTHORIZATION, "Basic " + encoded)
-                                .build()))
-                .build();
-
-        var client = new ApiClient(reConfigured);
+        ApiClient client = new ApiClient(webClient);
         client.setBasePath(properties.getApiUrl());
         log.info("Initializing Trust Registry sidechannel API client for {}", properties.getApiUrl());
         return client;

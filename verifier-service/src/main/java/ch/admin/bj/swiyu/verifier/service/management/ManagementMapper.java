@@ -156,7 +156,8 @@ public class ManagementMapper {
                 overrideSigningDto.verifierDid(),
                 overrideSigningDto.verificationMethod(),
                 overrideSigningDto.keyId(),
-                overrideSigningDto.keyPin()
+                overrideSigningDto.keyPin(),
+                overrideSigningDto.clientMetadata()
         );
     }
 

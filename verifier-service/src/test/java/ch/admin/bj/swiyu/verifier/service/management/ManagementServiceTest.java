@@ -125,7 +125,7 @@ class ManagementServiceTest {
         when(management.isExpired()).thenReturn(true);
         when(management.getId()).thenReturn(id);
         when(repository.findById(id)).thenReturn(Optional.of(management));
-        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null));
+        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
         service.getManagementResponseDto(id);
         verify(repository).deleteById(id);
     }

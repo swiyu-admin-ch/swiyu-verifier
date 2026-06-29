@@ -60,7 +60,6 @@ public record ConfigurationOverrideDto(
                 @Pattern(regexp = "^(client_name(#[a-zA-Z0-9-]+)?|logo_uri(#[a-zA-Z0-9-]+)?)$",
                         message = "Invalid client_metadata key. Only client_name and logo_uri (with optional language tags) are allowed.")
                 String,
-                @Size(max = 1048576, message = "Metadata value exceeds maximum allowed size of 1MB")
                 String
         > clientMetadata
 ) {

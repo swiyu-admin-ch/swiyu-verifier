@@ -57,15 +57,14 @@ public class PresentationResponseResolver {
     public PresentationResult mapToPresentationResult(Management managementEntity,
                                                       VPApiVersion apiVersion,
                                                       VerificationPresentationUnionDto verificationResponse) {
-        VerificationPresentationUnionDto payload = decryptIfNecessary(managementEntity, verificationResponse);
 
         // Rejection has priority, independent of the API version
-        if (payload.isRejection()) {
-            return new PresentationResult.Rejection(VerificationPresentationMapper.toRejection(payload));
+        if (verificationResponse.isRejection()) {
+            return new PresentationResult.Rejection(VerificationPresentationMapper.toRejection(verificationResponse));
         }
 
         return switch (apiVersion) {
-            case V1 -> mapPayload(payload);
+            case V1 -> mapPayload(verificationResponse);
         };
     }
 
@@ -88,7 +87,7 @@ public class PresentationResponseResolver {
      * Decrypts the verification response, if required by the verification request.
      * Else returns the verificationResponse unedited.
      */
-    private VerificationPresentationUnionDto decryptIfNecessary(Management managementEntity,
+    public VerificationPresentationUnionDto decryptIfNecessary(Management managementEntity,
                                                                 VerificationPresentationUnionDto verificationResponse) {
         ResponseModeType responseModeType = managementEntity.getResponseSpecification().getResponseModeType();
         if (ResponseModeType.DIRECT_POST.equals(responseModeType) || verificationResponse.isRejection()) {

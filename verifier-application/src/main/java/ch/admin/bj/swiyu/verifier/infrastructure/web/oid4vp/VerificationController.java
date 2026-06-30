@@ -171,11 +171,12 @@ public class VerificationController {
         VPApiVersion version = VPApiVersion.fromValue(versionString);
 
         var managementEntity = managementService.getManagementById(requestId);
-        if (!managementEntity.matchesOauthState(unionDto.getState())) {
+        VerificationPresentationUnionDto decryptedUnionDto = presentationResponseResolver.decryptIfNecessary(managementEntity, unionDto);
+        if (!managementEntity.matchesOauthState(decryptedUnionDto.getState())) {
                 throw new IllegalArgumentException("OAuth2.0 State mismatch. Expected to receive the state as in Request Object");
         }
 
-        PresentationResult result = presentationResponseResolver.mapToPresentationResult(managementEntity, version, unionDto);
+        PresentationResult result = presentationResponseResolver.mapToPresentationResult(managementEntity, version, decryptedUnionDto);
 
         switch (result) {
             // Processing rejection

@@ -10,9 +10,15 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "caching")
 public class CacheProperties {
 
+    /**
+     * Cache Timeout time in milliseconds for token status lists
+     */
     @NotNull
-    private Long statusListCacheTtl;
+    private Long statusListCacheTtl = 0l;
 
+    /**
+     * Cache Timeout time in milliseconds for public keys fetched to perform a verification
+     */
     @NotNull
-    private Long jwkCacheTtl;
+    private Long jwkCacheTtl = 3_600_000l;
 }

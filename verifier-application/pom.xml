@@ -137,6 +137,8 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
+            <!-- Fixes CVE-2026-13006 -->
+            <version>1.5.37</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

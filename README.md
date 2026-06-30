@@ -68,14 +68,11 @@ Please be aware that the **oid4vp** endpoints need to be publicly accessible and
 > For a detailed understanding of the verification process and the data structure of verification please consult the
 > [DIF presentation exchange specification](https://identity.foundation/presentation-exchange/#presentation-definition).
 > For more information on the general verification flow consult
-> the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html)
+> the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html)
 
 Once the components are deployed you can create your first verification. For this you first need to define a
-presentation 
-definition. Based on that definition you can then create a verification request for a holder as shown in the example
-below.
-In this case we're asking for a credential called "my-custom-vc" which should at least have the attributes
-firstName and lastName. The following request can be performed by using the swagger endpoint on https://<EXTERNAL_URL of
+dcql query. Based on that query you can then create a verification request for a holder.
+The request can be performed by using the swagger endpoint on https://<EXTERNAL_URL of
 verifier-agent-management>**/swagger-ui/index.html**
 
 To see more details and examples of the verification process please consult the [documentation](documentation/verification_process.md).
@@ -194,8 +191,8 @@ On the base registry the public key is published. To generate the public key for
 | MONITORING_BASIC_AUTH_USERNAME     | Sets the username for the basic auth protection of the /actuator/prometheus endpoint.                                                                                                                                                                                                   |
 | MONITORING_BASIC_AUTH_PASSWORD     | Sets the password for the basic auth protection of the /actuator/prometheus endpoint.                                                                                                                                                                                                   |
 | EXTERNAL_URL                       | URL of this deployed instance in order to add it to the request                                                                                                                                                                                                                         | URL               | None         |
-| VERIFIER_DID                       | DID of this service-instance to identify the requester                                                                                                                                                                                                                                  | string (did:tdw)  | none         |
-| DID_VERIFICATION_METHOD            | The full DID with fragment as used to find the public key for sd-jwt VCs in the DID Document. eg: `did:tdw:<base-registry-url>:<issuer_uuid>#<sd-jwt-public-key-fragment>`                                                                                                              | string (did:tdw)  | none         |
+| VERIFIER_DID                       | DID of this service-instance to identify the requester                                                                                                                                                                                                                                  | string (did:webvh)  | none         |
+| DID_VERIFICATION_METHOD            | The full DID with fragment as used to find the public key for sd-jwt VCs in the DID Document. eg: `did:webvh:<base-registry-url>:<issuer_uuid>#<sd-jwt-public-key-fragment>`                                                                                                              | string (did:webvh)  | none         |
 | SIGNING_KEY                        | Private Key in PEM format used to sign request objects sent to the holder                                                                                                                                                                                                               | string            | none         |
 | URL_REWRITE_MAPPING                | Json object for url replacements during rest client call. Key represents the original url and value the one which should be used instead (e.g. {"https://mysample1.ch":"https://somethingdiffeerent1.ch"})                                                                              | string            | "{}"         |
 | OPENID_CLIENT_METADATA_FILE        | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                                                                                                    | string            | None         |

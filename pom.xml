@@ -62,6 +62,8 @@
         <skip.doc-generate>true</skip.doc-generate>
         <generic-java-lib.version>1.6.4</generic-java-lib.version>
         <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
+        <!-- Fixes CVE-2026-13006 -->
+        <logback-core.version>1.5.37</logback-core.version>
 
     </properties>
 
@@ -73,6 +75,11 @@
                 <artifactId>commons-lang3</artifactId>
                 <version>3.20.0</version>
                 <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback-core.version}</version>
             </dependency>
 
             <dependency>

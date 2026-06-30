@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
-import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.ISSUER_PUBLIC_KEY_CACHE;
 import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.JWK_CACHE;
 
 /**
@@ -24,22 +23,6 @@ import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.JWK_CACHE;
 public class CacheMaintenanceService {
 
     private final CacheManager cacheManager;
-
-    /**
-     * Clears the issuer public key cache for a specific DID.
-     *
-     * <p>Call this when key rotation is detected or a signature verification fails,
-     * to ensure the rotated key is reloaded from the DID Document on the next request.</p>
-     *
-     * @param did the DID whose cached public key should be evicted
-     */
-    public void evictPublicKeyManually(String did) {
-        var cache = cacheManager.getCache(ISSUER_PUBLIC_KEY_CACHE);
-        if (cache != null) {
-            log.debug("Evicting issuer public key cache for did={}", did);
-            cache.evict(did);
-        }
-    }
 
     /**
      * Clears the JWK cache for a specific DID URL (kid).

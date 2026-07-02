@@ -273,12 +273,13 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, encryptionMethod)
                             .keyID(publicKey.getKeyID()).build(),
                     new JWTClaimsSet.Builder()
-                            .claim("vp_token", dcqlVpToken).build().toPayload()
+                            .claim("vp_token", dcqlVpToken)
+                            .claim("state", requestObjectId.toString())
+                            .build().toPayload()
             );
             jweObject.encrypt(new ECDHEncrypter(publicKey));
             mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
                             .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                            .formField("state", requestObjectId.toString())
                             .formField("response", jweObject.serialize()))
                     .andExpect(status().isOk());
         }

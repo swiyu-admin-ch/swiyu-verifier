@@ -61,7 +61,7 @@
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
         <generic-java-lib.version>1.6.4</generic-java-lib.version>
-        <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
+        <openapi-generator-maven-plugin.version>7.23.0</openapi-generator-maven-plugin.version>
         <!-- Fixes CVE-2026-13006 -->
         <logback-core.version>1.5.37</logback-core.version>
 

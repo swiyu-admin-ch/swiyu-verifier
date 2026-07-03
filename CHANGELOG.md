@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Limited the number of vcs sent with the multiple flag to 1 as the flow is not supported yet. The verifier will reject the request if more than 1 vcs are sent.
 - unify JWK_CACHE and PUBLIC_ISSUER_KEY_CACHE into JWK_CACHE. This depricates the environment variable ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI. It is used for now as fallback value for JWK_CACHE_TTL_MILLI so existing deployments will not be broken by this fix.
 - Add ttl based cache evict for trust statements (until proper caching concept is ecosystem-wide implemented)
+- State provided in response is now also acceted when using direct_post.jwt as part of the jwt.
 
 ## Changed
 - oauthState must be sent in verification response otherwise the verifier rejects the response.

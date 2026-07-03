@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
@@ -54,7 +55,7 @@ class ManagementTransactionalServiceTest {
         var mockManagement = mock(Management.class);
         when(mockManagement.getState()).thenReturn(status);
         when(mockRepository.findById(any())).thenReturn(Optional.of(mockManagement));
-        assertThrows(VerificationException.class, () -> managementTransactionalService.markVerificationSucceeded(UUID.randomUUID(), "Some Test Data"));
+        assertThrows(ProcessClosedException.class, () -> managementTransactionalService.markVerificationSucceeded(UUID.randomUUID(), "Some Test Data"));
     }
 
     @ParameterizedTest
@@ -64,6 +65,6 @@ class ManagementTransactionalServiceTest {
         when(mockManagement.getState()).thenReturn(status);
         when(mockRepository.findById(any())).thenReturn(Optional.of(mockManagement));
 
-        assertThrows(VerificationException.class, () -> managementTransactionalService.markVerificationFailed(UUID.randomUUID(), mock(VerificationException.class)));
+        assertThrows(ProcessClosedException.class, () -> managementTransactionalService.markVerificationFailed(UUID.randomUUID(), mock(VerificationException.class)));
     }
 }

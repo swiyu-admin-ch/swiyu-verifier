@@ -29,7 +29,6 @@ public class ManagementTransactionalService {
 
     private static final String LOADED_MANAGEMENT_ENTITY_FOR = "Loaded management entity for ";
     private static final String MANAGEMENT_ENTITY_NOT_FOUND = "Management entity not found: ";
-    private static final String VERIFICATION_PROCESS_CLOSED = "Verification process is already closed. Multiple submissions are not allowed";
 
     private final ManagementRepository repository;
     private final ApplicationProperties applicationProperties;
@@ -115,9 +114,7 @@ public class ManagementTransactionalService {
         } else {
             log.warn("Submission rejected for session {}: current state={}, expired={}",
                     managementEntityId, m.getState(), m.isExpired());
-            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
-                    "Submission rejected for session %s: current state=%s, expired=%s".formatted(
-                    managementEntityId, m.getState(), m.isExpired()));
+            throw new ProcessClosedException();
         }
         return m;
     }
@@ -160,9 +157,6 @@ public class ManagementTransactionalService {
     public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
         var managementEntity = getInProgressManagementEntity(managementEntityId);
         log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-        if (!managementEntity.isProcessStillOpen()) {
-            throw new ProcessClosedException();
-        }
         managementEntity.verificationFailedDueToClientRejection(errorDescription);
     }
 
@@ -184,7 +178,7 @@ public class ManagementTransactionalService {
                 .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
                         MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
         if (!VerificationStatus.IN_PROGRESS.equals(managementEntity.getState())) {
-            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED, VERIFICATION_PROCESS_CLOSED);
+            throw new ProcessClosedException();
         }
         return managementEntity;
     }

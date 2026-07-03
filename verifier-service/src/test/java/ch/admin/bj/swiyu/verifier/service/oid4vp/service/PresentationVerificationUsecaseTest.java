@@ -136,12 +136,13 @@ class PresentationVerificationUsecaseTest {
     void receiveVerificationPresentationDCQL_sessionAlreadyClaimed_thenThrowsProcessClosedException() {
         when(managementEntity.isProcessStillOpen()).thenReturn(false);
 
-        assertThrows(VerificationException.class, () ->
+        assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId,
                         new VerificationPresentationDCQLRequestDto(Map.of("credId", List.of("token")))));
 
+        // When not open anymore, the result should not be able to be changed!
         verify(managementEntity, never()).verificationSucceeded(any());
-        verify(managementEntity, times(1)).verificationFailed(any(), any());
+        verify(managementEntity, never()).verificationFailed(any(), any());
         verify(callbackEventProducer, times(1)).produceEvent(any());
     }
 
@@ -154,12 +155,13 @@ class PresentationVerificationUsecaseTest {
         when(managementEntity.isExpired()).thenReturn(true);
         when(managementEntity.isProcessStillOpen()).thenCallRealMethod();
 
-        assertThrows(VerificationException.class, () ->
+        assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId,
                         new VerificationPresentationDCQLRequestDto(Map.of("credId", List.of("token")))));
 
+        // When expired the verification is closed and NOTHING should be changing.
         verify(managementEntity, never()).verificationSucceeded(any());
-        verify(managementEntity, times(1)).verificationFailed(any(), any());
+        verify(managementEntity, never()).verificationFailed(any(), any());
         verify(callbackEventProducer, times(1)).produceEvent(any());
     }
 
@@ -185,9 +187,8 @@ class PresentationVerificationUsecaseTest {
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
-        var err = assertThrows(VerificationException.class, () ->
+        var err = assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
-        assertThat(err.getErrorResponseCode()).isEqualTo(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED);
 
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
@@ -201,9 +202,8 @@ class PresentationVerificationUsecaseTest {
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
-        var err = assertThrows(VerificationException.class, () ->
+        var err = assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
-        assertThat(err.getErrorResponseCode()).isEqualTo(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED);
 
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
@@ -238,7 +238,7 @@ class PresentationVerificationUsecaseTest {
         when(managementEntity.isProcessStillOpen()).thenReturn(false);
 
         // Second submission (replay) — must be rejected, no DB write, no callback
-        assertThrows(VerificationException.class, () ->
+        assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));// still only 1
     }
 

@@ -116,8 +116,7 @@ public class PresentationVerificationUsecase {
             // We don't touch the database. We only report the error to the client.
             isSessionClaimedByThisThread = false;
             log.warn("Concurrent submission rejected for session {}", managementEntityId);
-            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
-                    "Process already claimed or handled: " + managementEntityId);
+            throw new ProcessClosedException();
         } finally {
             // 4. Notify Business Verifier that this verification is done (non-transactional)
             if (isSessionClaimedByThisThread) {

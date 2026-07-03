@@ -88,8 +88,9 @@ class PresentationResponseResolverTest {
                 .response(jweString)
                 .build();
 
+        var decryptedUnion = assertDoesNotThrow(() -> presentationResponseResolver.decryptIfNecessary(management, union));
         PresentationResult result = assertDoesNotThrow(
-                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, decryptedUnion));
 
         assertThat(result).isInstanceOf(PresentationResult.Dcql.class);
         assertThat(((PresentationResult.Dcql) result).request().getVpToken()).containsKey("defaultTestDcqlCredentialId");
@@ -140,8 +141,9 @@ class PresentationResponseResolverTest {
                 .response(jweEncrypt(testClaims, ecKey))
                 .build();
 
+        var decryptedUnion = assertDoesNotThrow(() -> presentationResponseResolver.decryptIfNecessary(management, union));
         PresentationResult result = assertDoesNotThrow(
-                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, decryptedUnion));
 
         assertThat(result).isInstanceOf(PresentationResult.Dcql.class);
         var dcql = (PresentationResult.Dcql) result;
@@ -168,7 +170,7 @@ class PresentationResponseResolverTest {
                 .build();
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+                () -> presentationResponseResolver.decryptIfNecessary(management, union));
 
         assertEquals("Lacking encryption. All elements of the response should be encrypted.", exception.getMessage());
     }
@@ -189,7 +191,7 @@ class PresentationResponseResolverTest {
                 .build();
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+                () -> presentationResponseResolver.decryptIfNecessary(management, union));
 
         assertEquals("No matching JWK for keyId other-ad-hoc-generated-testkey found. Unable to decrypt response.",
                 exception.getMessage());
@@ -211,7 +213,7 @@ class PresentationResponseResolverTest {
                 .build();
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> presentationResponseResolver.mapToPresentationResult(management, VPApiVersion.V1, union));
+                () -> presentationResponseResolver.decryptIfNecessary(management, union));
 
         assertThat(exception.getMessage()).contains("Unable to decrypt response");
     }

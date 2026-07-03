@@ -64,7 +64,8 @@
         <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
         <!-- Fixes CVE-2026-13006 -->
         <logback-core.version>1.5.37</logback-core.version>
-
+        <!-- Fixes SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890 / 17733746 -->
+        <tomcat.version>11.0.23</tomcat.version>
     </properties>
 
     <dependencyManagement>

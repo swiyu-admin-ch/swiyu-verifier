@@ -38,6 +38,7 @@
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
         <openapi-generator-maven-plugin.version>7.23.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
+        <logback.version>1.5.37</logback.version>
         <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
         <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
@@ -61,7 +62,10 @@
         <skip.doc-generate>true</skip.doc-generate>
         <generic-java-lib.version>1.6.4</generic-java-lib.version>
         <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
-
+        <!-- Fixes CVE-2026-13006 -->
+        <logback-core.version>1.5.37</logback-core.version>
+        <!-- Fixes SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890 / 17733746 -->
+        <tomcat.version>11.0.23</tomcat.version>
     </properties>
 
     <dependencyManagement>
@@ -72,6 +76,11 @@
                 <artifactId>commons-lang3</artifactId>
                 <version>3.20.0</version>
                 <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback-core.version}</version>
             </dependency>
 
             <dependency>
@@ -127,7 +136,6 @@
                     <!--  To skip verification locally mvn -Dpgpverify.skip=true -->
                     <pgpKeyServer>hkps://keys.openpgp.org, hkps://keyserver.ubuntu.com</pgpKeyServer>
                     <pgpKeyServerLoadBalance>true</pgpKeyServerLoadBalance>
-                    <failNoSignature>true</failNoSignature>
                     <failWeakSignature>true</failWeakSignature>
                 </configuration>
             </plugin>

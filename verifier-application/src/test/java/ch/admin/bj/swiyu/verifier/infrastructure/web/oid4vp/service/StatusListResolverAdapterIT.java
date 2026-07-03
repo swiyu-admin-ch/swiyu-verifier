@@ -44,7 +44,7 @@ import static org.mockserver.model.HttpResponse.response;
 @TestPropertySource(properties = {
         "verification.object-size-limit=10",
         "caching.status-list-cache-ttl=250",
-        "caching.issuer-public-key-cache-ttl=1000"
+        "caching.jwk-cache-ttl=1000"
 })
 class StatusListResolverAdapterIT {
 

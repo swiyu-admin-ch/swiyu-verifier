@@ -42,7 +42,8 @@ public class ManagementTransactionalService {
         var management = repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
         if (management.isExpired()) {
             repository.deleteById(id);
-            log.info("Deleted management for id since it is expired: {}", management.getId());
+            log.info("Deleted management for id {} since it is expired", management.getId());
+            throw new VerificationNotFoundException(id);
         }
         return management;
     }

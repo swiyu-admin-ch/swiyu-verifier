@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionStatus;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -110,8 +111,8 @@ class VqpsRegistrationIT {
 
         var allCached = vqpsRepository.findAll();
         assertThat(allCached).hasSize(1);
-        assertThat(allCached.get(0).getJwt()).isEqualTo(vqpsJwt);
-        assertThat(allCached.get(0).getScope()).isEqualTo(TEST_SCOPE);
+        assertThat(allCached.getFirst().getJwt()).isEqualTo(vqpsJwt);
+        assertThat(allCached.getFirst().getScope()).isEqualTo(TEST_SCOPE);
 
         verify(vqpsSubmissionB2BApi, times(1)).createVqpsSubmission(any());
     }
@@ -192,6 +193,30 @@ class VqpsRegistrationIT {
         verify(vqpsSubmissionB2BApi, never()).createVqpsSubmission(any());
     }
 
+    @Test
+    void givenNoDefaultValues_whenCreatingVerification_thenError() throws Exception {
+
+        var purpose = VerificationPurposeDto.builder()
+                .scope(TEST_SCOPE)
+                .purposeName(Map.of("de-CH", "Testverifikation", "en", "Test Verification"))
+                .purposeDescription(Map.of("de-CH", "Dies ist eine Testverifikation.", "en", "This is a test verification."))
+                .build();
+
+        var request = CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(java.util.List.of("did:example:123"))
+                .dcqlQuery(ApiFixtures.getDcqlQueryDto())
+                .verificationPurpose(purpose)
+                .build();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value("verificationPurpose.purposeDescription: must contain exactly one 'default' key with a non-blank value, verificationPurpose.purposeName: must contain exactly one 'default' key with a non-blank value"));
+
+        verify(vqpsSubmissionB2BApi, never()).createVqpsSubmission(any());
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -217,8 +242,8 @@ class VqpsRegistrationIT {
     private Object buildCreateRequestWithPurpose(String scope) {
         var purpose = VerificationPurposeDto.builder()
                 .scope(scope)
-                .purposeName(Map.of("de-CH", "Testverifikation", "en", "Test Verification"))
-                .purposeDescription(Map.of("de-CH", "Dies ist eine Testverifikation.", "en", "This is a test verification."))
+                .purposeName(Map.of("default", "Test verification", "de-CH", "Testverifikation", "en", "Test Verification"))
+                .purposeDescription(Map.of("default", "This is a test", "de-CH", "Dies ist eine Testverifikation.", "en", "This is a test verification."))
                 .build();
 
         return ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto.builder()

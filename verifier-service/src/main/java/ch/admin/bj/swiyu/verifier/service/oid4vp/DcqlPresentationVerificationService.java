@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -34,6 +35,7 @@ public class DcqlPresentationVerificationService {
     private final PresentationVerifier presentationVerifier;
     private final DcqlEvaluator dcqlEvaluator;
     private final ObjectMapper objectMapper;
+    private final ApplicationProperties applicationProperties;
 
     /**
      * Processes the DCQL presentation request and returns the validated claims per credential as JSON.
@@ -52,6 +54,10 @@ public class DcqlPresentationVerificationService {
             var requestedVpTokens = vpTokens.get(requestedCredential.getId());
             if (!Boolean.TRUE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
                 throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Expected only 1 vp token for " + requestedCredential.getId());
+            }
+
+            if (requestedVpTokens.size() > applicationProperties.getMaxVcsAccepted()) {
+                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Cannot Accept more than %s vcs received %s".formatted(applicationProperties.getMaxVcsAccepted(), requestedVpTokens.size()));
             }
 
             var sdJwts = requestedVpTokens.stream()

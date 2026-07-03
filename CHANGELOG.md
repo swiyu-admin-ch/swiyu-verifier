@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 - Integrate `pgpverify-maven-plugin` to cryptographically verify PGP signatures of all third-party dependencies during the build. The build fails if an artifact has no signature or an invalid signature. PGP keys are cached in CI/CD to avoid redundant downloads `(#836)`.
+- Add additional check if `verification_purpose.purpose_name` and `verification_purpose.purpose_description` contain the necessary default keys
 
 ## Removed
 - Removed the ` client_id_scheme` from the application configuration as it is no longer used and replaced by the `client_id_prefix` configuration property with default value `decentralized_identifier`, which can be changed or set to null. Therefore, the `client_id` will be `${client_id_prefix}:${client_id}`.
@@ -18,9 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - update `DcqlClaimDto` to prevent business verifier to send an empty `values` list (which is not allowed by the spec)
 - check `_sd_alg` value in SD-JWT verifier to ensure it is a supported algorithm (currently only `sha-256` is supported)
 - Add basic guard for to stop terminal verification results being overwritten.
+- Limited the number of vcs sent with the multiple flag to 1 as the flow is not supported yet. The verifier will reject the request if more than 1 vcs are sent.
+- unify JWK_CACHE and PUBLIC_ISSUER_KEY_CACHE into JWK_CACHE. This depricates the environment variable ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI. It is used for now as fallback value for JWK_CACHE_TTL_MILLI so existing deployments will not be broken by this fix.
+- Add ttl based cache evict for trust statements (until proper caching concept is ecosystem-wide implemented)
+- State provided in response is now also acceted when using direct_post.jwt as part of the jwt.
 
 ## Changed
 - oauthState must be sent in verification response otherwise the verifier rejects the response.
+- When fetching an expired Verification Management Object, will now return an error instead of returning it one last time
+- Uses A256GCM instead of A128GCM for encryption.
 
 # [3.0.2] - 2026-06-12
 

@@ -190,7 +190,7 @@ public class SdJwtVpTokenVerifier {
         // Validate Holder Binding Proof JWT
         JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding,
                 Optional.ofNullable(management.getConfigurationOverride())
-                        .orElse(new ConfigurationOverride(null, null, null, null, null)));
+                        .orElse(new ConfigurationOverride(null, null, null, null, null, null)));
         validateNonce(keyBindingClaims, management.getRequestNonce());
         validateSDHash(sdJwt, keyBindingClaims);
     }
@@ -256,7 +256,7 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
         }
 
-        String clientId = configurationOverride.verifierDidOrDefault(applicationProperties.getClientId());
+        String clientId = applicationProperties.getClientIdWithPrefix(configurationOverride.verifierDidOrDefault(applicationProperties.getClientId()));
 
         // Exact match only
         if (!clientId.equals(aud)) {

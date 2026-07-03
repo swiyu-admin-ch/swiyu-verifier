@@ -100,7 +100,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
                 .andReturn());
         // Check status, should still be pending
@@ -178,7 +178,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
                 .andReturn());
         // Check status, should still be pending
@@ -204,6 +204,43 @@ class BlackboxIT {
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
     }
 
+    @ParameterizedTest
+    @MethodSource("provideCreateDtosDirectPostJwt")
+    void testVerificationFlowDirectPostJWT(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+        var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
+        var createResponseDto = createVerificationRequest(createDto);
+
+        var nonce = createResponseDto.requestNonce();
+        var requestId = createResponseDto.id().toString();
+
+        // Wallet retrieves Verifier Request
+        var state = getStateFromVerificationRequest(requestId, nonce, ResponseModeType.DIRECT_POST_JWT);
+
+        // Check status, should be pending
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
+
+        // Wallet checks verifier metadata
+        assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
+                        .contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
+                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
+                .andReturn());
+        // Check status, should still be pending
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
+
+        // Wallet sends valid credential
+        var vpToken = Map.of("identity_credential_dcql", List.of(createMockCredential(nonce)));
+        var submissionData = objectMapper.writeValueAsString(vpToken);
+        assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("state", "some wrong other state that should be overridden by the correct state in the encrypted data")
+                        .formField("response", buildJWTResponse(Map.of("vp_token", submissionData, "state", state), createResponseDto.id())))
+                .andExpect(status().isOk()));
+
+        // Status should not have changed, status should not change
+        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.SUCCESS));
+    }
 
     @ParameterizedTest
     @MethodSource("provideCreateDtosDirectPostJwt")
@@ -224,7 +261,7 @@ class BlackboxIT {
         assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientId()))
+                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
                 .andReturn());
         // Check status, should still be pending
@@ -233,8 +270,7 @@ class BlackboxIT {
         // Wallet sends error response
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("state", state)
-                        .formField("response", buildJWTResponse(Map.of("error", "vp_formats_not_supported","error_description", "I don't want to"), createResponseDto.id())))
+                        .formField("response", buildJWTResponse(Map.of("error", "vp_formats_not_supported","error_description", "I don't want to", "state", state), createResponseDto.id())))
                 .andExpect(status().isOk())
         );
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
@@ -243,7 +279,7 @@ class BlackboxIT {
         var vpToken = createMockCredential(nonce);
         assertDoesNotThrow(() -> mvc.perform(post(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("response", buildJWTResponse(Map.of("vp_token", vpToken), createResponseDto.id())))
+                        .formField("response", buildJWTResponse(Map.of("vp_token", vpToken, "state", state), createResponseDto.id())))
                 .andExpect(status().isBadRequest()));
 
         // Status should not have changed, status should not change
@@ -333,7 +369,7 @@ class BlackboxIT {
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
-        return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
+        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + ACCEPTED_ISSUER);
     }
 
     private String createMockCredential_rec(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
@@ -341,7 +377,7 @@ class BlackboxIT {
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMockWithRecursiveListArray();
-        return emulator.addKeyBindingProof(sdJWT, nonce, ACCEPTED_ISSUER);
+        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + ACCEPTED_ISSUER);
     }
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {

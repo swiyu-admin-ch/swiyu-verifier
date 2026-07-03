@@ -4,6 +4,7 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -44,7 +45,23 @@ public class ApplicationProperties {
     @NotNull
     private Integer maxCompressedCipherTextLength;
 
+    @NotNull
+    private Integer maxVcsAccepted = 1;
+
     private HSMProperties hsm;
 
     private List<String> acceptedRegistryHosts;
+
+    public String getClientIdWithPrefix() {
+        return getClientIdWithPrefix(clientId);
+    }
+
+    public String getClientIdWithPrefix(String clientId) {
+        if (StringUtils.isBlank(clientIdPrefix)) {
+            return clientId;
+        }
+
+        return clientIdPrefix + ":" + clientId;
+    }
+
 }

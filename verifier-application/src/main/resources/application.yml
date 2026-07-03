@@ -16,6 +16,7 @@ application:
 
   key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
   max-compressed-cipher-text-length: ${MAX_COMPRESSED_CIPHER_TEXT_LENGTH:100000}
+  max-vcs-accepted: 1 # At the moment the default value is set to 1 as the dcql multiple flag is not fully supported
   # Pin to unlock the hsm
   hsm:
     user-pin: "${secret.key.hsm.pin.user:${HSM_USER_PIN:}}"
@@ -172,7 +173,8 @@ monitoring:
 
 caching:
   status-list-cache-ttl: ${STATUS_LIST_CACHE_TTL_MILLI:0} # is not cached by default if set to 0, caching is disabled
-  issuer-public-key-cache-ttl: ${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000} # 1 hour
+  jwk-cache-ttl: ${JWK_CACHE_TTL_MILLI:${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000}} # 1 hour
+  trust-cache-ttl: ${TRUST_CACHE_TTL_MILLI:3600000} # 1 hour
 
 swiyu:
     # Optional: Trust Registry sidechannel API for fetching Trust Statements (idTS, piaTS).

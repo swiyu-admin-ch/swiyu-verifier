@@ -11,13 +11,6 @@ public interface TokenApi {
 
     @PostExchange(contentType = "application/x-www-form-urlencoded")
     TokenResponse getNewToken(
-
-            @RequestParam String client_id,
-            @RequestParam String client_secret,
-            @RequestParam String grant_type);
-
-    @PostExchange(contentType = "application/x-www-form-urlencoded")
-    TokenResponse getNewToken(
             @RequestParam String client_id,
             @RequestParam String client_secret,
             @RequestParam(required = false) String refresh_token,

@@ -28,16 +28,6 @@ public class TrustRegistryProperties {
     private String apiUrl;
 
     /**
-     * HTTP Basic Auth username (customer key) for authenticating against the TMS API.
-     */
-    private String customerKey;
-
-    /**
-     * HTTP Basic Auth password (customer secret) for authenticating against the TMS API.
-     */
-    private String customerSecret;
-
-    /**
      * Maximum number of entries held in the trust statement cache.
      */
     private long maxCacheSize = 500;

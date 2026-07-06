@@ -54,7 +54,7 @@ public class OpenidClientMetadataDto {
                     "kb-jwt_alg_values": ["ES256"]
                   }
             """)
-    @Schema(description = """
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = """
             An object containing a list of name/value pairs, where the name is a Credential Format Identifier and the
             value defines format-specific parameters that a Verifier supports.
             """)

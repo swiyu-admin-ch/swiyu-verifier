@@ -119,6 +119,25 @@ public class RequestObjectDto {
     private String audience;
 
     /**
+     * JOSE header parameter of the signed Request Object JWT, indicating the Swiss Profile version.
+     * Documented here alongside the payload claims since the JWT is exposed as a single opaque string.
+     */
+    @JsonProperty("profile_version")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
+            description = "JWT header parameter indicating the Swiss Profile version used to produce this Request Object.")
+    private String profileVersion;
+
+    /**
+     * Top-level mirror of {@code client_metadata.encrypted_response_enc_values_supported}, sourced from
+     * {@code ResponseSpecification.encryptedResponseEncValuesSupported}. The Swiss Profile requires this
+     * parameter directly on the Request Object payload, in addition to its place inside {@code client_metadata}.
+     */
+    @JsonProperty("encrypted_response_enc_values_supported")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
+            description = "JWE 'enc' algorithms accepted by the Verifier for an encrypted Authorization Response.")
+    private List<String> encryptedResponseEncValuesSupported;
+
+    /**
      * Trust Protocol 2.0: array of trust statements ({@code idTS}, {@code pvaTS}, {@code vqPS})
      * injected into the JWT-Secured Authorization Request.
      * Each entry has the form {@code {"format": "jwt", "data": "<jwt-string>"}}.

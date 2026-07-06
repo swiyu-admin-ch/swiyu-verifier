@@ -63,6 +63,7 @@ public class VerificationController {
                             description = "Request object either as plaintext or signed JWT",
                             content = @Content(
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = OpenidClientMetadataDto.class),
                                     examples = {
                                             @ExampleObject(name = "Sample Client Metadata", value = """
                                                     {
@@ -90,10 +91,29 @@ public class VerificationController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Request object either as plaintext or signed JWT",
-                            content = @Content(
-                                    schema = @Schema(implementation = RequestObjectDto.class)
-                            )
+                            description = """
+                                    Request object either as plaintext or signed JWT.
+
+                                    The 'application/oauth-authz-req+jwt' representation is a compact serialized JWS (optionally nested JWE) \
+                                    representing the Request Object claims. As this is a JWT and not a JSON object, its structural requirements \
+                                    cannot be expressed as a JSON Schema and are documented here instead:
+                                    - The JOSE header MUST require the 'profile_version' parameter to indicate the Swiss Profile version.
+                                    - The JWT Claims Set corresponds to the [RequestObject](#/components/schemas/RequestObject) schema documented \
+                                    for the 'application/json' representation below, with 'request' and 'request_uri' claims strictly prohibited.
+
+                                    The 'application/json' representation is kept for documentation purposes only, mirroring the JWT Claims Set of \
+                                    the 'application/oauth-authz-req+jwt' representation; it is not actually returned when JAR (JWT-secured \
+                                    Authorization Request) is enabled.""",
+                            content = {
+                                    @Content(
+                                            mediaType = "application/oauth-authz-req+jwt",
+                                            schema = @Schema(type = "string", format = "jwt")
+                                    ),
+                                    @Content(
+                                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                            schema = @Schema(implementation = RequestObjectDto.class)
+                                    )
+                            }
                     ),
                     @ApiResponse(
                             responseCode = "404",

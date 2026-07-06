@@ -116,11 +116,19 @@ paths:
               schema:
                 type: object
         "200":
-          description: Request object either as plaintext or signed JWT
+          description: |-
+            Request object either as plaintext or signed JWT.
+
+            The 'application/oauth-authz-req+jwt' representation is a compact serialized JWS (optionally nested JWE) representing the Request Object claims. As this is a JWT and not a JSON object, its structural requirements cannot be expressed as a JSON Schema and are documented here instead:
+            - The JOSE header MUST require the 'profile_version' parameter to indicate the Swiss Profile version.
+            - The JWT Claims Set corresponds to the [RequestObject](#/components/schemas/RequestObject) schema documented for the 'application/json' representation below, with 'request' and 'request_uri' claims strictly prohibited.
+
+            The 'application/json' representation is kept for documentation purposes only, mirroring the JWT Claims Set of the 'application/oauth-authz-req+jwt' representation; it is not actually returned when JAR (JWT-secured Authorization Request) is enabled.
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: "#/components/schemas/RequestObject"
+                type: string
+                format: jwt
             application/json:
               schema:
                 $ref: "#/components/schemas/RequestObject"
@@ -152,6 +160,8 @@ paths:
           description: Request object either as plaintext or signed JWT
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/OpenidClientMetadataDto"
               examples:
                 Sample Client Metadata:
                   description: Sample Client Metadata
@@ -397,7 +407,7 @@ components:
             \ or a JSON object for DCQL presentations. For standard/PE presentations:\
             \ JWT token string. For DCQL presentations: Object containing credential\
             \ query results where keys are query IDs and values are arrays of presentations."
-          example: |
+          example: |-
             Standard/PE: "eyJhbGci...QMA"
             DCQL: {"my_credential": ["eyJhbGci...QMA", "eyJhbGci...QMA"]}
           oneOf:
@@ -458,7 +468,9 @@ components:
           items: {}
           minItems: 1
         values:
-          type: array
+          type:
+          - array
+          - "null"
           description: "OPTIONAL. A non-empty array of strings, integers or boolean\
             \ values that specifies the expected values of the claim. If the values\
             \ property is present, the Wallet SHOULD return the claim only if the\
@@ -466,6 +478,8 @@ components:
             \ elements in the array. Details of the processing rules are defined in\
             \ Section 6.4.1."
           items: {}
+          maxItems: 2147483647
+          minItems: 1
       required:
       - path
     DcqlCredentialDto:
@@ -732,7 +746,7 @@ components:
         | malformed_credential                        | The credential presented during validation isnt valid according to the format specification in question                              |
         | holder_binding_mismatch                     | The holder has provided invalid proof that the credential is under their control.                                                    |
         | client_rejected                             | The holder rejected the verification request.                                                                                        |
-        | issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verificaiton request.                                                    |
+        | issuer_not_accepted                         | The issuer of the vc was not in the allow-list given in the verification request.                                                    |
         | authorization_request_missing_error_param   | During the verification process a required parameter (eg.: vp_token, presentation) was not provided in the request.                  |
         | authorization_request_object_not_found      | The requested verification process cannot be found.                                                                                  |
         | verification_process_closed                 | The requested verification process is already closed.                                                                                |
@@ -782,40 +796,70 @@ components:
       - SUCCESS
       - FAILED
     ConfigurationOverrideDto:
-      type: object
+      type: "null"
       description: Override for Verifier configuration to be use for this one verification
       properties:
         external_url:
-          type: string
+          type:
+          - string
+          - "null"
           description: "Override for the EXTERNAL_URL - the url the wallet should\
             \ call, to fetch the request object and send the verification response\
             \ to."
           example: https://www.example.com/verifier
+          pattern: ^https://.*
         verifier_did:
-          type: string
+          type:
+          - string
+          - "null"
           description: Override to be used in clientId instead of environment variable
             VERIFIER_DID
           example: did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000
         verification_method:
-          type: string
+          type:
+          - string
+          - "null"
           description: "Override for DID_VERIFICATION_METHOD, the id of the public\
             \ key in the did document. Most often the full did and a unique id after\
             \ #"
           example: did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000#myVerificationMethod-xx
         key_id:
-          type: string
+          type:
+          - string
+          - "null"
           description: ID of the key in the HSM
           example: myOverrideHSMKeyId01
         key_pin:
-          type: string
+          type:
+          - string
+          - "null"
           description: "The pin which protects the key in the hsm, if any. Note that\
             \ this only the key pin, not hsm password or partition pin."
-          example: 11111
+          example: "11111"
+        client_metadata:
+          type:
+          - object
+          - "null"
+          additionalProperties:
+            type: string
+          description: |
+            Optional overrides for individual fields of the client_metadata embedded in the signed
+            authorization request JWT. Keys follow the OID4VP client_metadata naming conventions,
+            including locale-tagged variants (e.g. "client_name#en", "client_name#de-CH",
+            "logo_uri"). Values present here take precedence over the values read
+            from the configured client-metadata-file.
+          example:
+            client_name: My Client Name
+            client_name#en: My Client Name
+            client_name#de-CH: Mein Kundenname
+            logo_uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII="
     CreateVerificationManagement:
       type: object
       properties:
         accepted_issuer_dids:
-          type: array
+          type:
+          - array
+          - "null"
           description: |
             List of dids from issuers whose credentials are accepted for this verification.
             Will be evaluated before trust anchor.
@@ -825,7 +869,9 @@ components:
           items:
             type: string
         trust_anchors:
-          type: array
+          type:
+          - array
+          - "null"
           description: |
             List of trust anchor dids from the trust registry.
             This is an alternative to specifying accepted issuer dids,
@@ -881,11 +927,12 @@ components:
             https://trust-reg.trust-infra.swiyu-int.admin.ch/api/v1/truststatements/{trust_anchor_did}
           example: https://trust-reg.trust-infra.swiyu-int.admin.ch
           minLength: 1
+          pattern: ^https://.*
       required:
       - did
       - trust_registry_uri
     VerificationPurpose:
-      type: object
+      type: "null"
       properties:
         scope:
           type: string
@@ -897,8 +944,9 @@ components:
           additionalProperties:
             type: string
           description: Localized purpose names (max 50 chars per value). Key is language
-            tag (e.g. 'de-ch').
+            tag (e.g. 'de-ch'). Must contain a 'default' key with a non-blank value.
           example:
+            default: Age Verification
             de-ch: Altersverifikation
           minProperties: 1
         purpose_description:
@@ -906,7 +954,10 @@ components:
           additionalProperties:
             type: string
           description: Localized purpose descriptions (max 500 chars per value). Key
-            is language tag (e.g. 'de-ch').
+            is language tag (e.g. 'de-ch'). Must contain a 'default' key with a non-blank
+            value.
+          example:
+            default: Age Verification required for xyz
           minProperties: 1
       required:
       - purpose_description
@@ -941,14 +992,18 @@ components:
         "y":
           type: string
     OpenIdClientMetadataVpFormatSdJwt:
-      type: object
+      type: "null"
       properties:
         sd-jwt_alg_values:
-          type: array
+          type:
+          - array
+          - "null"
           items:
             type: string
         kb-jwt_alg_values:
-          type: array
+          type:
+          - array
+          - "null"
           items:
             type: string
     OpenIdClientMetadataVpFormatsSupported:
@@ -987,6 +1042,8 @@ components:
         additionalProperties:
           type: object
           additionalProperties: {}
+      required:
+      - vp_formats_supported
     RequestObject:
       type: object
       description: |
@@ -996,8 +1053,6 @@ components:
         - If the verification was initiated using the new DCQL format, the dcql_query field is used.
       properties:
         client_id:
-          type: string
-        client_id_scheme:
           type: string
         response_type:
           type: string
@@ -1017,6 +1072,13 @@ components:
           description: |
             DCQL query object as an Authorization Request parameter.
             This field is used for requests initiated with the DCQL format and contains the Digital Credentials Query Language (DCQL) query.
+            Mutually exclusive with the {@code scope} parameter: only one of the two may be present.
+        scope:
+          type: string
+          description: |
+            OAuth2 scope value identifying the DCQL query registered in the vqPS.
+            MUST be present when a vqPS is injected into verifier_info.
+            Mutually exclusive with dcql_query.
         client_metadata:
           $ref: "#/components/schemas/OpenidClientMetadataDto"
           description: "A JSON object containing the Verifier metadata values providing\
@@ -1050,11 +1112,24 @@ components:
             to the client.
         aud:
           type: string
+        profile_version:
+          type: string
+          description: JWT header parameter indicating the Swiss Profile version used
+            to produce this Request Object.
+        encrypted_response_enc_values_supported:
+          type: array
+          description: JWE 'enc' algorithms accepted by the Verifier for an encrypted
+            Authorization Response.
+          items:
+            type: string
         verifier_info:
           type: array
           description: Trust Protocol 2.0 trust statements embedded as JWT objects.
           items:
             $ref: "#/components/schemas/VerifierInfoEntryDto"
+      required:
+      - encrypted_response_enc_values_supported
+      - profile_version
     VerifierInfoEntryDto:
       type: object
       properties:

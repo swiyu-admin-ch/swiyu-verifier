@@ -125,6 +125,7 @@ public class RequestObjectService {
                         effectiveConfig.externalUrl(),
                         managementEntityId))
                 .state(managementEntity.getOauthState())
+                .encryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported())
                 .build();
 
         // Optional TP2.0 enrichment: when the trust-registry integration is enabled, inject the

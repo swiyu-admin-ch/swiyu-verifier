@@ -27,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -172,7 +173,11 @@ public class VerificationController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Verification Presentation received and processed successfully"
+                            description = "Verification Presentation received and processed successfully",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(type = "object", implementation = Map.class)
+                            )
                     ),
                     @ApiResponse(
                             responseCode = "400",
@@ -181,8 +186,7 @@ public class VerificationController {
                     )
             }
     )
-    @ResponseStatus(HttpStatus.OK)
-    public void receiveVerificationPresentation(
+    public ResponseEntity<Map<String, Object>> receiveVerificationPresentation(
             @RequestHeader(name = "SWIYU-API-Version", required = false) String versionString,
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationUnionDto unionDto) {
@@ -214,6 +218,7 @@ public class VerificationController {
         }
 
         log.info("Successfully processed verification presentation for request_id: {}", requestId);
+        return ResponseEntity.ok(Map.of());
 
     }
 }

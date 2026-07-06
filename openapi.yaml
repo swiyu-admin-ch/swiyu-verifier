@@ -68,6 +68,10 @@ paths:
                 $ref: "#/components/schemas/ApiErrorDto"
         "200":
           description: Verification Presentation received and processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
   /management/api/verifications:
     post:
       tags:

@@ -1,7 +1,5 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
-import java.util.Set;
-
 public enum VerificationStatus {
     PENDING,
     /**

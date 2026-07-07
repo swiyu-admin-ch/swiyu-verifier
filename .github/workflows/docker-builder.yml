@@ -55,7 +55,7 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Cache PGP keys for pgpverify-maven-plugin
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.m2/repository/pgpkeys-cache
           key: pgp-keys-${{ hashFiles('pgp/keys.list') }}

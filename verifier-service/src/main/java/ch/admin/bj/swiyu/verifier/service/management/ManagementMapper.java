@@ -128,7 +128,6 @@ public class ManagementMapper {
                     VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND;
             case AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM ->
                     VerificationErrorResponseCodeDto.AUTHORIZATION_REQUEST_MISSING_ERROR_PARAM;
-            case VERIFICATION_PROCESS_CLOSED -> VerificationErrorResponseCodeDto.VERIFICATION_PROCESS_CLOSED;
             case INVALID_PRESENTATION_DEFINITION -> VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION;
             case MALFORMED_CREDENTIAL -> VerificationErrorResponseCodeDto.MALFORMED_CREDENTIAL;
             case PRESENTATION_SUBMISSION_CONSTRAINT_VIOLATED ->

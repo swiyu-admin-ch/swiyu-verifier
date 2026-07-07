@@ -114,9 +114,7 @@ public class ManagementTransactionalService {
         } else {
             log.warn("Submission rejected for session {}: current state={}, expired={}",
                     managementEntityId, m.getState(), m.isExpired());
-            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
-                    "Submission rejected for session %s: current state=%s, expired=%s".formatted(
-                    managementEntityId, m.getState(), m.isExpired()));
+            throw new ProcessClosedException();
         }
         return m;
     }
@@ -130,9 +128,7 @@ public class ManagementTransactionalService {
             timeout = 10
     )
     public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
-        var managementEntity = repository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
-                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        var managementEntity = getInProgressManagementEntity(managementEntityId);
         managementEntity.verificationSucceeded(credentialSubjectData);
     }
 
@@ -145,9 +141,7 @@ public class ManagementTransactionalService {
             timeout = 10
     )
     public void markVerificationFailed(UUID managementEntityId, VerificationException e) {
-        var managementEntity = repository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
-                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        var managementEntity = getInProgressManagementEntity(managementEntityId);
         managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
     }
 
@@ -161,13 +155,8 @@ public class ManagementTransactionalService {
             timeout = 10
     )
     public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
-        var managementEntity = repository.findById(managementEntityId)
-            .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
-                MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        var managementEntity = getInProgressManagementEntity(managementEntityId);
         log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-        if (!managementEntity.isProcessStillOpen()) {
-            throw new ProcessClosedException();
-        }
         managementEntity.verificationFailedDueToClientRejection(errorDescription);
     }
 
@@ -175,4 +164,23 @@ public class ManagementTransactionalService {
     public Optional<Management> findById(UUID requestId) {
         return repository.findById(requestId);
     }
+
+    /**
+     * Returns the {@link Management} entity with the given
+     * {@code managementEntityId}
+     * that must be in {@link VerificationStatus#IN_PROGRESS}.
+     *
+     * @throws VerificationException if the entity is missing
+     *                                  or is in a terminal state
+     */
+    private Management getInProgressManagementEntity(UUID managementEntityId) {
+        var managementEntity = repository.findById(managementEntityId)
+                .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
+                        MANAGEMENT_ENTITY_NOT_FOUND + managementEntityId));
+        if (!VerificationStatus.IN_PROGRESS.equals(managementEntity.getState())) {
+            throw new ProcessClosedException();
+        }
+        return managementEntity;
+    }
+
 }

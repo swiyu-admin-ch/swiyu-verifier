@@ -75,12 +75,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "swiyu.trust-registry.api-url=https://trust-registry.example.ch",
-                "swiyu.trust-registry.customer-key=test-key",
-                "swiyu.trust-registry.customer-secret=test-secret",
                 "swiyu.trust-registry.max-cache-size=100",
                 "swiyu.trust-registry.clock-skew-buffer-seconds=0",
-                "swiyu.trust-registry.max-cache-ttl-seconds=3600",
-                "swiyu.trust-registry.negative-cache-ttl-seconds=30"
+                "swiyu.trust-registry.max-cache-ttl-seconds=3600"
         }
 )
 @AutoConfigureMockMvc

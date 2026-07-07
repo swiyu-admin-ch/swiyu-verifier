@@ -409,6 +409,5 @@ public class TrustStatementCacheService {
         idTsCache.invalidate(did);
         pvaTsCache.invalidate(did);
         cacheMaintenanceService.evictJwkManually(did);
-        cacheMaintenanceService.evictPublicKeyManually(did);
     }
 }

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [NEXT]
 
 ## Added
+- Static compliance checks for Swiss Profile conformance on OID4VP endpoints (`#829`):
+  - OpenID Client Metadata endpoint (`SwissProfileOpenidClientMetadataComplianceTest`).
+  - Request Object endpoint (`SwissProfileRequestObjectComplianceTest`).
+  - Response Data endpoint (`SwissProfileResponseDataComplianceTest`).
+- Add `profile_version` and `encrypted_response_enc_values_supported` fields to Request Object DTO to comply with Swiss Profile requirements `(#829)`.
+- Mark `vp_formats` as a required field in `OpenidClientMetadataDto` `(#829)`.
+- Update Response Data endpoint to return `ResponseEntity<Map<String, Object>>` instead of `void` and document the `application/json` response body schema in OpenAPI `(#829)`.
 - Integrate `pgpverify-maven-plugin` to cryptographically verify PGP signatures of all third-party dependencies during the build. The build fails if an artifact has no signature or an invalid signature. PGP keys are cached in CI/CD to avoid redundant downloads `(#836)`.
 - Add additional check if `verification_purpose.purpose_name` and `verification_purpose.purpose_description` contain the necessary default keys
 

@@ -71,7 +71,7 @@ def _build_llm() -> ChatOpenAI:
         temperature=0,
         api_key=adesso_api_key,
         base_url=adesso_base_url,
-        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "3000")), # Smaller output generates faster -> fewer gateway timeouts
+        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "8000")), # Must be high enough for the full JSON; truncated output cannot be parsed
         timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "300")), # Fail fast instead of hanging
         max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504) with backoff
         # http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
@@ -130,6 +130,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
 
     ## Output
     - Respond in English only.
+    - Keep the response compact to stay within the token limit: write "description" and "suggestion" as ONE short sentence each (no multi-paragraph explanations). Report at most the 10 most important findings per file, prioritising HIGH severity.
     - YOU MUST RETURN A VALID JSON OBJECT WITH THIS EXACT STRUCTURE AND NO OTHER FIELDS:
     {
       "summary": "A brief overall summary of the review.",

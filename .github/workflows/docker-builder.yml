@@ -140,6 +140,27 @@ jobs:
           build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
           file: Dockerfile
 
+      # Install Cosign to sign the published images (see signing step below).
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+
+      # Keyless signing with the workflow's OIDC identity (no long-lived keys).
+      # Both variants are signed by their immutable digest, so every tag that
+      # points to a signed digest (including tags produced by the retag workflow)
+      # inherits a valid signature.
+      - name: Sign published images with Cosign
+        env:
+          COSIGN_YES: "true"
+          HARDENED_DIGEST: ${{ steps.push-dhi.outputs.digest }}
+          UNHARDENED_DIGEST: ${{ steps.push-unhardened.outputs.digest }}
+        run: |
+          set -euo pipefail
+          IMAGE="${REGISTRY}/${IMAGE_NAME}"
+          echo "Signing hardened image ${IMAGE}@${HARDENED_DIGEST}"
+          cosign sign --recursive "${IMAGE}@${HARDENED_DIGEST}"
+          echo "Signing unhardened image ${IMAGE}@${UNHARDENED_DIGEST}"
+          cosign sign --recursive "${IMAGE}@${UNHARDENED_DIGEST}"
+
       - name: Monitor Snyk for vulnerabilities in code 📦
         uses: snyk/actions/maven-3-jdk-21@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
         env:

@@ -55,6 +55,8 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
         api_key=adesso_api_key,
         base_url=adesso_base_url,
         max_tokens=8000, # Set a limit to be safe
+        timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "300")), # Fail fast instead of hanging; upstream 504s are retried below
+        max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504 Gateway Timeout) with backoff
         # http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
     )
 
@@ -183,11 +185,19 @@ def get_git_diff() -> str:
             text=True,
             check=True
         )
-        return result.stdout
+        diff = result.stdout
     except subprocess.CalledProcessError as e:
         print(f"Error while running git diff against {target}.")
         print(e.stderr)
         return ""
+
+    # Guard against oversized diffs: very large payloads make the model slow and
+    # can trigger upstream 504 Gateway Timeouts. Truncate to a configurable limit.
+    max_chars = int(os.environ.get("MAX_DIFF_CHARS", "60000"))
+    if len(diff) > max_chars:
+        print(f"Diff is large ({len(diff)} chars); truncating to {max_chars} chars to avoid timeouts.")
+        diff = diff[:max_chars] + "\n\n[... diff truncated due to size ...]\n"
+    return diff
 
 if __name__ == "__main__":
     print("Fetching git diff...")

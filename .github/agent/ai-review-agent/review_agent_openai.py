@@ -36,11 +36,29 @@ class ReviewState(TypedDict):
 # ==========================================
 # 3. Nodes (the steps in the workflow)
 # ==========================================
-def analyze_diff_node(state: ReviewState) -> ReviewState:
-    """Node 1: Analyzes the code against the swiyu/adesso guidelines."""
-    print("-> Analyzing git diff with Qwen (adesso AI Hub)...")
+def _split_diff_by_file(diff: str) -> List[str]:
+    """Splits a unified git diff into per-file chunks.
 
-    # Load configuration from environment variables
+    Reviewing each file in its own request keeps every LLM call small, which
+    avoids upstream gateway timeouts (504) on large diffs and lets one slow or
+    failing file be skipped without aborting the whole review.
+    """
+    if not diff.strip():
+        return []
+    chunks: List[str] = []
+    current: List[str] = []
+    for line in diff.splitlines(keepends=True):
+        if line.startswith("diff --git ") and current:
+            chunks.append("".join(current))
+            current = []
+        current.append(line)
+    if current:
+        chunks.append("".join(current))
+    return chunks
+
+
+def _build_llm() -> ChatOpenAI:
+    """Creates the configured chat model, failing early on missing configuration."""
     adesso_api_key = os.environ.get("ADESSO_API_KEY")
     adesso_base_url = os.environ.get("ADESSO_BASE_URL")
     qwen_model_name = os.environ.get("QWEN_MODEL_NAME", "qwen")
@@ -48,19 +66,31 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     if not adesso_api_key or not adesso_base_url:
         raise ValueError("ERROR: Please set ADESSO_API_KEY and ADESSO_BASE_URL as environment variables!")
 
-# 2. Initialize LangChain ChatOpenAI
-    llm = ChatOpenAI(
+    return ChatOpenAI(
         model=qwen_model_name,
         temperature=0,
         api_key=adesso_api_key,
         base_url=adesso_base_url,
-        max_tokens=8000, # Set a limit to be safe
-        timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "300")), # Fail fast instead of hanging; upstream 504s are retried below
-        max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504 Gateway Timeout) with backoff
+        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "3000")), # Smaller output generates faster -> fewer gateway timeouts
+        timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "300")), # Fail fast instead of hanging
+        max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504) with backoff
         # http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
     )
 
-    # 3. Enforce structured output
+
+def analyze_diff_node(state: ReviewState) -> ReviewState:
+    """Node 1: Analyzes the code against the swiyu/adesso guidelines.
+
+    The diff is reviewed file-by-file so each request to the model stays small.
+    This prevents 504 gateway timeouts on large changesets and makes the run
+    resilient: if a single file times out, its error is recorded and the
+    remaining files are still reviewed.
+    """
+    print("-> Analyzing git diff with Qwen (adesso AI Hub)...")
+
+    llm = _build_llm()
+
+    # Enforce structured output
     #structured_llm = llm.with_structured_output(ReviewResult)
     structured_llm = llm.with_structured_output(ReviewResult, method="json_mode")
 
@@ -122,11 +152,35 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
         SystemMessage(content=system_prompt),
         ("human", "Here is the git diff:\n\n{diff}")
     ])
-
     chain = prompt | structured_llm
-    result = chain.invoke({"diff": state["git_diff"]})
 
-    return {"findings": result.findings, "summary": result.summary}
+    chunks = _split_diff_by_file(state["git_diff"])
+    print(f"-> Reviewing {len(chunks)} changed file(s) individually...")
+
+    # Cap the size of a single file chunk so one huge file cannot trigger a
+    # gateway timeout. Large files are truncated rather than dropped entirely.
+    max_chunk_chars = int(os.environ.get("MAX_FILE_DIFF_CHARS", "20000"))
+
+    all_findings: List[ReviewFinding] = []
+    reviewed = 0
+    failed = 0
+    for i, chunk in enumerate(chunks, 1):
+        if len(chunk) > max_chunk_chars:
+            chunk = chunk[:max_chunk_chars] + "\n\n[... file diff truncated due to size ...]\n"
+        try:
+            result = chain.invoke({"diff": chunk})
+            all_findings.extend(result.findings)
+            reviewed += 1
+            print(f"   [{i}/{len(chunks)}] reviewed ({len(result.findings)} finding(s)).")
+        except Exception as e:
+            failed += 1
+            print(f"   [{i}/{len(chunks)}] skipped due to error: {e}")
+
+    summary = (
+        f"Reviewed {reviewed} file(s), {failed} skipped due to errors. "
+        f"Found {len(all_findings)} finding(s) in total."
+    )
+    return {"findings": all_findings, "summary": summary}
 
 def format_report_node(state: ReviewState) -> ReviewState:
     """Node 2: Formats the results into a clean Markdown report."""
@@ -191,12 +245,8 @@ def get_git_diff() -> str:
         print(e.stderr)
         return ""
 
-    # Guard against oversized diffs: very large payloads make the model slow and
-    # can trigger upstream 504 Gateway Timeouts. Truncate to a configurable limit.
-    max_chars = int(os.environ.get("MAX_DIFF_CHARS", "60000"))
-    if len(diff) > max_chars:
-        print(f"Diff is large ({len(diff)} chars); truncating to {max_chars} chars to avoid timeouts.")
-        diff = diff[:max_chars] + "\n\n[... diff truncated due to size ...]\n"
+    # Note: the diff is split per file and each file is size-capped in
+    # analyze_diff_node, so no global truncation is applied here.
     return diff
 
 if __name__ == "__main__":

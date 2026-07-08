@@ -14,7 +14,7 @@ from langgraph.graph import StateGraph, START, END
 class ReviewFinding(BaseModel):
     file_name: str = Field(description="Name of the file in which the problem was found")
     line_number: str = Field(description="Affected line numbers or method")
-    category: str = Field(description="Category: Clean Code, Naming, Thread Safety, Performance, Docs/Logging, Framework")
+    category: str = Field(description="Category: Clean Code, Naming, Architecture, Thread Safety, Performance, Docs/Logging, Framework, Testing")
     severity: str = Field(description="Severity: LOW, MEDIUM, HIGH")
     description: str = Field(description="Exact description of what violates the guidelines")
     suggestion: str = Field(description="Concrete improvement suggestion or code snippet")
@@ -54,40 +54,63 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
         api_key=adesso_api_key,
         base_url=adesso_base_url,
         max_tokens=8000, # Set a limit to be safe
-        http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
+        # http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
     )
 
     # 3. Enforce structured output
     #structured_llm = llm.with_structured_output(ReviewResult)
     structured_llm = llm.with_structured_output(ReviewResult, method="json_mode")
 
-    system_prompt = """You are an expert Senior Java/Spring Boot Developer performing a strict code review on a git diff.
-    Analyze the following git diff strictly against these rules:
+    system_prompt = """You are a strict but constructive Senior Java/Spring Boot code reviewer for the swiyu-verifier project.
+    Review ONLY the changes in the provided unified git diff, strictly against the project guidelines below.
 
-    1. Clean Code: High cohesion, low coupling. Warn if classes seem to exceed ~200 LOC or methods do more than one thing.
-    2. Naming Conventions: Correct suffixes (*Controller, *Service, *Repository). Flag ANY use of '*Interface' suffixes.
-    3. Thread Safety: Look for state mutations in singletons (like Spring Beans), race conditions, or improper synchronization.
-    4. Performance & Memory Leaks: Look for inefficient loops, missing caching strategies, or resource leaks.
-    5. Documentation & Logging: Mandatory English JavaDoc on all public classes/methods explaining why/what. Must use @Slf4j. FLAG if secrets (passwords, tokens, PII) are logged.
-    6. Framework Usage: Correct usage of underlying frameworks (Spring Boot, e.g., proper annotations, dependency injection).
+    ## Review rules (only report REAL violations)
+    1. Clean Code (SoC/SRP): high cohesion, low coupling. Flag "god classes", classes > ~200 LOC, or methods doing more than one logical task (mixing validation + mapping + I/O + business rules).
+    2. Naming Conventions: enforce suffixes *Controller, *Service, *Repository. Flag ANY '*Interface' suffix. Test names must follow 'MethodName_StateUnderTest_ExpectedBehavior' (unit) or 'given_when_then' (integration/application); flag generic names like 'test2()'.
+    3. Architecture & Layering:
+       - @RestController must live in a '..web..' package, end with 'Controller', and carry a @Tag annotation with a unique 'IF-xxx' interface code.
+       - @Service must live in '..service..' and end with 'Service'; repositories belong in '..domain..'.
+       - Controllers must ONLY handle HTTP concerns (parsing, headers, status codes, basic validation, delegation). They must NOT access repositories directly or contain persistence/business logic.
+       - Business orchestration belongs in '..service..'; repository access happens from the service/domain side.
+       - No dependency from 'verifier-service' to 'verifier-application'; no package cycles.
+       - Mapping between DTO/service/domain must use dedicated mapper classes, NOT ad-hoc conversion in controllers. Do NOT introduce MapStruct. DTOs must stay transport-focused (no business logic).
+    4. Spring & Dependency Injection: use constructor injection with final dependencies (@RequiredArgsConstructor). Flag field injection (@Autowired on fields). @Service/@Component beans must be stateless (no mutable shared state).
+    5. Thread Safety: state mutations in singletons/Spring beans, race conditions, unsafe shared fields.
+    6. Performance & Memory: N+1 JPA queries, inefficient loops, missing/incorrect caching, resource leaks, blocking calls.
+    7. Error Handling: throw clean, specific domain exceptions in the service layer; translate them to HTTP responses via @ControllerAdvice in the web layer.
+    8. Documentation & Logging: public classes/interfaces/methods need English JavaDoc explaining why/what (not redundant getters). Prefer @Slf4j with STRUCTURED logging (include identifiers/keys). FLAG any logging of secrets/PII (tokens, passwords, keys). Integration tests must have Javadoc describing what/why, boundary conditions, and expected result.
+    9. Framework Usage: correct Spring Boot usage (annotations, transaction boundaries, validation).
+    10. Testing Pyramid: unit tests must mock external dependencies and cover edge cases; do not push business-logic assertions into integration tests; do not decrease coverage without reason.
+    11. Changelog: any user-facing or otherwise relevant change (feature, bug fix, behavioural/config/API change) must be accompanied by an entry in CHANGELOG.md under the '[NEXT]' section, grouped under Added/Fixed/Changed/Removed, and referencing the ticket number in parentheses (e.g. `(#949)`). Flag relevant code changes in the diff that do NOT include a corresponding CHANGELOG.md update or that omit the ticket reference. Pure refactorings, docs-only or merge commits are exempt.
+    12. Configuration Documentation: whenever application properties / configuration or environment variables are added, renamed, or changed (e.g. in application.yml, application-*.yml, @ConfigurationProperties classes, or env-var mappings), the README.md must be updated to document the new/changed property. Flag any such configuration change in the diff that is not reflected in README.md.
+    13. Database Migrations: new Flyway migration scripts (e.g. under db/migration) must be backwards compatible following the EMC (Expand-Migrate-Contract) pattern, so the previous application version keeps working against the new schema during a rolling deployment. Flag destructive or breaking changes in the same migration as the expand step, e.g. dropping/renaming columns or tables still used by the current version, adding NOT NULL columns without a default or backfill, or narrowing types. Such changes must be split into separate expand and contract migrations across releases. Also flag edits to already-released migration scripts (migrations must be immutable once released).
+    14. Spelling & Language (scoped, not nitpicking): only flag typos that have real impact - in public API names, configuration/property keys, environment variable names, and in log or exception messages. All code comments and JavaDoc must be written in English; flag any non-English comment/JavaDoc. Do NOT report minor typos in local variables or general prose.
 
-    Ignore deleted lines (starting with -) unless they removed something critical. Focus on added or modified lines (starting with +).
+    ## Scope & discipline
+    - Consider ONLY added/modified lines (starting with '+'). Ignore '-' lines unless a critical safeguard was removed.
+    - Derive line numbers from the diff hunk headers ('@@ -a,b +c,d @@').
+    - Judge ONLY what is visible in the diff; do NOT assume unseen code.
+    - Do NOT report formatting, whitespace, or import ordering (handled by PMD/EditorConfig).
+    - Prefer precision over quantity: no speculative or duplicate findings. If unsure, omit it.
+    - Map severity to the review categories: HIGH = must fix (Critical), MEDIUM = should fix, LOW = optional/nice to have.
 
-    YOU MUST RETURN A VALID JSON OBJECT WITH THIS EXACT STRUCTURE AND NO OTHER FIELDS:
+    ## Output
+    - Respond in English only.
+    - YOU MUST RETURN A VALID JSON OBJECT WITH THIS EXACT STRUCTURE AND NO OTHER FIELDS:
     {
       "summary": "A brief overall summary of the review.",
       "findings": [
         {
           "file_name": "path/to/file.java",
           "line_number": "line numbers or context",
-          "category": "One of: Clean Code, Naming, Thread Safety, Performance, Docs/Logging, Framework",
+          "category": "One of: Clean Code, Naming, Architecture, Thread Safety, Performance, Docs/Logging, Framework, Testing",
           "severity": "LOW, MEDIUM, or HIGH",
           "description": "What is wrong",
           "suggestion": "How to fix it"
         }
       ]
     }
-    If the code looks perfect, return an empty list for findings.
+    If there are no real violations, return an empty list for findings.
     """
 
     prompt = ChatPromptTemplate.from_messages([

@@ -17,6 +17,7 @@ class ReviewFinding(BaseModel):
     category: str = Field(description="Category: Clean Code, Naming, Architecture, Thread Safety, Performance, Docs/Logging, Framework, Testing")
     severity: str = Field(description="Severity: LOW, MEDIUM, HIGH")
     description: str = Field(description="Exact description of what violates the guidelines")
+    code_snippet: str = Field(default="", description="The exact offending source line(s) from the diff, verbatim, ONLY when it is a single line or a few (<= 5) lines. Empty string if the finding spans many lines or a whole class/method.")
     suggestion: str = Field(description="Concrete improvement suggestion or code snippet")
 
 class ReviewResult(BaseModel):
@@ -93,6 +94,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     - Do NOT report formatting, whitespace, or import ordering (handled by PMD/EditorConfig).
     - Prefer precision over quantity: no speculative or duplicate findings. If unsure, omit it.
     - Map severity to the review categories: HIGH = must fix (Critical), MEDIUM = should fix, LOW = optional/nice to have.
+    - For each finding, if the problem is confined to a single line or a few (<= 5) lines, copy those exact source lines (without the leading '+' diff marker) verbatim into "code_snippet". If the finding spans many lines, a whole method or class, leave "code_snippet" as an empty string.
 
     ## Output
     - Respond in English only.
@@ -106,6 +108,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
           "category": "One of: Clean Code, Naming, Architecture, Thread Safety, Performance, Docs/Logging, Framework, Testing",
           "severity": "LOW, MEDIUM, or HIGH",
           "description": "What is wrong",
+          "code_snippet": "The exact offending line(s), verbatim, only if <= 5 lines; otherwise empty string",
           "suggestion": "How to fix it"
         }
       ]
@@ -143,6 +146,10 @@ def format_report_node(state: ReviewState) -> ReviewState:
         report += f"### {idx}. {icon} [{f.category}] in `{f.file_name}`\n"
         report += f"- **Line/Context:** {f.line_number}\n"
         report += f"- **Problem:** {f.description}\n"
+        # Show the offending code only when the model provided a short snippet
+        snippet = (f.code_snippet or "").strip()
+        if snippet:
+            report += f"- **Code:**\n\n```java\n{snippet}\n```\n"
         report += f"- **Suggestion:** {f.suggestion}\n\n"
 
     return {"markdown_report": report}

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [NEXT]
 
 ## Added
+- **Security:** Published container images (hardened and unhardened variants) are now automatically signed with
+  [Cosign](https://docs.sigstore.dev/) using keyless OIDC signing in the GitHub Actions build workflow. Signatures are
+  bound to the immutable image digest and published to the Sigstore transparency log, allowing consumers to verify image
+  authenticity via `cosign verify` (#838).
 - Integrate `pgpverify-maven-plugin` to cryptographically verify PGP signatures of all third-party dependencies during the build. The build fails if an artifact has no signature or an invalid signature. PGP keys are cached in CI/CD to avoid redundant downloads `(#836)`.
 - Add additional check if `verification_purpose.purpose_name` and `verification_purpose.purpose_description` contain the necessary default keys
 

@@ -1,4 +1,3 @@
-# Inspired by https://thomasthornton.cloud/2025/03/18/setting-up-trivy-in-your-github-actions/
 name: Pull Request Check
 run-name: ${{ github.repository }} is evaluating pull request
 on: [pull_request]
@@ -150,3 +149,56 @@ jobs:
 #            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
 #            exit 1
 #          )
+
+ai-code-review:
+  name: AI Code Review (Qwen)
+  runs-on: ubuntu-latest
+  timeout-minutes: 10
+  # Wir brauchen Rechte, um einen Kommentar im PR zu hinterlassen
+  permissions:
+    contents: read
+    pull-requests: write
+
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # WICHTIG: 0 lädt die Git-Historie, die für den Diff benötigt wird
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Python Dependencies
+      run: pip install langgraph langchain-openai pydantic
+
+    - name: Run AI Review Agent
+      env:
+        ADESSO_API_KEY: ${{ secrets.ADESSO_API_KEY }}
+        # Diese Variablen kannst du hier direkt definieren
+        ADESSO_BASE_URL: "https://adesso-ai-hub.3asabc.de/v1"
+        QWEN_MODEL_NAME: "qwen-3.6-35b-sovereign"
+        # Sagt dem Skript, gegen welchen Branch der PR gerichtet ist (z.B. origin/main)
+        GIT_DIFF_TARGET: "origin/${{ github.base_ref }}...HEAD"
+      run: |
+        # Wir führen das Skript aus
+        python .github/abent/ai-review-agent/review_agent_openai.py
+
+    - name: Add Report to Job Summary
+      # Zeigt das Ergebnis auf der GitHub Actions Übersichtsseite an
+      if: always()
+      run: |
+        if [ -f ai-review-report.md ]; then
+          cat ai-review-report.md >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Post Report as PR Comment
+      # Postet das Ergebnis direkt als Kommentar in den Pull Request
+      if: always()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if [ -f ai-review-report.md ]; then
+          gh pr comment ${{ github.event.pull_request.number }} --body-file ai-review-report.md
+        fi

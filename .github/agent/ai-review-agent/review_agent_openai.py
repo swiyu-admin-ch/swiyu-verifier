@@ -149,7 +149,7 @@ def format_report_node(state: ReviewState) -> ReviewState:
         # Show the offending code only when the model provided a short snippet
         snippet = (f.code_snippet or "").strip()
         if snippet:
-            report += f"- **Code:**\n\n```java\n{snippet}\n```\n"
+            report += f"- **Code:**\n\n```{_language_for(f.file_name)}\n{snippet}\n```\n"
         report += f"- **Suggestion:** {f.suggestion}\n\n"
 
     return {"markdown_report": report}

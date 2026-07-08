@@ -51,6 +51,20 @@ transition period to adopt the hardened runtime:
 - The two `Dockerfile`s in this repository (`Dockerfile.dhi` for the default, `Dockerfile`
   for the `-unhardened` variant) are both built and Snyk-scanned on every PR.
 
+### Verifying image signatures
+
+All published images are signed with [Cosign](https://docs.sigstore.dev/) using keyless
+(OIDC) signing directly in the GitHub Actions build workflow. The signature is bound to the
+image digest and recorded in the public Sigstore transparency log. You can verify the
+authenticity of an image before deploying it:
+
+```bash
+cosign verify \
+  --certificate-identity-regexp "https://github.com/swiyu-admin-ch/swiyu-verfier/.github/workflows/docker-builder.yml@.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  ghcr.io/swiyu-admin-ch/swiyu-issuer:<tag>
+```
+
 ## 1. Set the environment variables
 
 A sample compose file for an entire setup of both components and a database can be found

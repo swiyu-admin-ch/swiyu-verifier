@@ -9,19 +9,19 @@ from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, START, END
 
 # ==========================================
-# 1. Datenmodelle (Strukturierter Output)
+# 1. Data models (structured output)
 # ==========================================
 class ReviewFinding(BaseModel):
-    file_name: str = Field(description="Name der Datei, in der das Problem gefunden wurde")
-    line_number: str = Field(description="Betroffene Zeilennummern oder Methode")
-    category: str = Field(description="Kategorie: Clean Code, Naming, Thread Safety, Performance, Docs/Logging, Framework")
-    severity: str = Field(description="Kritikalität: LOW, MEDIUM, HIGH")
-    description: str = Field(description="Genaue Beschreibung, was gegen die Richtlinien verstößt")
-    suggestion: str = Field(description="Konkreter Verbesserungsvorschlag oder Code-Snippet")
+    file_name: str = Field(description="Name of the file in which the problem was found")
+    line_number: str = Field(description="Affected line numbers or method")
+    category: str = Field(description="Category: Clean Code, Naming, Thread Safety, Performance, Docs/Logging, Framework")
+    severity: str = Field(description="Severity: LOW, MEDIUM, HIGH")
+    description: str = Field(description="Exact description of what violates the guidelines")
+    suggestion: str = Field(description="Concrete improvement suggestion or code snippet")
 
 class ReviewResult(BaseModel):
-    findings: List[ReviewFinding] = Field(description="Liste aller gefundenen Code-Smells oder Fehler")
-    summary: str = Field(description="Eine kurze, allgemeine Zusammenfassung des Reviews")
+    findings: List[ReviewFinding] = Field(description="List of all code smells or errors found")
+    summary: str = Field(description="A short, general summary of the review")
 
 # ==========================================
 # 2. LangGraph State
@@ -33,31 +33,31 @@ class ReviewState(TypedDict):
     markdown_report: str
 
 # ==========================================
-# 3. Nodes (Die Schritte im Workflow)
+# 3. Nodes (the steps in the workflow)
 # ==========================================
 def analyze_diff_node(state: ReviewState) -> ReviewState:
-    """Node 1: Analysiert den Code anhand der swiyu/adesso Richtlinien."""
-    print("-> Analysiere Git Diff mit Qwen (adesso AI Hub)...")
+    """Node 1: Analyzes the code against the swiyu/adesso guidelines."""
+    print("-> Analyzing git diff with Qwen (adesso AI Hub)...")
 
-    # Konfiguration aus Umgebungsvariablen laden
+    # Load configuration from environment variables
     adesso_api_key = os.environ.get("ADESSO_API_KEY")
     adesso_base_url = os.environ.get("ADESSO_BASE_URL")
     qwen_model_name = os.environ.get("QWEN_MODEL_NAME", "qwen")
 
     if not adesso_api_key or not adesso_base_url:
-        raise ValueError("FEHLER: Bitte ADESSO_API_KEY und ADESSO_BASE_URL als Umgebungsvariablen setzen!")
+        raise ValueError("ERROR: Please set ADESSO_API_KEY and ADESSO_BASE_URL as environment variables!")
 
-# 2. LangChain ChatOpenAI initialisieren
+# 2. Initialize LangChain ChatOpenAI
     llm = ChatOpenAI(
         model=qwen_model_name,
         temperature=0,
         api_key=adesso_api_key,
         base_url=adesso_base_url,
-        max_tokens=8000, # Zur Sicherheit ein Limit setzen
-        http_client=httpx.Client(verify=False) # <--- Schaltet SSL-Prüfung für Firmenproxys ab
+        max_tokens=8000, # Set a limit to be safe
+        http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
     )
 
-    # 3. Structured Output erzwingen
+    # 3. Enforce structured output
     #structured_llm = llm.with_structured_output(ReviewResult)
     structured_llm = llm.with_structured_output(ReviewResult, method="json_mode")
 
@@ -101,38 +101,38 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     return {"findings": result.findings, "summary": result.summary}
 
 def format_report_node(state: ReviewState) -> ReviewState:
-    """Node 2: Formatiert die Ergebnisse in einen sauberen Markdown-Report."""
-    print("-> Erstelle Markdown Report...")
+    """Node 2: Formats the results into a clean Markdown report."""
+    print("-> Creating Markdown report...")
 
     findings = state.get("findings", [])
-    summary = state.get("summary", "Keine Zusammenfassung verfügbar.")
+    summary = state.get("summary", "No summary available.")
 
-    report = f"# 🤖 AI Code Review Report (Qwen)\n\n**Zusammenfassung:** {summary}\n\n"
+    report = f"# 🤖 AI Code Review Report (Qwen)\n\n**Summary:** {summary}\n\n"
 
     if not findings:
-        report += "✅ **Super! Der Code entspricht allen Richtlinien. Keine Fehler gefunden.**\n"
+        report += "✅ **Great! The code complies with all guidelines. No issues found.**\n"
         return {"markdown_report": report}
 
-    report += f"Es wurden **{len(findings)}** Anmerkungen gefunden:\n\n"
+    report += f"Found **{len(findings)}** remarks:\n\n"
 
     for idx, f in enumerate(findings, 1):
         icon = "🔴" if f.severity == "HIGH" else "🟡" if f.severity == "MEDIUM" else "🔵"
         report += f"### {idx}. {icon} [{f.category}] in `{f.file_name}`\n"
-        report += f"- **Zeile/Kontext:** {f.line_number}\n"
+        report += f"- **Line/Context:** {f.line_number}\n"
         report += f"- **Problem:** {f.description}\n"
-        report += f"- **Vorschlag:** {f.suggestion}\n\n"
+        report += f"- **Suggestion:** {f.suggestion}\n\n"
 
     return {"markdown_report": report}
 
 # ==========================================
-# 4. Graph aufbauen & kompilieren
+# 4. Build & compile graph
 # ==========================================
 workflow = StateGraph(ReviewState)
 
 workflow.add_node("reviewer", analyze_diff_node)
 workflow.add_node("reporter", format_report_node)
 
-# Definiere den Ablauf
+# Define the flow
 workflow.add_edge(START, "reviewer")
 workflow.add_edge("reviewer", "reporter")
 workflow.add_edge("reporter", END)
@@ -140,11 +140,11 @@ workflow.add_edge("reporter", END)
 app = workflow.compile()
 
 # ==========================================
-# 5. Hilfsfunktion & Ausführung
+# 5. Helper function & execution
 # ==========================================
 def get_git_diff() -> str:
-    """Führt den git diff Befehl aus. In GitHub Actions nutzen wir die Base-Ref."""
-    # Lese das Ziel aus der Umgebungsvariable (Standard ist main...HEAD für lokale Tests)
+    """Runs the git diff command. In GitHub Actions we use the base ref."""
+    # Read the target from the environment variable (default is main...HEAD for local tests)
     target = os.environ.get("GIT_DIFF_TARGET", "main...HEAD")
     try:
         result = subprocess.run(
@@ -155,22 +155,22 @@ def get_git_diff() -> str:
         )
         return result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"Fehler beim Ausführen von git diff gegen {target}.")
+        print(f"Error while running git diff against {target}.")
         print(e.stderr)
         return ""
 
 if __name__ == "__main__":
-    print("Hole Git Diff...")
+    print("Fetching git diff...")
     diff_content = get_git_diff()
 
     if not diff_content:
-        print("Kein Diff gefunden. Beende Analyse.")
-        # Wir schreiben einen leeren Report, damit die Action nicht fehlschlägt
+        print("No diff found. Aborting analysis.")
+        # We write an empty report so the action does not fail
         with open("ai-review-report.md", "w") as f:
-            f.write("✅ **Keine Code-Änderungen gefunden, die überprüft werden müssten.**")
+            f.write("✅ **No code changes found that need to be reviewed.**")
         exit(0)
 
-    print(f"Diff erfolgreich geladen ({len(diff_content)} Zeichen). Starte Workflow...")
+    print(f"Diff loaded successfully ({len(diff_content)} characters). Starting workflow...")
 
     initial_state = ReviewState(
         git_diff=diff_content,
@@ -183,10 +183,10 @@ if __name__ == "__main__":
         final_state = app.invoke(initial_state)
         report = final_state["markdown_report"]
 
-        # Output für die Action in eine Datei schreiben
+        # Write output to a file for the action
         with open("ai-review-report.md", "w") as f:
             f.write(report)
 
-        print("\n✅ Analyse abgeschlossen. Report in 'ai-review-report.md' gespeichert.")
+        print("\n✅ Analysis complete. Report saved to 'ai-review-report.md'.")
     except Exception as e:
-        print(f"\nEin Fehler ist aufgetreten: {e}")
+        print(f"\nAn error occurred: {e}")

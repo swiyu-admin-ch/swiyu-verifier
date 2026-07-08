@@ -183,6 +183,47 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     )
     return {"findings": all_findings, "summary": summary}
 
+def _clean_snippet(raw: str) -> str:
+    """Removes diff artefacts from a code snippet so it renders as plain source.
+
+    The model occasionally leaves the leading unified-diff markers ('+', '-', ' ')
+    or hunk/file headers in the snippet. Strip them so the report shows clean code.
+    """
+    if not raw:
+        return ""
+    cleaned_lines = []
+    for line in raw.splitlines():
+        # Drop diff file/hunk headers entirely
+        if line.startswith(("+++", "---", "@@", "diff --git", "index ")):
+            continue
+        # Strip a single leading diff marker ('+', '-' or ' ') if present
+        if line[:1] in ("+", "-", " "):
+            line = line[1:]
+        cleaned_lines.append(line)
+    return "\n".join(cleaned_lines).strip()
+
+
+# Maps common file extensions to Markdown code-fence languages.
+_LANGUAGE_BY_EXTENSION = {
+    "java": "java",
+    "kt": "kotlin",
+    "py": "python",
+    "xml": "xml",
+    "yml": "yaml",
+    "yaml": "yaml",
+    "sql": "sql",
+    "json": "json",
+    "sh": "bash",
+    "properties": "properties",
+}
+
+
+def _language_for(file_name: str) -> str:
+    """Derives a Markdown code-fence language hint from the file extension."""
+    extension = file_name.rsplit(".", 1)[-1].lower() if "." in (file_name or "") else ""
+    return _LANGUAGE_BY_EXTENSION.get(extension, "")
+
+
 def format_report_node(state: ReviewState) -> ReviewState:
     """Node 2: Formats the results into a clean Markdown report."""
     print("-> Creating Markdown report...")
@@ -204,7 +245,7 @@ def format_report_node(state: ReviewState) -> ReviewState:
         report += f"- **Line/Context:** {f.line_number}\n"
         report += f"- **Problem:** {f.description}\n"
         # Show the offending code only when the model provided a short snippet
-        snippet = (f.code_snippet or "").strip()
+        snippet = _clean_snippet(f.code_snippet)
         if snippet:
             report += f"- **Code:**\n\n```{_language_for(f.file_name)}\n{snippet}\n```\n"
         report += f"- **Suggestion:** {f.suggestion}\n\n"

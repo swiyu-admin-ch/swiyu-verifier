@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [NEXT]
+# [4.0.0] - 2026-07-08
 
 ## Added
 - **Security:** Published container images (hardened and unhardened variants) are now automatically signed with
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Removed
 - Removed the ` client_id_scheme` from the application configuration as it is no longer used and replaced by the `client_id_prefix` configuration property with default value `decentralized_identifier`, which can be changed or set to null. Therefore, the `client_id` will be `${client_id_prefix}:${client_id}`.
 - Removed the vars `SWIYU_TRUST_REGISTRY_CUSTOMER_KEY` and `SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET` as they are not required by the read-only trust registry.
+
 ## Fixed
 - update casting logic which was fixed in sdjwt library v1.9
 - update `DcqlClaimDto` to prevent business verifier to send an empty `values` list (which is not allowed by the spec)

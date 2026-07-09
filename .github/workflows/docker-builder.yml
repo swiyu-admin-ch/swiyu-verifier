@@ -197,7 +197,7 @@ jobs:
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
       - name: Create SBOM
-        uses: snyk/actions/maven-3-jdk-21@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
+        uses: snyk/actions/maven-3-jdk-21@8e119fbb6c251787721d34ba683ed48eba792766 # master
         with:
           command: sbom
           args: --format=cyclonedx1.6+json --maven-aggregate-project --json-file-output=sbom.json

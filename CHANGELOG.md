@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - oauthState must be sent in verification response otherwise the verifier rejects the response.
 - When fetching an expired Verification Management Object, will now return an error instead of returning it one last time
 - Uses A256GCM instead of A128GCM for encryption.
+- New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 10MB 
 
 # [3.0.2] - 2026-06-12
 

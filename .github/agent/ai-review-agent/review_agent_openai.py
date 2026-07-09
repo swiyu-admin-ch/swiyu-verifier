@@ -1,4 +1,6 @@
 import os
+import re
+import time
 import subprocess
 from langchain_core.messages import SystemMessage
 from typing import List, TypedDict
@@ -44,33 +46,31 @@ def _split_diff_by_file(diff: str) -> List[str]:
     """
     if not diff.strip():
         return []
-    chunks: List[str] = []
-    current: List[str] = []
-    for line in diff.splitlines(keepends=True):
-        if line.startswith("diff --git ") and current:
-            chunks.append("".join(current))
-            current = []
-        current.append(line)
-    if current:
-        chunks.append("".join(current))
-    return chunks
+    # Split right before each "diff --git " line (kept, not removed) without
+    # matching the marker mid-line, so it stays correct even for diffs of
+    # this very script (which contains that literal string).
+    chunks = re.split(r"(?m)^(?=diff --git )", diff)
+    return [chunk for chunk in chunks if chunk]
 
 
 def _build_llm() -> ChatOpenAI:
     """Creates the configured chat model, failing early on missing configuration."""
     adesso_api_key = os.environ.get("ADESSO_API_KEY")
     adesso_base_url = os.environ.get("ADESSO_BASE_URL")
-    qwen_model_name = os.environ.get("QWEN_MODEL_NAME", "qwen")
+    # LLM_MODEL_NAME is the generic name; QWEN_MODEL_NAME is kept as a fallback
+    # for backwards compatibility since the model behind this proxy is
+    # interchangeable (e.g. Qwen, Gemma, ...).
+    llm_model_name = os.environ.get("LLM_MODEL_NAME", os.environ.get("QWEN_MODEL_NAME", "qwen"))
 
     if not adesso_api_key or not adesso_base_url:
         raise ValueError("ERROR: Please set ADESSO_API_KEY and ADESSO_BASE_URL as environment variables!")
 
     return ChatOpenAI(
-        model=qwen_model_name,
+        model=llm_model_name,
         temperature=0,
         api_key=adesso_api_key,
         base_url=adesso_base_url,
-        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "8000")), # Must be high enough for the full JSON; truncated output cannot be parsed
+        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "5000")), # Must be high enough for the full JSON; truncated output cannot be parsed
         timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "300")), # Fail fast instead of hanging
         max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504) with backoff
         # http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
@@ -85,7 +85,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     resilient: if a single file times out, its error is recorded and the
     remaining files are still reviewed.
     """
-    print("-> Analyzing git diff with Qwen (adesso AI Hub)...")
+    print("-> Analyzing git diff with the configured LLM (adesso AI Hub)...")
 
     llm = _build_llm()
 
@@ -159,6 +159,9 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
 
     # Cap the size of a single file chunk so one huge file cannot trigger a
     # gateway timeout. Large files are truncated rather than dropped entirely.
+    # Kept moderate (not 20000+): larger prompts take the model longer to
+    # process, increasing the risk of hitting the upstream gateway's fixed
+    # read-timeout (504), which our client-side `timeout` setting cannot override.
     max_chunk_chars = int(os.environ.get("MAX_FILE_DIFF_CHARS", "20000"))
 
     all_findings: List[ReviewFinding] = []
@@ -166,12 +169,19 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     failed = 0
     for i, chunk in enumerate(chunks, 1):
         if len(chunk) > max_chunk_chars:
+            # NOTE: only the first max_chunk_chars characters are reviewed; the
+            # remainder of this file's diff is NOT seen by the model.
+            print(f"   [{i}/{len(chunks)}] WARNING: diff truncated to {max_chunk_chars} chars, "
+                  f"review may be incomplete for this file.")
             chunk = chunk[:max_chunk_chars] + "\n\n[... file diff truncated due to size ...]\n"
         try:
+            start = time.monotonic()
             result = chain.invoke({"diff": chunk})
+            elapsed = time.monotonic() - start
             all_findings.extend(result.findings)
             reviewed += 1
-            print(f"   [{i}/{len(chunks)}] reviewed ({len(result.findings)} finding(s)).")
+            print(f"   [{i}/{len(chunks)}] reviewed in {elapsed:.1f}s ({len(result.findings)} finding(s), "
+                  f"{len(chunk)} chars).")
         except Exception as e:
             failed += 1
             print(f"   [{i}/{len(chunks)}] skipped due to error: {e}")
@@ -183,7 +193,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     return {"findings": all_findings, "summary": summary}
 
 def _clean_snippet(raw: str) -> str:
-    """Removes diff artefacts from a code snippet so it renders as plain source.
+    """Removes diff header artefacts from a code snippet, keeping +/- markers.
 
     The model occasionally leaves the leading unified-diff markers ('+', '-', ' ')
     or hunk/file headers in the snippet. Strip them so the report shows clean code.
@@ -230,7 +240,7 @@ def format_report_node(state: ReviewState) -> ReviewState:
     findings = state.get("findings", [])
     summary = state.get("summary", "No summary available.")
 
-    report = f"# 🤖 AI Code Review Report (Qwen)\n\n**Summary:** {summary}\n\n"
+    report = f"# 🤖 AI Code Review Report\n\n**Summary:** {summary}\n\n"
 
     if not findings:
         report += "✅ **Great! The code complies with all guidelines. No issues found.**\n"

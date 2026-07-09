@@ -151,7 +151,7 @@ jobs:
 #          )
 
   ai-code-review:
-    name: AI Code Review (Qwen)
+    name: AI Code Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # We need permissions to leave a comment on the PR
@@ -178,7 +178,7 @@ jobs:
           ADESSO_API_KEY: ${{ secrets.ADESSO_API_KEY }}
           # These variables can be defined directly here
           ADESSO_BASE_URL: "https://adesso-ai-hub.3asabc.de/v1"
-          QWEN_MODEL_NAME: "qwen-3.6-35b-sovereign"
+          LLM_MODEL_NAME: "openai/google/gemma-3-27b-it"
           # Tells the script which branch the PR targets (e.g. origin/main)
           GIT_DIFF_TARGET: "origin/${{ github.base_ref }}...HEAD"
         run: |

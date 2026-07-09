@@ -1,6 +1,5 @@
 import os
 import subprocess
-import httpx
 from langchain_core.messages import SystemMessage
 from typing import List, TypedDict
 from pydantic import BaseModel, Field

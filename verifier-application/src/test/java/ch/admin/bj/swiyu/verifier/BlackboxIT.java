@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
@@ -11,6 +12,7 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.eid.did_sidekicks.DidDoc;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
@@ -21,6 +23,7 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,6 +36,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -47,7 +51,10 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -78,10 +85,30 @@ class BlackboxIT {
     private DidResolverFacade didResolverFacade;
     @Autowired
     private ManagementRepository managementEntityRepository;
+    @MockitoSpyBean
+    protected DidJwtValidator credentialDidJwtValidator;
+
+    @BeforeEach
+    void setUp() throws DidSidekicksException {
+        // Bypass native DID library — IT tests focus on HTTP layer, not DID resolution internals
+        doReturn("https://identifier.admin.ch/did.jsonl")
+                .when(credentialDidJwtValidator).getAndValidateResolutionUrl(anyString());
+        doReturn(SDJWTCredentialMock.DEFAULT_ISSUER_ID)
+                .when(credentialDidJwtValidator).getDidString(anyString());
+        doNothing().when(credentialDidJwtValidator).validateJwt(anyString(), any(DidDoc.class));
+        doNothing().when(credentialDidJwtValidator).validateJwt(anyString(), any(JWKSet.class));
+        // Mock 1-arg resolveDid so validateJwt receives a non-null DidDoc
+        when(didResolverFacade.resolveDid(anyString()))
+                .thenReturn(DidDocFixtures.issuerDidDocWithJsonWebKey(
+                        ACCEPTED_ISSUER,
+                        "some_issuer_id#key-1",
+                        KeyFixtures.issuerPublicKeyAsJsonWebKey()));
+    }
 
     @ParameterizedTest
     @MethodSource("provideCreateDtosDirectPost")
     void testVerificationFlow_walletSendsValidCredential(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+
         var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
         var createResponseDto = createVerificationRequest(createDto);
 

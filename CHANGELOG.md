@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - State provided in response is now also acceted when using direct_post.jwt as part of the jwt.
 
 ## Changed
+- Refactored JWT and SD-JWT signature validation to use the centralized `swiyu-jwt-validator` and `swiyu-sdjwt-validator` libraries. This enforces PARENT-ADR-027 and PARENT-ADR-035: the `iss` claim is now explicitly ignored, key resolution relies exclusively on absolute `kid` headers, and DID resolution is restricted to a configured host allowlist to prevent SSRF / "phone home" attacks `(#873)`.
 - oauthState must be sent in verification response otherwise the verifier rejects the response.
 - When fetching an expired Verification Management Object, will now return an error instead of returning it one last time
 - Uses A256GCM instead of A128GCM for encryption.

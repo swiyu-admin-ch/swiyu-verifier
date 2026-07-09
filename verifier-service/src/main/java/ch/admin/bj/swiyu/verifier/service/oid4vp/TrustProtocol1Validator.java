@@ -12,7 +12,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.IssuerDataLoader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Deprecated(since = "Trust Protocol 2.0")
 public class TrustProtocol1Validator {
-    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
+    private final IssuerDataLoader issuerDataLoader;
     private final SdJwtVpTokenVerifier sdJwtVpTokenVerifier;
 
     /**
@@ -90,7 +90,7 @@ public class TrustProtocol1Validator {
             return List.of();
         }
         try {
-            return issuerPublicKeyLoader.loadTrustStatement(trustAnchor.trustRegistryUri(), vct);
+            return issuerDataLoader.loadTrustStatement(trustAnchor.trustRegistryUri(), vct);
         } catch (JsonProcessingException e) {
             return List.of();
         }

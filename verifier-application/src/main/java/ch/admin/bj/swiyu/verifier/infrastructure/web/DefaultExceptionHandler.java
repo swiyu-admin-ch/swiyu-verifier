@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web;
 
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
@@ -158,5 +159,22 @@ public class DefaultExceptionHandler extends ResponseEntityExceptionHandler {
 
         log.warn("The received verification presentation could not be verified - caused by {}-{}:{}", error.error(), error.errorCode(), error.errorDescription(), e);
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles {@link JwtValidatorException} thrown when a JWT fails DID-based signature validation.
+     *
+     * <p>This exception is raised by the {@code swiyu-jwt-validator} library when the
+     * {@code kid} is relative, the resolved DID host is not on the allowlist, or the
+     * cryptographic signature verification fails. All these cases indicate a malformed
+     * or untrusted credential and are mapped to HTTP 400 Bad Request.</p>
+     *
+     * @param e the validation failure
+     * @return a 400 Bad Request response with the library's error message
+     */
+    @ExceptionHandler(JwtValidatorException.class)
+    public ResponseEntity<Object> handleJwtValidatorException(JwtValidatorException e) {
+        log.warn("JWT validation failed: {}", e.getMessage());
+        return createBadRequestResponse(e);
     }
 }

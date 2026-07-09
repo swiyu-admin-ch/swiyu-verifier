@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,7 @@ import ch.admin.bj.swiyu.tsverifier.statement.TrustMarkers;
 import ch.admin.bj.swiyu.tsverifier.statement.TrustVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.IssuerDataLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
@@ -61,8 +62,9 @@ public class TrustProtocol2Validator {
 
     private final TrustStatementCacheService statementProvider;
     private final StatusListResolverAdapter statusListResolverAdapter;
-    private final DidJwtValidator jwtValidator;
-    private final IssuerPublicKeyLoader keyLoader;
+    @Qualifier("trustStatementDidJwtValidator")
+    private final DidJwtValidator trustStatementDidJwtValidator;
+    private final IssuerDataLoader keyLoader;
     private final ObjectMapper mapper;
     private final DidKidParser didKidParser = new DidKidParser();
 
@@ -182,7 +184,7 @@ public class TrustProtocol2Validator {
             SignedJWT jwt = SignedJWT.parse(tokenStatusListTokenJwt);
             String kid = jwt.getHeader().getKeyID();
             JWKSet statusListJwkSet = getTrustPublicKeys(Set.of(kid));
-            jwtValidator.validateJwt(tokenStatusListTokenJwt, statusListJwkSet);
+            trustStatementDidJwtValidator.validateJwt(tokenStatusListTokenJwt, statusListJwkSet);
             return mapper.readValue(jwt.getPayload().toString(), TokenStatusListTokenDto.class);
         } catch (ParseException | JsonProcessingException | JwtValidatorException e) {
             log.warn("Trust Protocol 2.0: Skipping failed to validate token status list {} ", tokenStatusListTokenJwt,

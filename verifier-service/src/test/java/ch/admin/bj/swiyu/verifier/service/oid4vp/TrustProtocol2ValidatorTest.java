@@ -20,7 +20,7 @@ import com.nimbusds.jwt.SignedJWT;
 
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.IssuerDataLoader;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TestTrustStatementGenerator;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
@@ -46,7 +46,7 @@ class TrustProtocol2ValidatorTest {
     @Mock
     private DidJwtValidator jwtValidator;
     @Mock
-    private IssuerPublicKeyLoader keyLoader;
+    private IssuerDataLoader keyLoader;
 
     private TrustProtocol2Validator validator;
     private ObjectMapper mapper = new ObjectMapper();

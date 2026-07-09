@@ -1,13 +1,13 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.controller;
 
-import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
-import ch.admin.bj.swiyu.verifier.domain.management.*;
-import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
-import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.management.*;
+import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
@@ -15,6 +15,8 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import ch.admin.eid.did_sidekicks.DidDoc;
+import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,7 +41,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.FieldSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -57,14 +58,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto.INVALID_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
+import static ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto.INVALID_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.*;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_VCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -564,6 +567,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             );
         });
 
+        doThrow(new JwtValidatorException("Key not found in DID Document"))
+                .when(credentialDidJwtValidator).validateJwt(anyString(), any(DidDoc.class));
+
         var sdJWT = emulator.createSDJWTMock(statusListIndex);
         var parts = sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
 
@@ -580,7 +586,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("Failed to verify JWT: Issuer public key does not match signature!"));
+                .andExpect(jsonPath("error_description").value("Key not found in DID Document"));
     }
 
 
@@ -594,13 +600,16 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        doThrow(new JwtValidatorException("Key not found in DID Document"))
+                .when(credentialDidJwtValidator).validateJwt(anyString(), any(DidDoc.class));
+
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("Signature mismatch"));
+                .andExpect(jsonPath("error_description").value("Key not found in DID Document"));
     }
 
     @Test
@@ -699,14 +708,13 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
-            String issuerKeyId = sdjwt.getIssuerId() + "#key-1";
-            String fragment = "key-1";
-            when(didResolverFacade.resolveDid(sdjwt.getIssuerId(), fragment))
+            when(didResolverFacade.resolveDid(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                     .thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
-                            sdjwt.getIssuerId(), issuerKeyId, KeyFixtures.issuerPublicKeyAsJsonWebKey()).getKey(fragment));
-        } catch (DidResolverException | ch.admin.eid.did_sidekicks.DidSidekicksException e) {
+                            sdjwt.getIssuerId(), sdjwt.getKidHeaderValue(), KeyFixtures.issuerPublicKeyAsJsonWebKey()));
+        } catch (DidSidekicksException e) {
             throw new AssertionError(e);
         }
+
 
     }
 
@@ -818,7 +826,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(dcqlQuery(dcqlQuery))
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .build());
 
         // GIVEN
@@ -1153,14 +1161,14 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final CountDownLatch didCallStarted = new CountDownLatch(1);
 
         // Simulate did resolution blocking
-        when(didResolverFacade.resolveDid(emulator.getIssuerId(), "key-1"))
+        when(didResolverFacade.resolveDid(emulator.getIssuerId()))
                 .thenAnswer(invocation -> {
                     didCallStarted.countDown();
                     Thread.sleep(Long.MAX_VALUE);
                     return DidDocFixtures.issuerDidDocWithJsonWebKey(
                             emulator.getIssuerId(),
-                            emulator.getIssuerId() + "#key-1",
-                            KeyFixtures.issuerPublicKeyAsJsonWebKey()).getKey("key-1");
+                            emulator.getKidHeaderValue(),
+                            KeyFixtures.issuerPublicKeyAsJsonWebKey());
                 });
 
         final HikariPoolMXBean pool = hikariPool();
@@ -1198,7 +1206,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final CountDownLatch allowDidToFinish = new CountDownLatch(concurrentRequests);
 
         // Simulate did resolution blocking
-        when(didResolverFacade.resolveDid(emulator.getIssuerId(), "key-1"))
+        when(didResolverFacade.resolveDid(emulator.getIssuerId()))
                 .thenAnswer(invocation -> {
                     didCallStarted.countDown();
                     try {
@@ -1208,8 +1216,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     }
                     return DidDocFixtures.issuerDidDocWithJsonWebKey(
                             emulator.getIssuerId(),
-                            emulator.getIssuerId() + "#key-1",
-                            KeyFixtures.issuerPublicKeyAsJsonWebKey()).getKey("key-1");
+                            emulator.getKidHeaderValue(),
+                            KeyFixtures.issuerPublicKeyAsJsonWebKey());
                 });
 
         final HikariPoolMXBean pool = hikariPool();

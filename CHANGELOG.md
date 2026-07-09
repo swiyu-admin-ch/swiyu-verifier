@@ -13,27 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bound to the immutable image digest and published to the Sigstore transparency log, allowing consumers to verify image
   authenticity via `cosign verify` (#838).
 - Integrate `pgpverify-maven-plugin` to cryptographically verify PGP signatures of all third-party dependencies during the build. The build fails if an artifact has no signature or an invalid signature. PGP keys are cached in CI/CD to avoid redundant downloads `(#836)`.
-- Add additional check if `verification_purpose.purpose_name` and `verification_purpose.purpose_description` contain the necessary default keys
+- Add additional check if `verification_purpose.purpose_name` and `verification_purpose.purpose_description` contain the necessary default keys `(#1113)`.
+- SBOM generation is now enabled in the Docker build and release pipeline `(#1004, #1104)`.
 
 ## Removed
-- Removed the ` client_id_scheme` from the application configuration as it is no longer used and replaced by the `client_id_prefix` configuration property with default value `decentralized_identifier`, which can be changed or set to null. Therefore, the `client_id` will be `${client_id_prefix}:${client_id}`.
-- Removed the vars `SWIYU_TRUST_REGISTRY_CUSTOMER_KEY` and `SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET` as they are not required by the read-only trust registry.
+- Removed the ` client_id_scheme` from the application configuration as it is no longer used and replaced by the `client_id_prefix` configuration property with default value `decentralized_identifier`, which can be changed or set to null. Therefore, the `client_id` will be `${client_id_prefix}:${client_id}` `(#654)`.
+- Removed the vars `SWIYU_TRUST_REGISTRY_CUSTOMER_KEY` and `SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET` as they are not required by the read-only trust registry `(#1075)`.
 
 ## Fixed
-- update casting logic which was fixed in sdjwt library v1.9
-- update `DcqlClaimDto` to prevent business verifier to send an empty `values` list (which is not allowed by the spec)
-- check `_sd_alg` value in SD-JWT verifier to ensure it is a supported algorithm (currently only `sha-256` is supported)
-- Add basic guard for to stop terminal verification results being overwritten.
-- Limited the number of vcs sent with the multiple flag to 1 as the flow is not supported yet. The verifier will reject the request if more than 1 vcs are sent.
-- unify JWK_CACHE and PUBLIC_ISSUER_KEY_CACHE into JWK_CACHE. This depricates the environment variable ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI. It is used for now as fallback value for JWK_CACHE_TTL_MILLI so existing deployments will not be broken by this fix.
-- Add ttl based cache evict for trust statements (until proper caching concept is ecosystem-wide implemented)
-- State provided in response is now also acceted when using direct_post.jwt as part of the jwt.
+- update casting logic which was fixed in sdjwt library v1.9 `(#1057)`.
+- update `DcqlClaimDto` to prevent business verifier to send an empty `values` list (which is not allowed by the spec) `(#1069)`.
+- check `_sd_alg` value in SD-JWT verifier to ensure it is a supported algorithm (currently only `sha-256` is supported) `(#1065)`.
+- Add basic guard for to stop terminal verification results being overwritten `(#988)`.
+- Limited the number of vcs sent with the multiple flag to 1 as the flow is not supported yet. The verifier will reject the request if more than 1 vcs are sent `(#533)`.
+- unify JWK_CACHE and PUBLIC_ISSUER_KEY_CACHE into JWK_CACHE. This depricates the environment variable ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI. It is used for now as fallback value for JWK_CACHE_TTL_MILLI so existing deployments will not be broken by this fix `(#987)`.
+- Add ttl based cache evict for trust statements (until proper caching concept is ecosystem-wide implemented) `(#987)`.
+- State provided in response is now also acceted when using direct_post.jwt as part of the jwt `(#1128)`.
 
 ## Changed
-- oauthState must be sent in verification response otherwise the verifier rejects the response.
-- When fetching an expired Verification Management Object, will now return an error instead of returning it one last time
-- Uses A256GCM instead of A128GCM for encryption.
-- New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 10MB 
+- oauthState must be sent in verification response otherwise the verifier rejects the response `(#692)`.
+- When fetching an expired Verification Management Object, will now return an error instead of returning it one last time `(#986)`.
+- Uses A256GCM instead of A128GCM for encryption `(#875)`.
 
 # [3.0.2] - 2026-06-12
 

@@ -178,7 +178,7 @@ jobs:
           ADESSO_API_KEY: ${{ secrets.ADESSO_API_KEY }}
           # These variables can be defined directly here
           ADESSO_BASE_URL: "https://adesso-ai-hub.3asabc.de/v1"
-          LLM_MODEL_NAME: "openai/google/gemma-3-27b-it"
+          LLM_MODEL_NAME: "google/gemma-3-27b-it"
           # Tells the script which branch the PR targets (e.g. origin/main)
           GIT_DIFF_TARGET: "origin/${{ github.base_ref }}...HEAD"
         run: |

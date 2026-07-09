@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
-
+## Changed
+- New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 10MB
 
 # [4.0.0] - 2026-07-08
 

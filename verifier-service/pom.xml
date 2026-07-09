@@ -8,7 +8,7 @@
     <parent>
         <groupId>ch.admin.bj.swiyu</groupId>
         <artifactId>swiyu-verifier-parent</artifactId>
-        <version>3.1.0-SNAPSHOT</version>
+        <version>4.0.1</version>
     </parent>
 
     <artifactId>swiyu-verifier-service</artifactId>
@@ -29,14 +29,18 @@
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jws-signature-service</artifactId>
+            <version>${generic-java-lib.version}</version>
         </dependency>
+
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-did-resolver-adapter</artifactId>
+            <version>${generic-java-lib.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-ts-verifier</artifactId>
+            <version>${generic-java-lib.version}</version>
         </dependency>
 
         <!-- JWT Library -->
@@ -163,10 +167,12 @@
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jwe-util</artifactId>
+            <version>${generic-java-lib.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jwt-util</artifactId>
+            <version>${generic-java-lib.version}</version>
         </dependency>
 
         <!-- High-performance in-memory caching with per-entry TTL support (TP2.0) -->

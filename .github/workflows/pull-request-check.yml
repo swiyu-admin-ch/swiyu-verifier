@@ -154,7 +154,7 @@ jobs:
     name: AI Code Review (Qwen)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Wir brauchen Rechte, um einen Kommentar im PR zu hinterlassen
+    # We need permissions to leave a comment on the PR
     permissions:
       contents: read
       pull-requests: write
@@ -163,7 +163,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # WICHTIG: 0 lädt die Git-Historie, die für den Diff benötigt wird
+          fetch-depth: 0 # IMPORTANT: 0 fetches the full git history, which is required for the diff
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -176,17 +176,17 @@ jobs:
       - name: Run AI Review Agent
         env:
           ADESSO_API_KEY: ${{ secrets.ADESSO_API_KEY }}
-          # Diese Variablen kannst du hier direkt definieren
+          # These variables can be defined directly here
           ADESSO_BASE_URL: "https://adesso-ai-hub.3asabc.de/v1"
           QWEN_MODEL_NAME: "qwen-3.6-35b-sovereign"
-          # Sagt dem Skript, gegen welchen Branch der PR gerichtet ist (z.B. origin/main)
+          # Tells the script which branch the PR targets (e.g. origin/main)
           GIT_DIFF_TARGET: "origin/${{ github.base_ref }}...HEAD"
         run: |
-          # Wir führen das Skript aus
+          # Run the script
           python .github/agent/ai-review-agent/review_agent_openai.py
 
       - name: Add Report to Job Summary
-        # Zeigt das Ergebnis auf der GitHub Actions Übersichtsseite an
+        # Shows the result on the GitHub Actions summary page
         if: always()
         run: |
           if [ -f ai-review-report.md ]; then
@@ -194,7 +194,7 @@ jobs:
           fi
 
       - name: Post Report as PR Comment
-        # Postet das Ergebnis direkt als Kommentar in den Pull Request
+        # Posts the result directly as a comment on the pull request
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

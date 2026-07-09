@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # [NEXT]
+
+## Changed
 - New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 10MB
 
 # [4.0.0] - 2026-07-08

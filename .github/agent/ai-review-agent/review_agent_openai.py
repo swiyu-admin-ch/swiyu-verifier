@@ -53,6 +53,30 @@ def _split_diff_by_file(diff: str) -> List[str]:
     return [chunk for chunk in chunks if chunk]
 
 
+# File paths matching any of these regexes are skipped entirely: they contain
+# documentation, instructions, example/template code (e.g. placeholders like
+# "XXX") or generated artefacts that must not be judged against production-code
+# rules (naming, architecture, etc.), which would otherwise produce
+# false-positive findings.
+_EXCLUDED_FILE_PATTERNS = [
+    re.compile(r"\.md$", re.IGNORECASE),
+    re.compile(r"^\.github/instructions/"),
+    re.compile(r"^\.github/agent/"),
+    re.compile(r"^openapi\.yaml$"),  # auto-generated via 'mvn verify -P generate-doc', not hand-written
+]
+
+
+def _extract_file_path(chunk: str) -> str:
+    """Extracts the 'b/...' target file path from a per-file diff chunk's header line."""
+    match = re.search(r"^diff --git a/\S+ b/(\S+)", chunk, re.MULTILINE)
+    return match.group(1) if match else ""
+
+
+def _is_excluded(file_path: str) -> bool:
+    """Checks whether a file path matches one of the documentation/instructions exclusion patterns."""
+    return any(pattern.search(file_path) for pattern in _EXCLUDED_FILE_PATTERNS)
+
+
 def _build_llm() -> ChatOpenAI:
     """Creates the configured chat model, failing early on missing configuration."""
     adesso_api_key = os.environ.get("ADESSO_API_KEY")
@@ -114,7 +138,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     9. Framework Usage: correct Spring Boot usage (annotations, transaction boundaries, validation).
     10. Testing Pyramid: unit tests must mock external dependencies and cover edge cases; do not push business-logic assertions into integration tests; do not decrease coverage without reason.
     11. Changelog: any user-facing or otherwise relevant change (feature, bug fix, behavioural/config/API change) must be accompanied by an entry in CHANGELOG.md under the '[NEXT]' section, grouped under Added/Fixed/Changed/Removed, and referencing the ticket number in parentheses (e.g. `(#949)`). Flag relevant code changes in the diff that do NOT include a corresponding CHANGELOG.md update or that omit the ticket reference. Pure refactorings, docs-only or merge commits are exempt.
-    12. Configuration Documentation: whenever application properties / configuration or environment variables are added, renamed, or changed (e.g. in application.yml, application-*.yml, @ConfigurationProperties classes, or env-var mappings), the README.md must be updated to document the new/changed property. Flag any such configuration change in the diff that is not reflected in README.md.
+    12. Configuration Documentation: whenever application properties / configuration or environment variables are added, renamed, or changed (e.g. in application.yml, application-*.yml, @ConfigurationProperties classes, or env-var mappings), the README.md must be updated to document the new/changed property. Flag any such configuration change in the diff that is not reflected in README.md. Do NOT flag pom.xml changes (dependency versions, plugin versions, build-only properties) under this rule - those are build/dependency management, not application configuration, and never require a README.md update.
     13. Database Migrations: new Flyway migration scripts (e.g. under db/migration) must be backwards compatible following the EMC (Expand-Migrate-Contract) pattern, so the previous application version keeps working against the new schema during a rolling deployment. Flag destructive or breaking changes in the same migration as the expand step, e.g. dropping/renaming columns or tables still used by the current version, adding NOT NULL columns without a default or backfill, or narrowing types. Such changes must be split into separate expand and contract migrations across releases. Also flag edits to already-released migration scripts (migrations must be immutable once released).
     14. Spelling & Language (scoped, not nitpicking): only flag typos that have real impact - in public API names, configuration/property keys, environment variable names, and in log or exception messages. All code comments and JavaDoc must be written in English; flag any non-English comment/JavaDoc. Do NOT report minor typos in local variables or general prose.
 
@@ -123,6 +147,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     - Derive line numbers from the diff hunk headers ('@@ -a,b +c,d @@').
     - Judge ONLY what is visible in the diff; do NOT assume unseen code.
     - Do NOT report formatting, whitespace, or import ordering (handled by PMD/EditorConfig).
+    - Do NOT flag JavaDoc, comments or @Schema/@ApiResponse descriptions merely for being verbose, long, or "could be shorter" - only flag them if they violate one of the 14 rules above (missing, wrong language, factually incorrect, or exposing secrets/PII). Verbosity/style alone is never a valid finding.
     - Prefer precision over quantity: no speculative or duplicate findings. If unsure, omit it.
     - Map severity to the review categories: HIGH = must fix (Critical), MEDIUM = should fix, LOW = optional/nice to have.
     - For each finding, if the problem is confined to a single line or a few (<= 5) lines, copy those exact source lines (without the leading '+' diff marker) verbatim into "code_snippet". If the finding spans many lines, a whole method or class, leave "code_snippet" as an empty string.
@@ -154,7 +179,24 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     ])
     chain = prompt | structured_llm
 
-    chunks = _split_diff_by_file(state["git_diff"])
+    all_chunks = _split_diff_by_file(state["git_diff"])
+
+    # Skip documentation/instructions/example files upfront: applying Java
+    # production-code rules (naming, architecture, ...) to them causes false
+    # positives, e.g. flagging an intentional "XXX" placeholder in a template.
+    chunks: List[str] = []
+    excluded_files: List[str] = []
+    for chunk in all_chunks:
+        file_path = _extract_file_path(chunk)
+        if file_path and _is_excluded(file_path):
+            excluded_files.append(file_path)
+        else:
+            chunks.append(chunk)
+
+    if excluded_files:
+        print(f"-> Skipping {len(excluded_files)} documentation/instructions file(s): "
+              f"{', '.join(excluded_files)}")
+
     print(f"-> Reviewing {len(chunks)} changed file(s) individually...")
 
     # Cap the size of a single file chunk so one huge file cannot trigger a

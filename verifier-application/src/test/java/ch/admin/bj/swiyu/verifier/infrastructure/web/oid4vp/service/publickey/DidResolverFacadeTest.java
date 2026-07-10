@@ -2,6 +2,8 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.service.publickey;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverAdapter;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.eid.did_sidekicks.DidDoc;

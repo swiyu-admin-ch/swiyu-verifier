@@ -1,5 +1,14 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
+import ch.admin.bj.swiyu.statuslist.TokenStatusListBit;
+import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
+import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
+import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
+import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
+import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -7,10 +16,11 @@ import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
-import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,6 +32,7 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
@@ -33,6 +44,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
@@ -62,9 +74,12 @@ public class SdJwtVpTokenVerifier {
     private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
 
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
-    private final StatusListReferenceFactory statusListReferenceFactory;
+    private final StatusListResolverAdapter statusListResolver;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
+    private final DidKidParser didKidParser = new DidKidParser();
+    private final DidJwtValidator didJwtValidator;
+    private final TokenStatusListVerifier statusListVerifier;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management) {
@@ -97,6 +112,7 @@ public class SdJwtVpTokenVerifier {
             var claims = nimbusJwt.getJWTClaimsSet();
             // Only technical verification here; issuer trust is validated at service layer
             var publicKey = issuerPublicKeyLoader.loadPublicKey(claims.getIssuer(), header.getKeyID());
+            // TODO Use generic lib here
             log.trace("Loaded issuer public key for id {}", managementEntity.getId());
             // Verify the JWS signature of the JWT
             if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey))) {
@@ -172,8 +188,43 @@ public class SdJwtVpTokenVerifier {
         }
     }
 
-    void verifyStatus(Map<String, Object> vcClaims, Management managementEntity) {
-        statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
+    protected void verifyStatus(Map<String, Object> vcClaims, Management managementEntity) {
+        TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(vcClaims);
+        if (reference.getStatus() == null) {
+            // no Status Reference -> VC has no Status
+            return;
+        }
+        try {
+            String statusListJWT = statusListResolver.resolveStatusList(reference.getReferencedStatusListUri());
+            SignedJWT tokenStatusListJWT;
+            tokenStatusListJWT = SignedJWT.parse(statusListJWT);
+            TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims());
+            String kid = didKidParser.extractKidFromHeader(statusListJWT);
+            JWK statusListKey = issuerPublicKeyLoader.loadJWK(statusList.getIssuer(), kid);
+            didJwtValidator.validateJwt(statusListJWT, new JWKSet(statusListKey));
+            if(!statusListVerifier.hasValidTokenStatusListTokenHeader(tokenStatusListJWT.getHeader())) {
+                throw credentialError(UNRESOLVABLE_STATUS_LIST, "Status List Token has illegal type");
+            }
+            StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(reference, statusList);
+            // TODO EIDOMNI-1090 - Pass through state to business component, removing the if else logic below
+            if(statusListState.status().filter(s -> s > TokenStatusListBit.REVOKED.getBitNumber()).isPresent()) {
+                // Suspended or Custom State
+                throw credentialError(CREDENTIAL_SUSPENDED, "Credential is suspended");
+            } else if (!statusListState.valid()) {
+                // Something wrong with the status list or revoked
+                throw credentialError(CREDENTIAL_REVOKED, "Credential is not valid");
+            }
+            // statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
+        } catch (
+            ParseException | 
+            LoadingPublicKeyOfIssuerFailedException |  
+            IndexOutOfBoundsException | 
+            IOException |
+            JwtValidatorException e) {
+            throw credentialError(e, UNRESOLVABLE_STATUS_LIST, "Status List Token malformed");
+        } catch (StatusListMaxSizeExceededException e) {
+            throw credentialError(e, UNRESOLVABLE_STATUS_LIST, "Status list size from %s exceeds maximum allowed size".formatted(reference.getReferencedStatusListUri()));
+        }
     }
 
     /**

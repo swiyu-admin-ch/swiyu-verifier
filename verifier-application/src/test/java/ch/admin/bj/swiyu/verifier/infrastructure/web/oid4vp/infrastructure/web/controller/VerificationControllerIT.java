@@ -39,7 +39,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.FieldSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -320,7 +319,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @ParameterizedTest
-    @CsvSource(value = {"0:credential_revoked", "1:credential_suspended", "3:credential_revoked"}, delimiter = ':')
+    @CsvSource(value = {"0:credential_revoked", "1:credential_suspended", "3:credential_suspended"}, delimiter = ':')
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenFail(String input, String errorCodeName) throws Exception {
         Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
@@ -580,7 +579,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("Failed to verify JWT: Issuer public key does not match signature!"));
+                .andExpect(jsonPath("error_description").value("Status List Token malformed"));
     }
 
 
@@ -626,7 +625,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description", containsString("The VC cannot be validated as the remote list does not contain this VC!")))
+                .andExpect(jsonPath("error_description", containsString("Status List Token malformed")))
                 .andReturn();
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
@@ -637,7 +636,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     void statusListResponseBodyTooBig_thenException() throws Exception {
 
         // GIVEN
-        var expectedErrorMesssage = "Status list size from %s exceeds maximum allowed size".formatted("https://test-statuslist.example");
+        var expectedErrorMesssage = "Status list size from %s exceeds maximum allowed size".formatted("https://example.com/statuslists/1");
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
 
         // ContetLengthInterceptor throws invalid argument exception if status list is too big

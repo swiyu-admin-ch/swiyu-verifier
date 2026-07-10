@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
@@ -61,6 +62,7 @@ public class TrustProtocol2Validator {
 
     private final TrustStatementCacheService statementProvider;
     private final StatusListResolverAdapter statusListResolverAdapter;
+    @Qualifier("trustStatementValidator")
     private final DidJwtValidator jwtValidator;
     private final IssuerPublicKeyLoader keyLoader;
     private final ObjectMapper mapper;

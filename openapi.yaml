@@ -780,7 +780,6 @@ components:
       - issuer_not_accepted
       - authorization_request_object_not_found
       - authorization_request_missing_error_param
-      - verification_process_closed
       - invalid_presentation_definition
       - malformed_credential
       - presentation_submission_constraint_violated
@@ -1047,6 +1046,8 @@ components:
           type: object
           additionalProperties: {}
       required:
+      - encrypted_response_enc_values_supported
+      - jwks
       - vp_formats_supported
     RequestObject:
       type: object

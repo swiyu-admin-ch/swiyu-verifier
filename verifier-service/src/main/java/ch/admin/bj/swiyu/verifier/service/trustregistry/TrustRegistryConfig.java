@@ -11,20 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpHeaders;
-import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
  * Spring configuration for the Trust Registry sidechannel API client and JWT validator.
  *
- * <p>Only active when {@code swiyu.trust-registry.api-url} is configured.
- * Uses HTTP Basic Auth (customer key / secret) to authenticate against the trust registry.</p>
+ * <p>Only active when {@code swiyu.trust-registry.api-url} is configured.</p>
  */
 @Slf4j
 @Configuration
@@ -38,23 +33,13 @@ public class TrustRegistryConfig {
 
     /**
      * Creates the WebClient-backed {@link ApiClient} for the Trust Registry sidechannel,
-     * injecting HTTP Basic Auth credentials from configuration.
+     * using the configured Trust Registry base URL.
      *
      * @return configured {@link ApiClient}
      */
     @Bean
     public ApiClient trustRegistryApiClient() {
-        var credentials = properties.getCustomerKey() + ":" + properties.getCustomerSecret();
-        var encoded = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-
-        var reConfigured = webClient.mutate()
-                .filter((request, next) -> next.exchange(
-                        ClientRequest.from(request)
-                                .header(HttpHeaders.AUTHORIZATION, "Basic " + encoded)
-                                .build()))
-                .build();
-
-        var client = new ApiClient(reConfigured);
+        ApiClient client = new ApiClient(webClient);
         client.setBasePath(properties.getApiUrl());
         log.info("Initializing Trust Registry sidechannel API client for {}", properties.getApiUrl());
         return client;
@@ -88,4 +73,3 @@ public class TrustRegistryConfig {
         return new DidJwtValidator(new UrlRestriction(hosts));
     }
 }
-

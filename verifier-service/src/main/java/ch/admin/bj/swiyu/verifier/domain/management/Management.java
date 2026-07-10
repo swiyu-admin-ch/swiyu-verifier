@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.FAILED;
+import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -127,6 +128,18 @@ public class Management {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 
+    /**
+     * Guarded set State, preventing illegal transaction
+     * @param state the new state to be set
+     */
+    public void setState(VerificationStatus state) {
+        if ( this.getState() == null ) {
+            this.state = state;
+        } else {
+            throw new IllegalStateException("State may not be changed through setter");
+        }
+    }
+
     public boolean isVerificationPending() {
         return state == VerificationStatus.PENDING;
     }
@@ -149,6 +162,7 @@ public class Management {
     }
 
     public void verificationFailed(VerificationErrorResponseCode errorCode, String errorDescription) {
+        ensureClaimedForProcessing();
         this.state = FAILED;
         this.walletResponse = ResponseData.builder()
                 .errorCode(errorCode)
@@ -157,6 +171,7 @@ public class Management {
     }
 
     public void verificationFailedDueToClientRejection(String errorDescription) {
+        ensureClaimedForProcessing();
         this.state = FAILED;
         this.walletResponse = ResponseData.builder()
                 .errorCode(VerificationErrorResponseCode.CLIENT_REJECTED)
@@ -164,6 +179,11 @@ public class Management {
                 .build();
     }
 
+    private void ensureClaimedForProcessing() {
+        if (this.getState() != VerificationStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Object should be claimed for processing!");
+        }
+    }
 
     private static String createNonce() {
         final Base64.Encoder base64encoder = Base64.getEncoder().withoutPadding();
@@ -179,6 +199,7 @@ public class Management {
     }
 
     public void verificationSucceeded(String credentialSubjectData) {
+        ensureClaimedForProcessing();
         this.state = VerificationStatus.SUCCESS;
         this.walletResponse = ResponseData.builder()
                 .credentialSubjectData(credentialSubjectData)

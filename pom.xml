@@ -11,7 +11,7 @@
 
     <groupId>ch.admin.bj.swiyu</groupId>
     <artifactId>swiyu-verifier-parent</artifactId>
-    <version>3.1.0-SNAPSHOT</version>
+    <version>4.1.0-SNAPSHOT</version>
     <name>Swiyu verifier parent pom</name>
     <description>Generic verifier for public beta</description>
 
@@ -43,7 +43,7 @@
         <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
         <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.84</bcpkix-jdk18on.version>
-        <postgres.version>42.7.11</postgres.version>
+        <postgres.version>42.7.12</postgres.version>
         <swagger-parser.version>2.1.42</swagger-parser.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>
@@ -61,11 +61,12 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
-        <generic-java-lib.version>1.6.4</generic-java-lib.version>
-        <openapi-generator-maven-plugin.version>7.22.0</openapi-generator-maven-plugin.version>
+        <generic-java-lib.version>1.7.0</generic-java-lib.version>
+        <openapi-generator-maven-plugin.version>7.23.0</openapi-generator-maven-plugin.version>
         <!-- Fixes CVE-2026-13006 -->
         <logback-core.version>1.5.37</logback-core.version>
-
+        <!-- Fixes SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890 / 17733746 -->
+        <tomcat.version>11.0.23</tomcat.version>
     </properties>
 
     <dependencyManagement>

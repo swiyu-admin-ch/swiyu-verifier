@@ -1,4 +1,3 @@
-# Inspired by https://thomasthornton.cloud/2025/03/18/setting-up-trivy-in-your-github-actions/
 name: Pull Request Check
 run-name: ${{ github.repository }} is evaluating pull request
 on: [pull_request]
@@ -25,7 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
+        uses: github/codeql-action/init@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
         with:
           languages: java
           config-file: ./.github/codeql/codeql-config.yml
@@ -36,7 +35,7 @@ jobs:
           java-version: '21'
           cache: 'maven'
       - name: Cache PGP keys for pgpverify-maven-plugin
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.m2/repository/pgpkeys-cache
           key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
@@ -44,7 +43,7 @@ jobs:
       - name: Build & test with Maven (produce JaCoCo)
         run: mvn --batch-mode clean verify -DskipTests=false
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
+        uses: github/codeql-action/analyze@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
         with:
           category: "/language:java"
       - name: Upload JaCoCo reports
@@ -72,7 +71,7 @@ jobs:
           cache: true
 
       - name: Upload PMD SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
+        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
         with:
           sarif_file: pmd-report.sarif
 
@@ -89,7 +88,7 @@ jobs:
           args: --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif
       - name: Upload result as sarif to GitHub Code Scanning 📦
         if: always() # We want to upload the SARIF file even if the Snyk action fails, to have the results in the Code Scanning tab of GitHub
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
+        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
         with:
           sarif_file: snyk.sarif
 
@@ -150,3 +149,56 @@ jobs:
 #            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
 #            exit 1
 #          )
+
+  ai-code-review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # We need permissions to leave a comment on the PR
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # IMPORTANT: 0 fetches the full git history, which is required for the diff
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python Dependencies
+        run: pip install langgraph langchain-openai pydantic
+
+      - name: Run AI Review Agent
+        env:
+          ADESSO_API_KEY: ${{ secrets.ADESSO_API_KEY }}
+          # These variables can be defined directly here
+          ADESSO_BASE_URL: "https://adesso-ai-hub.3asabc.de/v1"
+          LLM_MODEL_NAME: "google/gemma-3-27b-it"
+          # Tells the script which branch the PR targets (e.g. origin/main)
+          GIT_DIFF_TARGET: "origin/${{ github.base_ref }}...HEAD"
+        run: |
+          # Run the script
+          python .github/agent/ai-review-agent/review_agent_openai.py
+
+      - name: Add Report to Job Summary
+        # Shows the result on the GitHub Actions summary page
+        if: always()
+        run: |
+          if [ -f ai-review-report.md ]; then
+            cat ai-review-report.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Post Report as PR Comment
+        # Posts the result directly as a comment on the pull request
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f ai-review-report.md ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body-file ai-review-report.md
+          fi

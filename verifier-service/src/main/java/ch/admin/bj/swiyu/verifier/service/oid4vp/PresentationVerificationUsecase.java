@@ -50,10 +50,12 @@ public class PresentationVerificationUsecase {
         log.debug("Processing rejection for request_id: {}", managementEntityId);
 
         try {
-            // 1. Mark as failed due to client rejection in its own short-lived transaction
+            // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
+            managementService.claimSessionForProcessing(managementEntityId);
+            // 2. Mark as failed due to client rejection in its own short-lived transaction
             managementService.markVerificationFailedDueToClientRejection(managementEntityId, request.getErrorDescription());
         } catch (VerificationException e) {
-            // 1a. Persist failed verification result in a dedicated short transaction
+            // 2a. Persist failed verification result in a dedicated short transaction
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
 
@@ -61,7 +63,7 @@ public class PresentationVerificationUsecase {
             //PMD: rethrow since client gets notified of the error (v2 structure)
             throw e; // NOPMD - ExceptionAsFlowControl
         } finally {
-            // 2. Notify Business Verifier that this verification is done (non-transactional)
+            // 3. Notify Business Verifier that this verification is done (non-transactional)
             callbackEventProducer.produceEvent(managementEntityId);
         }
     }
@@ -114,8 +116,7 @@ public class PresentationVerificationUsecase {
             // We don't touch the database. We only report the error to the client.
             isSessionClaimedByThisThread = false;
             log.warn("Concurrent submission rejected for session {}", managementEntityId);
-            throw submissionError(VerificationErrorResponseCode.VERIFICATION_PROCESS_CLOSED,
-                    "Process already claimed or handled: " + managementEntityId);
+            throw new ProcessClosedException();
         } finally {
             // 4. Notify Business Verifier that this verification is done (non-transactional)
             if (isSessionClaimedByThisThread) {

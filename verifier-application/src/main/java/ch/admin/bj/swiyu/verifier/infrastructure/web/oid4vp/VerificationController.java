@@ -27,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -63,6 +64,7 @@ public class VerificationController {
                             description = "Request object either as plaintext or signed JWT",
                             content = @Content(
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = OpenidClientMetadataDto.class),
                                     examples = {
                                             @ExampleObject(name = "Sample Client Metadata", value = """
                                                     {
@@ -90,10 +92,29 @@ public class VerificationController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Request object either as plaintext or signed JWT",
-                            content = @Content(
-                                    schema = @Schema(implementation = RequestObjectDto.class)
-                            )
+                            description = """
+                                    Request object either as plaintext or signed JWT.
+
+                                    The 'application/oauth-authz-req+jwt' representation is a compact serialized JWS (optionally nested JWE) \
+                                    representing the Request Object claims. As this is a JWT and not a JSON object, its structural requirements \
+                                    cannot be expressed as a JSON Schema and are documented here instead:
+                                    - The JOSE header MUST require the 'profile_version' parameter to indicate the Swiss Profile version.
+                                    - The JWT Claims Set corresponds to the [RequestObject](#/components/schemas/RequestObject) schema documented \
+                                    for the 'application/json' representation below, with 'request' and 'request_uri' claims strictly prohibited.
+
+                                    The 'application/json' representation is kept for documentation purposes only, mirroring the JWT Claims Set of \
+                                    the 'application/oauth-authz-req+jwt' representation; it is not actually returned when JAR (JWT-secured \
+                                    Authorization Request) is enabled.""",
+                            content = {
+                                    @Content(
+                                            mediaType = "application/oauth-authz-req+jwt",
+                                            schema = @Schema(type = "string", format = "jwt")
+                                    ),
+                                    @Content(
+                                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                            schema = @Schema(implementation = RequestObjectDto.class)
+                                    )
+                            }
                     ),
                     @ApiResponse(
                             responseCode = "404",
@@ -152,7 +173,11 @@ public class VerificationController {
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Verification Presentation received and processed successfully"
+                            description = "Verification Presentation received and processed successfully",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(type = "object", implementation = Map.class)
+                            )
                     ),
                     @ApiResponse(
                             responseCode = "400",
@@ -161,8 +186,7 @@ public class VerificationController {
                     )
             }
     )
-    @ResponseStatus(HttpStatus.OK)
-    public void receiveVerificationPresentation(
+    public ResponseEntity<Map<String, Object>> receiveVerificationPresentation(
             @RequestHeader(name = "SWIYU-API-Version", required = false) String versionString,
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationUnionDto unionDto) {
@@ -194,6 +218,7 @@ public class VerificationController {
         }
 
         log.info("Successfully processed verification presentation for request_id: {}", requestId);
+        return ResponseEntity.ok(Map.of());
 
     }
 }

@@ -27,7 +27,7 @@ import java.util.Map;
 public class OpenidClientMetadataDto {
 
     @JsonProperty("jwks")
-    @Schema(description = """
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = """
             One or more public keys, such as those used by the Wallet as an input to a key agreement
             that may be used for encryption of the Authorization Response, or where the Wallet will
             require the public key of the Verifier to generate a Verifiable Presentation.
@@ -39,7 +39,7 @@ public class OpenidClientMetadataDto {
     @JsonProperty(value = "encrypted_response_enc_values_supported", defaultValue = """
             ["A256GCM"]
             """)
-    @Schema(description = """
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = """
            If present, should be non-empty array of JWE algorithms as in RFC7516.
            When a response_mode requiring encryption of the Response (such as direct_post.jwt) is specified,
            one of the specified algorithms is to be used.""")
@@ -54,7 +54,7 @@ public class OpenidClientMetadataDto {
                     "kb-jwt_alg_values": ["ES256"]
                   }
             """)
-    @Schema(description = """
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = """
             An object containing a list of name/value pairs, where the name is a Credential Format Identifier and the
             value defines format-specific parameters that a Verifier supports.
             """)

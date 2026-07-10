@@ -139,7 +139,7 @@ class SwissProfileOpenidClientMetadataComplianceTest extends AbstractSwissProfil
     void testVpFormatsDoesNotIncludeMdoc() {
         Schema<?> schema = getResponseSchema();
         assertThat(schema)
-                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 5.10. Request URI Method post] A schema must be defined for the 200 application/json response.")
+                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 5.1 New Parameters] A schema must be defined for the 200 application/json response.")
                 .isNotNull();
 
         Map<String, Schema> properties = schema.getProperties();
@@ -148,16 +148,16 @@ class SwissProfileOpenidClientMetadataComplianceTest extends AbstractSwissProfil
             Map<String, Schema> vpFormatProperties = vpFormats.getProperties();
             if (vpFormatProperties != null) {
                 assertThat(vpFormatProperties)
-                        .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 5.10. Request URI Method post] The 'vp_formats_supported' property MUST NOT include configurations for ISO mdoc-based credentials ('mso_mdoc'), as these are explicitly NOT SUPPORTED.")
+                        .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 5.1 New Parameters] The 'vp_formats_supported' property MUST NOT include configurations for ISO mdoc-based credentials ('mso_mdoc'), as these are explicitly NOT SUPPORTED.")
                         .doesNotContainKey("mso_mdoc");
             }
         }
     }
 
-    @Disabled("TODO: OpenidClientMetadataDto declares 'jwks' but does not mark it (or 'jwks_uri') as required")
+    @Disabled("TODO: Contract gap - OpenidClientMetadataDto declares 'jwks' but does not mark it as required (only 'vp_formats_supported' is required). The Swiss Profile requires 'jwks' by value.")
     @Test
-    @DisplayName("Schema: 'jwks' or 'jwks_uri' MUST be required to supply encryption public keys")
-    void testJwksOrJwksUriIsRequired() {
+    @DisplayName("Schema: 'jwks' MUST be required (by value) and 'jwks_uri' MUST NOT be used")
+    void testJwksIsRequiredByValue() {
         Schema<?> schema = getResponseSchema();
         assertThat(schema)
                 .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] A schema must be defined for the 200 application/json response.")
@@ -165,32 +165,43 @@ class SwissProfileOpenidClientMetadataComplianceTest extends AbstractSwissProfil
 
         List<String> required = schema.getRequired();
         assertThat(required)
-                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] Either 'jwks' or 'jwks_uri' MUST be required to supply the Wallet with the necessary public keys for encryption.")
-                .isNotNull();
-        assertThat(required.contains("jwks") || required.contains("jwks_uri"))
-                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] Either 'jwks' or 'jwks_uri' MUST be present and required in the metadata object.")
-                .isTrue();
+                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] 'jwks' MUST be required to supply the Wallet with the necessary public keys for encryption.")
+                .isNotNull()
+                .contains("jwks");
+
+        Map<String, Schema> properties = schema.getProperties();
+        if (properties != null) {
+            assertThat(properties)
+                    .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] 'jwks_uri' MUST NOT be used; the Swiss Profile passes the encryption key by value within the signed Request Object.")
+                    .doesNotContainKey("jwks_uri");
+        }
     }
 
-    @Disabled("TODO: OpenidClientMetadataDto does not declare 'authorization_encrypted_response_alg' / 'authorization_encrypted_response_enc'; it only has an unrelated 'encrypted_response_enc_values_supported' array")
     @Test
-    @DisplayName("Schema: JWE algorithm properties MUST be defined to enforce encrypted Direct Post JWT responses")
-    void testEncryptionAlgAndEncArePresent() {
+    @DisplayName("Schema: 'encrypted_response_enc_values_supported' MUST be defined to enforce encrypted Direct Post JWT responses")
+    void testEncryptionEncValuesSupportedIsPresent() {
         Schema<?> schema = getResponseSchema();
         assertThat(schema)
-                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] A schema must be defined for the 200 application/json response.")
+                .as("[Document: OpenID for Verifiable Presentations 1.0, Chapter: 8.3. Response Mode \"direct_post.jwt\"] A schema must be defined for the 200 application/json response.")
                 .isNotNull();
 
         Map<String, Schema> properties = schema.getProperties();
         assertThat(properties)
-                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] Schema properties must be defined.")
+                .as("[Document: OpenID for Verifiable Presentations 1.0, Chapter: 8.3. Response Mode \"direct_post.jwt\"] Schema properties must be defined.")
                 .isNotNull();
         assertThat(properties)
-                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] The 'authorization_encrypted_response_alg' property MUST be defined, because the response mode 'direct_post.jwt' MUST be used and encryption MUST be enforced.")
-                .containsKey("authorization_encrypted_response_alg");
+                .as("[Document: OpenID for Verifiable Presentations 1.0, Chapter: 8.3. Response Mode \"direct_post.jwt\"] The 'encrypted_response_enc_values_supported' property MUST be defined, because the response mode 'direct_post.jwt' MUST be used and encryption MUST be enforced. The JWE 'alg' is derived from the JWK in 'jwks'.")
+                .containsKey("encrypted_response_enc_values_supported");
+        assertThat(properties.get("encrypted_response_enc_values_supported").getTypes())
+                .as("[Document: OpenID for Verifiable Presentations 1.0, Chapter: 8.3. Response Mode \"direct_post.jwt\"] The 'encrypted_response_enc_values_supported' property MUST be defined as a JSON array of supported JWE 'enc' values.")
+                .isNotNull()
+                .contains("array");
         assertThat(properties)
-                .as("[Document: Swiss Profile Verification - swiyu technical documentation, Chapter: 8. Response] The 'authorization_encrypted_response_enc' property MUST be defined, because the response mode 'direct_post.jwt' MUST be used and encryption MUST be enforced.")
-                .containsKey("authorization_encrypted_response_enc");
+                .as("[Document: OpenID for Verifiable Presentations 1.0, Chapter: 8.3. Response Mode \"direct_post.jwt\"] The legacy JARM-style parameter 'authorization_encrypted_response_alg' MUST NOT be used in OID4VP 1.0.")
+                .doesNotContainKey("authorization_encrypted_response_alg");
+        assertThat(properties)
+                .as("[Document: OpenID for Verifiable Presentations 1.0, Chapter: 8.3. Response Mode \"direct_post.jwt\"] The legacy JARM-style parameter 'authorization_encrypted_response_enc' MUST NOT be used in OID4VP 1.0.")
+                .doesNotContainKey("authorization_encrypted_response_enc");
     }
 
     @Test

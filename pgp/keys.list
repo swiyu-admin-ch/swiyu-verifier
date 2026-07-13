@@ -42,6 +42,10 @@ ch.admin.bj.swiyu:*:* = noSig
 # mandatory PGP signatures.
 aopalliance:aopalliance:* = noSig
 
+# JavaBeans Activation Framework 1.1 predates Maven Central signature requirements.
+# It is pulled transitively by Pact JVM through the legacy javax.mail API.
+javax.activation:activation:1.1 = noSig
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Tier-2 – Wildcard catch-all: valid signature required, key not yet pinned.
 # Every artifact that reaches this rule MUST carry a cryptographically valid

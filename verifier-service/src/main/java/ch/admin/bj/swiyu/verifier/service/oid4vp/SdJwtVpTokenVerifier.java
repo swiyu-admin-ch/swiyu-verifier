@@ -112,7 +112,7 @@ public class SdJwtVpTokenVerifier {
             var claims = nimbusJwt.getJWTClaimsSet();
             // Only technical verification here; issuer trust is validated at service layer
             var publicKey = issuerPublicKeyLoader.loadPublicKey(claims.getIssuer(), header.getKeyID());
-            // TODO Use generic lib here
+            // TODO EIDOMNI-1112 Use generic lib SdJwtVcValidator here. 
             log.trace("Loaded issuer public key for id {}", managementEntity.getId());
             // Verify the JWS signature of the JWT
             if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey))) {
@@ -196,8 +196,7 @@ public class SdJwtVpTokenVerifier {
         }
         try {
             String statusListJWT = statusListResolver.resolveStatusList(reference.getReferencedStatusListUri());
-            SignedJWT tokenStatusListJWT;
-            tokenStatusListJWT = SignedJWT.parse(statusListJWT);
+            SignedJWT tokenStatusListJWT = SignedJWT.parse(statusListJWT);
             TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims());
             String kid = didKidParser.extractKidFromHeader(statusListJWT);
             JWK statusListKey = issuerPublicKeyLoader.loadJWK(statusList.getIssuer(), kid);
@@ -214,7 +213,6 @@ public class SdJwtVpTokenVerifier {
                 // Something wrong with the status list or revoked
                 throw credentialError(CREDENTIAL_REVOKED, "Credential is not valid");
             }
-            // statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
         } catch (
             ParseException | 
             LoadingPublicKeyOfIssuerFailedException |  

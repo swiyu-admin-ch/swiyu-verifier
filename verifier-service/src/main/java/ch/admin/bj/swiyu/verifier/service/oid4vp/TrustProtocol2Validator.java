@@ -86,7 +86,7 @@ public class TrustProtocol2Validator {
         Map<String, TrustVerificationResult> verificationResults = management.getTrustAnchors().stream()
                 .collect(Collectors.toMap(TrustAnchor::did,
                         trustAnchor -> evaluateTrust(issuerDid, vct, trustAnchor)));
-        // TODO EIDOMNI-867 Save verification result for the business verifier instead
+        // TODO EIDOMNI-1090 Save verification result for the business verifier instead
         // of rejecting the VC
         return verificationResults.values().stream().anyMatch(result -> result.markers().isTrustedIssuer());
     }

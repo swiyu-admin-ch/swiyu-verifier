@@ -72,7 +72,7 @@ Process:
 - The Business Verifier forwards the received Verification URI to the Holder (e.g., a person or entity holding credentials).
 
 > [!IMPORTANT]  
-> The example above is only a bare minimum working example to check that a person has an age older than 18 from a beta-id credential.
+> The example above is only a bare minimum working example to check that a person is older than 18 from a beta-id credential.
 
 **Basic Request:**
 ```bash
@@ -116,7 +116,7 @@ http://localhost:8083/management/api/verifications
 
 > **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+, per [draft-ietf-oauth-sd-jwt-vc-09 §A.2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt)) and `vc+sd-jwt` (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header.
 
-To limit the accepted issuers, you must either set the `accepted_issuer_dids` or set the `trust_anchors` (not recommended, as it will be deprecated in the future) to create a verification request. 
+To limit the accepted issuers, you must either set the `accepted_issuer_dids` or the `trust_anchors` (not recommended, as it will be deprecated in the future) to create a verification request. 
 
 In the example above the `accepted_issuer_dids` contains the id of the beta-id issuer. If you want to check your own issuer you have to set the value in here.
 ```json
@@ -221,48 +221,58 @@ curl -X GET \
 ```
 
 **Response:**  
-Returns a signed JWT or JSON request object. A decoded example of the response could look like:
+Returns a signed JWT. A decoded example of the response could look like:
 ```json
 {
-  "response_uri" : "http://localhost:8080/oid4vp/api/request-object/fef545ad-435e-4d10-87ea-922b1a0f5103/response-data",
-  "aud" : "https://self-issued.me/v2",
-  "iss" : "decentralized_identifier:did:example:12345",
-  "response_type" : "vp_token",
-  "dcql_query" : { "...": "..." },
-  "state" : "36d38875...",
-  "nonce" : "jbX1XQ81...",
-  "client_metadata" : {
-    "jwks" : {
-      "keys" : [ {
-        "kty" : "EC",
-        "kid" : "bed0513c...",
-        "alg" : "ECDH-ES",
-        "crv" : "P-256",
-        "x" : "WsYjs49...",
-        "y" : "PvbmhOF..."
-      } ]
+    "response_uri": "http://localhost:8080/oid4vp/api/request-object/fef545ad-435e-4d10-87ea-922b1a0f5103/response-data",
+    "aud": "https://self-issued.me/v2",
+    "iss": "decentralized_identifier:did:example:12345",
+    "response_type": "vp_token",
+    "dcql_query": {
+        "...": "..."
     },
-    "encrypted_response_enc_values_supported" : [ "A256GCM" ],
-    "client_name#de" : "German name (fallback)",
-    "client_name#de-CH" : "German name (region Switzerland)",
-    "client_name#fr" : "French name (all regions)",
-    "client_name#de-DE" : "German name (region Germany)",
-    "logo_uri" : "www.example.com/logo.png",
-    "client_name#en" : "English name (all regions)",
-    "logo_uri#fr" : "www.example.com/logo_fr.png",
-    "client_name" : "Fallback name",
-    "client_id" : "decentralized_identifier:did:example:12345",
-    "vp_formats" : {
-      "jwt_vp" : {
-        "alg" : [ "ES256" ]
-      }
+    "state": "36d38875...",
+    "nonce": "jbX1XQ81...",
+    "client_metadata": {
+        "jwks": {
+            "keys": [
+                {
+                    "kty": "EC",
+                    "kid": "bed0513c...",
+                    "alg": "ECDH-ES",
+                    "crv": "P-256",
+                    "x": "WsYjs49...",
+                    "y": "PvbmhOF..."
+                }
+            ]
+        },
+        "encrypted_response_enc_values_supported": [
+            "A256GCM"
+        ],
+        "client_name#de": "German name (fallback)",
+        "client_name#de-CH": "German name (region Switzerland)",
+        "client_name#fr": "French name (all regions)",
+        "client_name#de-DE": "German name (region Germany)",
+        "logo_uri": "www.example.com/logo.png",
+        "client_name#en": "English name (all regions)",
+        "logo_uri#fr": "www.example.com/logo_fr.png",
+        "client_name": "Fallback name",
+        "client_id": "decentralized_identifier:did:example:12345",
+        "vp_formats": {
+            "jwt_vp": {
+                "jwt_vp": {
+                    "alg": [
+                        "ES256"
+                    ]
+                }
+            }
+        },
+        "response_mode": "direct_post.jwt"
     }
-  },
-  "response_mode" : "direct_post.jwt"
 }
 ```
 
-In this response you find several important which are used in the next steps:
+In this response you find several important claims which are used in the next steps:
 - `response_uri`: The URL to which the wallet must send the presentation or refusal.
 - `state`: The oauth-state value that must be sent back to the Verifier Service.
 - `nonce`: The nonce value that must be sent back as part of the key-binding to the Verifier Service.
@@ -293,7 +303,6 @@ The payload contains:
 Decoded Key-Binding example:
 > [!NOTE]  
 > Audience must be set to the `client_id` of the Verifier Service and nonce must be set to the `nonce` value received in the request object.
-> Nonce must be set to the `nonce` value received in the request object.
 
 ```
 {

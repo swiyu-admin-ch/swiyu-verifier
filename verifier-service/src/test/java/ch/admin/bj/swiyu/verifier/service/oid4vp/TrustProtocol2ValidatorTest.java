@@ -49,7 +49,6 @@ class TrustProtocol2ValidatorTest {
     private IssuerPublicKeyLoader keyLoader;
 
     private TrustProtocol2Validator validator;
-    private ObjectMapper mapper = new ObjectMapper();
     private Management management;
     private TrustAnchor anchor;
     private ECKey mockKey;
@@ -66,8 +65,7 @@ class TrustProtocol2ValidatorTest {
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        validator = new TrustProtocol2Validator(statementProvider, statusListResolverAdapter,
-                jwtValidator, keyLoader, mapper);
+        validator = new TrustProtocol2Validator(statementProvider);
         anchor = new TrustAnchor(TRUST_ROOT, "https://www.example.com");
         management = Management.builder()
                 .trustAnchors(List.of(anchor))
@@ -96,8 +94,5 @@ class TrustProtocol2ValidatorTest {
 
         boolean result = validator.isTrusted(ISSUER_DID, TRUSTED_VCT, management);
         assertThat(result).as("Issuer should be trusted when markers indicate trust").isTrue();
-        // Ensure Status List and Key Loader have been called
-        verify(statusListResolverAdapter, atLeastOnce()).resolveStatusList(anyString());
-        verify(keyLoader, atLeastOnce()).loadJWK(anyString(), anyString());
     }
 }

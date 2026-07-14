@@ -1,7 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
-import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListBit;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
@@ -18,8 +16,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
 
 import com.authlete.sd.Disclosure;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -32,7 +30,6 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
@@ -74,11 +71,9 @@ public class SdJwtVpTokenVerifier {
     private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
 
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
-    private final StatusListResolverAdapter statusListResolver;
+    private final StatusListCacheService statusListCacheService;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
-    private final DidKidParser didKidParser = new DidKidParser();
-    private final DidJwtValidator didJwtValidator;
     private final TokenStatusListVerifier statusListVerifier;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -195,14 +190,9 @@ public class SdJwtVpTokenVerifier {
             return;
         }
         try {
-            String statusListJWT = statusListResolver.resolveStatusList(reference.getReferencedStatusListUri());
-            SignedJWT tokenStatusListJWT = SignedJWT.parse(statusListJWT);
-            TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims());
-            String kid = didKidParser.extractKidFromHeader(statusListJWT);
-            JWK statusListKey = issuerPublicKeyLoader.loadJWK(statusList.getIssuer(), kid);
-            didJwtValidator.validateJwt(statusListJWT, new JWKSet(statusListKey));
-            if(!statusListVerifier.hasValidTokenStatusListTokenHeader(tokenStatusListJWT.getHeader())) {
-                throw credentialError(UNRESOLVABLE_STATUS_LIST, "Status List Token has illegal type");
+            TokenStatusListTokenDto statusList = statusListCacheService.getTokenStatusListTokenByUri(reference.getReferencedStatusListUri());
+            if(statusList == null) {
+                throw credentialError(UNRESOLVABLE_STATUS_LIST, "Status List not found or malformed");
             }
             StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(reference, statusList);
             // TODO EIDOMNI-1090 - Pass through state to business component, removing the if else logic below
@@ -214,8 +204,6 @@ public class SdJwtVpTokenVerifier {
                 throw credentialError(CREDENTIAL_REVOKED, "Credential is not valid");
             }
         } catch (
-            ParseException | 
-            LoadingPublicKeyOfIssuerFailedException |  
             IndexOutOfBoundsException | 
             IOException |
             JwtValidatorException e) {

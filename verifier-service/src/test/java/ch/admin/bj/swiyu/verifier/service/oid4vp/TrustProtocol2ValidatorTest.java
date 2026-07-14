@@ -21,7 +21,7 @@ import com.nimbusds.jwt.SignedJWT;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TestTrustStatementGenerator;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
@@ -42,7 +42,7 @@ class TrustProtocol2ValidatorTest {
     @Mock
     private TrustStatementCacheService statementProvider;
     @Mock
-    private StatusListResolverAdapter statusListResolverAdapter;
+    private StatusListResolver statusListResolverAdapter;
     @Mock
     private DidJwtValidator jwtValidator;
     @Mock

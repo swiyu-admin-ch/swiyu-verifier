@@ -2,7 +2,10 @@ package ch.admin.bj.swiyu.verifier.service.trustregistry;
 
 import ch.admin.bj.swiyu.core.trust.client.api.TrustProtocol20Api;
 import ch.admin.bj.swiyu.core.trust.client.model.PagedModelString;
+import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
+import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementValidator.TrustStatementValidationResult;
+
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -15,7 +18,7 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,11 +39,15 @@ class TrustStatementCacheServiceTest {
     private TrustRegistryProperties properties;
     private CacheMaintenanceService cacheMaintenanceService;
     private TrustStatementCacheService cacheService;
+    private TrustStatementValidator statementValidator;
+    private CacheProperties cacheProperties;
 
     @BeforeEach
     void setUp() {
         trustProtocol20Api = mock(TrustProtocol20Api.class);
         cacheMaintenanceService = mock(CacheMaintenanceService.class);
+        cacheProperties = mock(CacheProperties.class);
+        statementValidator = mock(TrustStatementValidator.class);
         properties = new TrustRegistryProperties();
         properties.setMaxCacheSize(100);
         properties.setClockSkewBufferSeconds(0);
@@ -50,8 +57,11 @@ class TrustStatementCacheServiceTest {
                 trustProtocol20Api,
                 properties,
                 cacheMaintenanceService,
-                Optional.empty()
+                statementValidator,
+                cacheProperties
         );
+        // By Default accept trust statements in these tests with 5 minutes TTL to allow debugging
+        when(statementValidator.trustStatementValidityWindow(any())).thenReturn(new TrustStatementValidationResult(true, TimeUnit.MINUTES.toNanos(5)));
     }
 
     @Test

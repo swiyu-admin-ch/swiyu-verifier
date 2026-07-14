@@ -29,7 +29,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +61,7 @@ import reactor.core.scheduler.Schedulers;
 public class TrustProtocol2Validator {
 
     private final TrustStatementCacheService statementProvider;
-    private final StatusListResolverAdapter statusListResolverAdapter;
+    private final StatusListResolver statusListResolverAdapter;
     @Qualifier("trustStatementValidator")
     private final DidJwtValidator jwtValidator;
     private final IssuerPublicKeyLoader keyLoader;

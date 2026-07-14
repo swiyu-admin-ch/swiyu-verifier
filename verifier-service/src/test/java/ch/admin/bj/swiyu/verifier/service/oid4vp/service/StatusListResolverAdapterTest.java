@@ -1,9 +1,11 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -17,7 +19,7 @@ class StatusListResolverAdapterTest {
 
     private UrlRewriteProperties urlRewriteProperties;
     private ApplicationProperties applicationProperties;
-    private StatusListResolverAdapter adapter;
+    private StatusListResolver adapter;
 
     @BeforeEach
     void setUp() {
@@ -25,7 +27,9 @@ class StatusListResolverAdapterTest {
         WebClient webClient = mock(WebClient.class, RETURNS_DEEP_STUBS);
         applicationProperties = mock(ApplicationProperties.class);
         CacheProperties cacheProperties = mock(CacheProperties.class);
-        adapter = new StatusListResolverAdapter(urlRewriteProperties, webClient, applicationProperties, cacheProperties);
+        IssuerPublicKeyLoader publicKeyLoader = mock(IssuerPublicKeyLoader.class);
+        DidJwtValidator didJwtValidator = mock(DidJwtValidator.class);
+        adapter = new StatusListResolver(urlRewriteProperties, webClient, applicationProperties);
     }
     
     @Test

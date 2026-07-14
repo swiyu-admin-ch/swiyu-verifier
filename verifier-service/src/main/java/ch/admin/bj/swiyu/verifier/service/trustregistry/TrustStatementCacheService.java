@@ -5,10 +5,13 @@ import ch.admin.bj.swiyu.core.trust.client.model.PagedModelString;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
+import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService.ValidatedSingleTrustStatement;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.Null;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -72,6 +76,10 @@ public class TrustStatementCacheService {
      */
     private final Cache<String, List<ValidatedSingleTrustStatement>> pvaTsCache;
 
+    private final Cache<String, ValidatedSingleTrustStatement> piTLSCache;
+    private final Cache<String, ValidatedSingleTrustStatement> ncTLSCache;
+    private final Cache<String, List<ValidatedSingleTrustStatement>> piaTSCache;
+
     /**
      * Constructs the cache service with injected API client and configuration.
      *
@@ -88,9 +96,12 @@ public class TrustStatementCacheService {
         this.properties = properties;
         this.cacheMaintenanceService = cacheMaintenanceService;
         this.trustStatementValidator = trustStatementValidator;
-        this.idTsCache = buildIdTSCache();
-        this.pvaTsCache = buildPvaTsCache();
         this.cacheProperties = cacheProperties;
+        this.idTsCache = buildTrustStatementCache();
+        this.pvaTsCache = buildTrustStatementListCache();
+        this.piTLSCache = buildTrustStatementCache();
+        this.ncTLSCache = buildTrustStatementCache();
+        this.piaTSCache = buildTrustStatementListCache();
     }
 
 
@@ -117,55 +128,36 @@ public class TrustStatementCacheService {
      */
     public List<String> getAllIssuanceStatementsFor(String issuerDid) {
         log.trace("Fetching trust statements related to issuance for {}", issuerDid);
-        var responses = Mono.zip(
-                trustProtocol20Api.getIdTS(issuerDid).defaultIfEmpty(""),
-                trustProtocol20Api.getActivePiTLS().defaultIfEmpty(""),
-                trustProtocol20Api.getActiveNcTLS().defaultIfEmpty(""),
-                trustProtocol20Api.listPiaTS(issuerDid, true, null, null, null)
-                        .defaultIfEmpty(new PagedModelString().content(List.of())))
-                .block();
-
-        List<String> statements = new LinkedList<>();
-        Iterator<Object> it = responses.iterator();
-        while(it.hasNext()) {
-            Object response = it.next();
-            if (response instanceof PagedModelString pageModelString) {
-                statements.addAll(getListOfStatements(pageModelString));
-            } 
-            if (response instanceof String statement) {
-                statements.add(statement);
-            }
-        }
-        log.debug("Found a total of {} trust statements for issuer {}", statements.size(), issuerDid);
-        return statements;
-    }
-
-
-    /**
-     * Extracts the list of JWT strings from a {@link PagedModelString}.  If the supplied
-     * {@code pagedModelString} is {@code null} or its {@code content} property is {@code null},
-     * an empty immutable list is returned.
-     *
-     * @param pagedModelString the model object returned by the Trust Registry API; may be {@code null}
-     * @return an immutable list of JWTs contained in the model, or an empty list if none are present
-     */
-    private List<String> getListOfStatements(PagedModelString pagedModelString) {
-        if (pagedModelString == null || pagedModelString.getContent() == null) {
-            return List.of();
-        }
-        return pagedModelString.getContent();
+        List<String> trustStatements = new LinkedList<>();
+        trustStatements.add(getIdentityTrustStatement(issuerDid));
+        trustStatements.add(getProtectedIssuanceTrustListStatement());
+        trustStatements.add(getNonComplianceTrustListStatement());
+        trustStatements.addAll(getProtectedIssuanceAuthorizationTrustStatements(issuerDid));
+        return trustStatements.stream().filter(Objects::nonNull).toList();
     }
 
     /**
      * Returns the cached Identity Trust Statement (idTS) JWT for the given issuer DID,
      * fetching it from the trust registry if not yet cached or already expired.
      *
-     * @param issuerDid the effective issuer DID for which to retrieve the trust statement
+     * @param did the effective issuer or verifier DID for which to retrieve the trust statement
      * @return the idTS JWT string, or {@code null} if unavailable
      */
     @Nullable
-    public String getIdentityTrustStatement(String issuerDid) {
-        ValidatedSingleTrustStatement cached = idTsCache.get(issuerDid, this::fetchIdentityTrustStatement);
+    public String getIdentityTrustStatement(String did) {
+        ValidatedSingleTrustStatement cached = idTsCache.get(did, this::fetchIdentityTrustStatement);
+        return cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
+    }
+
+    @Nullable
+    public String getProtectedIssuanceTrustListStatement() {
+        ValidatedSingleTrustStatement cached = piTLSCache.get("", this::fetchProtectedIssuanceTrustListStatement);
+        return cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
+    }
+
+    @Nullable
+    public String getNonComplianceTrustListStatement() {
+        ValidatedSingleTrustStatement cached = ncTLSCache.get("", this::fetchNonComplianceTrustListStatement);
         return cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
     }
 
@@ -183,10 +175,38 @@ public class TrustStatementCacheService {
      * @return a non-null, possibly empty list of pvaTS JWT strings
      */
     public List<String> getProtectedVerificationAuthorizationTrustStatements(String verifierDid) {
-        List<ValidatedSingleTrustStatement> cached = pvaTsCache.get(verifierDid, this::fetchProtectedVerificationAuthorizationTrustStatements);
-        return cached.stream().map(vts -> vts.trustStatement)
+        return pvaTsCache
+            .get(verifierDid, this::fetchProtectedVerificationAuthorizationTrustStatements)
+            .stream().map(vts -> vts.trustStatement)
             .filter(ts -> ts.isPresent())
             .map(ts -> ts.get()).toList();
+    }
+
+    public List<String> getProtectedIssuanceAuthorizationTrustStatements(String issuerDid) {
+        return piaTSCache
+            .get(issuerDid, this::fetchProtectedIssuanceAuthorizationTrustStatements)
+            .stream().map(vts -> vts.trustStatement)
+            .filter(ts -> ts.isPresent())
+            .map(ts -> ts.get()).toList();
+    }
+
+
+    /**
+     * Invalidates all cached Trust Statements (idTS and pvaTS) for the given DID.
+     *
+     * <p>Convenience method combining both invalidations. Useful when a general
+     * trust failure is detected and all statements for a DID should be refreshed.</p>
+     *
+     * <p>In addition, it triggers the clearing of the public key and encryption metadata
+     * caches to ensure that potentially rotated keys are reloaded.</p>
+     *
+     * @param did the DID whose cached trust statements should be invalidated
+     */
+    public void invalidateAllTrustStatements(String did) {
+        log.info("Invalidating all cached trust statements for DID {}", did);
+        idTsCache.invalidate(did);
+        pvaTsCache.invalidate(did);
+        cacheMaintenanceService.evictJwkManually(did);
     }
 
     private ValidatedSingleTrustStatement fetchIdentityTrustStatement(String issuerDid) {
@@ -198,6 +218,30 @@ public class TrustStatementCacheService {
             return validateTrustStatement(jwt);
         }  catch (RuntimeException e) {
             log.warn("Failed to fetch idTS for issuer {}: {}", issuerDid, e.getMessage());
+            return new ValidatedSingleTrustStatement(Optional.empty(), false, 0);
+        }
+    }
+        private ValidatedSingleTrustStatement fetchProtectedIssuanceTrustListStatement(String notUsed) {
+        try {
+            String jwt = trustProtocol20Api.getActivePiTLS().block();
+            if (jwt == null) {
+                log.warn("No active protected issuance trust list statement found");
+            }
+            return validateTrustStatement(jwt);
+        }  catch (RuntimeException e) {
+            log.warn("Failed to fetch piTLS", e.getMessage());
+            return new ValidatedSingleTrustStatement(Optional.empty(), false, 0);
+        }
+    }
+    private ValidatedSingleTrustStatement fetchNonComplianceTrustListStatement(String notUsed) {
+        try {
+            String jwt = trustProtocol20Api.getActiveNcTLS().block();
+            if (jwt == null) {
+                log.warn("No active non-compliance statement found");
+            }
+            return validateTrustStatement(jwt);
+        }  catch (RuntimeException e) {
+            log.warn("Failed to fetch idTS for issuer {}", e.getMessage());
             return new ValidatedSingleTrustStatement(Optional.empty(), false, 0);
         }
     }
@@ -230,6 +274,23 @@ public class TrustStatementCacheService {
         }
     }
 
+    private List<ValidatedSingleTrustStatement> fetchProtectedIssuanceAuthorizationTrustStatements(String issuerDid) {
+        try {
+            var response = trustProtocol20Api.listPiaTS(issuerDid, true, null, null, null).block();
+            List<String> jwts = getListOfStatements(response);
+            return jwts.stream()
+                .map(this::validateTrustStatement)
+                .filter(vts -> vts.valid)
+                .toList();
+        } catch (JwtValidatorException e) {
+            log.warn("piaTS allowlist validation failed for issuer {}: {}", issuerDid, e.getMessage());
+            return List.of();
+        } catch (RuntimeException e) {
+            log.warn("API or network error fetching piaTS for issuer {}: {}", issuerDid, e.getMessage());
+            return List.of();
+        }
+    }
+
     private ValidatedSingleTrustStatement validateTrustStatement(String tsJWT) {
         var validationResult = trustStatementValidator.trustStatementValidityWindow(tsJWT);
         return new ValidatedSingleTrustStatement(Optional.ofNullable(tsJWT), validationResult.isValid(), validationResult.valditiyWindow());
@@ -239,7 +300,7 @@ public class TrustStatementCacheService {
      * Builds a Caffeine cache for single valid trust statement with dynamic TTL.
      * derived from the minimum of JWT {@code exp} claims and Status List TTL claim.
      */
-    private Cache<String, ValidatedSingleTrustStatement> buildIdTSCache() {
+    private Cache<String, ValidatedSingleTrustStatement> buildTrustStatementCache() {
         return Caffeine.newBuilder()
                 .maximumSize(properties.getMaxCacheSize())
                 .expireAfter(buildSingleTrustStatementExpiry())
@@ -275,7 +336,7 @@ public class TrustStatementCacheService {
      * so the list is evicted and re-fetched as soon as the earliest statement expires.
      * Invalid Statements or no statments use a fixed TTL until fetch is reattempted.
      */
-    private Cache<String, List<ValidatedSingleTrustStatement>> buildPvaTsCache() {
+    private Cache<String, List<ValidatedSingleTrustStatement>> buildTrustStatementListCache() {
         return Caffeine.newBuilder()
                 .maximumSize(properties.getMaxCacheSize())
                 .expireAfter(buildListTrustStatementExpiry())
@@ -314,21 +375,18 @@ public class TrustStatementCacheService {
     }
 
     /**
-     * Invalidates all cached Trust Statements (idTS and pvaTS) for the given DID.
+     * Extracts the list of JWT strings from a {@link PagedModelString}.  If the supplied
+     * {@code pagedModelString} is {@code null} or its {@code content} property is {@code null},
+     * an empty immutable list is returned.
      *
-     * <p>Convenience method combining both invalidations. Useful when a general
-     * trust failure is detected and all statements for a DID should be refreshed.</p>
-     *
-     * <p>In addition, it triggers the clearing of the public key and encryption metadata
-     * caches to ensure that potentially rotated keys are reloaded.</p>
-     *
-     * @param did the DID whose cached trust statements should be invalidated
+     * @param pagedModelString the model object returned by the Trust Registry API; may be {@code null}
+     * @return an immutable list of JWTs contained in the model, or an empty list if none are present
      */
-    public void invalidateAllTrustStatements(String did) {
-        log.info("Invalidating all cached trust statements for DID {}", did);
-        idTsCache.invalidate(did);
-        pvaTsCache.invalidate(did);
-        cacheMaintenanceService.evictJwkManually(did);
+    private List<String> getListOfStatements(PagedModelString pagedModelString) {
+        if (pagedModelString == null || pagedModelString.getContent() == null) {
+            return List.of();
+        }
+        return pagedModelString.getContent();
     }
 
     public record ValidatedSingleTrustStatement(@NonNull Optional<String> trustStatement, boolean valid, long ttl) {}

@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.statuslist;
 
-import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 

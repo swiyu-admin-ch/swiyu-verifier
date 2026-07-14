@@ -10,13 +10,10 @@ import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
-import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.common.util.time.TimeUtil;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
-import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

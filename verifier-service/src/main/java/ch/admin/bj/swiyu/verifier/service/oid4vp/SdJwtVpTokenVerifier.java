@@ -77,6 +77,7 @@ public class SdJwtVpTokenVerifier {
     private final TokenStatusListVerifier statusListVerifier;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Deprecated(since = "Trust Protocol 2.0")
     public SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management) {
         // Re-use the shared verification building blocks
         verifyVerifiableCredentialJWT(vpToken, management);

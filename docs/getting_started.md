@@ -45,7 +45,7 @@ The latest image is available here:
 ## Creating a verification
 
 > [!TIP]
-> For a detailed understanding of the verification process and the data structure of verification please consult the [Verification Process](https://github.com/swiyu-admin-ch/swiyu-verifier/blob/main/documentation/verification_process.md) or the [documentation](https://github.com/swiyu-admin-ch/swiyu-verifier/blob/main/documentation/documentation.pdf).
+> For a detailed understanding of the verification process and the data structure of verification please consult the [Verification Process](https://github.com/swiyu-admin-ch/swiyu-verifier/blob/main/docs/verification_process.md) or the [documentation](https://github.com/swiyu-admin-ch/swiyu-verifier/blob/main/docs/architecture_generic_verifier.pdf).
 
 Once the service is deployed you can create your first verification request.
 

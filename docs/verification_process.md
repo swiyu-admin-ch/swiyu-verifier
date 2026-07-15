@@ -54,7 +54,7 @@ sequenceDiagram
 ## Shared operations between Verification and Rejection
 
 > [!NOTE]  
-> All calls use the localhost server at port 8083, which can be started with the sample-compose file [how to get started]().
+> All calls use the localhost server at port 8083, which can be started with the sample-compose file [sample_compose](https://github.com/swiyu-admin-ch/swiyu-verifier/blob/main/sample.compose.yml).
 > Adjust the URL as needed if you deployed the service elsewhere.
 
 > [!NOTE]  
@@ -94,7 +94,7 @@ curl -X POST \
       "default": "Test"
     },
     "purpose_description": {
-      "default": "This is a test and this its description"
+      "default": "This is a test and this is its description"
     }
   },
   "dcql_query": {
@@ -245,7 +245,7 @@ Actor:
 - Wallet: The entity that holds the credentials.
 
 > [!NOTE]  
-> This call is done by the Wallet to send the presentation or refusal back to the Verifier Service. The wallet will send the vp_tokn and the presentation_submission as form parameters. An example of the presentation_submission JSON is shown below.
+> This call is done by the Wallet to send the presentation or refusal back to the Verifier Service. The wallet will send the vp_token and the presentation_submission as form parameters. An example of the presentation_submission JSON is shown below.
 
 ```json
 {

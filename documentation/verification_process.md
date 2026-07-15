@@ -277,7 +277,7 @@ In this response you find several important claims which are used in the next st
 - `state`: The oauth-state value that must be sent back to the Verifier Service.
 - `nonce`: The nonce value that must be sent back as part of the key-binding to the Verifier Service.
 - `encrypted_response_enc_values_supported`: The encryption algorithms supported by the Verifier Service. The wallet must use one of these algorithms to encrypt the presentation before sending it.
-- `client_id`: The DID of the Verifier Service. This value must be used as the `aud` claim in the key-binding.
+- `client_metadata.client_id`: The DID of the Verifier Service. This value must be used as the `aud` claim in the key-binding.
 - `client_metadata.jwks.keys`: List of JSON web keys (JWKs) to be provided as encryption option to the wallet.
 
 ### 3.2. Receive Verification Presentation

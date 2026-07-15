@@ -25,14 +25,11 @@ sequenceDiagram
     w->>+vs : get verification request object
     vs-->>-w : verification presentation Definition
 
-    w->>+vs : get verifier metadata
-    vs-->>-w : return metadata
-
     alt Wallet/User can provide (if consent to send) the requested data
         w->> w : create key binding (if requested)
         w->>+vs : authorization response (vp token + key binding)
         vs->>+registry : get issuer public key / status list / trust info
-        registry-->>-vs : return
+        registry-->>-vs : 
         vs->>vs : check authorization response 
         vs-->>-w : Ok / NOK
         deactivate w

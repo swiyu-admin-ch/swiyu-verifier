@@ -139,7 +139,7 @@ List of trust anchor dids from the trust registry.
 ```
 
 > [!IMPORTANT]  
-> The following example about vqps (Verification Query Public Statement) is still under development and needs additional configuration. Please do not use it until further notice.
+> The following example about vqps (Verification Query Public Statement) is under development and requires additional configuration. Please do not use it until further notice.
 
 To set the vqps, you also have to set the `verification_purpose`
 ```json

@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -95,11 +96,12 @@ public class TrustStatementValidator {
             StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(reference, statusList);
             
             // Compute TTL in Nanoseconds
-            long minimumTimeoutNs = TimeUtil.getMinimumExpiry(trustRegistryProperties.getMaxCacheTtlSeconds(), statusList.getExp());
-            minimumTimeoutNs = TimeUtil.getMinimumExpiry(minimumTimeoutNs, trustStatementJWT.getJWTClaimsSet().getExpirationTime());
+            long minimumTimeoutNs = TimeUnit.SECONDS.toNanos(trustRegistryProperties.getMaxCacheTtlSeconds());
+            minimumTimeoutNs = TimeUtil.minNanosUntilExpiry(minimumTimeoutNs, statusList.getExp());
+            minimumTimeoutNs = TimeUtil.minNanosUntilExpiry(minimumTimeoutNs, trustStatementJWT.getJWTClaimsSet().getExpirationTime());
             // Substract the clock skew from expiration time to ensure that we fetch sufficiently soon the new Trust Statement
             minimumTimeoutNs = Math.max(0, minimumTimeoutNs - trustRegistryProperties.getClockSkewBufferSeconds());
-            minimumTimeoutNs = TimeUtil.getMinimumFromSeconds(minimumTimeoutNs, statusList.getTtl());
+            minimumTimeoutNs = TimeUtil.minWithNullable(minimumTimeoutNs, TimeUtil.secondsToNanos(statusList.getTtl()));
             log.debug("Trust statement state validation completed - Validity: {} Cache TTL {} - DID: {}, URL: {}", statusListState.valid(), minimumTimeoutNs, didString, didUrl);
 
             // If we reached this point the status list state hold the information whether the trust statement can be used. Either way we should not reprocess it until the timeout is through

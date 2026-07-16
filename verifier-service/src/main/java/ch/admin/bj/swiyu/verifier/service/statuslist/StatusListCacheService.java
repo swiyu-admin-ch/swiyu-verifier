@@ -18,6 +18,8 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode
 import ch.admin.bj.swiyu.verifier.common.util.time.TimeUtil;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -36,6 +38,7 @@ public class StatusListCacheService {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListResolver statusListResolver;
 
+    @Getter(value = AccessLevel.PROTECTED)
     private final Cache<String, Optional<TokenStatusListTokenDto>> cache;
 
 
@@ -127,8 +130,8 @@ public class StatusListCacheService {
                 }
 
                 private long getTTLTime(TokenStatusListTokenDto value) {
-                    long minimumTimeout = TimeUtil.getMinimumExpiry(maxCacheTTLNs, value.getExp());
-                    return TimeUtil.getMinimumFromSeconds(minimumTimeout, value.getTtl());
+                    long minimumTimeout = TimeUtil.minNanosUntilExpiry(maxCacheTTLNs, value.getExp());
+                    return TimeUtil.minWithNullable(minimumTimeout, TimeUtil.secondsToNanos(value.getTtl()));
                 }
             };
         }

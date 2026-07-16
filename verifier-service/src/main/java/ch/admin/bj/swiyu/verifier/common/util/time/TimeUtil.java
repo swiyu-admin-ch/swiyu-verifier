@@ -8,40 +8,89 @@ import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 
 /**
- * Collection of time functions, reducing duplicate code
+ * Utility class for time-related operations, with null-safe methods.
  */
 @UtilityClass
 public class TimeUtil {
-    public long getMinimum(long accumulator, @Nullable Long nullableLong) {
-        if (nullableLong == null) {
-            return accumulator;
-        }
-        return Math.min(accumulator, nullableLong);
+
+    /**
+     * Returns the minimum of two values, treating null as "no comparison".
+     * @param accumulator The base value (in nanoseconds).
+     * @param nullableValue The nullable value to compare (in nanoseconds).
+     * @return The smaller of the two values, or accumulator if nullableValue is null.
+     */
+    public long minWithNullable(long accumulator, @Nullable Long nullableLong) {
+        return nullableLong == null ? accumulator : Math.min(accumulator, nullableLong);
+    }
+
+
+    /**
+     * Converts seconds to nanoseconds, returning null if input is null.
+     * @param nullableIntS Seconds (nullable).
+     * @return Nanoseconds, or null.
+     */
+    public Long secondsToNanos(@Nullable Integer nullableIntS) {
+        return nullableIntS == null ? null : TimeUnit.SECONDS.toNanos(nullableIntS);
     }
 
     /**
-     * Performs a minimum where the accumulator is nanoseconds with a nullable integer in seconds. 
-     * If present the integer will be converted to nanoseconds and compared to the accumulator.
+     * Converts milliseconds to nanoseconds, returning null if input is null.
+     * @param nullableLongMs Milliseconds (nullable).
+     * @return Nanoseconds, or null.
      */
-    public long getMinimumFromSeconds(long accumulatorNs, @Nullable Integer nullableIntS) {
-        if (nullableIntS == null) {
-            return accumulatorNs;
-        }
-        return Math.min(accumulatorNs, TimeUnit.SECONDS.toNanos(nullableIntS.longValue()));
+    public Long millisToNanos(@Nullable Long nullableLongMs) {
+        return nullableLongMs == null ? null : TimeUnit.MILLISECONDS.toNanos(nullableLongMs);
     }
 
-    public long getMinimumExpiry(long accumulatorNs, @Nullable Long expirationTimeMs) {
-        if (expirationTimeMs == null) {
-            return accumulatorNs;
+
+    /**
+     * Calculates nanoseconds until expiry from epoch millis.
+     * @param expirationTime Epoch in nanoseconds (nullable).
+     * @return Nanoseconds until expiry, or null.
+     */
+    public static Long nanosUntilExpiry(@Nullable Long expirationTime) {
+        if (expirationTime == null){
+            return null;
         }
-        long expiryTimeMs = (expirationTimeMs - Instant.now().toEpochMilli());
-        return Math.min(accumulatorNs, TimeUnit.MILLISECONDS.toNanos(expiryTimeMs));
+        return expirationTime - millisToNanos(Instant.now().toEpochMilli());
     }
 
-    public static long getMinimumExpiry(long accumulatorNs, Date expirationTime) {
+    /**
+     * Calculates nanoseconds until expiry from Instant.
+     * @param expirationTime Instant (nullable).
+     * @return Nanoseconds until expiry, or null.
+     */
+    public static Long nanosUntilExpiry(@Nullable Date expirationTime) {
+        if (expirationTime == null){
+            return null;
+        }
+        return nanosUntilExpiry(millisToNanos(expirationTime.getTime()));
+    }
+
+
+    /**
+     * Returns the minimum of accumulator and time until expiry.
+     * @param accumulator Time in nanoseconds.
+     * @param expirationTime Epoch millis (nullable).
+     * @return Minimum of accumulator or time until expiry.
+     */
+    public static long minNanosUntilExpiry(long accumulator, @Nullable Long expirationTime) {
          if (expirationTime == null) {
-            return accumulatorNs;
+            return accumulator;
         }
-        return getMinimumExpiry(accumulatorNs, expirationTime.getTime());
+        return minWithNullable(accumulator, nanosUntilExpiry(expirationTime));
+    }
+
+    /**
+     * Returns the minimum of accumulator and time until expiry.
+     * @param accumulator Time in nanoseconds.
+     * @param expirationTime Instant (nullable).
+     * @return Minimum of accumulator or time until expiry.
+     */
+    public static long minNanosUntilExpiry(long accumulator, @Nullable Date expirationTime) {
+         if (expirationTime == null) {
+            return accumulator;
+        }
+        return minWithNullable(accumulator, nanosUntilExpiry(expirationTime));
     }
 }

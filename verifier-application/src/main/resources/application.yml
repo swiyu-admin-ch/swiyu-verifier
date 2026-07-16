@@ -15,7 +15,7 @@ application:
   deeplink-schema: ${DEEPLINK_SCHEMA:swiyu-verify}
 
   key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
-  max-compressed-cipher-text-length: ${MAX_COMPRESSED_CIPHER_TEXT_LENGTH:10485760} # 10 MB
+  max-compressed-cipher-text-length: ${MAX_COMPRESSED_CIPHER_TEXT_LENGTH:20971520} # 20 MiB
   max-vcs-accepted: 1 # At the moment the default value is set to 1 as the dcql multiple flag is not fully supported
   # Pin to unlock the hsm
   hsm:

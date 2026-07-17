@@ -799,7 +799,7 @@ components:
       - SUCCESS
       - FAILED
     ConfigurationOverrideDto:
-      type: "null"
+      type: object
       description: Override for Verifier configuration to be use for this one verification
       properties:
         external_url:
@@ -935,7 +935,7 @@ components:
       - did
       - trust_registry_uri
     VerificationPurpose:
-      type: "null"
+      type: object
       properties:
         scope:
           type: string
@@ -995,7 +995,7 @@ components:
         "y":
           type: string
     OpenIdClientMetadataVpFormatSdJwt:
-      type: "null"
+      type: object
       properties:
         sd-jwt_alg_values:
           type:

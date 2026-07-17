@@ -71,6 +71,33 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Fixes CVE-2026-59889 -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.21.5</version>
+            </dependency>
+
+            <!-- COMPLETELY EXCLUDE Jackson 3.x to prevent CVE-2026-59889 -->
+            <dependency>
+                <groupId>tools.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>3.1.5</version>
+                <scope>provided</scope> <!-- Mark as provided so it's never included -->
+            </dependency>
+            <dependency>
+                <groupId>tools.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>3.1.5</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>tools.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>3.1.5</version>
+                <scope>provided</scope>
+            </dependency>
+
             <!-- Check again on Spring Boot update -->
             <dependency>
                 <groupId>org.apache.commons</groupId>

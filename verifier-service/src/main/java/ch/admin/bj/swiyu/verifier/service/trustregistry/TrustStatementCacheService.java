@@ -10,6 +10,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import jakarta.annotation.Nullable;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -76,9 +78,10 @@ public class TrustStatementCacheService {
     private final TrustStatementValidator trustStatementValidator;
 
     /**
-     * Cache for {@code idTS} JWTs, keyed by issuer DID.4
+     * Cache for {@code idTS} JWTs, keyed by issuer DID.
      * Stores a single Optional JWT per issuer.
      */
+    @Getter(value = AccessLevel.PROTECTED)
     private final Cache<String, ValidatedSingleTrustStatement> idTsCache;
 
     /**
@@ -89,6 +92,7 @@ public class TrustStatementCacheService {
      * returned no results; the next fetch will be suppressed until the negative TTL
      * expires.
      */
+    @Getter(value = AccessLevel.PROTECTED)
     private final Cache<String, List<ValidatedSingleTrustStatement>> pvaTsCache;
 
     private final Cache<String, ValidatedSingleTrustStatement> piTLSCache;
@@ -213,8 +217,11 @@ public class TrustStatementCacheService {
      * @return a non-null, possibly empty list of pvaTS JWT strings
      */
     public List<String> getProtectedVerificationAuthorizationTrustStatements(String verifierDid) {
-        return pvaTsCache
-                .get(verifierDid, this::fetchProtectedVerificationAuthorizationTrustStatements)
+        List<ValidatedSingleTrustStatement> statements = pvaTsCache.get(verifierDid, this::fetchProtectedVerificationAuthorizationTrustStatements);
+        if (statements == null) {
+            return List.of();
+        }
+        return statements
                 .stream().map(vts -> vts.trustStatement)
                 .filter(ts -> ts.isPresent())
                 .map(ts -> ts.get()).toList();
@@ -317,7 +324,7 @@ public class TrustStatementCacheService {
             return List.of();
         } catch (RuntimeException e) {
             log.warn("An error occured while fetching pvaTS for verifier {}: {}", verifierDid, e.getMessage());
-            return List.of();
+            return null;
         }
     }
 
@@ -334,7 +341,7 @@ public class TrustStatementCacheService {
             return List.of();
         } catch (RuntimeException e) {
             log.warn("An error occured while fetching piaTS for issuer {}: {}", issuerDid, e.getMessage());
-            return List.of();
+            return null; // Returning an empty list here will cause it to be cached for cacheProperties.getRequestBackoffSeconds()
         }
     }
 
@@ -417,6 +424,12 @@ public class TrustStatementCacheService {
                 return currentDuration;
             }
 
+            /**
+             * Cache the list of trust statements for the ttl. If no valid trust statement is found, cache the empty list for
+             * backoff seconds to prevent spamming the registry
+             * @param value the list of trust statements to be cached
+             * @return cache duration in nanoseconds
+             */
             private long getValidTtlOrBackoff(List<ValidatedSingleTrustStatement> value) {
                 return value.stream()
                         .filter(v -> v.valid)

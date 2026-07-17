@@ -38,7 +38,6 @@ class StatusListCacheServiceTest {
         cacheProperties = new CacheProperties();
         cacheProperties.setStatusListCacheSize(100);
         cacheProperties.setRequestBackoffSeconds(100);
-        cacheProperties.setStatusListCacheTtl(500l);
         didJwtValidator = mock(DidJwtValidator.class);
         issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
         statusListResolver = mock(StatusListResolver.class);
@@ -49,6 +48,7 @@ class StatusListCacheServiceTest {
      */
     @Test
     void testGetTokenStatusListTokenByUri() throws Exception {
+        cacheProperties.setStatusListCacheTtl(500l);
         cacheService = new StatusListCacheService(cacheProperties, didJwtValidator, issuerPublicKeyLoader, statusListResolver);
         ECKey testKey = new ECKeyGenerator(Curve.P_256)
             .algorithm(JWSAlgorithm.ES256)
@@ -57,10 +57,10 @@ class StatusListCacheServiceTest {
             .generate();
         when(issuerPublicKeyLoader.loadJWK(any(), eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
         var statusListJwt = StatusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST, testKey, "did:example", testKey.getKeyID());
-
         when(statusListResolver.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenReturn(statusListJwt);
 
         var statusList = assertDoesNotThrow(() -> cacheService.getTokenStatusListTokenByUri(StatusListGenerator.SPEC_SUBJECT));
+
         verify(didJwtValidator, times(1)).validateJwt(eq(statusListJwt), any(JWKSet.class));
         assertThat(statusList).isNotNull();
         assertThat(statusList.getStatusList()).isNotNull();

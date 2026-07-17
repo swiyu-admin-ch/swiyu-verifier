@@ -33,8 +33,15 @@ class TimeUtilTest {
 
     // ==================== secondsToNanos ====================
     @Test
-    void secondsToNanos_WithNull_ReturnsNull() {
-        assertThat(TimeUtil.secondsToNanos(null)).isNull();
+    void secondsToNanos_int_WithNull_ReturnsNull() {
+        Integer i = null;
+        assertThat(TimeUtil.secondsToNanos(i)).isNull();
+    }
+    
+    @Test
+    void secondsToNanos_long_WithNull_ReturnsNull() {
+        Long l = null;
+        assertThat(TimeUtil.secondsToNanos(l)).isNull();
     }
 
     @Test
@@ -82,10 +89,10 @@ class TimeUtilTest {
     }
 
     @Test
-    void nanosUntilExpiry_WithExpirationInPast_ReturnsNegative() {
+    void nanosUntilExpiry_WithExpirationInPast_ReturnsZero() {
         long pastTime = Instant.now().minusSeconds(10).toEpochMilli();
         Long result = TimeUtil.nanosUntilExpiry(pastTime);
-        assertThat(result).isNegative();
+        assertThat(result).isZero();
     }
 
     @Test
@@ -103,10 +110,10 @@ class TimeUtilTest {
     }
 
     @Test
-    void nanosUntilExpiry_WithDateInPast_ReturnsNegative() {
+    void nanosUntilExpiry_WithDateInPast_ReturnsZero() {
         Date pastDate = Date.from(Instant.now().minusSeconds(10));
         Long result = TimeUtil.nanosUntilExpiry(pastDate);
-        assertThat(result).isNegative();
+        assertThat(result).isZero();
     }
 
     @Test

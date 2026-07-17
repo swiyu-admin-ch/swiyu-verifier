@@ -60,7 +60,7 @@ public class StatusListCacheService {
      * @return the TokenStatusListToken or null, if it cannot be resolved
      */
     public TokenStatusListTokenDto getTokenStatusListTokenByUri(String uri) {
-        return cache.get(uri, u -> resolveValidatedStatusList(u)).orElseThrow(() -> 
+        return cache.get(uri, this::resolveValidatedStatusList).orElseThrow(() -> 
             credentialError(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST, "Status List %s cannot be resolved".formatted(uri)));
     }
 
@@ -130,7 +130,7 @@ public class StatusListCacheService {
                 }
 
                 private long getTTLTime(TokenStatusListTokenDto value) {
-                    long minimumTimeout = TimeUtil.minNanosUntilExpiry(maxCacheTTLNs, value.getExp());
+                    long minimumTimeout = TimeUtil.minNanosUntilExpiry(maxCacheTTLNs, TimeUtil.secondsToNanos(value.getExp()));
                     return TimeUtil.minWithNullable(minimumTimeout, TimeUtil.secondsToNanos(value.getTtl()));
                 }
             };

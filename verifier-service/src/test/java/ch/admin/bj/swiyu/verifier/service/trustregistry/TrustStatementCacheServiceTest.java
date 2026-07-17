@@ -46,7 +46,9 @@ class TrustStatementCacheServiceTest {
     void setUp() {
         trustProtocol20Api = mock(TrustProtocol20Api.class);
         cacheMaintenanceService = mock(CacheMaintenanceService.class);
-        cacheProperties = mock(CacheProperties.class);
+        cacheProperties = new CacheProperties();
+        cacheProperties.setRequestBackoffSeconds(10);
+        cacheProperties.setStatusListCacheTtl(100l);
         statementValidator = mock(TrustStatementValidator.class);
         properties = new TrustRegistryProperties();
         properties.setMaxCacheSize(100);
@@ -60,6 +62,7 @@ class TrustStatementCacheServiceTest {
                 statementValidator,
                 cacheProperties
         );
+        
         // By Default accept trust statements in these tests with 5 minutes TTL to allow debugging
         when(statementValidator.trustStatementValidityWindow(any())).thenReturn(new TrustStatementValidationResult(true, TimeUnit.MINUTES.toNanos(5)));
     }
@@ -77,6 +80,9 @@ class TrustStatementCacheServiceTest {
         List<String> result = cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID);
 
         assertThat(result).hasSize(2).containsExactlyInAnyOrder(jwt1, jwt2);
+        assertThat(cacheService.getPvaTsCache().estimatedSize())
+            .as("The two statements are returned for the same did, only 1 entry should be made for the did")
+            .isEqualTo(1);
     }
 
     @Test
@@ -89,6 +95,9 @@ class TrustStatementCacheServiceTest {
         List<String> result = cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID);
 
         assertThat(result).isEmpty();
+        assertThat(cacheService.getPvaTsCache().estimatedSize())
+            .as("When no valid trust statement is found, but a return value is saved should be cached")
+            .isEqualTo(1);
     }
 
     @Test
@@ -99,6 +108,9 @@ class TrustStatementCacheServiceTest {
         List<String> result = cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID);
 
         assertThat(result).isEmpty();
+        assertThat(cacheService.getPvaTsCache().estimatedSize())
+            .as("When API error is detected, should not be cached")
+            .isEqualTo(0);
     }
 
     @Test
@@ -124,8 +136,11 @@ class TrustStatementCacheServiceTest {
                 .thenReturn(Mono.just(page));
 
         cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID);
+        assertThat(cacheService.getPvaTsCache().estimatedSize()).as("Cache should have 1 entry").isEqualTo(1);
         cacheService.invalidateAllTrustStatements(VERIFIER_DID);
+        assertThat(cacheService.getPvaTsCache().estimatedSize()).as("Cache should be emptied").isEqualTo(0);
         cacheService.getProtectedVerificationAuthorizationTrustStatements(VERIFIER_DID);
+        assertThat(cacheService.getPvaTsCache().estimatedSize()).as("Cache should have again 1 entry").isEqualTo(1);
 
         verify(trustProtocol20Api, times(2)).listPvaTS(eq(VERIFIER_DID), eq(true), any(), any(), any());
     }

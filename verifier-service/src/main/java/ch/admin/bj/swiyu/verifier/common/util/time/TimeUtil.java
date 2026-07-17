@@ -26,11 +26,20 @@ public class TimeUtil {
 
     /**
      * Converts seconds to nanoseconds, returning null if input is null.
-     * @param nullableIntS Seconds (nullable).
+     * @param nullableSeconds Seconds (nullable).
      * @return Nanoseconds, or null.
      */
-    public Long secondsToNanos(@Nullable Integer nullableIntS) {
-        return nullableIntS == null ? null : TimeUnit.SECONDS.toNanos(nullableIntS);
+    public Long secondsToNanos(@Nullable Integer nullableSeconds) {
+        return nullableSeconds == null ? null : TimeUnit.SECONDS.toNanos(nullableSeconds);
+    }
+
+    /**
+     * Converts seconds to nanoseconds, returning null if input is null.
+     * @param nullableSeconds Seconds (nullable).
+     * @return Nanoseconds, or null.
+     */
+    public Long secondsToNanos(@Nullable Long nullableSeconds) {
+        return nullableSeconds == null ? null : TimeUnit.SECONDS.toNanos(nullableSeconds);
     }
 
     /**
@@ -52,7 +61,7 @@ public class TimeUtil {
         if (expirationTime == null){
             return null;
         }
-        return expirationTime - millisToNanos(Instant.now().toEpochMilli());
+        return Math.max(0, expirationTime - millisToNanos(Instant.now().toEpochMilli()));
     }
 
     /**

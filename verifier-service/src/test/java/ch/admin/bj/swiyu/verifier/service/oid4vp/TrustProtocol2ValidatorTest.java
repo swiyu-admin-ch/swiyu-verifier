@@ -21,7 +21,7 @@ import com.nimbusds.jwt.SignedJWT;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TestTrustStatementGenerator;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
@@ -42,14 +42,13 @@ class TrustProtocol2ValidatorTest {
     @Mock
     private TrustStatementCacheService statementProvider;
     @Mock
-    private StatusListResolverAdapter statusListResolverAdapter;
+    private StatusListResolver statusListResolverAdapter;
     @Mock
     private DidJwtValidator jwtValidator;
     @Mock
     private IssuerPublicKeyLoader keyLoader;
 
     private TrustProtocol2Validator validator;
-    private ObjectMapper mapper = new ObjectMapper();
     private Management management;
     private TrustAnchor anchor;
     private ECKey mockKey;
@@ -66,8 +65,7 @@ class TrustProtocol2ValidatorTest {
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        validator = new TrustProtocol2Validator(statementProvider, statusListResolverAdapter,
-                jwtValidator, keyLoader, mapper);
+        validator = new TrustProtocol2Validator(statementProvider);
         anchor = new TrustAnchor(TRUST_ROOT, "https://www.example.com");
         management = Management.builder()
                 .trustAnchors(List.of(anchor))
@@ -96,8 +94,5 @@ class TrustProtocol2ValidatorTest {
 
         boolean result = validator.isTrusted(ISSUER_DID, TRUSTED_VCT, management);
         assertThat(result).as("Issuer should be trusted when markers indicate trust").isTrue();
-        // Ensure Status List and Key Loader have been called
-        verify(statusListResolverAdapter, atLeastOnce()).resolveStatusList(anyString());
-        verify(keyLoader, atLeastOnce()).loadJWK(anyString(), anyString());
     }
 }

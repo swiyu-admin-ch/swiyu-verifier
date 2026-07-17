@@ -10,6 +10,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.experimental.UtilityClass;
 
+import java.time.Instant;
 import java.util.Date;
 
 /**
@@ -54,6 +55,8 @@ public class StatusListGenerator {
         var claims = JWT_CLAIM_SET_BUILDER
                 .issuer(issuerId)
                 .issueTime(new Date())
+                .claim("exp", Instant.now().plusSeconds(3600).getEpochSecond())
+                .claim("ttl", 180)
                 .claim("status_list", new JWTClaimsSet.Builder()
                         .claim("bits", 2)
                         .claim("lst", statusList)

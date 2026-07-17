@@ -15,7 +15,8 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
@@ -53,7 +54,7 @@ class SdJwtVpTokenVerifierTest {
     private static final String TEST_NONCE = "test-nonce";
 
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
-    private StatusListResolverAdapter statusListResolver;
+    private StatusListCacheService statusListResolver;
     private ApplicationProperties applicationProperties;
     private VerificationProperties verificationProperties;
     private DidJwtValidator didJwtValidator;
@@ -65,7 +66,7 @@ class SdJwtVpTokenVerifierTest {
     @BeforeEach
     void setUp() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
         issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
-        statusListResolver = mock(StatusListResolverAdapter.class);
+        statusListResolver = mock(StatusListCacheService.class);
         didJwtValidator = mock(DidJwtValidator.class);
         statusListVerifier = mock(TokenStatusListVerifier.class);
         applicationProperties = mock(ApplicationProperties.class);
@@ -85,7 +86,7 @@ class SdJwtVpTokenVerifierTest {
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
 
-        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListResolver, applicationProperties, verificationProperties, didJwtValidator, statusListVerifier);
+        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListResolver, applicationProperties, verificationProperties, statusListVerifier);
     }
 
     @Test

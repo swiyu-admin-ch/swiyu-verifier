@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Add `profile_version` and `encrypted_response_enc_values_supported` fields to Request Object DTO to comply with Swiss Profile requirements `(#829)`.
   - Mark `vp_formats` as a required field in `OpenidClientMetadataDto` `(#829)`.
   - Update Response Data endpoint to return `ResponseEntity<Map<String, Object>>` instead of `void` and document the `application/json` response body schema in OpenAPI `(#829)`.
+- Verification of Trust Statements with Status Lists using caching according to exp, ttl or maximum cache ttl.
 
 ## Changed
 - Moved Status List Verification to shared generic library

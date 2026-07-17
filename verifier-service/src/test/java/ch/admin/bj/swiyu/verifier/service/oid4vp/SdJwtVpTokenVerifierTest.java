@@ -55,6 +55,8 @@ class SdJwtVpTokenVerifierTest {
     private Management management;
 
     private SdJwtVpTokenVerifier verifier;
+    private final String prefix = "prefix";
+    private final String clientId = "did:example:verifier";
 
     @BeforeEach
     void setUp() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
@@ -65,9 +67,8 @@ class SdJwtVpTokenVerifierTest {
         management = mock(Management.class);
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-        when(applicationProperties.getClientId()).thenReturn("did:example:verifier");
-        when(applicationProperties.getClientIdWithPrefix()).thenReturn("prefix:did:example:verifier");
-        when(applicationProperties.getClientIdWithPrefix(any())).thenReturn("prefix:did:example:verifier");
+        when(applicationProperties.getClientId()).thenReturn(clientId);
+        when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
         when(management.getId()).thenReturn(UUID.randomUUID());
         when(management.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
         when(management.getTrustAnchors()).thenReturn(List.of());
@@ -93,7 +94,7 @@ class SdJwtVpTokenVerifierTest {
 
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
         var sdjwt = emulator.createSDJWTMock();
-        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, applicationProperties.getClientIdWithPrefix());
+        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, prefix + ":" + clientId);
         var sdJwt = new SdJwt(vpTokenString);
 
         // Trust Statement: separate trust anchor vouches that vcIssuerDid canIssue DEFAULT_VCT

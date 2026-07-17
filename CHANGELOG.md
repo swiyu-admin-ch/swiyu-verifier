@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Mark `vp_formats` as a required field in `OpenidClientMetadataDto` `(#829)`.
   - Update Response Data endpoint to return `ResponseEntity<Map<String, Object>>` instead of `void` and document the `application/json` response body schema in OpenAPI `(#829)`.
 
+## Fixed
+- Added client_id with prefix to all JWTs created by the verifier and also added the correct one to the initial verification deeplink (#1175)
 
 # [4.0.0] - 2026-07-08
 

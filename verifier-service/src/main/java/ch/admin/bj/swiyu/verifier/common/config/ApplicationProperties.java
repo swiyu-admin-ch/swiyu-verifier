@@ -52,10 +52,6 @@ public class ApplicationProperties {
     private List<String> acceptedRegistryHosts;
 
     public String getClientIdWithPrefix() {
-        return getClientIdWithPrefix(clientId);
-    }
-
-    public String getClientIdWithPrefix(String clientId) {
         if (StringUtils.isBlank(clientIdPrefix)) {
             return clientId;
         }

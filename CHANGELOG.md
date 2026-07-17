@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Added client_id with prefix to all JWTs created by the verifier and also added the correct one to the initial verification deeplink (#1175)
+- Fixed type of `VerificationPurpose`, `ConfigurationOverrideDto` and `OpenIdClientMetadataVpFormatSdJwt` in openapi.yaml to `type: object` (#1174).
 
 # [4.0.0] - 2026-07-08
 

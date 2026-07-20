@@ -176,21 +176,21 @@ public class TrustStatementCacheService {
     @Nullable
     public String getIdentityTrustStatement(String did) {
         ValidatedSingleTrustStatement cached = idTsCache.get(did, this::fetchIdentityTrustStatement);
-        return cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
+        return cached != null && cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
     }
 
     @Nullable
     public String getProtectedIssuanceTrustListStatement() {
         ValidatedSingleTrustStatement cached = piTLSCache.get(ACTIVE_TRUST_LIST_STATEMENT,
-                this::fetchProtectedIssuanceTrustListStatement);
-        return cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
+                k -> this.fetchProtectedIssuanceTrustListStatement());
+        return cached != null && cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
     }
 
     @Nullable
     public String getNonComplianceTrustListStatement() {
         ValidatedSingleTrustStatement cached = ncTLSCache.get(ACTIVE_TRUST_LIST_STATEMENT,
-                this::fetchNonComplianceTrustListStatement);
-        return cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
+                k -> this.fetchNonComplianceTrustListStatement());
+        return cached != null && cached.trustStatement.isPresent() && cached.valid ? cached.trustStatement.orElse(null) : null;
     }
 
     /**
@@ -257,6 +257,7 @@ public class TrustStatementCacheService {
         log.info("Invalidating all cached trust statements for DID {}", did);
         idTsCache.invalidate(did);
         pvaTsCache.invalidate(did);
+        piaTsCache.invalidate(did);
         cacheMaintenanceService.evictJwkManually(did);
     }
 
@@ -267,13 +268,16 @@ public class TrustStatementCacheService {
                 log.warn("No idTS trust statement found for issuer {}", issuerDid);
             }
             return validateTrustStatement(jwt);
+        } catch (JwtValidatorException e) {
+            log.warn("idTS signature validation failed for issuer {}: {}", issuerDid, e.getMessage());
+            return new ValidatedSingleTrustStatement(Optional.empty(), false, 0);
         } catch (RuntimeException e) {
             log.warn("Failed to fetch idTS for issuer {}: {}", issuerDid, e.getMessage());
-            return new ValidatedSingleTrustStatement(Optional.empty(), false, 0);
+            return null;
         }
     }
 
-    private ValidatedSingleTrustStatement fetchProtectedIssuanceTrustListStatement(String notUsed) {
+    private ValidatedSingleTrustStatement fetchProtectedIssuanceTrustListStatement() {
         try {
             String jwt = trustProtocol20Api.getActivePiTLS().block();
             if (jwt == null) {
@@ -286,7 +290,7 @@ public class TrustStatementCacheService {
         }
     }
 
-    private ValidatedSingleTrustStatement fetchNonComplianceTrustListStatement(String notUsed) {
+    private ValidatedSingleTrustStatement fetchNonComplianceTrustListStatement() {
         try {
             String jwt = trustProtocol20Api.getActiveNcTLS().block();
             if (jwt == null) {

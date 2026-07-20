@@ -13,6 +13,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -65,6 +67,48 @@ class TrustStatementCacheServiceTest {
         
         // By Default accept trust statements in these tests with 5 minutes TTL to allow debugging
         when(statementValidator.trustStatementValidityWindow(any())).thenReturn(new TrustStatementValidationResult(true, TimeUnit.MINUTES.toNanos(5)));
+    }
+
+
+    @Test
+    void getIdentityTrustStatement_firstCall_fetchesFromApi() throws Exception {
+        String jwt = buildJwt(List.of("birth_date"), Instant.now().plusSeconds(3600));
+        when(trustProtocol20Api.getIdTS(eq(VERIFIER_DID)))
+                .thenReturn(Mono.just(jwt));
+        when(statementValidator.trustStatementValidityWindow(eq(jwt))).thenReturn(new TrustStatementValidationResult(true, 5l));
+        var result = cacheService.getIdentityTrustStatement(VERIFIER_DID);
+
+        assertThat(result).isEqualTo(jwt);
+        verify(trustProtocol20Api, times(1)).getIdTS(any());
+    }
+
+    @Test
+    void getIdentityTrustStatement_secondCall_usesCache() throws Exception {
+        String jwt = buildJwt(List.of("birth_date"), Instant.now().plusSeconds(3600));
+        when(trustProtocol20Api.getIdTS(any()))
+                .thenReturn(Mono.just(jwt));
+        when(statementValidator.trustStatementValidityWindow(eq(jwt)))
+            .thenReturn(new TrustStatementValidationResult(true, TimeUnit.SECONDS.toNanos(5l)));
+
+        cacheService.getIdentityTrustStatement(VERIFIER_DID);
+        cacheService.getIdentityTrustStatement(VERIFIER_DID);
+
+        // API must only be called once – second call hits the cache
+        verify(trustProtocol20Api, times(1)).getIdTS(any());
+    }
+
+    @Test
+    void getIdentityTrustStatement_secondCallWhen503_cacheIsNotUsed() {
+        var numberOfCalls = 2;
+        when(trustProtocol20Api.getIdTS(any()))
+                .thenReturn(Mono.error(WebClientResponseException.create(503, "Service Unavailable", null, null, null)));
+
+        for (int i = 0; i < numberOfCalls; i++) {
+            cacheService.getIdentityTrustStatement(VERIFIER_DID);
+        }
+
+        // API must only be called once – second call hits the cache
+        verify(trustProtocol20Api, times(numberOfCalls)).getIdTS(any());
     }
 
     @Test

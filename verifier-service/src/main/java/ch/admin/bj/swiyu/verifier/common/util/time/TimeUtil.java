@@ -80,7 +80,7 @@ public class TimeUtil {
     /**
      * Returns the minimum of accumulator and time until expiry.
      * @param accumulator Time in nanoseconds.
-     * @param expirationTime Epoch millis (nullable).
+     * @param expirationTime Epoch nanoseconds (nullable).
      * @return Minimum of accumulator or time until expiry.
      */
     public static long minNanosUntilExpiry(long accumulator, @Nullable Long expirationTime) {

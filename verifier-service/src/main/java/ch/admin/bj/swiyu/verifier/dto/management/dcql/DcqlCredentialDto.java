@@ -52,15 +52,15 @@ public record DcqlCredentialDto(
         @AssertFalse(message = "'multiple' is not supported and must be false or omitted")
         Boolean multiple, // OPTIONAL, or false
 
-        @Schema(description = "[NOT FULLY IMPLEMENTED] An object defining additional properties requested by the Verifier that apply to " +
-                "the metadata and validity data of the Credential. Parts of this object are not fully supported by this implementation; please consult the documentation. " +
-                "The properties of this object are defined per Credential Format. " +
+        @Schema(description = "An object defining additional properties requested by the Verifier that apply to " +
+                "the metadata and validity data of the Credential. The properties of this object are defined " +
+                "per Credential Format. " +
                 "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'meta'.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("meta")
         @NotNull(message = "meta is required")
         @Valid
-        DcqlCredentialMetaDto meta, // REQUIRED (not yet fully supported)
+        DcqlCredentialMetaDto meta, // REQUIRED
 
         @Schema(description = "An optional non-empty array of Claims Query objects, specifying individual claims. " +
                 "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'claims'.")

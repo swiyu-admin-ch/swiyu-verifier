@@ -45,7 +45,7 @@ public class StatusListCacheService {
     
 
 
-        public StatusListCacheService(CacheProperties cacheProperties, DidJwtValidator didJwtValidator,
+    public StatusListCacheService(CacheProperties cacheProperties, DidJwtValidator didJwtValidator,
             IssuerPublicKeyLoader issuerPublicKeyLoader, StatusListResolver statusListResolver) {
         this.cacheProperties = cacheProperties;
         this.didJwtValidator = didJwtValidator;
@@ -54,7 +54,7 @@ public class StatusListCacheService {
         this.cache = buildTokenStatusListTokenCache();
     }
 
-        /**
+    /**
      * Resolves the given URI to a verified TokenStatusListToken, caching it if possible to reduce load
      * @param uri URI where the status list is located
      * @return the TokenStatusListToken or null, if it cannot be resolved

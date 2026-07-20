@@ -89,11 +89,14 @@ class StatusListCacheServiceTest {
         when(statusListResolver.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenReturn(statusListJwt);
 
         var statusList = assertDoesNotThrow(() -> cacheService.getTokenStatusListTokenByUri(StatusListGenerator.SPEC_SUBJECT));
-        verify(didJwtValidator, times(1)).validateJwt(eq(statusListJwt), any(JWKSet.class));
+        // Ensure data is returned
         assertThat(statusList).isNotNull();
         assertThat(statusList.getStatusList()).isNotNull();
         assertThat(statusList.getExp()).isNotNull().isNotZero();
         assertThat(statusList.getTtl()).isNotNull().isNotZero();
-        assertThat(cacheService.getCache().estimatedSize()).as("Expiry time was 0, thus will not be cached").isEqualTo(0);
+        // Second Invocation to prove nothing is cached
+        // Note: cache.getEstimatedSize() is flaky
+        assertDoesNotThrow(() -> cacheService.getTokenStatusListTokenByUri(StatusListGenerator.SPEC_SUBJECT));
+        verify(didJwtValidator, times(2)).validateJwt(eq(statusListJwt), any(JWKSet.class));
     }
 }

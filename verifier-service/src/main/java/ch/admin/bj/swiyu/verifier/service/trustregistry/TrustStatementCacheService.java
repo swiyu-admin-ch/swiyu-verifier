@@ -43,10 +43,9 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * Dynamic per-entry TTL is implemented via Caffeine's {@link Expiry} interface.
  * For the {@code pvaTS} list the TTL is derived from the <em>minimum</em>
- * {@code exp} claim
+ * {@code exp} claim and {@code exp} or {@code ttl} of associated status 
  * across all JWTs in the list, ensuring the entire list is evicted as soon as
- * the earliest
- * statement expires.
+ * the earliest statement expires.
  * </p>
  *
  * <p>
@@ -97,7 +96,7 @@ public class TrustStatementCacheService {
 
     private final Cache<String, ValidatedSingleTrustStatement> piTLSCache;
     private final Cache<String, ValidatedSingleTrustStatement> ncTLSCache;
-    private final Cache<String, List<ValidatedSingleTrustStatement>> piaTSCache;
+    private final Cache<String, List<ValidatedSingleTrustStatement>> piaTsCache;
 
     /**
      * Constructs the cache service with injected API client and configuration.
@@ -121,7 +120,7 @@ public class TrustStatementCacheService {
         this.pvaTsCache = buildTrustStatementListCache();
         this.piTLSCache = buildTrustStatementCache();
         this.ncTLSCache = buildTrustStatementCache();
-        this.piaTSCache = buildTrustStatementListCache();
+        this.piaTsCache = buildTrustStatementListCache();
     }
 
     /**
@@ -228,8 +227,11 @@ public class TrustStatementCacheService {
     }
 
     public List<String> getProtectedIssuanceAuthorizationTrustStatements(String issuerDid) {
-        return piaTSCache
-                .get(issuerDid, this::fetchProtectedIssuanceAuthorizationTrustStatements)
+        List<ValidatedSingleTrustStatement> statements = piaTsCache.get(issuerDid, this::fetchProtectedIssuanceAuthorizationTrustStatements);
+        if (statements == null) {
+            return List.of();
+        }
+        return statements
                 .stream().map(vts -> vts.trustStatement)
                 .filter(ts -> ts.isPresent())
                 .map(ts -> ts.get()).toList();

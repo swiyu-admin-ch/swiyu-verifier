@@ -2,12 +2,14 @@ package ch.admin.bj.swiyu.verifier.dto.management.dcql;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.AssertFalse;
 
 import java.util.List;
 
@@ -41,22 +43,24 @@ public record DcqlCredentialDto(
         @NotEmpty(message = "format must not be empty")
         String format, // REQUIRED
 
-        @Schema(description = "A boolean which indicates whether multiple Credentials can be returned for " +
-                "this Credential Query. If omitted, the default value is false. " +
-                "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'multiple'.",
+        @Hidden
+        @Schema(description = "[NOT SUPPORTED] A boolean which would indicate whether multiple Credentials can be returned for " +
+                "this Credential Query. This implementation DOES NOT support returning multiple credentials; the value MUST be false or omitted, as " +
+                "it is marked as `not supported` by the Swiss Profile Verification 1.0.",
                 defaultValue = "false")
         @JsonProperty("multiple")
-        Boolean multiple, // OPTIONAL, default false
+        @AssertFalse(message = "'multiple' is not supported and must be false or omitted")
+        Boolean multiple, // OPTIONAL, or false
 
-        @Schema(description = "An object defining additional properties requested by the Verifier that apply to " +
-                "the metadata and validity data of the Credential. The properties of this object are defined " +
-                "per Credential Format. " +
+        @Schema(description = "[NOT FULLY IMPLEMENTED] An object defining additional properties requested by the Verifier that apply to " +
+                "the metadata and validity data of the Credential. Parts of this object are not fully supported by this implementation; please consult the documentation. " +
+                "The properties of this object are defined per Credential Format. " +
                 "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'meta'.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("meta")
         @NotNull(message = "meta is required")
         @Valid
-        DcqlCredentialMetaDto meta, // REQUIRED
+        DcqlCredentialMetaDto meta, // REQUIRED (not yet fully supported)
 
         @Schema(description = "An optional non-empty array of Claims Query objects, specifying individual claims. " +
                 "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'claims'.")
@@ -65,13 +69,13 @@ public record DcqlCredentialDto(
         @Size(min = 1, message = "claims must not be empty when provided")
         List<DcqlClaimDto> claims,  // OPTIONAL
 
-        @Schema(description = "An optional non-empty array containing arrays of identifiers for elements in claims " +
-                "that specifies which combinations of claims for the Credential are requested. " +
-                "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'claim_sets'.")
+        @Hidden
+        @Schema(description = "[NOT IMPLEMENTED] An optional non-empty array containing arrays of identifiers for elements in claims " +
+                "that specifies which combinations of claims for the Credential are requested. This feature is only partially supported; behavior may be limited.")
         @JsonProperty("claim_sets")
         @Valid
         @Size(min = 1, message = "claim_sets must not be empty when provided")
-        List<List<String>> claimSets, // OPTIONAL
+        List<List<String>> claimSets, // OPTIONAL (not yet supported)
 
         @Schema(description = "A boolean indicating if cryptographic holder binding is required. If true, " +
                 "the Wallet MUST return a Verifiable Presentation of a Verifiable Credential. If false, " +
@@ -84,9 +88,8 @@ public record DcqlCredentialDto(
         @JsonProperty("require_cryptographic_holder_binding")
         Boolean requireCryptographicHolderBinding, // OPTIONAL
 
-        @Schema(description = "An optional non-empty array of Trusted Authorities Query objects. " +
-                "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'trusted_authorities'.")
+        @Hidden
+        @Schema(description = "[NOT IMPLEMENTED] An optional non-empty array of Trusted Authorities Query objects. Some aspects of trusted authorities processing are not implemented in this release.")
         @JsonProperty("trusted_authorities")
-        List<DcqlTrustedAuthoritiesDto> trustedAuthorities // OPTIONAL
-) {
-}
+        List<DcqlTrustedAuthoritiesDto> trustedAuthorities // OPTIONAL (not yet supported)
+) { }

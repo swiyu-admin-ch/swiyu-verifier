@@ -1117,6 +1117,10 @@ components:
             to the client.
         aud:
           type: string
+          description: |
+            Audience ("aud") JWT claim identifying the intended recipient of this Request Object.
+            As the verifier cannot identify the wallet the Static Discovery metadata is used.
+            MUST be "https://self-issued.me/v2"
         profile_version:
           type: string
           description: JWT header parameter indicating the Swiss Profile version used

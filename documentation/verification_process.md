@@ -2,7 +2,7 @@
 
 This document provides insights about the verification V1 process and how to securely use a verification process.
 
-## Overview of the Verification V1 process
+## 1. Overview of the Verification V1 process
 
 > [!NOTE]  
 > Please note that this is a simplified overview of the process used to show the interactions between the involved parties (specially between the Verifier Service and the Wallet).
@@ -14,29 +14,23 @@ sequenceDiagram
     actor w as Wallet
 
     participant vs as Verifier Service
-    participant db as Verifier DB
     participant registry as Registries
 
 
     bv->>+vs : create verification request
-    vs->>vs : check offer
-    vs ->>db : store offer
-    vs-->>-bv : return verification request incl. deeplink (qr-code)
+    vs->>vs : check request
+    vs-->>-bv : return verification request incl. deeplink
 
-    bv ->>+w : pass deeplink
+    bv ->>+w : pass deeplink (as qr-code)
     w->>+vs : get verification request object
-    vs ->>db : return verification request object
     vs-->>-w : verification presentation Definition
 
-    w->>+vs : get verifier metadata
-    vs-->>-w : return metadata
-
     alt Wallet/User can provide (if consent to send) the requested data
-        w->>+vs : authorization response (vp token with verifiable presentation)
+        w->> w : create key binding (if requested)
+        w->>+vs : authorization response (vp token + key binding)
         vs->>+registry : get issuer public key / status list / trust info
-        registry-->>-vs : return
+        registry-->>-vs : 
         vs->>vs : check authorization response 
-        vs ->>db : store verification data
         vs-->>-w : Ok / NOK
         deactivate w
     else
@@ -46,12 +40,11 @@ sequenceDiagram
 
     loop [status == PENDING]
         bv->>+vs : check verification status
-        vs->>+db : get verification data
         vs-->>-bv : get verification data
     end
 ```
 
-## Shared operations between Verification and Rejection
+## 2. Interaction between Business Verifier and Verifier Service
 
 > [!NOTE]  
 > All calls use the localhost server at port 8083, which can be started with the sample-compose file [how to get started]().
@@ -64,7 +57,7 @@ The Business Verifier exclusively uses the management api endpoints provided und
 
 All interactions between the Wallet and the Verifier Service use the [OID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html) and are provided under `/oid4vp/api/`
 
-### 1. Create Verification
+### 2.1. Create Verification
 
 Actor:
 - Business Verifier: The entity requesting the verification (e.g., a company or service).
@@ -76,7 +69,7 @@ Process:
 - The Business Verifier forwards the received Verification URI to the Holder (e.g., a person or entity holding credentials).
 
 > [!IMPORTANT]  
-> The example above is only a bare minimum working example. In a production scenario, you should at least set the `accepted_issuer_dids` or `trust_anchors` which are described below.
+> The example above is only a bare minimum working example to check that a person is older than 18 from a beta-id credential.
 
 **Basic Request:**
 ```bash
@@ -84,7 +77,7 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -d '{
   "accepted_issuer_dids": [
-    "<Your ISSUER_DID>"
+    "did:tdw:QmPEZPhDFR4nEYSFK5bMnvECqdpf1tPTPJuWs9QrMjCumw:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:9a5559f0-b81c-4368-a170-e7b4ae424527"
   ],
   "jwt_secured_authorization_request": true,
   "response_mode": "direct_post",
@@ -100,7 +93,7 @@ curl -X POST \
   "dcql_query": {
     "credentials": [
       {
-        "id": "00000000-0000-0000-0000-000000000000",
+        "id": "age_check_dcql",
         "format": "dc+sd-jwt",
         "meta": {
           "vct_values": ["betaid-sdjwt"]
@@ -120,8 +113,9 @@ http://localhost:8083/management/api/verifications
 
 > **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+, per [draft-ietf-oauth-sd-jwt-vc-09 §A.2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt)) and `vc+sd-jwt` (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header.
 
-To limit the accepted issuers, you can set the `accepted_issuer_dids` parameter with a list of trusted issuer DIDs. 
-Otherwise, any credential that provides the requested claims will be accepted an example here is:
+To limit the accepted issuers, you must either set the `accepted_issuer_dids` or the `trust_anchors` (not recommended, as it will be deprecated in the future) to create a verification request. 
+
+In the example above the `accepted_issuer_dids` contains the id of the beta-id issuer. If you want to check your own issuer you have to set the value in here.
 ```json
 {
     "...": "...",
@@ -141,6 +135,25 @@ List of trust anchor dids from the trust registry.
 }
 ```
 
+> [!IMPORTANT]  
+> The following example about vqps (Verification Query Public Statement) is under development and requires additional configuration. Please do not use it until further notice.
+
+To set the vqps, you also have to set the `verification_purpose`
+```json
+{
+    "...": "...",
+    "verification_purpose": {
+        "scope": "ch.some.test.scope",
+        "purpose_name": {
+            "default": "Test"
+        },
+        "purpose_description": {
+            "default": "This is a test and this its description"
+        }
+    }
+}
+```
+
 **Response:**
 
 > [!NOTE]  
@@ -157,7 +170,7 @@ List of trust anchor dids from the trust registry.
 }
 ```
 
-### 2. Get Verification by ID
+### 2.2. Get Verification by ID
 
 Actor:
 - Business Verifier: The entity requesting the verification (e.g., a company or service).
@@ -183,47 +196,15 @@ curl -X GET \
 }
 ```
 
-### 3. Get OpenID Client Metadata
+## 3. Implementation Details for Wallets (not needed if you use the provided wallet)
 
-Actor:
-- Wallet: The entity that holds the credentials.
-
-**Request:**
-```bash
-curl -X GET \
-  -H "Accept: application/json" \
-  http://localhost:8083/oid4vp/api/openid-client-metadata.json
-```
-
-**Response:**  
-```
-{
-    "version": "1.0",
-    "client_id": "<Your VERIFIER_DID>",
-    "vp_formats": {
-        "jwt_vp": {
-            "alg": [
-                "ES256"
-            ]
-        }
-    },
-    "client_name#de": "Entwicklungs-Demo-Verifizierer (Fallback DE)",
-    "client_name#de-CH": "Entwickligs-Demo-Verifizier",
-    "client_name#fr": "Vérificateur de démonstration de développement",
-    "client_name#de-DE": "Entwicklungs-Demo-Verifizierer",
-    "logo_uri": "www.example.com/logo.png",
-    "client_name#en": "Development Demo Verifier",
-    "logo_uri#fr": "www.example.com/logo_fr.png",
-    "client_name": "DEV Demo Verifier (Base)"
-}
-```
-
-### 4. Get Request Object
+### 3.1. Get Request Object
 Actor:
 - Wallet: The entity that holds the credentials.
 
 Process:
 - The Holder uses the Verification Deeplink and decodes it to retrieve the request object from the Verifier Service.
+- The holder sends a GET request to the Verifier Service to retrieve the request object.
 - The Verifier Service fetches the corresponding verification request from the Verifier DB.
 
 > [!NOTE]  
@@ -237,35 +218,109 @@ curl -X GET \
 ```
 
 **Response:**  
-Returns a signed JWT or JSON request object.
+Returns a signed JWT. A decoded example of the response could look like:
+```json
+{
+    "response_uri": "http://localhost:8080/oid4vp/api/request-object/fef545ad-435e-4d10-87ea-922b1a0f5103/response-data",
+    "aud": "https://self-issued.me/v2",
+    "iss": "decentralized_identifier:did:example:12345",
+    "response_type": "vp_token",
+    "dcql_query": {
+        "...": "..."
+    },
+    "state": "36d38875...",
+    "nonce": "jbX1XQ81...",
+    "client_metadata": {
+        "jwks": {
+            "keys": [
+                {
+                    "kty": "EC",
+                    "kid": "bed0513c...",
+                    "alg": "ECDH-ES",
+                    "crv": "P-256",
+                    "x": "WsYjs49...",
+                    "y": "PvbmhOF..."
+                }
+            ]
+        },
+        "encrypted_response_enc_values_supported": [
+            "A256GCM"
+        ],
+        "client_name#de": "German name (fallback)",
+        "client_name#de-CH": "German name (region Switzerland)",
+        "client_name#fr": "French name (all regions)",
+        "client_name#de-DE": "German name (region Germany)",
+        "logo_uri": "www.example.com/logo.png",
+        "client_name#en": "English name (all regions)",
+        "logo_uri#fr": "www.example.com/logo_fr.png",
+        "client_name": "Fallback name",
+        "client_id": "decentralized_identifier:did:example:12345",
+        "vp_formats": {
+            "jwt_vp": {
+                "jwt_vp": {
+                    "alg": [
+                        "ES256"
+                    ]
+                }
+            }
+        },
+        "response_mode": "direct_post.jwt"
+    }
+}
+```
 
-### 3. Receive Verification Presentation
+In this response you find several important claims which are used in the next steps:
+- `response_uri`: The URL to which the wallet must send the presentation or refusal.
+- `state`: The oauth-state value that must be sent back to the Verifier Service.
+- `nonce`: The nonce value that must be sent back as part of the key-binding to the Verifier Service.
+- `encrypted_response_enc_values_supported`: The encryption algorithms supported by the Verifier Service. The wallet must use one of these algorithms to encrypt the presentation before sending it.
+- `client_metadata.client_id`: The DID of the Verifier Service. This value must be used as the `aud` claim in the key-binding.
+- `client_metadata.jwks.keys`: List of JSON web keys (JWKs) to be provided as encryption option to the wallet.
+
+### 3.2. Receive Verification Presentation
 
 Actor:
 - Wallet: The entity that holds the credentials.
 
 > [!NOTE]  
-> This call is done by the Wallet to send the presentation or refusal back to the Verifier Service. The wallet will send the vp_tokn and the presentation_submission as form parameters. An example of the presentation_submission JSON is shown below.
+> This call is done by the Wallet to send the presentation or refusal back to the Verifier Service. The wallet will send the vp_token as form parameters. An example of the encrypted_payload content is shown below:
 
 ```json
 {
-    "definition_id": "00000000-0000-0000-0000-000000000000",
-    "descriptor_map": [
-        {
-            "format": "dc+sd-jwt",
-            "id": "11111111-1111-1111-1111-111111111111",
-            "path": "$"
-        }
-    ],
-    "id": "08e443d4-bed8-4dd7-b060-db22fb5eb1f5"
+    "age_check_dcql" : [ "ey......" ]
 }
 ```
+The payload contains:
+- As key: The id from  `dcql_query.credentials.id` (in this case `age_check_dcql`). 
+- As value a list with (you can have multiple credentials for the same id, but only the first one will be used): 
+  - The SD-JWT presentation (<Issuer-signed JWT>~<Disclosure 1>~...~<Disclosure N>~<Key-Binding>).
+    - Disclosure 1 - N: The disclosure(s) of the claims (here only `age_over_18`) or in other cases the claims that are requested in the `dcql_query`.
+    - Key-Binding: The key binding that proves the holder of the credential is the same as the one that created the presentation. The key binding is a signed JWT.
+
+Decoded Key-Binding example:
+> [!NOTE]  
+> Audience must be set to the `client_id` of the Verifier Service and nonce must be set to the `nonce` value received in the request object.
+
+```
+{
+  "typ": "kb+jwt",
+  "alg": "ES256"
+}
+.
+{
+    "sd_hash": "...",
+    "aud": "decentralized_identifier:did:example:12345",
+    "iat": 12345678,
+    "nonce": "jbX1XQ81..."
+}
+```
+
 
 **Request:**
 ```bash
 curl -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "vp_token=string&presentation_submission=%7B%22definition_id%22%3A%2200000000-0000-0000-0000-000000000000%22%2C%22descriptor_map%22%3A%5B%7B%22format%22%3A%22vc%2Bsd-jwt%22%2C%22id%22%3A%2211111111-1111-1111-1111-111111111111%22%2C%22path%22%3A%22%24%22%7D%5D%2C%22id%22%3A%2208e443d4-bed8-4dd7-b060-db22fb5eb1f5%22%7D" \
+  -d "vp_token=encrypted_payload&state=the_oauth_state_from_the_request" \
   http://localhost:8083/oid4vp/api/request-object/${REQUEST_ID}/response-data
 ```
 
@@ -279,7 +334,7 @@ While the verification status remains PENDING:
 - The Business Verifier periodically polls the Verifier Service to get the current status. 
 - The Verifier Service reads the status from the Verifier DB and responds accordingly.
 
-## Rejection Example
+### 3.3 Rejection Example
 
 Actor:
 - Wallet: The entity that holds the credentials.

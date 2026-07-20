@@ -63,6 +63,7 @@ import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentia
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -1039,6 +1040,40 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // Verify that the management entity remains in pending state since the exception is thrown early
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
+    }
+
+    @Test
+    void encryptedResponse_whenCompressedCipherTextExceedsConfiguredLimit_thenBadRequestAndRemainsPending()
+            throws Exception {
+        // GIVEN
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED).orElseThrow();
+        var responseSpecification = managementEntity.getResponseSpecification();
+        ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
+        String payload = new JWTClaimsSet.Builder()
+                .claim("vp_token", Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of("payload".repeat(1_000))))
+                .claim("state", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED.toString())
+                .build()
+                .toString();
+        JWEObject jweObject = new JWEObject(
+                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
+                        .compressionAlgorithm(CompressionAlgorithm.DEF)
+                        .keyID(publicKey.getKeyID())
+                        .build(),
+                new Payload(payload));
+        jweObject.encrypt(new ECDHEncrypter(publicKey));
+        int compressedCipherTextLength = jweObject.getCipherText().toString().length();
+        doReturn(compressedCipherTextLength - 1)
+                .when(applicationProperties).getMaxCompressedCipherTextLength();
+
+        // WHEN / THEN
+        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
+                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                        .formField("response", jweObject.serialize()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value("Response cannot be decrypted."));
+
+        assertThat(managementEntityRepository.findById(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED).orElseThrow().getState())
+                .isEqualTo(PENDING);
     }
 
     @Test

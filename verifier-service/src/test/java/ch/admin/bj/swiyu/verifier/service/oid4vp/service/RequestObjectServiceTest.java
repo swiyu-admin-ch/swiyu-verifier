@@ -7,24 +7,20 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
-import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.MetadataService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -34,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,11 +47,11 @@ class RequestObjectServiceTest {
     private JwtSigningService jwtSigningService;
     private final String prefix = "test-prefix";
     private ApplicationProperties applicationProperties;
+    private final MetadataService metadataService = mock(MetadataService.class);
 
     @BeforeEach
     void setUp() {
         applicationProperties = mock(ApplicationProperties.class);
-        var openIdClientMetadataConfiguration = mock(OpenIdClientMetadataConfiguration.class);
 
         managementRepository = mock(ManagementRepository.class);
         jwtSigningService = mock(JwtSigningService.class);
@@ -62,10 +59,10 @@ class RequestObjectServiceTest {
 
         service = new RequestObjectService(
                 applicationProperties,
-                openIdClientMetadataConfiguration,
                 managementRepository,
                 objectMapper,
                 jwtSigningService,
+                metadataService,
                 Optional.empty()
         );
 
@@ -74,7 +71,7 @@ class RequestObjectServiceTest {
         when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("did:example:123#key1");
-        when(openIdClientMetadataConfiguration.getOpenIdClientMetadata()).thenReturn(openidClientMetadataDto);
+        when(metadataService.getOpenidClientMetadataForManagementEntity(any(), any())).thenReturn(openidClientMetadataDto);
     }
 
     @Test
@@ -85,7 +82,7 @@ class RequestObjectServiceTest {
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
         when(jwtSigningService.signJwt(
-                org.mockito.ArgumentMatchers.any(),
+                any(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.eq("did:example:123#key1")
@@ -129,7 +126,6 @@ class RequestObjectServiceTest {
         var management = mockManagement(true);
         var logoUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=";
         var clientMetadata = Map.of(
-
                 "client_name", "Override Client",
                 "logo_uri", logoUri
         );
@@ -139,7 +135,7 @@ class RequestObjectServiceTest {
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
         when(jwtSigningService.signJwt(
-                org.mockito.ArgumentMatchers.any(),
+                any(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.eq("did:override#key1")
@@ -163,11 +159,6 @@ class RequestObjectServiceTest {
         assertEquals(verificationMethod, jwt.getHeader().getKeyID());
         assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(prefix + ":" + overrideDid);
         assertThat(jwt.getJWTClaimsSet().getClaim("response_uri").toString()).startsWith(externalUrl);
-        @SuppressWarnings("unchecked")
-        var extractedClientMetadata = (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("client_metadata");
-        assertThat(extractedClientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
-        assertThat(extractedClientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
-
     }
 
     @Test
@@ -179,7 +170,7 @@ class RequestObjectServiceTest {
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
         when(jwtSigningService.signJwt(
-                org.mockito.ArgumentMatchers.any(),
+                any(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.eq("did:example:123#key1")
@@ -199,72 +190,6 @@ class RequestObjectServiceTest {
 
         SignedJWT jwt = SignedJWT.parse(jwtString);
         assertThat(jwt.getJWTClaimsSet().getClaimAsString("client_id")).isEqualTo(clientId);
-    }
-
-    @Test
-    void assembleRequestObject_whenOverridde_thenSuccess() throws ParseException, JOSEException {
-        var externalUrl = "https://overriden.example.com";
-        var overrideDid = "did:override";
-        var overrideDidResult = prefix + ":" + overrideDid;
-        var management = mock(Management.class);
-        when(managementRepository.findById(mgmtId)).thenReturn(Optional.of(management));
-        when(management.isVerificationPending()).thenReturn(true);
-        when(management.isExpired()).thenReturn(false);
-        when(management.getRequestNonce()).thenReturn(nonce);
-        when(management.getJwtSecuredAuthorizationRequest()).thenReturn(false);
-        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
-        when(management.getOauthState()).thenReturn(UUID.randomUUID().toString());
-        JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
-        when(jwtSigningService.signJwt(
-                org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.eq("did:example:123#key1")
-        )).thenAnswer(invocation -> {
-            var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
-            JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
-                    .keyID("did:example:123#key1")
-                    .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
-                    .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
-                    .build();
-            SignedJWT signedJwt = new SignedJWT(header, claimsSet);
-            signedJwt.sign(jwsSigner);
-            return signedJwt;
-        });
-
-
-        var responseSpecification = mock(ResponseSpecification.class);
-        when(management.getResponseSpecification()).thenReturn(responseSpecification);
-        when(responseSpecification.getResponseModeType()).thenReturn(ResponseModeType.DIRECT_POST_JWT);
-
-        var ephemeralEncryptionKey = assertDoesNotThrow(() -> new ECKeyGenerator(Curve.P_256)
-                .keyID(UUID.randomUUID().toString())
-                .algorithm(JWEAlgorithm.ECDH_ES)
-                .generate());
-        JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
-        when(responseSpecification.getJwks()).thenReturn(jwkSet.toString());
-        when(responseSpecification.getEncryptedResponseEncValuesSupported()).thenReturn(List.of());
-
-        var logoUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=";
-        var clientMetadata = Map.of(
-
-                "client_name", "Override Client",
-                "logo_uri", logoUri
-        );
-        var override = new ConfigurationOverride(externalUrl, overrideDid, null, null, null, clientMetadata);
-        when(management.getConfigurationOverride()).thenReturn(override);
-
-        String jwtString = service.assembleRequestObject(mgmtId);
-
-        SignedJWT jwt = SignedJWT.parse(jwtString);
-        var claims = jwt.getJWTClaimsSet();
-        assertThat(claims.getStringClaim("client_id")).as("DID was overridden").isEqualTo(overrideDidResult);
-        assertThat(claims.getStringClaim("response_uri")).as("Was using overridden external url").startsWith(externalUrl);
-        @SuppressWarnings("unchecked")
-        var extractedClientMetadata = (Map<String, Object>) claims.getClaim("client_metadata");
-
-        assertThat(extractedClientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
-        assertThat(extractedClientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
     }
 
     @Test

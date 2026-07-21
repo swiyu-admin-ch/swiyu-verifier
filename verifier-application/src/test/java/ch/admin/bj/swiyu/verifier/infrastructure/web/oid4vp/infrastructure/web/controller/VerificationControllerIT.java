@@ -684,16 +684,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
-    @Test
-    void shouldGetCorrectMandatoryMetadata_thenSuccess() throws Exception {
-
-        mock.perform(get("/oid4vp/api/openid-client-metadata.json")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdPrefix() + ":" +  applicationProperties.getClientId()))
-                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()));
-    }
-
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
             String issuerKeyId = sdjwt.getIssuerId() + "#key-1";

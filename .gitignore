@@ -35,3 +35,6 @@ build/
 .vscode/
 /codeql/
 /swiyu-verifier-codeql-db/
+
+### Pact ###
+**/pact.log

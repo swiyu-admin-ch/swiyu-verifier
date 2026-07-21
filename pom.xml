@@ -62,6 +62,7 @@
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
         <generic-java-lib.version>1.7.0</generic-java-lib.version>
+        <pact.version>4.7.3</pact.version>
         <openapi-generator-maven-plugin.version>7.23.0</openapi-generator-maven-plugin.version>
         <!-- Fixes CVE-2026-13006 -->
         <logback-core.version>1.5.37</logback-core.version>
@@ -135,6 +136,12 @@
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-ts-verifier</artifactId>
                 <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>au.com.dius.pact.consumer</groupId>
+                <artifactId>junit5</artifactId>
+                <version>${pact.version}</version>
+                <scope>test</scope>
             </dependency>
           </dependencies>
     </dependencyManagement>

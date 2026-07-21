@@ -1,0 +1,103 @@
+name: Publish Pact Contracts
+run-name: ${{ github.repository }} is publishing Pact consumer contracts
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish-pacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Cache PGP keys for pgpverify-maven-plugin
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.m2/repository/pgpkeys-cache
+          key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
+          restore-keys: pgp-keys-
+
+      - name: Generate Pact contracts
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress \
+            -pl verifier-service -am \
+            clean test \
+            -Dtest='*PactTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false
+
+      - name: Validate generated Pact contracts
+        run: |
+          set -euo pipefail
+          PACT_DIR=verifier-service/target/pacts
+          TRUST_PACT="$PACT_DIR/swiyu-verifier-swiyu-trust-registry.json"
+          BUSINESS_PACT="$PACT_DIR/swiyu-verifier-swiyu-core-business-service.json"
+
+          test "$(find "$PACT_DIR" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" -eq 2
+          test -s "$TRUST_PACT"
+          test -s "$BUSINESS_PACT"
+
+          jq -e '
+            .consumer.name == "swiyu-verifier" and
+            .provider.name == "swiyu-trust-registry" and
+            (.interactions | length == 15) and
+            ([.interactions[].request.path |
+              select(startswith("/api/v2/identity-trust-statement/"))] | length == 3) and
+            ([.interactions[].request.path |
+              select(. == "/api/v2/protected-verification-authorization-trust-statement/")] | length == 3) and
+            ([.interactions[].request.path |
+              select(. == "/api/v2/protected-issuance-trust-list")] | length == 3) and
+            ([.interactions[].request.path |
+              select(. == "/api/v2/protected-issuance-authorization-trust-statement/")] | length == 3) and
+            ([.interactions[].request.path |
+              select(. == "/api/v2/non-compliance-trust-list")] | length == 3)
+          ' "$TRUST_PACT"
+
+          jq -e '
+            .consumer.name == "swiyu-verifier" and
+            .provider.name == "swiyu-core-business-service" and
+            (.interactions | length == 3) and
+            ([.interactions[].request.method] | all(. == "POST")) and
+            ([.interactions[].request.path] |
+              all(. == "/api/v1/trust/vqps-submissions")) and
+            ([.interactions[].response.status] | sort == [201, 422, 500])
+          ' "$BUSINESS_PACT"
+
+      - name: Publish contracts to Pact Broker
+        env:
+          PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+          PACT_PUBLISH_CONSUMER_VERSION: ${{ github.sha }}
+          PACT_PUBLISH_CONSUMER_BRANCHNAME: ${{ github.ref_name }}
+          PACT_PUBLISH_CONSUMER_BUILDURL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          : "${PACT_BROKER_BASE_URL:?PACT_BROKER_BASE_URL secret is required}"
+          : "${PACT_BROKER_TOKEN:?PACT_BROKER_TOKEN secret is required}"
+          ./mvnw --batch-mode --no-transfer-progress \
+            -pl verifier-service \
+            au.com.dius.pact.provider:maven:publish \
+            -Dpact.broker.url="$PACT_BROKER_BASE_URL" \
+            -Dpact.broker.token="$PACT_BROKER_TOKEN" \
+            -Dpact.projectVersion="$PACT_PUBLISH_CONSUMER_VERSION"

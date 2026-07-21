@@ -254,7 +254,6 @@ Returns a signed JWT. A decoded example of the response could look like:
         "client_name#en": "English name (all regions)",
         "logo_uri#fr": "www.example.com/logo_fr.png",
         "client_name": "Fallback name",
-        "client_id": "decentralized_identifier:did:example:12345",
         "vp_formats": {
             "jwt_vp": {
                 "jwt_vp": {

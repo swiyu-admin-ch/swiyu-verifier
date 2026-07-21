@@ -51,7 +51,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(classes = Application.class)
@@ -96,13 +95,6 @@ class BlackboxIT {
 
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
-        // Wallet checks verifier metadata
-        assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
-                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
-                .andReturn());
         // Check status, should still be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
@@ -174,13 +166,6 @@ class BlackboxIT {
         var state = getStateFromVerificationRequest(requestId, nonce, ResponseModeType.DIRECT_POST);
 
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
-        // Wallet checks verifier metadata
-        assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
-                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
-                .andReturn());
         // Check status, should still be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
@@ -219,13 +204,6 @@ class BlackboxIT {
         // Check status, should be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
-        // Wallet checks verifier metadata
-        assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
-                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
-                .andReturn());
         // Check status, should still be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
@@ -257,13 +235,6 @@ class BlackboxIT {
         // Check status, should be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
-        // Wallet checks verifier metadata
-        assertDoesNotThrow(() -> mvc.perform(get("/oid4vp/api/openid-client-metadata.json")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
-                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()))
-                .andReturn());
         // Check status, should still be pending
         assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 

@@ -6,9 +6,6 @@ import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
-import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
-import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
@@ -35,10 +32,10 @@ public class RequestObjectService {
     public static final String RESPONSE_TYPE = "vp_token";
 
     private final ApplicationProperties applicationProperties;
-    private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementRepository managementRepository;
     private final ObjectMapper objectMapper;
     private final JwtSigningService jwtSigningService;
+    private final MetadataService metadataService;
     /**
      * Optional TP2.0 injection service. Present only when {@code swiyu.trust-registry.api-url} is configured.
      */
@@ -88,33 +85,14 @@ public class RequestObjectService {
     private RequestObjectDto buildRequestObject(Management managementEntity,
                                                 EffectiveRequestObjectConfig effectiveConfig) {
         var dcqlQuery = managementEntity.getDcqlQuery();
-
-        var clientMetadata = openIdClientMetadataConfiguration.getOpenIdClientMetadata();
-        var clientMetadataBuilder = clientMetadata.toBuilder();
-
-        ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
-        // Enrich client metadata for DIRECT_POST_JWT response mode as required by the protocol
-        if (ResponseModeType.DIRECT_POST_JWT.equals(responseSpecification.getResponseModeType())) {
-            clientMetadataBuilder.jwks(ManagementMapper.toJWKSetDto(responseSpecification.getJwks()));
-            clientMetadataBuilder.encryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported());
-        }
-
-        // Build a per-request copy of client_metadata so that per-verification overrides
-        // (e.g. client_name, logo_uri, client_id) never mutate the global singleton map.
-        var builtMetadata = clientMetadataBuilder.build();
-        var overrides = managementEntity.getConfigurationOverride().clientMetadata();
-        if (overrides != null && !overrides.isEmpty()) {
-            var patchedProps = new java.util.HashMap<>(builtMetadata.getAdditionalProperties());
-            patchedProps.putAll(overrides);
-            builtMetadata.setAdditionalProperties(patchedProps);
-        }
-
+        var responseSpecification = managementEntity.getResponseSpecification();
+        var clientMetadata = metadataService.getOpenidClientMetadataForManagementEntity(managementEntity, responseSpecification);
         var baseRequestObject = RequestObjectDto.builder()
                 .audience(AUDIENCE)
                 .nonce(managementEntity.getRequestNonce())
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
                 .clientId(effectiveConfig.clientId())
-                .clientMetadata(builtMetadata)
+                .clientMetadata(clientMetadata)
 
                 .responseType(RESPONSE_TYPE)
                 .responseMode(ManagementMapper.toResponseModeDto(responseSpecification.getResponseModeType()))
@@ -208,6 +186,5 @@ public class RequestObjectService {
 
         return builder.build();
     }
-
 }
 

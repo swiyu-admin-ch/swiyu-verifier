@@ -1,10 +1,10 @@
 package ch.admin.bj.swiyu.verifier.service;
 
+import ch.admin.bj.swiyu.verifier.common.config.CachingConfig;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotNull;
@@ -12,14 +12,13 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
-import org.springframework.util.PropertyPlaceholderHelper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.Set;
 
 @Configuration
@@ -35,42 +34,28 @@ public class OpenIdClientMetadataConfiguration {
     @Value("${application.client-metadata-file:#{null}}")
     private Resource clientMetadataResource;
 
-    private OpenidClientMetadataDto openIdClientMetadata;
-
-    @PostConstruct
-    public void initOpenIdClientMetadata() {
-        final String resolvedJson = loadAndResolveTemplate();
-        this.openIdClientMetadata = parseMetadata(resolvedJson);
-        validateMetadata(this.openIdClientMetadata);
+    /**
+     * Returns a deep copy of the verifier metadata.
+     * <p>
+     * Do not use this function directly as you may alter the original metadata
+     *
+     * @return the verifier metadata
+     * @throws ConfigurationException if the metadata cannot be read or copied
+     */
+    @Cacheable(CachingConfig.VERIFIER_METADATA_CACHE)
+    public OpenidClientMetadataDto getVerifierMetadata() {
+        try {
+            var metadata = resourceToMappedData(clientMetadataResource, OpenidClientMetadataDto.class);
+            validateMetadata(metadata);
+            return metadata;
+        } catch (IOException e) {
+            throw new ConfigurationException("Cannot read verifier metadata", e);
+        }
     }
 
-    private String loadAndResolveTemplate() {
-        if (clientMetadataResource == null) {
-            throw new IllegalStateException("Property 'application.client-metadata-file' must be configured");
-        }
-
-        final String template;
-        try {
-            template = clientMetadataResource.getContentAsString(Charset.defaultCharset());
-        } catch (IOException exc) {
-            log.error("Failed to load/read metadata file denoted by 'application.client-metadata-file': {}",
-                    exc.getMessage());
-            throw new IllegalStateException("Unable to load OpenID client metadata file", exc);
-        }
-
-        final Properties props = new Properties();
-        props.setProperty("VERIFIER_DID", applicationProperties.getClientIdWithPrefix());
-        final PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
-        return helper.replacePlaceholders(template, props);
-    }
-
-    private OpenidClientMetadataDto parseMetadata(final String json) {
-        try {
-            return objectMapper.readValue(json, OpenidClientMetadataDto.class);
-        } catch (JsonProcessingException exc) {
-            log.error("Failed to deserialize DTO from JSON config OpenidClientMetadata : {}", exc.getMessage());
-            throw new IllegalStateException("Unable to parse OpenID client metadata JSON", exc);
-        }
+    private <T> T resourceToMappedData(Resource res, Class<T> clazz) throws IOException {
+        var json = res.getContentAsString(Charset.defaultCharset());
+        return objectMapper.readValue(json, clazz);
     }
 
     private void validateMetadata(final OpenidClientMetadataDto metadata) {

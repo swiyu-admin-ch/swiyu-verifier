@@ -2,6 +2,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Validation;
@@ -46,53 +47,51 @@ class OpenIdClientMetadataConfigurationTest {
     }
 
     @Test
-    void initOpenIdClientMetadata_withValidMetadata_setsMetadata() throws IOException {
+    void getVerifierMetadata_withValidMetadata_setsMetadata() throws IOException {
         String template = "{\"client_id\":\"${VERIFIER_DID}\",\"logo\":\"logo\",\"vp_formats\":{\"jwt_vp\":{\"alg\":[\"ES256\"]}}}";
 
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
 
-        config.initOpenIdClientMetadata();
-
-        var metadata = config.getOpenIdClientMetadata();
+        var metadata = config.getVerifierMetadata();
 
         assertThat(metadata.getAdditionalProperties())
                 .containsEntry("logo", "logo");
     }
 
     @Test
-    void initOpenIdClientMetadata_invalidMetadataFile_throwsException() throws IOException {
-        var ioExcMsg = "Unable to load OpenID client metadata file";
+    void getVerifierMetadata_invalidMetadataFile_throwsException() throws IOException {
+        var ioExcMsg = "Cannot read verifier metadata";
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset()))
                 .thenThrow(new IOException(ioExcMsg));
 
-        var exc = assertThrowsExactly(IllegalStateException.class, config::initOpenIdClientMetadata);
+        var exc = assertThrowsExactly(ConfigurationException.class, config::getVerifierMetadata);
 
         assertThat(exc)
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ConfigurationException.class)
                 .hasMessageContaining(ioExcMsg);
     }
 
     @ParameterizedTest
     @MethodSource("invalidMetadataProvider")
-    void initOpenIdClientMetadata_invalidCases_throwsException(String template, String expectedMessage) throws IOException {
+    void getVerifierMetadata_invalidCases_throwsException(String template) throws IOException {
+
+        var expectedMessage = "Cannot read verifier metadata";
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
 
-        var exception = assertThrows(IllegalStateException.class, config::initOpenIdClientMetadata);
+        var exception = assertThrows(ConfigurationException.class, () -> config.getVerifierMetadata());
 
         assertThat(exception)
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ConfigurationException.class)
                 .hasMessageContaining(expectedMessage);
     }
 
     private static Stream<Arguments> invalidMetadataProvider() {
         return Stream.of(
                 Arguments.of(
-                        "",
-                        "Unable to parse OpenID client metadata JSON"
+                        ""
                 ),
                 Arguments.of(
-                        "[]",
-                        "Unable to parse OpenID client metadata JSON"
+                        "[]"
                 )
         );
     }

@@ -5,24 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [NEXT]
-
-## Changed
-- New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 20MiB
+# [4.1.0] - 2026-07-21
 
 ## Added
-- Static compliance checks for Swiss Profile conformance on OID4VP endpoints (`#829`):
-  - Add `profile_version` and `encrypted_response_enc_values_supported` fields to Request Object DTO to comply with Swiss Profile requirements `(#829)`.
-  - Mark `vp_formats` as a required field in `OpenidClientMetadataDto` `(#829)`.
-  - Update Response Data endpoint to return `ResponseEntity<Map<String, Object>>` instead of `void` and document the `application/json` response body schema in OpenAPI `(#829)`.
+- Static compliance checks for Swiss Profile conformance on OID4VP endpoints (#829):
+    - Add `profile_version` and `encrypted_response_enc_values_supported` fields to Request Object DTO to comply with Swiss Profile requirements (#829).
+    - Mark `vp_formats` as a required field in `OpenidClientMetadataDto` (#829).
+    - Update Response Data endpoint to return `ResponseEntity<Map<String, Object>>` instead of `void` and document the `application/json` response body schema in OpenAPI (#829).
 - Verification of Trust Statements with Status Lists using caching according to exp, ttl or maximum cache ttl.
 
 ## Changed
-- Moved Status List Verification to shared generic library
+- New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 20MiB
+- Moved Status List Verification to shared generic library (#1010)
+- Improved trust statement list validation to continue processing valid trust statements even when individual statements are faulty (#1010)
 
 ## Fixed
 - Added client_id with prefix to all JWTs created by the verifier and also added the correct one to the initial verification deeplink (#1175)
-- Fixed type of `VerificationPurpose`, `ConfigurationOverrideDto` and `OpenIdClientMetadataVpFormatSdJwt` in openapi.yaml to `type: object` (#1174).
+- Fixed type of `VerificationPurpose`, `ConfigurationOverrideDto` and `OpenIdClientMetadataVpFormatSdJwt` in openapi.yaml to `type: object` (#1174)
 
 # [4.0.0] - 2026-07-08
 

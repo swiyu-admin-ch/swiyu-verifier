@@ -43,7 +43,7 @@ class VerificationQueryPublicStatementConsumerPactTest {
     private static final String VCT = "https://example.ch/vct/elfa";
     private static final String CLAIM = "birth_date";
     private static final long PUBLICATION_EXPIRES_AT = 4_102_444_800L; // 2100-01-01 00:00 UTC
-    private static final long VERIFICATION_EXPIRES_AT = 4_102_441_200L;
+    private static final long VERIFICATION_EXPIRES_AT = 4_102_441_200L; // 2099-12-31 23:00 UTC
 
     private static final Map<String, Object> DCQL_QUERY = Map.of(
             "credentials", List.of(Map.of(

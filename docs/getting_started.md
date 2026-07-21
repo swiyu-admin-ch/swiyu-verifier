@@ -11,7 +11,7 @@ The swiyu Generic Verifier is a web server implementing the technical standards 
 # Deployment instructions
 
 > [!IMPORTANT]
-> Please make sure that you did the following before starting the deployment:
+> Please make sure that you did the following steps before starting the deployment:
 >
 > - Registered yourself on the swiyu Trust Infrastructure portal
 > - Registered yourself on the API self-service portal

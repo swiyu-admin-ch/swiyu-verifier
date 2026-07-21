@@ -59,6 +59,7 @@ public class IssuerPublicKeyLoader {
     }
 
     public JWK loadJWK(String issuerDid, String kid) throws LoadingPublicKeyOfIssuerFailedException {
+        // TODO EIDOMNI-1171 Known Bug, should only use kid and not issuer did
         log.trace("Fetching Public Key {} ", kid);
         try {
         Jwk resolverJwk = loadVerificationMethod(issuerDid, kid);

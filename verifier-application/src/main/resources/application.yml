@@ -173,8 +173,10 @@ monitoring:
 
 caching:
   status-list-cache-ttl: ${STATUS_LIST_CACHE_TTL_MILLI:0} # is not cached by default if set to 0, caching is disabled
+  status-list-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
   jwk-cache-ttl: ${JWK_CACHE_TTL_MILLI:${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000}} # 1 hour
   trust-cache-ttl: ${TRUST_CACHE_TTL_MILLI:3600000} # 1 hour
+  request-backoff-seconds: 600 # 10 minutes
 
 swiyu:
     # Optional: Trust Registry sidechannel API for fetching Trust Statements (idTS, piaTS).

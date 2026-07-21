@@ -1,5 +1,8 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
+import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -8,11 +11,13 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
-import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
+
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
@@ -49,9 +54,11 @@ class SdJwtVpTokenVerifierTest {
     private static final String TEST_NONCE = "test-nonce";
 
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
-    private StatusListReferenceFactory statusListReferenceFactory;
+    private StatusListCacheService statusListResolver;
     private ApplicationProperties applicationProperties;
     private VerificationProperties verificationProperties;
+    private DidJwtValidator didJwtValidator;
+    private TokenStatusListVerifier statusListVerifier;
     private Management management;
 
     private SdJwtVpTokenVerifier verifier;
@@ -61,7 +68,9 @@ class SdJwtVpTokenVerifierTest {
     @BeforeEach
     void setUp() throws LoadingPublicKeyOfIssuerFailedException, JOSEException {
         issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
-        statusListReferenceFactory = mock(StatusListReferenceFactory.class);
+        statusListResolver = mock(StatusListCacheService.class);
+        didJwtValidator = mock(DidJwtValidator.class);
+        statusListVerifier = mock(TokenStatusListVerifier.class);
         applicationProperties = mock(ApplicationProperties.class);
         verificationProperties = mock(VerificationProperties.class);
         management = mock(Management.class);
@@ -78,10 +87,7 @@ class SdJwtVpTokenVerifierTest {
         when(issuerPublicKeyLoader.loadPublicKey(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicKey());
 
-        // Status list verification is out of scope of this unit, so we simulate "no status entries"
-        when(statusListReferenceFactory.createStatusListReferences(any(), any())).thenReturn(List.of());
-
-        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
+        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListResolver, applicationProperties, verificationProperties, statusListVerifier);
     }
 
     @Test
@@ -159,7 +165,6 @@ class SdJwtVpTokenVerifierTest {
                 .claim("credentialSubject", credentialSubject)
                 .build();
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
 
         var ex = assertThrows(VerificationException.class, () -> verifier.processDisclosures(claimSet, List.of(disclosure), UUID.randomUUID()));
 
@@ -190,8 +195,6 @@ class SdJwtVpTokenVerifierTest {
                 .claim("credentialSubject", credentialSubject)
                 .build();
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
-
         var ex = assertThrows(VerificationException.class, () -> verifier.processDisclosures(claimSet, List.of(disclosure), UUID.randomUUID()));
 
         assertThat(ex.getErrorResponseCode())
@@ -211,7 +214,6 @@ class SdJwtVpTokenVerifierTest {
         var claimsForSdJWT = getClaimsFromSdJwt(disclosure);
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
         assertDoesNotThrow(() -> verifier.processDisclosures(claimsSet, disclosure, UUID.randomUUID()));
     }
 
@@ -240,7 +242,6 @@ class SdJwtVpTokenVerifierTest {
         SdJwt sdjwt = new SdJwt(sdJwt.toString());
         sdjwt.setClaims(claimsSet);
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
         var test = assertThrows(VerificationException.class, () -> verifier.validateDisclosures(sdjwt, management));
         assertThat(test.getErrorDescription()).as("Should throw understandable error message indicating the unsupported algorithm").isEqualTo("Unsupported _sd_alg value: sha-512");
     }
@@ -254,7 +255,6 @@ class SdJwtVpTokenVerifierTest {
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(claimsForSdJWT.build());
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
         var ex = assertThrows(VerificationException.class, () -> verifier.processDisclosures(claimsSet, disclosure, UUID.randomUUID()));
         assertThat(ex.getErrorResponseCode())
                 .as("Should throw malformed credential error when disclosure claim name collides with existing claim")
@@ -294,7 +294,6 @@ class SdJwtVpTokenVerifierTest {
         SdJwt sdjwt = new SdJwt(sdJwt.toString());
         sdjwt.setClaims(claimsSet);
 
-        SdJwtVpTokenVerifier verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListReferenceFactory, applicationProperties, verificationProperties);
         assertDoesNotThrow(() -> verifier.validateDisclosures(sdjwt, mgmtEntity));
     }
 }

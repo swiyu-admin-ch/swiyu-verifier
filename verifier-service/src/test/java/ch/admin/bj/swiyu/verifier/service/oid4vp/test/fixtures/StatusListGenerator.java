@@ -10,6 +10,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.experimental.UtilityClass;
 
+import java.time.Instant;
 import java.util.Date;
 
 /**
@@ -24,7 +25,7 @@ public class StatusListGenerator {
      * status[0] = 1 - revoked
      * status[1] = 2 - suspended
      * status[2] = 0 - valid
-     * status[3] = 3 - revoked & suspended
+     * status[3] = 3 - custom status
      * </code></pre>
      */
     public static final String SPEC_STATUS_LIST = "eNo76fITAAPfAgc";
@@ -53,6 +54,9 @@ public class StatusListGenerator {
     public static String createTokenStatusListTokenVerifiableCredential(String statusList, ECKey signingKey, String issuerId, String keyId) throws JOSEException {
         var claims = JWT_CLAIM_SET_BUILDER
                 .issuer(issuerId)
+                .issueTime(new Date())
+                .claim("exp", Instant.now().plusSeconds(3600).getEpochSecond())
+                .claim("ttl", 180)
                 .claim("status_list", new JWTClaimsSet.Builder()
                         .claim("bits", 2)
                         .claim("lst", statusList)

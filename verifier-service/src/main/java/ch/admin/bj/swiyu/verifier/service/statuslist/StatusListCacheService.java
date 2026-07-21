@@ -38,7 +38,7 @@ public class StatusListCacheService {
     private final IssuerPublicKeyLoader issuerPublicKeyLoader;
     private final StatusListResolver statusListResolver;
 
-    @Getter(value = AccessLevel.PROTECTED)
+    @Getter(value = AccessLevel.PROTECTED) // Allow Protected level access to cache for unit tests
     private final Cache<String, Optional<TokenStatusListTokenDto>> cache;
 
 

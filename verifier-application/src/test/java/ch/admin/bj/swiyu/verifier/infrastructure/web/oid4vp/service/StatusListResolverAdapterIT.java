@@ -80,9 +80,6 @@ class StatusListResolverAdapterIT {
     @MockitoBean
     private UrlRewriteProperties urlRewriteProperties;
 
-    @Autowired
-    private VerificationProperties verificationProperties;
-
     @MockitoBean
     private ApplicationProperties applicationProperties;
     @MockitoBean
@@ -170,9 +167,6 @@ class StatusListResolverAdapterIT {
 
         statusListResolverAdapter.resolveStatusList(url);
 
-        // TODO: Fix test / change chache?
-        // assertEquals(expectedCacheValue, cacheManager.getCache(STATUS_LIST_CACHE).get(url).get());
-
         mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(1));
     }
 
@@ -225,10 +219,6 @@ class StatusListResolverAdapterIT {
         // first call – populates the cache
         statusListResolverAdapter.resolveStatusList(url);
         mockServerClient.verify(request().withPath("/statuslist"), VerificationTimes.exactly(1));
-
-        // evict the cache
-        // TODO: Fix test / change chache?
-        // cacheManager.getCache(STATUS_LIST_CACHE).clear();
 
         // second call – cache is empty, must fetch again
         statusListResolverAdapter.resolveStatusList(url);

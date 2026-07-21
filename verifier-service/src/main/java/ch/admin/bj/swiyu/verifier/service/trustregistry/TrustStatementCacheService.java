@@ -80,7 +80,7 @@ public class TrustStatementCacheService {
      * Cache for {@code idTS} JWTs, keyed by issuer DID.
      * Stores a single Optional JWT per issuer.
      */
-    @Getter(value = AccessLevel.PROTECTED)
+    @Getter(value = AccessLevel.PROTECTED) // Allow Protected level access to cache for unit tests
     private final Cache<String, ValidatedSingleTrustStatement> idTsCache;
 
     /**
@@ -91,7 +91,7 @@ public class TrustStatementCacheService {
      * returned no results; the next fetch will be suppressed until the negative TTL
      * expires.
      */
-    @Getter(value = AccessLevel.PROTECTED)
+    @Getter(value = AccessLevel.PROTECTED) // Allow Protected level access to cache for unit tests
     private final Cache<String, List<ValidatedSingleTrustStatement>> pvaTsCache;
 
     private final Cache<String, ValidatedSingleTrustStatement> piTLSCache;

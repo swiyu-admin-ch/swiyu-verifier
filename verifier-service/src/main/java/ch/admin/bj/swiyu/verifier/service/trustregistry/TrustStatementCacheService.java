@@ -268,9 +268,6 @@ public class TrustStatementCacheService {
                 log.warn("No idTS trust statement found for issuer {}", issuerDid);
             }
             return validateTrustStatement(jwt);
-        } catch (JwtValidatorException e) {
-            log.warn("idTS signature validation failed for issuer {}: {}", issuerDid, e.getMessage());
-            return new ValidatedSingleTrustStatement(Optional.empty(), false, 0);
         } catch (RuntimeException e) {
             log.warn("Failed to fetch idTS for issuer {}: {}", issuerDid, e.getMessage());
             return null;
@@ -325,9 +322,6 @@ public class TrustStatementCacheService {
                     .map(this::validateTrustStatement)
                     .filter(vts -> vts.valid)
                     .toList();
-        } catch (JwtValidatorException e) {
-            log.warn("pvaTS allowlist validation failed for verifier {}: {}", verifierDid, e.getMessage());
-            return List.of();
         } catch (RuntimeException e) {
             log.warn("An error occured while fetching pvaTS for verifier {}: {}", verifierDid, e.getMessage());
             return null;
@@ -342,9 +336,6 @@ public class TrustStatementCacheService {
                     .map(this::validateTrustStatement)
                     .filter(vts -> vts.valid)
                     .toList();
-        } catch (JwtValidatorException e) {
-            log.warn("piaTS allowlist validation failed for issuer {}: {}", issuerDid, e.getMessage());
-            return List.of();
         } catch (RuntimeException e) {
             log.warn("An error occured while fetching piaTS for issuer {}: {}", issuerDid, e.getMessage());
             return null; // Returning an empty list here will cause it to be cached for cacheProperties.getRequestBackoffSeconds()

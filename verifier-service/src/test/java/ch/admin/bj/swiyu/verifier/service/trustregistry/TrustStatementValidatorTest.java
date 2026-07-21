@@ -31,6 +31,7 @@ import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
+import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
@@ -41,6 +42,7 @@ public class TrustStatementValidatorTest {
     private DidJwtValidator trustStatementDidJwtValidator;
     private TrustRegistryProperties trustRegistryProperties;
     private StatusListCacheService statusListCacheService;
+    private CacheProperties cacheProperties;
     private IssuerPublicKeyLoader keyLoader;
     private TokenStatusListVerifier statusListVerifier;
     private TokenStatusListTokenDto statusListTokenDto;
@@ -60,11 +62,13 @@ public class TrustStatementValidatorTest {
         trustStatementDidJwtValidator = mock(DidJwtValidator.class);
         trustRegistryProperties = mock(TrustRegistryProperties.class);
         statusListCacheService = mock(StatusListCacheService.class);
+        cacheProperties = mock(CacheProperties.class);
         keyLoader = mock(IssuerPublicKeyLoader.class);
         statusListVerifier = mock(TokenStatusListVerifier.class);
         validator = new TrustStatementValidator(
                 trustStatementDidJwtValidator,
                 trustRegistryProperties,
+                cacheProperties,
                 statusListCacheService,
                 keyLoader,
                 statusListVerifier);
@@ -141,20 +145,5 @@ public class TrustStatementValidatorTest {
                     .build());
         assertDoesNotThrow(() -> jwt.sign(new ECDSASigner(testKey)));
         return jwt.serialize();
-    }
-
-    /**
-     * Create a Mock Token Status List with partial info
-     * @param ttl
-     * @param expEpochSeconds
-     * @return
-     */
-    private TokenStatusListTokenDto getTokenStatusListTokenDto(int ttl, long expEpochSeconds) {
-        var token = mock(TokenStatusListTokenDto.class);
-        when(token.getExp()).thenReturn(expEpochSeconds);
-        token.setTtl(ttl);
-        token.setSub(STATUS_LIST_URI);
-        return token;
-
     }
 }

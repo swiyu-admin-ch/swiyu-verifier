@@ -9,6 +9,8 @@ import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.common.util.time.TimeUtil;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
@@ -59,11 +61,13 @@ public class TrustStatementValidator {
     @Qualifier("trustStatementValidator")
     private final DidJwtValidator trustStatementDidJwtValidator;
     private final TrustRegistryProperties trustRegistryProperties;
+    private final CacheProperties cacheProperties;
 
     private final StatusListCacheService statusListCacheService;
     private final IssuerPublicKeyLoader keyLoader;
     private final TokenStatusListVerifier statusListVerifier;
     private final DidKidParser didKidParser = new DidKidParser();
+
 
 
 
@@ -109,14 +113,13 @@ public class TrustStatementValidator {
 
         } catch (IllegalArgumentException | ParseException | LoadingPublicKeyOfIssuerFailedException | IOException e) {
             log.info("Malformed or invalid Trust Statement detected: {} - Ignoring it", jwtString, e);
-            return new TrustStatementValidationResult(false, 0);
+            return new TrustStatementValidationResult(false, TimeUtil.secondsToNanos(cacheProperties.getRequestBackoffSeconds()));
         }
     }
     
 
 
     /**
-     * Phase 1 – pre-cache allowlist check (no HTTP call).
      *
      * <p>Extracts the DID resolution URL from the JWT's {@code kid} header and validates
      * it against the configured Trust Registry host allowlist. Call this before storing

@@ -37,7 +37,7 @@ class IdentityTrustStatementConsumerPactTest {
     @Pact(consumer = CONSUMER, provider = PROVIDER)
     public V4Pact activeIdentityTrustStatement(final PactDslWithProvider builder) {
         return builder
-                .given("an active Identity Trust Statement is registered for an actor",
+                .given("an Identity Trust Statement is active and registered for an actor",
                         Map.of(ACTOR_IDENTIFIER, VERIFIER_DID))
                 .uponReceiving("GET an active Identity Trust Statement")
                 .method("GET")

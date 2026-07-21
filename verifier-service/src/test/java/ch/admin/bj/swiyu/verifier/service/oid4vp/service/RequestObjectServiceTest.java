@@ -108,7 +108,8 @@ class RequestObjectServiceTest {
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
         // verify JWT body
-        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(clientId);
+        String clientIdWithPrefix = prefix + ":" + clientId;
+        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(clientIdWithPrefix);
         var state = jwt.getJWTClaimsSet().getClaim("state");
         assertThat(state)
             .as("state should be set as of swiss-profile-verification 1.0").isNotNull()
@@ -160,7 +161,7 @@ class RequestObjectServiceTest {
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
         assertEquals(verificationMethod, jwt.getHeader().getKeyID());
-        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(overrideDid);
+        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(prefix + ":" + overrideDid);
         assertThat(jwt.getJWTClaimsSet().getClaim("response_uri").toString()).startsWith(externalUrl);
         @SuppressWarnings("unchecked")
         var extractedClientMetadata = (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("client_metadata");

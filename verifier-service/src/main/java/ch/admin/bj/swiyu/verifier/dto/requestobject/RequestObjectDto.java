@@ -116,6 +116,11 @@ public class RequestObjectDto {
     private String state;
 
     @JsonProperty("aud")
+    @Schema(description = """
+            Audience ("aud") JWT claim identifying the intended recipient of this Request Object.
+            As the verifier cannot identify the wallet the Static Discovery metadata is used.
+            MUST be "https://self-issued.me/v2"
+            """)
     private String audience;
 
     /**

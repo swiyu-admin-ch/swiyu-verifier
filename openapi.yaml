@@ -508,19 +508,14 @@ components:
             \ According to OpenID for Verifiable Presentations 1.0, Section 6.1, property\
             \ 'format'."
           minLength: 1
-        multiple:
-          type: boolean
-          default: false
-          description: "A boolean which indicates whether multiple Credentials can\
-            \ be returned for this Credential Query. If omitted, the default value\
-            \ is false. According to OpenID for Verifiable Presentations 1.0, Section\
-            \ 6.1, property 'multiple'."
         meta:
           $ref: "#/components/schemas/DcqlCredentialMetaDto"
-          description: "An object defining additional properties requested by the\
-            \ Verifier that apply to the metadata and validity data of the Credential.\
-            \ The properties of this object are defined per Credential Format. According\
-            \ to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'meta'."
+          description: "[NOT FULLY IMPLEMENTED] An object defining additional properties\
+            \ requested by the Verifier that apply to the metadata and validity data\
+            \ of the Credential. Parts of this object are not fully supported by this\
+            \ implementation; please consult the documentation. The properties of\
+            \ this object are defined per Credential Format. According to OpenID for\
+            \ Verifiable Presentations 1.0, Section 6.1, property 'meta'."
         claims:
           type: array
           description: "An optional non-empty array of Claims Query objects, specifying\
@@ -528,18 +523,6 @@ components:
             \ 1.0, Section 6.1, property 'claims'."
           items:
             $ref: "#/components/schemas/DcqlClaimDto"
-          maxItems: 2147483647
-          minItems: 1
-        claim_sets:
-          type: array
-          description: "An optional non-empty array containing arrays of identifiers\
-            \ for elements in claims that specifies which combinations of claims for\
-            \ the Credential are requested. According to OpenID for Verifiable Presentations\
-            \ 1.0, Section 6.1, property 'claim_sets'."
-          items:
-            type: array
-            items:
-              type: string
           maxItems: 2147483647
           minItems: 1
         require_cryptographic_holder_binding:
@@ -553,13 +536,6 @@ components:
             \ in Appendix B.1. See <a href=\"https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1\"\
             >Section 6.1</a> and <a href=\"https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-w3c-verifiable-credentials\"\
             >Appendix B.1</a>."
-        trusted_authorities:
-          type: array
-          description: "An optional non-empty array of Trusted Authorities Query objects.\
-            \ According to OpenID for Verifiable Presentations 1.0, Section 6.1, property\
-            \ 'trusted_authorities'."
-          items:
-            $ref: "#/components/schemas/DcqlTrustedAuthoritiesDto"
       required:
       - format
       - id
@@ -678,29 +654,6 @@ components:
       - credentials
       x-implementation-status:
         status: not-implemented
-    DcqlTrustedAuthoritiesDto:
-      type: object
-      description: Trusted Authorities Query according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1.1
-      properties:
-        type:
-          type: string
-          description: "A string uniquely identifying the type of information about\
-            \ the issuer trust framework. According to OpenID for Verifiable Presentations\
-            \ 1.0, Section 6.1.1, property 'type'."
-          minLength: 1
-        values:
-          type: array
-          description: "A non-empty array of strings, where each string (value) contains\
-            \ information specific to the used Trusted Authorities Query type that\
-            \ allows the identification of an issuer, a trust framework, or a federation\
-            \ that an issuer belongs to. According to OpenID for Verifiable Presentations\
-            \ 1.0, Section 6.1.1, property 'values'."
-          items:
-            type: string
-          minItems: 1
-      required:
-      - type
-      - values
     ManagementResponse:
       type: object
       properties:
@@ -799,7 +752,7 @@ components:
       - SUCCESS
       - FAILED
     ConfigurationOverrideDto:
-      type: "null"
+      type: object
       description: Override for Verifier configuration to be use for this one verification
       properties:
         external_url:
@@ -935,7 +888,7 @@ components:
       - did
       - trust_registry_uri
     VerificationPurpose:
-      type: "null"
+      type: object
       properties:
         scope:
           type: string
@@ -995,7 +948,7 @@ components:
         "y":
           type: string
     OpenIdClientMetadataVpFormatSdJwt:
-      type: "null"
+      type: object
       properties:
         sd-jwt_alg_values:
           type:
@@ -1117,6 +1070,10 @@ components:
             to the client.
         aud:
           type: string
+          description: |
+            Audience ("aud") JWT claim identifying the intended recipient of this Request Object.
+            As the verifier cannot identify the wallet the Static Discovery metadata is used.
+            MUST be "https://self-issued.me/v2"
         profile_version:
           type: string
           description: JWT header parameter indicating the Swiss Profile version used

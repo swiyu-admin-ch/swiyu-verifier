@@ -22,7 +22,7 @@ final class BusinessTrustConsumerPactSupport {
     static final String CONSUMER = "swiyu-verifier";
     static final String PROVIDER = "swiyu-core-business-service";
     static final String VERIFIER_DID =
-            "did:tdw:QmWmyoMoctfbAaiEs5r9gf3vQfvT9mZQh1kStKa8BRcMT5:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmWmyoMoctfbAaiEs5r9gf3vQfvT9mZQh1kStKa8BRcMT5:identifier.admin.ch:api:v1:did";
     static final String TEST_ACCESS_TOKEN = "pact-test-access-token";
     static final String COMPACT_JWT_REGEX =
             "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$";

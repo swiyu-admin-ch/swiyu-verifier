@@ -31,13 +31,13 @@ class IdentityTrustStatementConsumerPactTest {
 
     private static final String ID_TS_JWT =
             "eyJhbGciOiJFUzI1NiIsInR5cCI6InN3aXl1LWlkZW50aXR5LXRydXN0LXN0YXRlbWVudCtqd3QifQ."
-                    + "eyJqdGkiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEiLCJpYXQiOjE3NjcyMjU2MDAsImV4cCI6NDEwMjQ0NDgwMCwic3ViIjoiZGlkOnRkdzpRbVdteW9Nb2N0ZmJBYWlFczVyOWdmM3ZRZnZUOW1aUWgxa1N0S2E4QlJjTVQ1OmlkZW50aWZpZXIuYWRtaW4uY2g6YXBpOnYxOmRpZCIsImVudGl0eV9uYW1lIjoiRXhhbXBsZSBQdWJsaWMgVmVyaWZpZXIiLCJpc19zdGF0ZV9hY3RvciI6dHJ1ZX0."
+                    + "eyJqdGkiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEiLCJpYXQiOjE3NjcyMjU2MDAsImV4cCI6NDEwMjQ0NDgwMCwic3ViIjoiZGlkOndlYnZoOlFtV215b01vY3RmYkFhaUVzNXI5Z2YzdlFmdlQ5bVpRaDFrU3RLYThCUmNNVDU6aWRlbnRpZmllci5hZG1pbi5jaDphcGk6djE6ZGlkIiwiZW50aXR5X25hbWUiOiJFeGFtcGxlIFB1YmxpYyBWZXJpZmllciIsImlzX3N0YXRlX2FjdG9yIjp0cnVlfQ."
                     + "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ";
 
     @Pact(consumer = CONSUMER, provider = PROVIDER)
     public V4Pact activeIdentityTrustStatement(final PactDslWithProvider builder) {
         return builder
-                .given("an Identity Trust Statement is active and registered for an actor",
+                .given("an Identity Trust Statement is active and registered for the actor",
                         Map.of(ACTOR_IDENTIFIER, VERIFIER_DID))
                 .uponReceiving("GET an active Identity Trust Statement")
                 .method("GET")
@@ -53,7 +53,7 @@ class IdentityTrustStatementConsumerPactTest {
     @Pact(consumer = CONSUMER, provider = PROVIDER)
     public V4Pact missingIdentityTrustStatement(final PactDslWithProvider builder) {
         return builder
-                .given("no Identity Trust Statement is registered for an actor",
+                .given("no Identity Trust Statement is registered for the actor",
                         Map.of(ACTOR_IDENTIFIER, VERIFIER_DID))
                 .uponReceiving("GET a missing Identity Trust Statement")
                 .method("GET")

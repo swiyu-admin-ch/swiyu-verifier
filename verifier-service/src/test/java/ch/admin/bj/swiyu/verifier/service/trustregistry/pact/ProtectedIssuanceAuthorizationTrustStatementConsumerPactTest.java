@@ -37,12 +37,12 @@ class ProtectedIssuanceAuthorizationTrustStatementConsumerPactTest {
 
     private static final String PIA_TS_ELFA_JWT =
             "eyJhbGciOiJFUzI1NiIsInR5cCI6InN3aXl1LXByb3RlY3RlZC1pc3N1YW5jZS1hdXRob3JpemF0aW9uLXRydXN0LXN0YXRlbWVudCtqd3QifQ."
-                    + "eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6ImRpZDp0ZHc6UW1ZeVFTbzFjMVltN29yV3hMWXZDcnpSTFphZDVaeFE4SGtCTHlFRTRSUkJCMTppZGVudGlmaWVyLmFkbWluLmNoOmFwaTp2MTpkaWQiLCJjYW5faXNzdWUiOnsidmN0IjoiaHR0cHM6Ly9leGFtcGxlLmNoL3ZjdC9lbGZhIn19."
+                    + "eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6ImRpZDp3ZWJ2aDpRbVl5UVNvMWMxWW03b3JXeExZdkNyelJMWmFkNVp4UThIa0JMeUVFNFJSQkIxOmlkZW50aWZpZXIuYWRtaW4uY2g6YXBpOnYxOmRpZCIsImNhbl9pc3N1ZSI6eyJ2Y3QiOiJodHRwczovL2V4YW1wbGUuY2gvdmN0L2VsZmEifX0."
                     + "cGFjdC10ZXN0LXNpZ25hdHVyZQ";
 
     private static final String PIA_TS_MDL_JWT =
             "eyJhbGciOiJFUzI1NiIsInR5cCI6InN3aXl1LXByb3RlY3RlZC1pc3N1YW5jZS1hdXRob3JpemF0aW9uLXRydXN0LXN0YXRlbWVudCtqd3QifQ."
-                    + "eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6ImRpZDp0ZHc6UW1ZeVFTbzFjMVltN29yV3hMWXZDcnpSTFphZDVaeFE4SGtCTHlFRTRSUkJCMTppZGVudGlmaWVyLmFkbWluLmNoOmFwaTp2MTpkaWQiLCJjYW5faXNzdWUiOnsidmN0IjoiaHR0cHM6Ly9leGFtcGxlLmNoL3ZjdC9tZGwifX0."
+                    + "eyJleHAiOjQxMDI0NDQ4MDAsInN1YiI6ImRpZDp3ZWJ2aDpRbVl5UVNvMWMxWW03b3JXeExZdkNyelJMWmFkNVp4UThIa0JMeUVFNFJSQkIxOmlkZW50aWZpZXIuYWRtaW4uY2g6YXBpOnYxOmRpZCIsImNhbl9pc3N1ZSI6eyJ2Y3QiOiJodHRwczovL2V4YW1wbGUuY2gvdmN0L21kbCJ9fQ."
                     + "cGFjdC10ZXN0LXNpZ25hdHVyZQ";
 
     @Pact(consumer = CONSUMER, provider = PROVIDER)

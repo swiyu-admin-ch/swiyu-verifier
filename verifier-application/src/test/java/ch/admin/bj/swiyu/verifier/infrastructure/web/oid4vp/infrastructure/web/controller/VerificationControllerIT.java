@@ -170,9 +170,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldGetRequestObject() throws Exception {
-        var prefix = "prefix";
-        var expectedClientIdWithPrefix = prefix + ":" +  applicationProperties.getClientId();
-        when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
+        var expectedClientIdWithPrefix = applicationProperties.getClientIdPrefix() + ":" +  applicationProperties.getClientId();
         mock.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())

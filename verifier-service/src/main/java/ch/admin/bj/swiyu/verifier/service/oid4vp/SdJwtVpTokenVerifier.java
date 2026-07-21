@@ -294,7 +294,7 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
         }
 
-        String clientId = applicationProperties.getClientIdWithPrefix(configurationOverride.verifierDidOrDefault(applicationProperties.getClientId()));
+        String clientId = configurationOverride.verifierDidOrDefaultWithPrefix(applicationProperties);
 
         // Exact match only
         if (!clientId.equals(aud)) {

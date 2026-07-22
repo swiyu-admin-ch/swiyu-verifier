@@ -1,22 +1,20 @@
 package ch.admin.bj.swiyu.verifier;
 
-import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.management.*;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -382,14 +380,10 @@ class BlackboxIT {
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
-            String fragment = "key-1";
-            when(didResolverFacade.resolveDid(sdjwt.getIssuerId(), fragment))
-                    .thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
-                            sdjwt.getIssuerId(),
-                            sdjwt.getKidHeaderValue(),
-                            KeyFixtures.issuerPublicKeyAsJsonWebKey())
-                            .getKey(fragment));
-        } catch (DidResolverException | DidSidekicksException e) {
+            // Parse the JSON Web Key string into a Nimbus JWK object to ensure correct type
+            JWK nimbusJwk = JWK.parse(KeyFixtures.issuerPublicKeyAsJsonWebKey());
+            when(didResolverFacade.resolveKey(sdjwt.getKidHeaderValue())).thenReturn(nimbusJwk);
+        } catch (Exception e) {
             throw new AssertionError(e);
         }
     }

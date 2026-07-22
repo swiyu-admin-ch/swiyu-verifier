@@ -9,7 +9,6 @@ import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.common.util.time.TimeUtil;
@@ -91,8 +90,8 @@ public class TrustStatementValidator {
             log.debug("Trust statement allowlist check passed - DID: {}, URL: {}", didString, didUrl);
             String kid = didKidParser.extractKidFromHeader(jwtString);
             SignedJWT trustStatementJWT = SignedJWT.parse(jwtString);
-            JWK trustStatementKey = keyLoader.loadJWK(trustStatementJWT.getJWTClaimsSet().getIssuer(), kid);
-            trustStatementDidJwtValidator.validateJwt(jwtString, new JWKSet(trustStatementKey));
+            JWK trustStatementKey = keyLoader.loadJWK(kid);
+            trustStatementDidJwtValidator.validateJwt(jwtString, trustStatementKey);
             log.debug("Trust statement validation passed - DID: {}, URL: {}", didString, didUrl);
             TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(trustStatementJWT.getJWTClaimsSet().getClaims());
             TokenStatusListTokenDto statusList = statusListCacheService.getTokenStatusListTokenByUri(reference.getReferencedStatusListUri());
@@ -115,24 +114,6 @@ public class TrustStatementValidator {
             log.info("Malformed or invalid Trust Statement detected: {} - Ignoring it", jwtString, e);
             return new TrustStatementValidationResult(false, TimeUtil.secondsToNanos(cacheProperties.getRequestBackoffSeconds()));
         }
-    }
-    
-
-
-    /**
-     *
-     * <p>Extracts the DID resolution URL from the JWT's {@code kid} header and validates
-     * it against the configured Trust Registry host allowlist. Call this before storing
-     * a freshly fetched trust statement in the cache.</p>
-     *
-     * @param jwtString the compact serialized Trust Statement JWT
-     * @throws JwtValidatorException if the JWT is malformed, the {@code kid} is missing /
-     *                               not absolute, or the resolved DID URL is not on the allowlist
-     */
-    public void validateAllowlist(String jwtString) {
-        String didUrl = trustStatementDidJwtValidator.getAndValidateResolutionUrl(jwtString);
-        String didString = trustStatementDidJwtValidator.getDidString(jwtString);
-        log.debug("Trust statement allowlist check passed - DID: {}, URL: {}", didString, didUrl);
     }
 
     /**

@@ -74,7 +74,7 @@ public class TrustStatementValidatorTest {
                 statusListVerifier);
         when(trustStatementDidJwtValidator.getAndValidateResolutionUrl(anyString())).thenReturn("TEST");
         when(trustStatementDidJwtValidator.getDidString(anyString())).thenReturn("TEST");
-        when(keyLoader.loadJWK(eq(ISS), eq(KID))).thenReturn(testKey.toPublicJWK());
+        when(keyLoader.loadJWK(eq(KID))).thenReturn(testKey.toPublicJWK());
         statusListTokenDto = mock(TokenStatusListTokenDto.class);
         when(statusListCacheService.getTokenStatusListTokenByUri(eq(STATUS_LIST_URI))).thenReturn(statusListTokenDto);
         expiry = Instant.now().plusSeconds(DEFAULT_VALIDITY_SECONDS).getEpochSecond();

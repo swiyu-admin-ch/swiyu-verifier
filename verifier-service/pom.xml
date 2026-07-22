@@ -8,14 +8,14 @@
     <parent>
         <groupId>ch.admin.bj.swiyu</groupId>
         <artifactId>swiyu-verifier-parent</artifactId>
-        <version>4.1.0</version>
+        <version>4.1.1</version>
     </parent>
 
     <artifactId>swiyu-verifier-service</artifactId>
     <name>Swiyu verifier-service business logic</name>
     <description>Generic verifier for public beta</description>
     <dependencies>
-        <dependency>
+        <dependency>1
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
             <version>1.17.0</version>

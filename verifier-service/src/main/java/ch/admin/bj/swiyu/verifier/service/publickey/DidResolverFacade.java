@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.eid.did_sidekicks.DidDoc;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
-import ch.admin.eid.did_sidekicks.Jwk;
+import com.nimbusds.jose.jwk.JWK;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -22,33 +22,18 @@ import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.TRUST_STATE
 @Service
 @AllArgsConstructor
 @Slf4j
-public class DidResolverFacade {
+public class DidResolverFacade implements KeyResolver {
 
     private final DidResolverAdapter didResolverAdapter;
     private final UrlRewriteProperties urlRewriteProperties;
 
     /**
-     * Resolves the DID Document for the given DID and returns the JWK (verification method) for the specified fragment.
-     * <p>
-     * The DID Document is handled via try-with-resources and closed automatically. Only the JWK for the fragment is returned.
-     * </p>
-     *
-     * @param didId    the id of the DID Document (e.g. "did:example:123")
-     * @param fragment the fragment part of the key id (e.g. "key-1" for "did:example:123#key-1")
-     * @return the JWK for the given DID and fragment
-     * @throws DidResolverException if the DID resolution fails
-     * @throws DidSidekicksException if the DID document or key extraction fails
-     * @throws IllegalArgumentException if didId is null
+     * @param keyId full did:tdw/did:webvh including #fragment indicating the verification method
+     * @return JWK fetched from the did document
      */
     @Cacheable(JWK_CACHE)
-    public Jwk resolveDid(String didId, String fragment)
-            throws DidResolverException, DidSidekicksException {
-        if (didId == null) {
-            throw new IllegalArgumentException("did must not be null");
-        }
-        try (DidDoc didDoc = didResolverAdapter.resolveDid(didId, urlRewriteProperties.getUrlMappings())) {
-            return didDoc.getKey(fragment);
-        }
+    public JWK resolveKey(String keyId) {
+        return didResolverAdapter.resolveKey(keyId, urlRewriteProperties.getUrlMappings());
     }
 
     /**
@@ -67,6 +52,7 @@ public class DidResolverFacade {
         }
         return didResolverAdapter.resolveDid(didId, urlRewriteProperties.getUrlMappings());
     }
+
 
     /**
      * Resolves the trust statement for the given trust registry URL and VCT.
@@ -87,5 +73,4 @@ public class DidResolverFacade {
             return null;
         }
     }
-
 }

@@ -5,8 +5,6 @@ import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import ch.admin.eid.did_sidekicks.DidSidekicksException;
-import ch.admin.eid.did_sidekicks.Jwk;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -18,8 +16,6 @@ import org.springframework.boot.health.contributor.Health;
 import org.springframework.stereotype.Component;
 
 import java.text.ParseException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Health checker that validates the signing capability of the configured verification method.
@@ -114,17 +110,14 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
      * @return true if signing and verification succeed, false otherwise
      */
     private boolean verifySigningCapability(String verificationMethod)
-            throws IllegalArgumentException, JOSEException, ParseException, DidResolverException, DidSidekicksException {
+            throws IllegalArgumentException, JOSEException, ParseException, DidResolverException {
 
         if (verificationMethod == null || verificationMethod.isBlank()) {
             return false;
         }
 
-        String did = extractDidFromVerificationMethod(verificationMethod);
-        String fragment = extractFragmentFromVerificationMethod(verificationMethod);
-
         // Resolve JWK directly via facade
-        Jwk jwk = didResolverFacade.resolveDid(did, fragment);
+        JWK jwk = didResolverFacade.resolveKey(verificationMethod);
 
         // Create a test JWT claims set
         JWTClaimsSet testClaims = new JWTClaimsSet.Builder()
@@ -145,19 +138,11 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
      * @param jwk The Jwk containing the public key
      * @return true if signature verification succeeds, false otherwise
      */
-    private boolean verifySignature(SignedJWT signedJwt, Jwk jwk)
-            throws JOSEException, ParseException {
+    private boolean verifySignature(SignedJWT signedJwt, JWK jwk)
+            throws JOSEException {
 
-        final Map<String, Object> map = new HashMap<>();
-        map.put("kty", jwk.getKty());
-        map.put("crv", jwk.getCrv());
-        map.put("x", jwk.getX());
-        map.put("y", jwk.getY());
-        map.put("kid", jwk.getKid());
-        // Convert to EC public key
-        JWK publicKey = JWK.parse(map).toECKey();
         // Create verifier and verify signature
-        JWSVerifier verifier = new ECDSAVerifier(publicKey.toECKey());
+        JWSVerifier verifier = new ECDSAVerifier(jwk.toECKey());
         return signedJwt.verify(verifier);
     }
 

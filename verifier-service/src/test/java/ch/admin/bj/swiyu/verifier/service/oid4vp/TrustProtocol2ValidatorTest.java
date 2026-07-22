@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
@@ -28,7 +27,6 @@ import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 
 /**
  * Unit tests for {@link TrustProtocol2Validator}.
- *
  * The real {@link ch.admin.bj.swiyu.tsverifier.TrustStatementVerifier} is
  * replaced
  * by a test double (see
@@ -73,7 +71,7 @@ class TrustProtocol2ValidatorTest {
         mockKey = new ECKeyGenerator(Curve.P_256).keyID(TRUST_ROOT_KID).generate();
         trustStatementGenerator = new TestTrustStatementGenerator(mockKey);
 
-        when(keyLoader.loadJWK(anyString(), anyString())).thenReturn(mockKey.toPublicJWK());
+        when(keyLoader.loadJWK(anyString())).thenReturn(mockKey.toPublicJWK());
         when(statusListResolverAdapter.resolveStatusList(anyString())).then(a -> trustStatementGenerator.generateTokenStatusList(TRUST_ROOT_KID, a.getArgument(0)));
 
         trustStatements = List.of(

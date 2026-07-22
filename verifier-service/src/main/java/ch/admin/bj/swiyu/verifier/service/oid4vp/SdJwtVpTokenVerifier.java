@@ -107,11 +107,12 @@ public class SdJwtVpTokenVerifier {
             validateHeader(header);
             var claims = nimbusJwt.getJWTClaimsSet();
             // Only technical verification here; issuer trust is validated at service layer
-            var publicKey = issuerPublicKeyLoader.loadPublicKey(claims.getIssuer(), header.getKeyID());
+            var publicKey = issuerPublicKeyLoader.loadJWK(header.getKeyID());
             // TODO EIDOMNI-1112 Use generic lib SdJwtVcValidator here. 
             log.trace("Loaded issuer public key for id {}", managementEntity.getId());
             // Verify the JWS signature of the JWT
-            if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey))) {
+            // TODO EIDOMNI-1171
+            if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey.toECKey().toPublicKey()))) {
                 throw credentialError(MALFORMED_CREDENTIAL, "Signature mismatch");
             }
             log.trace("Successfully verified signature of id {}", managementEntity.getId());

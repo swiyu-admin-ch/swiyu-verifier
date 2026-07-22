@@ -2,12 +2,9 @@ package ch.admin.bj.swiyu.verifier.service.publickey;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
-import ch.admin.eid.did_sidekicks.Jwk;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWK;
 
 import lombok.AllArgsConstructor;
@@ -15,10 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 
-import java.security.PublicKey;
-import java.text.ParseException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This class is responsible for loading the public key of an issuer from a JWT Token. The issuer is identified by its
@@ -42,30 +36,12 @@ public class IssuerPublicKeyLoader {
     private final DidResolverFacade didResolverFacade;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Loads the public key of the issuer with the given <code>issuer</code> and <code>kid</code>.
-     *
-     * @return The public key of the issuer.
-     * @throws LoadingPublicKeyOfIssuerFailedException if the public key could not be loaded
-     */
-    public PublicKey loadPublicKey(String issuer, String kid) throws LoadingPublicKeyOfIssuerFailedException {
-        try {
-            log.trace("Fetching Public Key {} for issuer {}", kid, issuer);
-            Jwk method = loadVerificationMethod(issuer, kid);
-            return parsePublicKeyOfTypeJsonWebKey(method, issuer);
-        } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
-            throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuer, kid), e);
-        }
-    }
-
-    public JWK loadJWK(String issuerDid, String kid) throws LoadingPublicKeyOfIssuerFailedException {
-        // TODO EIDOMNI-1171 Known Bug, should only use kid and not issuer did
+    public JWK loadJWK(String kid) throws LoadingPublicKeyOfIssuerFailedException {
         log.trace("Fetching Public Key {} ", kid);
         try {
-        Jwk resolverJwk = loadVerificationMethod(issuerDid, kid);
-        return parseJwk(resolverJwk, issuerDid);
+            return loadVerificationMethod(kid);
         } catch (DidResolverException | DidSidekicksException | IllegalArgumentException e) {
-            throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for issuer %s and kid %s".formatted(issuerDid, kid), e);
+            throw new LoadingPublicKeyOfIssuerFailedException("Failed to lookup public key from JWT Token for kid %s".formatted(kid), e);
         }
     }
 
@@ -74,58 +50,14 @@ public class IssuerPublicKeyLoader {
      * <a href="https://www.w3.org/TR/did-core/#verification-method-properties">verification method </a> for the given
      * <code>issuerKeyId</code>. The verification method contains the public key of the issuer.
      *
-     * @param issuerDidId the decentralized identifier of the issuer
-     * @param issuerKeyId  the key id (in jwt token header provided as 'kid' attribute) indicating which verification method to use
+     * @param issuerKeyId the key id (in jwt token header provided as 'kid' attribute) indicating which verification method to use
      * @return The VerificationMethod The base64 encoded public key of the issuer as it is mentioned in the <code>verificationMethod</code> for the given issuerKeyId.
-     * @throws DidResolverException  if the DID document could not be resolved
+     * @throws DidResolverException     if the DID document could not be resolved
      * @throws IllegalArgumentException if the issuerKeyId is invalid
-     * @throws DidSidekicksException if the DID document does not contain any matching verification method for the given issuerKeyId
+     * @throws DidSidekicksException    if the DID document does not contain any matching verification method for the given issuerKeyId
      */
-    private Jwk loadVerificationMethod(String issuerDidId, String issuerKeyId) throws DidResolverException, IllegalArgumentException, DidSidekicksException {
-        var fragment = extractFragment(issuerKeyId);
-        Jwk jwk = didResolverFacade.resolveDid(issuerDidId, fragment);
-        log.trace("Resolved did document for issuer {} and found Verification Method {}", issuerDidId, issuerKeyId);
-        return jwk;
-    }
-
-
-
-    /**
-     * Parses the did document jwk to a nimbus jwk. 
-     * <br>
-     * Extends the kid to be swiss-profile-anchor compatible.
-     * Normally the kids would match exactly (string.equals). 
-     * In swiss profile anchor it was though defined that the kid in JWT must be the full did with the JWK kid as fragment.
-     * <br>
-     * <code>"kid": "{issuerDid}#{verificationMethodKid}" </code>
-     */
-    private JWK parseJwk(Jwk jwk, String issuerDid) throws LoadingPublicKeyOfIssuerFailedException {
-        if (jwk == null) {
-            throw new IllegalArgumentException("Failed to parse Json Web Key from verification method since no jwk was provided");
-        }
-        try {
-            Map<String, Object> json = objectMapper.convertValue(jwk, new TypeReference<>() {});
-            json.put("kid", issuerDid+"#"+jwk.getKid());
-            // Create kid as used in swiss-profile-anchor
-            return JWK.parse(json);
-        } catch (ParseException e) {
-            throw new LoadingPublicKeyOfIssuerFailedException("Failed to parse json web token", e);
-        }
-    }
-
-    /**
-     * Generates a public key from the given JSON Web Key (JWK).
-     *
-     * @param jwk a json web token
-     * @return the public key
-     * @throws LoadingPublicKeyOfIssuerFailedException 
-     */
-    private PublicKey parsePublicKeyOfTypeJsonWebKey(Jwk jwk, String issuerDid) throws LoadingPublicKeyOfIssuerFailedException {
-        try {
-            return parseJwk(jwk, issuerDid).toECKey().toPublicKey();
-        } catch (JOSEException e) {
-            throw new LoadingPublicKeyOfIssuerFailedException("Failed to cast key to ECKey", e);
-        }
+    private JWK loadVerificationMethod(String issuerKeyId) throws DidResolverException, IllegalArgumentException, DidSidekicksException {
+        return didResolverFacade.resolveKey(issuerKeyId);
     }
 
     /**
@@ -140,20 +72,4 @@ public class IssuerPublicKeyLoader {
         var rawTrustStatements = didResolverFacade.resolveTrustStatement(trustRegistryUri + TRUST_STATEMENT_ISSUANCE_ENDPOINT, vct);
         return objectMapper.readValue(rawTrustStatements, List.class);
     }
-
-    /**
-     *
-     * @param keyId reference to a verification method in a did doc
-     * @return fragment of the keyId
-     * @throws IllegalArgumentException if the provided keyId does not have a fragment
-     */
-    private static String extractFragment(String keyId) throws IllegalArgumentException {
-        var keyIdSplit = keyId.split("#"); // should be in the format of <did id>#<fragment>
-        final int expectedLength = 2;
-        if (keyIdSplit.length != expectedLength) {
-            throw new IllegalArgumentException(String.format("Key %s is malformed: missing fragment", keyId));
-        }
-        return keyIdSplit[1];
-    }
-
 }

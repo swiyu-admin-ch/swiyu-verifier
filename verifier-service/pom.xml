@@ -15,7 +15,7 @@
     <name>Swiyu verifier-service business logic</name>
     <description>Generic verifier for public beta</description>
     <dependencies>
-        <dependency>1
+        <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
             <version>1.17.0</version>

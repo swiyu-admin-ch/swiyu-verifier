@@ -7,13 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [4.1.1] - 2026-07-22
 
-## Changed
-- Updated swiyu-generic-library to 1.8.2
-- Updated public key handling to use JWK directly instead of JWKSet for signature verification
-- Improved public key resolution by centralizing the logic (removed logic using JWK iss logi)
-
-# [4.1.0] - 2026-07-21
-
 ## Added
 - Static compliance checks for Swiss Profile conformance on OID4VP endpoints (#829):
     - Add `profile_version` and `encrypted_response_enc_values_supported` fields to Request Object DTO to comply with Swiss Profile requirements (#829).
@@ -25,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 20MiB
 - Moved Status List Verification to shared generic library (#1010)
 - Improved trust statement list validation to continue processing valid trust statements even when individual statements are faulty (#1010)
+- Updated swiyu-generic-library to 1.8.2
+- Updated public key handling to use JWK directly instead of JWKSet for signature verification
+- Improved public key resolution by centralizing the logic (removed logic using JWK iss logi)
 
 ## Fixed
 - Added client_id with prefix to all JWTs created by the verifier and also added the correct one to the initial verification deeplink (#1175)

@@ -45,7 +45,7 @@ public class DcqlVpTokenVerifier {
             // This occurs if there is a bug in the wallet or during an attack
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
-        sdJwtVpTokenVerifier.verifyStatus(vpToken.getClaims().getClaims(), management);
+        sdJwtVpTokenVerifier.verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
 
         // Resolve Disclosures
         sdJwtVpTokenVerifier.validateDisclosures(vpToken, management);

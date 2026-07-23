@@ -74,9 +74,9 @@ public class StatusListCacheService {
         String statusListJWT = statusListResolver.resolveStatusList(uri);
         SignedJWT tokenStatusListJWT = SignedJWT.parse(statusListJWT);
         TokenStatusListVerifier.hasValidTokenStatusListTokenHeader(tokenStatusListJWT.getHeader());
-        TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims());
         String kid = didKidParser.extractKidFromHeader(statusListJWT);
         JWK statusListKey = issuerPublicKeyLoader.loadJWK(kid);
+        TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims(), tokenStatusListJWT.getHeader());
         didJwtValidator.validateJwt(statusListJWT, statusListKey);
         return Optional.of(statusList);
         } catch (StatusListFetchFailedException | IllegalArgumentException | ParseException | LoadingPublicKeyOfIssuerFailedException e) {

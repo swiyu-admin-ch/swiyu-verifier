@@ -89,7 +89,7 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
 
-        verifyStatus(vpToken.getClaims().getClaims(), management);
+        verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
         validateDisclosures(vpToken, management);
 
         return vpToken;
@@ -185,8 +185,8 @@ public class SdJwtVpTokenVerifier {
         }
     }
 
-    protected void verifyStatus(Map<String, Object> vcClaims, Management managementEntity) {
-        TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(vcClaims);
+    protected void verifyStatus(Map<String, Object> vcClaims, JWSHeader header) {
+        TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(vcClaims, header);
         if (reference.getStatus() == null) {
             // no Status Reference -> VC has no Status
             return;

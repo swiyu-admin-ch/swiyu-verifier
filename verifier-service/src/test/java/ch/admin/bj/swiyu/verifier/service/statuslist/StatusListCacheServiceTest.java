@@ -9,14 +9,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.nimbusds.jose.jwk.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
@@ -55,13 +52,13 @@ class StatusListCacheServiceTest {
             .keyID("did:webvh:example.com#key-1")
             .keyUse(KeyUse.SIGNATURE)
             .generate();
-        when(issuerPublicKeyLoader.loadJWK(any(), eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
+        when(issuerPublicKeyLoader.loadJWK(eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
         var statusListJwt = StatusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST, testKey, "did:example", testKey.getKeyID());
         when(statusListResolver.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenReturn(statusListJwt);
 
         var statusList = assertDoesNotThrow(() -> cacheService.getTokenStatusListTokenByUri(StatusListGenerator.SPEC_SUBJECT));
 
-        verify(didJwtValidator, times(1)).validateJwt(eq(statusListJwt), any(JWKSet.class));
+        verify(didJwtValidator, times(1)).validateJwt(eq(statusListJwt), any(JWK.class));
         assertThat(statusList).isNotNull();
         assertThat(statusList.getStatusList()).isNotNull();
         assertThat(statusList.getExp()).isNotNull().isNotZero();
@@ -83,7 +80,7 @@ class StatusListCacheServiceTest {
             .keyID("did:webvh:example.com#key-1")
             .keyUse(KeyUse.SIGNATURE)
             .generate();
-        when(issuerPublicKeyLoader.loadJWK(any(), eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
+        when(issuerPublicKeyLoader.loadJWK(eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
         var statusListJwt = StatusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST, testKey, "did:example", testKey.getKeyID());
 
         when(statusListResolver.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenReturn(statusListJwt);
@@ -97,6 +94,6 @@ class StatusListCacheServiceTest {
         // Second Invocation to prove nothing is cached
         // Note: cache.getEstimatedSize() is flaky
         assertDoesNotThrow(() -> cacheService.getTokenStatusListTokenByUri(StatusListGenerator.SPEC_SUBJECT));
-        verify(didJwtValidator, times(2)).validateJwt(eq(statusListJwt), any(JWKSet.class));
+        verify(didJwtValidator, times(2)).validateJwt(eq(statusListJwt), any(JWK.class));
     }
 }

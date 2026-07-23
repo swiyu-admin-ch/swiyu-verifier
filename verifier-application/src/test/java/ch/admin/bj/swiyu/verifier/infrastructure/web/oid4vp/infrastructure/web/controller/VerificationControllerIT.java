@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.controller;
 
-import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
@@ -23,6 +22,7 @@ import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
@@ -32,7 +32,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.NonNull;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,7 +63,6 @@ import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentia
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -699,12 +697,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
         try {
-            String issuerKeyId = sdjwt.getIssuerId() + "#key-1";
-            String fragment = "key-1";
-            when(didResolverFacade.resolveDid(sdjwt.getIssuerId(), fragment))
-                    .thenAnswer(invocation -> DidDocFixtures.issuerDidDocWithJsonWebKey(
-                            sdjwt.getIssuerId(), issuerKeyId, KeyFixtures.issuerPublicKeyAsJsonWebKey()).getKey(fragment));
-        } catch (DidResolverException | ch.admin.eid.did_sidekicks.DidSidekicksException e) {
+            // Parse the JSON Web Key string into a Nimbus JWK object to ensure correct type
+            JWK nimbusJwk = JWK.parse(KeyFixtures.issuerPublicKeyAsJsonWebKey());
+            when(didResolverFacade.resolveKey(sdjwt.getKidHeaderValue())).thenReturn(nimbusJwk);
+        } catch (Exception e) {
             throw new AssertionError(e);
         }
 
@@ -1153,7 +1149,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final CountDownLatch didCallStarted = new CountDownLatch(1);
 
         // Simulate did resolution blocking
-        when(didResolverFacade.resolveDid(emulator.getIssuerId(), "key-1"))
+        when(didResolverFacade.resolveKey(emulator.getKidHeaderValue()))
                 .thenAnswer(invocation -> {
                     didCallStarted.countDown();
                     Thread.sleep(Long.MAX_VALUE);
@@ -1198,7 +1194,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         final CountDownLatch allowDidToFinish = new CountDownLatch(concurrentRequests);
 
         // Simulate did resolution blocking
-        when(didResolverFacade.resolveDid(emulator.getIssuerId(), "key-1"))
+        when(didResolverFacade.resolveKey(emulator.getKidHeaderValue()))
                 .thenAnswer(invocation -> {
                     didCallStarted.countDown();
                     try {
@@ -1206,10 +1202,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
-                    return DidDocFixtures.issuerDidDocWithJsonWebKey(
-                            emulator.getIssuerId(),
-                            emulator.getIssuerId() + "#key-1",
-                            KeyFixtures.issuerPublicKeyAsJsonWebKey()).getKey("key-1");
+                    // Parse the JSON Web Key string into a Nimbus JWK object to ensure correct type
+                    return JWK.parse(KeyFixtures.issuerPublicKeyAsJsonWebKey());
                 });
 
         final HikariPoolMXBean pool = hikariPool();

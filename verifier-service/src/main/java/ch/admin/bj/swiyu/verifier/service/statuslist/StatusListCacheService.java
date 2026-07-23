@@ -26,7 +26,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.SignedJWT;
 
 @Slf4j
@@ -75,10 +74,10 @@ public class StatusListCacheService {
         String statusListJWT = statusListResolver.resolveStatusList(uri);
         SignedJWT tokenStatusListJWT = SignedJWT.parse(statusListJWT);
         TokenStatusListVerifier.hasValidTokenStatusListTokenHeader(tokenStatusListJWT.getHeader());
-        TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims());
         String kid = didKidParser.extractKidFromHeader(statusListJWT);
-        JWK statusListKey = issuerPublicKeyLoader.loadJWK(statusList.getIssuer(), kid);
-        didJwtValidator.validateJwt(statusListJWT, new JWKSet(statusListKey));
+        JWK statusListKey = issuerPublicKeyLoader.loadJWK(kid);
+        TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims(), tokenStatusListJWT.getHeader());
+        didJwtValidator.validateJwt(statusListJWT, statusListKey);
         return Optional.of(statusList);
         } catch (StatusListFetchFailedException | IllegalArgumentException | ParseException | LoadingPublicKeyOfIssuerFailedException e) {
             log.info("Failed to load status list {}", uri, e);
@@ -125,7 +124,7 @@ public class StatusListCacheService {
                 
                 private long getTtlOrBackoff(Optional<TokenStatusListTokenDto> value) {
                     return value
-                        .map(v -> getTTLTime(v))
+                        .map(this::getTTLTime)
                         .orElse(TimeUnit.SECONDS.toNanos(cacheProperties.getRequestBackoffSeconds()));
                 }
 

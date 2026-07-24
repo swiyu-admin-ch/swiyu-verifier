@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.statuslist;
 import java.util.HashSet;
 import java.util.Set;
 
+import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 public class StatusListConfig {
     
     private final ApplicationProperties applicationProperties;
+    private final VerificationProperties verificationProperties;
 
     /**
      * Creates a {@link DidJwtValidator} restricted to the configured registry hosts.
@@ -49,6 +51,7 @@ public class StatusListConfig {
         return new TokenStatusListVerifier(
             TokenStatusListVerifierConfig.builder()
                 .issuerMustMatch(true)
+                .expiryMustBePresent(verificationProperties.isExpiryMustBePresent())
                 .build());
     }
 }

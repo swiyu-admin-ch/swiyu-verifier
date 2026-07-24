@@ -22,4 +22,11 @@ public class VerificationProperties {
      */
     @NotNull
     private int objectSizeLimit;
+
+    /**
+     * Indicates whether the expiry must be present in the verification
+     * (Change this at your own risk if you want to use older versions of the issuer with status list without exp)
+     */
+    @NotNull
+    private boolean expiryMustBePresent = true;
 }

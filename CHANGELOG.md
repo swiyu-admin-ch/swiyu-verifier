@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+# [4.1.1] - 2026-07-24
+## Added
+- Added `expiryMustBePresent` or `verification.expiry-must-be-present` configuration property to control whether the expiry must be present in the verification (
+  default is true) `(#1192)` This can be set to false for compatibility with older issuers status lists (for example
+  bcs) but should be used with caution.
+
 # [4.1.0] - 2026-07-22
 
 ## Added

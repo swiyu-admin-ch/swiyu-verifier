@@ -61,6 +61,7 @@ verification:
   # the acceptable window of the issued at claim for verification - used for determining if the holder key binding proof jwt is valid
   acceptable-proof-time-window-seconds: ${VERIFICATION_PROOF_TIME_WINDOW_MS:120}
   object-size-limit: 204800 # 200 Kibibyte
+  expiry-must-be-present: true # Change this only with caution! If set to true, the verification will fail if a status list does not have an expiry date. If set to false, the verification will succeed even if the vc does not have an expiry date.
 
 
 spring:
@@ -118,6 +119,7 @@ management:
         application.external-url,
         application.deeplink-schema,
         verification.object-size-limit,
+        verification.expiry-must-be-present
         application.key-management-method,
         spring.flyway.enabled,
         springdoc.swagger-ui.path,

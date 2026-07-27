@@ -8,8 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [NEXT]
 
 ## Changed
-- New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 20MiB
 - Adapt metadata logic to issuers implementation
+
+## Removed
+- Removed Metadata Endpoint as it is not used by the wallet
+- Removed `client_id` from metadata.
+
+# [4.1.1] - 2026-07-24
+## Added
+- Added `expiryMustBePresent` or `verification.expiry-must-be-present` configuration property to control whether the expiry must be present in the verification (
+  default is true) `(#1192)` This can be set to false for compatibility with older issuers status lists (for example
+  bcs) but should be used with caution.
+
+# [4.1.0] - 2026-07-22
+
+## Added
+- Static compliance checks for Swiss Profile conformance on OID4VP endpoints (#829):
+    - Add `profile_version` and `encrypted_response_enc_values_supported` fields to Request Object DTO to comply with Swiss Profile requirements (#829).
+    - Mark `vp_formats` as a required field in `OpenidClientMetadataDto` (#829).
+    - Update Response Data endpoint to return `ResponseEntity<Map<String, Object>>` instead of `void` and document the `application/json` response body schema in OpenAPI (#829).
+- Verification of Trust Statements with Status Lists using caching according to exp, ttl or maximum cache ttl.
+
+## Changed
+- New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 20MiB
 
 ## Added
 - Static compliance checks for Swiss Profile conformance on OID4VP endpoints (`#829`):
@@ -20,10 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 - Added client_id with prefix to all JWTs created by the verifier and also added the correct one to the initial verification deeplink (#1175)
 - Fixed type of `VerificationPurpose`, `ConfigurationOverrideDto` and `OpenIdClientMetadataVpFormatSdJwt` in openapi.yaml to `type: object` (#1174).
-
-## Removed
-- Removed Metadata Endpoint as it is not used by the wallet
-- Removed `client_id` from metadata.
 
 # [4.0.0] - 2026-07-08
 

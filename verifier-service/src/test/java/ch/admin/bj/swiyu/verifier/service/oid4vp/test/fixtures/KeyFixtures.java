@@ -1,9 +1,10 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures;
 
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import lombok.experimental.UtilityClass;
 
@@ -15,13 +16,24 @@ import java.util.Base64;
  */
 @UtilityClass
 public class KeyFixtures {
-    private static final String DEFAULT_ISSUER_PRIVATE_KEY = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIDqMm9PvL4vpyFboAwaeViQsH30CkaDcVtRniZPezFxpoAoGCCqGSM49\nAwEHoUQDQgAEQgjeqGSdu+2jq8+n78+6fXk2Yh22lQKBYCnu5FWPvKtat3wFEsQX\nqNHYgPXBxWmOBw5l2PE/gUDUJqGJSc1LuQ==\n-----END EC PRIVATE KEY-----";
+    private static final ECKey DEFAULT_ISSUER_KEY; 
+    static {
+        try {
+            DEFAULT_ISSUER_KEY = new ECKeyGenerator(Curve.P_256)
+            .keyID("key-1")
+            .algorithm(JWSAlgorithm.ES256)
+            .keyUse(KeyUse.SIGNATURE)
+            .generate();
+        } catch (JOSEException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     /**
      * Returns a private key of an issuer as ECKey.
      */
     public static ECKey issuerKey() {
-        return toEcKey(DEFAULT_ISSUER_PRIVATE_KEY);
+        return DEFAULT_ISSUER_KEY;
     }
 
     /**
@@ -47,14 +59,6 @@ public class KeyFixtures {
      */
     public static String issuerPublicKeyAsJsonWebKey() {
         return issuerKey().toPublicJWK().toJSONString();
-    }
-
-    private static ECKey toEcKey(String pemEncodedObjects) {
-        try {
-            return JWK.parseFromPEMEncodedObjects(pemEncodedObjects).toECKey();
-        } catch (JOSEException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private static String toBase64UrlEncodedMultibaseKey(ECPublicKey publicKey) {

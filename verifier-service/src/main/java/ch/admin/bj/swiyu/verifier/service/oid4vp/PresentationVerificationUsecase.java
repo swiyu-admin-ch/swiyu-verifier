@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionErrorV1;
 
 @Slf4j

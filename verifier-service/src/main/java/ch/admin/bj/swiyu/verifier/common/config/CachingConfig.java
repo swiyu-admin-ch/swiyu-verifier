@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 @EnableCaching
 public class CachingConfig {
 
-    public static final String STATUS_LIST_CACHE = "statusListCache";
     public static final String TRUST_STATEMENT_CACHE = "trustStatementCache";
     public static final String SIGNING_KEY_CACHE = "signingKeyCache";
     public static final String JWS_SIGNER_CACHE = "JwsSignerCache";
@@ -19,7 +18,6 @@ public class CachingConfig {
     @Bean
     public CacheManager cacheManager() {
         return new ConcurrentMapCacheManager(
-                STATUS_LIST_CACHE,
                 TRUST_STATEMENT_CACHE,
                 SIGNING_KEY_CACHE,
                 JWS_SIGNER_CACHE,

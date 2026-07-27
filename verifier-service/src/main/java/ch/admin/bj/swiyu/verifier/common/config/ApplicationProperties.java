@@ -49,6 +49,9 @@ public class ApplicationProperties {
 
     private HSMProperties hsm;
 
+    /**
+     * List of accepted registry hosts, containing both status and trust hosts
+     */
     private List<String> acceptedRegistryHosts;
 
     public String getClientIdWithPrefix() {

@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.domain.publickey;
 
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.TrustProtocolv1Resolver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader.TRUST_STATEMENT_ISSUANCE_ENDPOINT;
+import static ch.admin.bj.swiyu.verifier.service.publickey.TrustProtocolv1Resolver.TRUST_STATEMENT_ISSUANCE_ENDPOINT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -18,13 +18,13 @@ import static org.mockito.Mockito.when;
 
 class IssuerPublicKeyLoaderTest {
 
-    private IssuerPublicKeyLoader publicKeyLoader;
+    private TrustProtocolv1Resolver publicKeyLoader;
     private DidResolverFacade mockedDidResolverFacade;
 
     @BeforeEach
     void setUp() {
         mockedDidResolverFacade = mock(DidResolverFacade.class);
-        publicKeyLoader = new IssuerPublicKeyLoader(mockedDidResolverFacade, new ObjectMapper());
+        publicKeyLoader = new TrustProtocolv1Resolver(mockedDidResolverFacade, new ObjectMapper());
     }
 
     @Test

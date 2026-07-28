@@ -3,13 +3,18 @@ package ch.admin.bj.swiyu.verifier.service.trustregistry.pact;
 import au.com.dius.pact.consumer.MockServer;
 import ch.admin.bj.swiyu.core.trust.client.api.TrustProtocol20Api;
 import ch.admin.bj.swiyu.core.trust.client.invoker.ApiClient;
+import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.CacheMaintenanceService;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
+import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementValidator;
+import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementValidator.TrustStatementValidationResult;
 
-import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 final class TrustRegistryConsumerPactSupport {
 
@@ -45,10 +50,15 @@ final class TrustRegistryConsumerPactSupport {
         properties.setClockSkewBufferSeconds(0);
         properties.setMaxCacheTtlSeconds(0);
 
+        final TrustStatementValidator trustStatementValidator = mock(TrustStatementValidator.class);
+        when(trustStatementValidator.trustStatementValidityWindow(any()))
+                .thenReturn(new TrustStatementValidationResult(true, TimeUnit.MINUTES.toNanos(5)));
+
         return new TrustStatementCacheService(
                 buildApi(mockServer),
                 properties,
                 mock(CacheMaintenanceService.class),
-                Optional.empty());
+                trustStatementValidator,
+                new CacheProperties());
     }
 }

@@ -2,9 +2,9 @@ name: Publish Pact Contracts
 run-name: ${{ github.repository }} is publishing Pact consumer contracts
 
 on:
-  push:
-    branches:
-      - '**'
+  # push:
+  #   branches:
+  #     - '**'
   workflow_dispatch:
 
 concurrency:

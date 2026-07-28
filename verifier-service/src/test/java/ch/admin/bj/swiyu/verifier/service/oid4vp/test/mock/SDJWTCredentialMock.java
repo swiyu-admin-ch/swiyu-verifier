@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock;
 
+import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
@@ -19,6 +20,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT;
 import static java.util.Objects.nonNull;
 
 @Getter
@@ -193,19 +195,11 @@ public class SDJWTCredentialMock {
     }
 
     public String createSDJWTMock(boolean skipCnf) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, "dc+sd-jwt", skipCnf);
+        return createSDJWTMock(null, null, null, DEFAULT_VCT, getSDClaims(), false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, skipCnf);
     }
 
     public String createSDJWTMockWithRecursiveListArray() {
-        return createSDJWTMockRecursiveObject(null, null, null, DEFAULT_VCT, false, "dc+sd-jwt", JWSAlgorithm.ES256, false);
-    }
-
-    public String createSDJWTMockWithClaims(Map<String, Object> sdClaims) {
-        return createSDJWTMock(null, null, null, DEFAULT_VCT, sdClaims, false, "vc+sd-jwt", false);
-    }
-
-    public String createTrustStatementIssuanceV1(String trustStatementIssuerDid, String trustStatementIssuerKeyId) throws JOSEException {
-        return createTrustStatementIssuanceV1(trustStatementIssuerDid, trustStatementIssuerKeyId, this.issuerId);
+        return createSDJWTMockRecursiveObject(null, null, null, DEFAULT_VCT, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, JWSAlgorithm.ES256, false);
     }
 
     /**
@@ -222,7 +216,7 @@ public class SDJWTCredentialMock {
                 .build();
         var headers = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .keyID(trustStatementIssuerKeyId)
-                .type(new JOSEObjectType("vc+sd-jwt"))
+                .type(new JOSEObjectType(VC_SD_JWT_CREDENTIAL_FORMAT))
                 .build();
         SignedJWT jwt = new SignedJWT(headers, claims);
         jwt.sign(new ECDSASigner(key));
@@ -265,7 +259,7 @@ public class SDJWTCredentialMock {
     }
 
     private String createSDJWTMock(Long validFrom, Long validUntil, Integer statusListIndex, String vct, HashMap<String, Object> sdClaims) {
-        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, "vc+sd-jwt", false);
+        return createSDJWTMock(validFrom, validUntil, statusListIndex, vct, sdClaims, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, false);
     }
 
     // Refactor this as soon as issuer and wallet deliver the correct cnf structure
@@ -299,7 +293,7 @@ public class SDJWTCredentialMock {
 
         var builder = getClaimsFromSdJwt(disclosures);
 
-        return createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
+        return createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, JWSAlgorithm.ES256, false);
     }
 
     public String createSdJWT(SDObjectBuilder builder, List<Disclosure> disclosures, Long validFrom, Long validUntil, Integer statusListIndex, String vct, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {

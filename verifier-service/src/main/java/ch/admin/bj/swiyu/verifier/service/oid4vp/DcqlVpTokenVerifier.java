@@ -28,6 +28,9 @@ public class DcqlVpTokenVerifier {
         // Validate Basic JWT (header, times, signature)
         sdJwtVpTokenVerifier.verifyVerifiableCredentialJWT(vpToken, management);
 
+        // checks if the provided format in typ header matches the requested format in the dcql_query.format
+        sdJwtVpTokenVerifier.validateFormat(dcqlCredential, vpToken);
+
         // Perform issuer trust validation based on claims
         JWTClaimsSet claims = vpToken.getClaims();
         try {

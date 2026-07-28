@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.controller;
 
+import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
@@ -215,7 +216,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .andExpect(status().isOk());
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-
     }
 
     @Test
@@ -534,8 +534,23 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"vc+sd-jwt", "dc+sd-jwt"})
+    @ValueSource(strings = {DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT})
     void shouldSucceedVerifyingCredentialWithLegacyCNFFormat_thenSuccess(String credentialFormat) throws Exception {
+
+        var requestId = UUID.randomUUID();
+        managementEntityRepository.save(Management.builder()
+                .id(requestId)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .oauthState(requestId.toString())
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .jwtSecuredAuthorizationRequest(true)
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson(credentialFormat)))
+                .build());
+
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock(true, credentialFormat);
@@ -545,7 +560,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        sendPresentation(REQUEST_ID_SECURED, vpToken);
+        sendPresentation(requestId, vpToken);
     }
 
     @Test
@@ -781,6 +796,44 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_NESTED_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
+    @Test
+    void verification_withIncorrectFormat_throws() throws Exception {
+        var requestId = UUID.randomUUID();
+        var dcql = DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson(DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT));
+        managementEntityRepository.save(Management.builder()
+                .id(requestId)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .oauthState(requestId.toString())
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .jwtSecuredAuthorizationRequest(true)
+                .dcqlQuery(dcql)
+                .build());
+
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSDJWTMock(true, DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        var submissionData = objectMapper.writeValueAsString(Map.of(dcql.getCredentials().getFirst().getId(), List.of(vpToken)));
+        // WHEN / THEN
+        postVerificationResponse(requestId, submissionData, requestId)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("invalid_transaction_data"))
+                .andExpect(jsonPath("$.detail").value("invalid_presentation_submission"))
+                .andExpect(jsonPath("$.error_description").value("Wrong format for %s - expected %s but received %s".formatted(
+                        dcql.getCredentials().getFirst().getId(),
+                        DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT,
+                        DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT
+                )));
+    }
 
     @Test
     void testDCQLNestedEndpoint_forArray_thenSuccess() throws Exception {
@@ -792,7 +845,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 "credentials": [
                     {
                       "id": "%s",
-                      "format": "dc+sd-jwt",
+                      "format": "%s",
                       "meta": {
                         "vct_values": [ "%s" ]
                       },
@@ -803,7 +856,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     }
                   ]
                 }
-                """.formatted(dcqlCredentialId, SDJWTCredentialMock.DEFAULT_VCT);
+                """.formatted(dcqlCredentialId, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT);
 
         var mgmt = managementEntityRepository.save(Management.builder()
                 .id(dcqlCredentialId)
@@ -814,7 +867,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .dcqlQuery(dcqlQuery(dcqlQuery))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQuery))
                 .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
                 .build());
 
@@ -834,7 +887,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         builder.putSDClaim(languagesDisclosure);
 
         var used = disclosures.stream().filter(disc -> (Objects.equals(disc.getClaimName(), "languages") || disc.getClaimValue().equals("IT"))).toList();
-        var sdjwtWithoutKeyBinding = emulator.createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
+        var sdjwtWithoutKeyBinding = emulator.createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, JWSAlgorithm.ES256, false);
         var test = sdjwtWithoutKeyBinding.split("~")[0]
                 .concat(used.stream().map(disc -> "~" + disc.toString()).reduce("", String::concat))
                 .concat("~");

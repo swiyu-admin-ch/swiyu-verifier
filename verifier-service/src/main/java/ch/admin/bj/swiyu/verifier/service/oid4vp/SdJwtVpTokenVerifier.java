@@ -9,11 +9,13 @@ import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
@@ -50,6 +52,7 @@ import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 
 /**
  * Verifies SD-JWT trust statements (which are themselves VP tokens) using the
@@ -232,6 +235,15 @@ public class SdJwtVpTokenVerifier {
                         .orElse(new ConfigurationOverride(null, null, null, null, null, null)));
         validateNonce(keyBindingClaims, management.getRequestNonce());
         validateSDHash(sdJwt, keyBindingClaims);
+    }
+
+    void validateFormat( DcqlCredential dcqlCredential, SdJwt vpToken) {
+        var expectedFormatType = dcqlCredential.getFormat();
+        var actualFormatType = vpToken.getHeader().getType().toString();
+        if (!expectedFormatType.equalsIgnoreCase(actualFormatType)) {
+            var error = "Wrong format for %s - expected %s but received %s".formatted(dcqlCredential.getId(), expectedFormatType, actualFormatType);
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, error);
+        }
     }
 
     private void validateSDHash(SdJwt sdjwt, JWTClaimsSet keyBindingClaims) {

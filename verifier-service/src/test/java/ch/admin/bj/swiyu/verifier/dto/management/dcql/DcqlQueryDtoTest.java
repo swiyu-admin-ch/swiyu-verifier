@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.LinkedList;
@@ -31,7 +32,7 @@ class DcqlQueryDtoTest {
         DcqlMapper.toDcqlQueryDto(dcqlQuery);
         assertNoNullContained(dcqlQuery);
 
-        var dcqlCredentialBuilder = DcqlCredential.builder().id("My CredenitalQuery").format("dc+sd-jwt").meta(DcqlCredentialMeta.builder().vctValues(List.of("test")).build());
+        var dcqlCredentialBuilder = DcqlCredential.builder().id("My CredenitalQuery").format(DC_SD_JWT_CREDENTIAL_FORMAT).meta(DcqlCredentialMeta.builder().vctValues(List.of("test")).build());
         var credentials = new LinkedList<DcqlCredential>();
         dcqlQuery.setCredentials(credentials);
         credentials.add(dcqlCredentialBuilder.build());

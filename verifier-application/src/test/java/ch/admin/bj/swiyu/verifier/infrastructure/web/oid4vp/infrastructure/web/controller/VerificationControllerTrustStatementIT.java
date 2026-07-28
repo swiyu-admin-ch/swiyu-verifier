@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.tsbuilder.IdTsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.PvaTsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.VqPsBuilder;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
+import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
@@ -143,7 +144,7 @@ class VerificationControllerTrustStatementIT {
                 {
                   "credentials": [{
                     "id": "cred1",
-                    "format": "dc+sd-jwt",
+                    "format": "%s",
                     "meta": { "vct_values": ["https://example.com/vct/v1"] },
                     "claims": [
                       {"path": ["last_name"]},
@@ -151,7 +152,7 @@ class VerificationControllerTrustStatementIT {
                     ]
                   }]
                 }
-                """;
+                """.formatted(DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT);
 
         managementRepository.save(Management.builder()
                 .id(REQUEST_ID)
@@ -264,7 +265,7 @@ class VerificationControllerTrustStatementIT {
                 {
                   "credentials": [{
                     "id": "cred1",
-                    "format": "dc+sd-jwt",
+                    "format": "%s",
                     "meta": { "vct_values": ["https://example.com/vct/v1"] },
                     "claims": [
                       {"path": ["last_name"]},
@@ -272,7 +273,7 @@ class VerificationControllerTrustStatementIT {
                     ]
                   }]
                 }
-                """;
+                """.formatted(DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT);
 
         managementRepository.save(Management.builder()
                 .id(REQUEST_ID_WITH_VQPS)
@@ -385,7 +386,7 @@ class VerificationControllerTrustStatementIT {
         Map<String, Object> dcqlQuery = Map.of(
                 "credentials", List.of(Map.of(
                         "id", "cred1",
-                        "format", "dc+sd-jwt",
+                        "format", DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT,
                         "meta", Map.of("vct_values", List.of("https://example.com/vct/v1")),
                         "claims", List.of(
                                 Map.of("path", List.of("last_name")),

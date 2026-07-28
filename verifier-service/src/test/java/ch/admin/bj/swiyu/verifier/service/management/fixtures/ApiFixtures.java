@@ -8,16 +8,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
+
 @UtilityClass
 public class ApiFixtures {
-
-    public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids) {
-        return CreateVerificationManagementDto.builder()
-                .acceptedIssuerDids(acceptedIssuerDids)
-                .jwtSecuredAuthorizationRequest(false)
-                .responseMode(ResponseModeTypeDto.DIRECT_POST)
-                .build();
-    }
 
     public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(DcqlQueryDto dcqlQueryDto, List<String> acceptedIssuerDids) {
         return CreateVerificationManagementDto.builder()
@@ -86,7 +80,7 @@ public class ApiFixtures {
         );
         var credential = new DcqlCredentialDto(
                 "identity_credential_dcql",
-                "dc+sd-jwt",
+                DC_SD_JWT_CREDENTIAL_FORMAT,
                 null,
                 meta,
                 claims,

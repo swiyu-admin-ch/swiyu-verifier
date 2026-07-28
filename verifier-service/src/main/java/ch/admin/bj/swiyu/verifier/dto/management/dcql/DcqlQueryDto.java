@@ -52,15 +52,6 @@ import java.util.List;
             { "path": ["graduation_year"] }
           ]
         }
-      ],
-      "credential_sets": [
-        {
-          "options": [
-            ["identity_credential_dcql"],
-            ["university_degree_dcql"]
-          ],
-          "required": true
-        }
       ]
     }
     """

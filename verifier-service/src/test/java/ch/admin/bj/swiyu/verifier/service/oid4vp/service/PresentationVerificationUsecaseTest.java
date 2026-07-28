@@ -2,8 +2,6 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -26,8 +24,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,8 +41,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.getSDClaims;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -57,14 +53,13 @@ class PresentationVerificationUsecaseTest {
     private CallbackEventProducer callbackEventProducer;
     private Management managementEntity;
     private UUID managementId;
-    private ManagementRepository managementRepository;
     private PresentationVerifier presentationVerifier;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        managementRepository = mock(ManagementRepository.class);
+        ManagementRepository managementRepository = mock(ManagementRepository.class);
         ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
         ManagementTransactionalService managementTransactionalService = new ManagementTransactionalService(managementRepository, applicationProperties);
         ManagementService managementService = new ManagementService(applicationProperties, managementTransactionalService, null);
@@ -73,8 +68,6 @@ class PresentationVerificationUsecaseTest {
         callbackEventProducer = mock(CallbackEventProducer.class);
         presentationVerifier = mock(PresentationVerifier.class);
         dcqlPresentationVerificationService = mock(DcqlPresentationVerificationService.class);
-
-        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
         presentationVerificationUsecase = new PresentationVerificationUsecase(
                 callbackEventProducer,
@@ -187,7 +180,7 @@ class PresentationVerificationUsecaseTest {
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
-        var err = assertThrows(ProcessClosedException.class, () ->
+        assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
 
         verify(callbackEventProducer).produceEvent(managementId);
@@ -202,7 +195,7 @@ class PresentationVerificationUsecaseTest {
         VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
         when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
 
-        var err = assertThrows(ProcessClosedException.class, () ->
+        assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
 
         verify(callbackEventProducer).produceEvent(managementId);
@@ -335,7 +328,7 @@ class PresentationVerificationUsecaseTest {
     private DcqlQuery getDcqlQuery(String dcqlCredentialId, boolean requireCryptographicHolderBinding) {
         var requestedCredential = new DcqlCredential(
                 dcqlCredentialId,
-                "dc+sd-jwt",
+                DC_SD_JWT_CREDENTIAL_FORMAT,
                 new DcqlCredentialMeta(null, List.of(SDJWTCredentialMock.DEFAULT_VCT), null),
                 List.of(
                         new DcqlClaim(null, List.of("birthdate"), null),

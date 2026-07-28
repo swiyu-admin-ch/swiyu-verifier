@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Fixed
+- Check dcql format with vp_token header type. Throws error if the format is not correct. (#1118)
+
 # [4.1.1] - 2026-07-24
 ## Added
 - Added `expiryMustBePresent` or `verification.expiry-must-be-present` configuration property to control whether the expiry must be present in the verification (

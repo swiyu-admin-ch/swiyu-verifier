@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
@@ -36,6 +35,8 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.*;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,10 +52,6 @@ class SdJwtVpTokenVerifierTest {
     private static final String TEST_NONCE = "test-nonce";
 
     private IssuerPublicKeyLoader issuerPublicKeyLoader;
-    private StatusListCacheService statusListResolver;
-    private ApplicationProperties applicationProperties;
-    private VerificationProperties verificationProperties;
-    private TokenStatusListVerifier statusListVerifier;
     private Management management;
 
     private SdJwtVpTokenVerifier verifier;
@@ -64,10 +61,10 @@ class SdJwtVpTokenVerifierTest {
     @BeforeEach
     void setUp() throws LoadingPublicKeyOfIssuerFailedException {
         issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
-        statusListResolver = mock(StatusListCacheService.class);
-        statusListVerifier = mock(TokenStatusListVerifier.class);
-        applicationProperties = mock(ApplicationProperties.class);
-        verificationProperties = mock(VerificationProperties.class);
+        StatusListCacheService statusListResolver = mock(StatusListCacheService.class);
+        TokenStatusListVerifier statusListVerifier = mock(TokenStatusListVerifier.class);
+        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
+        VerificationProperties verificationProperties = mock(VerificationProperties.class);
         management = mock(Management.class);
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
@@ -225,7 +222,7 @@ class SdJwtVpTokenVerifierTest {
 
         JWSHeader header =
                 new JWSHeader.Builder(JWSAlgorithm.ES256)
-                        .type(new JOSEObjectType("dc+sd-jwt")).build();
+                        .type(new JOSEObjectType(DC_SD_JWT_CREDENTIAL_FORMAT)).build();
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(builder.build(true));
         SignedJWT jwt = new SignedJWT(header, claimsSet);
@@ -260,7 +257,7 @@ class SdJwtVpTokenVerifierTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"vc+sd-jwt", "dc+sd-jwt"})
+    @ValueSource(strings = {VC_SD_JWT_CREDENTIAL_FORMAT, DC_SD_JWT_CREDENTIAL_FORMAT})
     void validateDisclosures_whenDeeplyNested_thenSuccess(String credentialTyp) throws ParseException, JOSEException {
 
         List<Disclosure> disclosure = new ArrayList<>();

@@ -1,5 +1,9 @@
 package ch.admin.bj.swiyu.verifier.dto.metadata;
 
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -71,5 +75,23 @@ public class OpenidClientMetadataDto {
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return additionalProperties;
+    }
+
+    public void overrideDefaultsIfNecessary(Map<String, String> overrides) {
+        if (overrides != null && !overrides.isEmpty()) {
+            var additionalProps = this.getAdditionalProperties();
+            HashMap<String, Object> patchedProps = additionalProps != null ? new HashMap<>(additionalProps) : new HashMap<>();
+            patchedProps.putAll(overrides);
+            this.setAdditionalProperties(patchedProps);
+        }
+    }
+
+    public void addDirectPostJWTConfigIfNecessary(ResponseModeTypeDto responseModeType,
+                                                  JwkSetDto jwkSetDto,
+                                                  List<String> encryptedResponseEncValuesSupported) {
+        if (ResponseModeTypeDto.DIRECT_POST_JWT.equals(responseModeType)) {
+            this.setJwks(jwkSetDto);
+            this.setEncryptedResponseEncValuesSupported(encryptedResponseEncValuesSupported);
+        }
     }
 }

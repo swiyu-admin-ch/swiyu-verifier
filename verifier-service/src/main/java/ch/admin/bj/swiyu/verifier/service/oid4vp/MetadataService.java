@@ -26,30 +26,15 @@ public class MetadataService {
         var clientMetadataClone = clientMetadata.toBuilder().build();
 
         // Enrich client metadata for DIRECT_POST_JWT response mode as required by the protocol
-        addDirectPostJWTConfigIfNecessary(clientMetadataClone, responseSpecification);
+        clientMetadataClone.addDirectPostJWTConfigIfNecessary(
+                ManagementMapper.toResponseModeDto(responseSpecification.getResponseModeType()),
+                responseSpecification.getJwks() != null ? ManagementMapper.toJWKSetDto(responseSpecification.getJwks()) : null,
+                responseSpecification.getEncryptedResponseEncValuesSupported());
 
         // Build a per-request copy of client_metadata so that per-verification overrides
         // (e.g. client_name, logo_uri, client_id) never mutate the global singleton map.
-        return overrideDefaultsIfNecessary(mgmt.getConfigurationOverride().clientMetadata(), clientMetadataClone);
-    }
+        clientMetadataClone.overrideDefaultsIfNecessary(mgmt.getConfigurationOverride().clientMetadata());
 
-    private void addDirectPostJWTConfigIfNecessary(OpenidClientMetadataDto dto,
-                                                   ResponseSpecification responseSpecification) {
-        if (ResponseModeType.DIRECT_POST_JWT.equals(responseSpecification.getResponseModeType())) {
-            dto.setJwks(ManagementMapper.toJWKSetDto(responseSpecification.getJwks()));
-            dto.setEncryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported());
-        }
-    }
-
-    private OpenidClientMetadataDto overrideDefaultsIfNecessary(Map<String, String> overrides,
-                                                                OpenidClientMetadataDto openidClientMetadataDto) {
-        if (overrides != null && !overrides.isEmpty()) {
-            var additionalProps = openidClientMetadataDto.getAdditionalProperties();
-            HashMap<String, Object> patchedProps = additionalProps != null ? new HashMap<>(additionalProps) : new HashMap<>();
-            patchedProps.putAll(overrides);
-            openidClientMetadataDto.setAdditionalProperties(patchedProps);
-        }
-
-        return openidClientMetadataDto;
+        return clientMetadataClone;
     }
 }

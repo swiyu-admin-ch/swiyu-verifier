@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListBit;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
@@ -76,12 +77,17 @@ public class SdJwtVpTokenVerifier {
     private final VerificationProperties verificationProperties;
     private final TokenStatusListVerifier statusListVerifier;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    @Deprecated(since = "Trust Protocol 2.0")
+    private final DidKidParser didKidParser = new DidKidParser();
 
     @Deprecated(since = "Trust Protocol 2.0")
     public SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management) {
         // Re-use the shared verification building blocks
         verifyVerifiableCredentialJWT(vpToken, management);
-
+        // For Trust Protocol 1.0 the KID and DID must match
+        if (!didKidParser.getDidFromAbsoluteKid(vpToken.getHeader().getKeyID()).equals(vpToken.getClaims().getIssuer())) {
+            throw credentialError(CREDENTIAL_INVALID, "Trust Statements 1.0 MUST have correlating and iss claims");
+        }
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken, management);
         } else if (canHaveKeyBinding(vpToken.getClaims())) {
@@ -91,7 +97,7 @@ public class SdJwtVpTokenVerifier {
 
         verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
         validateDisclosures(vpToken, management);
-
+        
         return vpToken;
     }
 

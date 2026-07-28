@@ -363,14 +363,20 @@ class BlackboxIT {
         );
     }
 
+    /**
+     * Create a flat credential without iss claim
+     */
     private String createMockCredential(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, ACCEPTED_ISSUER + "#key-1");
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(null, ACCEPTED_ISSUER + "#key-1");
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
         return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + VERIFIER_DID);
     }
 
+    /**
+     * Create a recursive credential including an always revealed iss claim
+     */
     private String createMockCredential_rec(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, ACCEPTED_ISSUER + "#key-1");
         mockDidResolverResponse(emulator);

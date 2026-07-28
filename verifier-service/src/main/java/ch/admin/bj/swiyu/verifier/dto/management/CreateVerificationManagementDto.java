@@ -62,7 +62,6 @@ public record CreateVerificationManagementDto(
                 {}
                 """)
         @Valid
-        @Nullable
         @JsonProperty("configuration_override")
         ConfigurationOverrideDto configuration_override,
 
@@ -72,7 +71,6 @@ public record CreateVerificationManagementDto(
         DcqlQueryDto dcqlQuery,
 
         @Valid
-        @Nullable
         @Schema(description = "Optional transparency metadata for registration at the TMS. " +
                 "When present, the verifier registers the DCQL query and injects the resulting vqPS " +
                 "into subsequent Authorization Requests.")

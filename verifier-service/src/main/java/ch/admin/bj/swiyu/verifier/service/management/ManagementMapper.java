@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Objects.nonNull;
-import static org.springframework.util.CollectionUtils.isEmpty;
 
 
 @UtilityClass
@@ -32,7 +31,7 @@ public class ManagementMapper {
 
         var override = management.getConfigurationOverride();
         String externalUrl = override.externalUrlOrDefault(props.getExternalUrl());
-        String clientId = override.verifierDidOrDefault(props.getClientId());
+        String clientId = override.verifierDidOrDefaultWithPrefix(props);
         var verificationUrl = String.format("%s/oid4vp/api/request-object/%s", externalUrl, management.getId());
         return new ManagementResponseDto(
                 management.getId(),

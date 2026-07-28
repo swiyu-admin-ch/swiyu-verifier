@@ -49,13 +49,12 @@ public class ApplicationProperties {
 
     private HSMProperties hsm;
 
+    /**
+     * List of accepted registry hosts, containing both status and trust hosts
+     */
     private List<String> acceptedRegistryHosts;
 
     public String getClientIdWithPrefix() {
-        return getClientIdWithPrefix(clientId);
-    }
-
-    public String getClientIdWithPrefix(String clientId) {
         if (StringUtils.isBlank(clientIdPrefix)) {
             return clientId;
         }

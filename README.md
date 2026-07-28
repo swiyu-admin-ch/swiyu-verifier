@@ -85,7 +85,7 @@ Please be aware that the **oid4vp** endpoints need to be publicly accessible and
 > the [OpenID4VP specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html)
 
 Once the components are deployed you can create your first verification. For this you first need to define a
-presentation 
+presentation
 definition. Based on that definition you can then create a verification request for a holder as shown in the example
 below.
 In this case we're asking for a credential called "my-custom-vc" which should at least have the attributes
@@ -117,8 +117,8 @@ The verifier service now supports the Digital Credentials Query Language (DCQL) 
 Please note that by default configuration the verifier service is set up in a way to easily gain experience with the verification process,
 not as a productive deployment. With the configuration options found below, it can be configured and set up for productive use.
 
-We recommend to not expose the service directly to the web. 
-The focus of the application lies in the functionality of the verification. 
+We recommend to not expose the service directly to the web.
+The focus of the application lies in the functionality of the verification.
 Using API Gateway or Web Application Firewall can decrease the attack surface significantly.
 
 To prevent misuse, the management endpoints should be protected either by network infrastructure (for example mTLS) or using OAuth.
@@ -197,7 +197,7 @@ On the base registry the public key is published. To generate the public key for
 ### Environment variables
 
 | Variable                           | Description                                                                                                                                                                                                                                                                                                                                                              | Type              | Default      |
-|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|--------------| 
+|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|--------------|
 | POSTGRES_USER                      | Username to connect to the Verifier Database                                                                                                                                                                                                                                                                                                                             | string            | none         |
 | POSTGRES_PASSWORD                  | Username to connect to the Verifier Database                                                                                                                                                                                                                                                                                                                             | string            | none         |
 | POSTGRES_JDBC                      | JDBC Connection string to the shared DB                                                                                                                                                                                                                                                                                                                                  | string            | none         |
@@ -215,7 +215,7 @@ On the base registry the public key is published. To generate the public key for
 | OPENID_CLIENT_METADATA_FILE        | Path to the verifier metdata file as shown in the [verifier-agent-management](https://github.com/swiyu-admin-ch/eidch-verifier-agent-management/blob/main/sample.compose.yml) sample                                                                                                                                                                                     | string            | None         |
 | STATUS_LIST_CACHE_TTL_MILLI        | TTL in milliseconds how long a status list result should be cached. If 0 or less will not cache status lists. Note that choosing a too long TTL will cause acceptance of VCs that have been already revoked or suspended. Choosing to not cache or having a very short TTL will cause additional latency in verification, as status list jwts must repeately be fetched. | int               | 0            |
 | JWK_CACHE_TTL_MILLI | TTL in milliseconds how long a public key result should be cached. Note that choosing a too long TTL may result in accepting VCs from a compromised key the issuer removed from their did doc.                                                                                                                                                                           | int               | 3600000 (1h) |
-| MAX_COMPRESSED_CIPHER_TEXT_LENGTH  | Maximum allowed size of a compressed ciphertext the service will process                                                                                                                                                                                                                                                                                                 | int               | 100000       |
+| MAX_COMPRESSED_CIPHER_TEXT_LENGTH  | Maximum allowed size of a compressed ciphertext the service will process                                                                                                                                                                                                                                                                                                 | int               | 20971520 (20 MiB)       |
 | SIGNING_KEY_VERIFICATION_ENABLED   | Enables or disables the signing-key verification health check. Set to `false` when using dynamic key management without a statically configured `DID_VERIFICATION_METHOD`. When disabled (or when `DID_VERIFICATION_METHOD` is empty), the health check reports `UP` instead of `DOWN`.                                                                                  | bool              | true         |
 | CALLBACK_HEALTH_ENABLED            | Enables or disables the stale-callback health check.                                                                                                                                                                                                                                                                                                                     | bool              | true         |
 | STATUS_REGISTRY_HEALTH_ENABLED     | Enables or disables the status-registry accessibility health check.                                                                                                                                                                                                                                                                                                      | bool              | true         |
@@ -302,7 +302,7 @@ Failed deliveries will create error logs and be retried in the next interval.
 | WEBHOOK_CALLBACK_URI   | Full URI of the REST endpoint where webhooks shall be sent to. No Callback events will be created if not set.                                                                           |
 | WEBHOOK_API_KEY_HEADER | (Optional) API key header, if the callback uri has a api key for protection. Will be used as HTTP header key.                                                                           |
 | WEBHOOK_API_KEY_VALUE  | (Optional, Required if WEBHOOK_API_KEY_HEADER is set) The API key used.                                                                                                                 |
-| WEBHOOK_INTERVAL       | How often the collected events are sent. Value interpreted as milliseconds if given a plain integer or an [ISO 8601 duration format](https://en.wikipedia.org/wiki/ISO_8601#Durations). | 
+| WEBHOOK_INTERVAL       | How often the collected events are sent. Value interpreted as milliseconds if given a plain integer or an [ISO 8601 duration format](https://en.wikipedia.org/wiki/ISO_8601#Durations). |
 
 Callbacks will be sent on change of verification state. This means the verification can be fetched by the business
 verifier.
@@ -326,13 +326,13 @@ For easy playground setup or when using the component in an isolated zone securi
 
 #### Fixed single asymmetric key
 | Variable                                                    | Description                                                                                                                                                                                        | Type                             |
-|-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------| 
+|-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------|
 | SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_PUBLICKEYLOCATION | URI path to a single public key in pem format. [See Details](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html#oauth2resourceserver-jwt-decoder-public-key) | URI eg: file:/app/public-key.pem |
 
 
 #### Authorization Server
 | Variable                                                | Description                                                                                                                                                                                                                                                                        | Type         |
-|---------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------| 
+|---------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
 | SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI     | URI to the issuer including path component. Will be resolved to <issuer-uri>/.well-known/openid-configuration to fetch the public key [See Details](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html#_specifying_the_authorization_server) | URI / String |
 | SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI     | URI directly to fetch directly the jwk-set instead of fetching the openid connect first.                                                                                                                                                                                           | URI / String |
 | SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWSALGORITHMS | List of algorithms supported for the key of the jkw-set. Defaults to only RS256.                                                                                                                                                                                                   | String       |
@@ -379,7 +379,7 @@ If `SWIYU_TMS_AUTHORING_URL` is configured, you can optionally provide a `verifi
       "de-CH": "Altersverifikation"
     },
     "purpose_description": {
-      "default": "We verify that you are of legal age.",  
+      "default": "We verify that you are of legal age.",
       "en": "We verify that you are of legal age.",
       "de-CH": "Wir prüfen, ob Sie volljährig sind."
     }

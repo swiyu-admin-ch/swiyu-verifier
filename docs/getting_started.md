@@ -18,7 +18,7 @@ The swiyu Generic Verifier is a web server implementing the technical standards 
 > - Generated signing keys e.g. using the `didtoolbox.jar`
 > - Generated a DID which is registered on the identifier registry
 >
-> The required steps are explained in the [Base- and Trust Registry Cookbook](https://swiyu-admin-ch.github.io/cookbooks/onboarding-base-and-trust-registry/)
+> The required steps are also more thoroughly explained in the [Base- and Trust Registry Cookbook](https://swiyu-admin-ch.github.io/cookbooks/onboarding-base-and-trust-registry/)
 
 ## Set the environment variables
 
@@ -99,7 +99,7 @@ curl -X 'POST' 'http://localhost:8083/management/api/verifications' \
 
 
 > [!NOTE]
->  <strong><code>accepted_issuer_dids</code>:</strong> This field contains a list of DIDs from credential issuers whose credentials your verifier will accept. Replace the <code>${ISSUER_DID}</code> placeholder with the actual DID of your issuer. For quick testing with the Beta Credential Service (BCS) Public Beta, you can use: <code>did:tdw:QmPEZPhDFR4nEYSFK5bMnvECqdpf1tPTPJuWs9QrMjCumw:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:9a5559f0-b81c-4368-a170-e7b4ae424527</code>. Then issue a credential using <a href="https://www.bcs.admin.ch/bcs-web/#/">BCS Public Beta-ID</a> and verify it with your own verifier.
+> The field <strong><code>accepted_issuer_dids</code>:</strong> contains a list of DIDs from credential issuers whose credentials your verifier will accept. Replace the <code>${ISSUER_DID}</code> placeholder with the actual DID of your issuer. For quick testing with the Beta Credential Service (BCS) Public Beta, you can use: <code>did:tdw:QmPEZPhDFR4nEYSFK5bMnvECqdpf1tPTPJuWs9QrMjCumw:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:9a5559f0-b81c-4368-a170-e7b4ae424527</code>. Then issue a credential using <a href="https://www.bcs.admin.ch/bcs-web/#/">BCS Public Beta-ID</a> and verify it with your own verifier.
 
 **Response**
 

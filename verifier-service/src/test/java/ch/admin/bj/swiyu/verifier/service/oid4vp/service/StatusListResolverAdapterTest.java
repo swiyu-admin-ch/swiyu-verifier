@@ -1,9 +1,8 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -17,15 +16,14 @@ class StatusListResolverAdapterTest {
 
     private UrlRewriteProperties urlRewriteProperties;
     private ApplicationProperties applicationProperties;
-    private StatusListResolverAdapter adapter;
+    private StatusListResolver adapter;
 
     @BeforeEach
     void setUp() {
         urlRewriteProperties = mock(UrlRewriteProperties.class);
         WebClient webClient = mock(WebClient.class, RETURNS_DEEP_STUBS);
         applicationProperties = mock(ApplicationProperties.class);
-        CacheProperties cacheProperties = mock(CacheProperties.class);
-        adapter = new StatusListResolverAdapter(urlRewriteProperties, webClient, applicationProperties, cacheProperties);
+        adapter = new StatusListResolver(urlRewriteProperties, webClient, applicationProperties);
     }
     
     @Test

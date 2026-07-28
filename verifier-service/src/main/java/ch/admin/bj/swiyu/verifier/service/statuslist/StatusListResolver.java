@@ -1,36 +1,36 @@
 package ch.admin.bj.swiyu.verifier.service.statuslist;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import lombok.AllArgsConstructor;
+
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+
 import reactor.core.publisher.Mono;
 
 import java.net.MalformedURLException;
 import java.net.URI;
 
-import static ch.admin.bj.swiyu.verifier.common.config.CachingConfig.STATUS_LIST_CACHE;
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 
+/**
+ * Resolves Status Lists and caches them if possible
+ */
 @Service
 @Data
 @Slf4j
-@AllArgsConstructor
-public class StatusListResolverAdapter {
+@RequiredArgsConstructor
+public class StatusListResolver {
 
     private final UrlRewriteProperties urlRewriteProperties;
     private final WebClient statusListWebClient;
     private final ApplicationProperties applicationProperties;
-    private final CacheProperties cacheProperties;
 
-    @Cacheable(value = STATUS_LIST_CACHE, condition = "#root.target.cacheProperties.statusListCacheTtl > 0L")
     public String resolveStatusList(String uri) {
 
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);

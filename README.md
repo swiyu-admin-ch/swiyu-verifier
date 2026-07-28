@@ -92,7 +92,7 @@ In this case we're asking for a credential called "my-custom-vc" which should at
 firstName and lastName. The following request can be performed by using the swagger endpoint on https://<EXTERNAL_URL of
 verifier-agent-management>**/swagger-ui/index.html**
 
-To see more details and examples of the verification process please consult the [documentation](documentation/verification_process.md).
+To see more details and examples of the verification process please consult the [documentation](docs/verification_process.md).
 
 ## Digital Credentials Query Language (DCQL)
 
@@ -370,7 +370,7 @@ If `SWIYU_TMS_AUTHORING_URL` is configured, you can optionally provide a `verifi
 
 ```json
 {
-  "dcql_query": { ... },
+  "dcql_query": { "...": "..." },
   "verification_purpose": {
     "scope": "com.example.age_verification",
     "purpose_name": {

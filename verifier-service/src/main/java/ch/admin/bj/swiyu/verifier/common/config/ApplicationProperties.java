@@ -50,6 +50,11 @@ public class ApplicationProperties {
     private HSMProperties hsm;
 
     /**
+     * Seconds the Request Object should be valid for (controlls expiry of the request object)
+     */
+    private int requestObjectTTLSeconds = 600;
+
+    /**
      * List of accepted registry hosts, containing both status and trust hosts
      */
     private List<String> acceptedRegistryHosts;

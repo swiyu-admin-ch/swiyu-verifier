@@ -145,39 +145,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorDto"
-  /oid4vp/api/openid-client-metadata.json:
-    get:
-      tags:
-      - Verfifier OID4VP API
-      summary: Get client metadata
-      description: "Metadata providing further information about the verifier, such\
-        \ as name and logo."
-      operationId: getOpenIdClientMetadata
-      responses:
-        "400":
-          description: Bad Request
-          content:
-            '*/*':
-              schema:
-                type: object
-        "200":
-          description: Request object either as plaintext or signed JWT
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OpenidClientMetadataDto"
-              examples:
-                Sample Client Metadata:
-                  description: Sample Client Metadata
-                  value:
-                    client_name#en: English name (all regions)
-                    client_name#fr: French name (all regions)
-                    client_name#de-DE: German name (region Germany)
-                    client_name#de-CH: German name (region Switzerland)
-                    client_name#de: German name (fallback)
-                    client_name: Fallback name
-                    client_logo: www.example.com/logo.png
-                    client_logo#fr: www.example.com/logo_fr.png
   /management/api/verifications/{verificationId}:
     get:
       tags:
@@ -510,12 +477,10 @@ components:
           minLength: 1
         meta:
           $ref: "#/components/schemas/DcqlCredentialMetaDto"
-          description: "[NOT FULLY IMPLEMENTED] An object defining additional properties\
-            \ requested by the Verifier that apply to the metadata and validity data\
-            \ of the Credential. Parts of this object are not fully supported by this\
-            \ implementation; please consult the documentation. The properties of\
-            \ this object are defined per Credential Format. According to OpenID for\
-            \ Verifiable Presentations 1.0, Section 6.1, property 'meta'."
+          description: "An object defining additional properties requested by the\
+            \ Verifier that apply to the metadata and validity data of the Credential.\
+            \ The properties of this object are defined per Credential Format. According\
+            \ to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'meta'."
         claims:
           type: array
           description: "An optional non-empty array of Claims Query objects, specifying\

@@ -72,6 +72,7 @@ class DcqlPresentationVerificationServiceTest {
         JWTClaimsSet claimsObj = mock(JWTClaimsSet.class);
         when(claimsObj.getClaims()).thenReturn(claimMap);
         when(sdJwt.getClaims()).thenReturn(claimsObj);
+        when(sdJwt.getResolvedClaims()).thenReturn(claimMap);
 
         // Act
         var resultJson = dcqlPresentationVerificationService.process(management, request);

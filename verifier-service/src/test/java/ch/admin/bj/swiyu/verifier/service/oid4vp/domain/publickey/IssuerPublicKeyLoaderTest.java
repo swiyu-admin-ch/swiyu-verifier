@@ -3,8 +3,8 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.domain.publickey;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ class IssuerPublicKeyLoaderTest {
     }
 
     @Test
-    void loadTrustStatement_parsesListFromJson() throws JsonProcessingException {
+    void loadTrustStatement_parsesListFromJson() throws JacksonException {
         String trustRegistryUri = "https://registry.example";
         String vct = "vct-1";
         List<String> expectedStatements = List.of("jwt-one", "jwt-two");

@@ -7,8 +7,8 @@ import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -50,7 +50,7 @@ public class JweDecryptionService {
             throw VerificationException.credentialError(e, "Failed to parse response.");
         } catch (JweUtilException e) {
             throw VerificationException.credentialError(e, "Response cannot be decrypted.");
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw VerificationException.credentialError(e, e.getOriginalMessage());
         }
     }

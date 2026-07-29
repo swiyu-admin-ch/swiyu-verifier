@@ -3,8 +3,8 @@ package ch.admin.bj.swiyu.verifier.service.publickey;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.eid.did_sidekicks.DidSidekicksException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.JWK;
 
 import lombok.AllArgsConstructor;
@@ -65,9 +65,9 @@ public class IssuerPublicKeyLoader {
      * @param trustRegistryUri URI of the trust registry to be used
      * @param vct The VCT for which the TrustStatementIssuance is to be loaded
      * @return A list of TrustStatementIssuance as raw JWTs
-     * @throws JsonProcessingException if something is wrong with the format of the response
+     * @throws JacksonException if something is wrong with the format of the response
      */
-    public List<String> loadTrustStatement(String trustRegistryUri, String vct) throws JsonProcessingException {
+    public List<String> loadTrustStatement(String trustRegistryUri, String vct) throws JacksonException {
         log.debug("Resolving trust statement at registry {} for {}", trustRegistryUri, vct);
         var rawTrustStatements = didResolverFacade.resolveTrustStatement(trustRegistryUri + TRUST_STATEMENT_ISSUANCE_ENDPOINT, vct);
         return objectMapper.readValue(rawTrustStatements, List.class);

@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.core.JacksonException;
 
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
@@ -91,7 +91,7 @@ public class TrustProtocol1Validator {
         }
         try {
             return issuerPublicKeyLoader.loadTrustStatement(trustAnchor.trustRegistryUri(), vct);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return List.of();
         }
     }

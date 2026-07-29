@@ -20,11 +20,11 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 
 import com.authlete.sd.Disclosure;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -397,8 +397,8 @@ public class SdJwtVpTokenVerifier {
         removeSdKeys(processed);
 
         // 3.6 Check if correct _sd_alg-value Remove _sd_alg
-        if (processed.hasNonNull(SDJWT_ALG_CLAIM) && !SUPPORTED_SDJWT_ALGORITHMS.contains(processed.get(SDJWT_ALG_CLAIM).asText())) {
-            throw credentialError(INVALID_FORMAT, "Unsupported _sd_alg value: %s".formatted(processed.get(SDJWT_ALG_CLAIM).asText()));
+        if (processed.hasNonNull(SDJWT_ALG_CLAIM) && !SUPPORTED_SDJWT_ALGORITHMS.contains(processed.get(SDJWT_ALG_CLAIM).asString())) {
+            throw credentialError(INVALID_FORMAT, "Unsupported _sd_alg value: %s".formatted(processed.get(SDJWT_ALG_CLAIM).asString()));
         }
         ((ObjectNode) processed).remove(SDJWT_ALG_CLAIM);
 
@@ -437,7 +437,7 @@ public class SdJwtVpTokenVerifier {
                                        List<String> usedDigests) {
         // if no _sd key present, just recurse into fields
         if (!object.has("_sd")) {
-            Iterator<String> fields = object.fieldNames();
+            Iterator<String> fields = object.propertyNames().iterator();
             List<String> names = new ArrayList<>();
             fields.forEachRemaining(names::add);
             for (String name : names) {
@@ -451,7 +451,7 @@ public class SdJwtVpTokenVerifier {
 
         // snapshot original fields to avoid processing newly added fields
         List<String> originalFields = new ArrayList<>();
-        object.fieldNames().forEachRemaining(originalFields::add);
+        object.propertyNames().iterator().forEachRemaining(originalFields::add);
 
         handleSdArray(object, sdArray, digestMap, usedDigests);
 
@@ -469,7 +469,7 @@ public class SdJwtVpTokenVerifier {
                                Map<String, Disclosure> digestMap,
                                List<String> usedDigests) {
         for (JsonNode digestNode : sdArray) {
-            String digest = digestNode.asText();
+            String digest = digestNode.asString();
 
             if (!digestMap.containsKey(digest)) continue;
 
@@ -504,7 +504,7 @@ public class SdJwtVpTokenVerifier {
 
         for (JsonNode element : array) {
             if (element.isObject() && element.has("...")) {
-                String digest = element.get("...").asText();
+                String digest = element.get("...").asString();
 
                 JsonNode value;
 
@@ -537,9 +537,8 @@ public class SdJwtVpTokenVerifier {
             ObjectNode obj = (ObjectNode) node;
             obj.remove("_sd");
 
-            Iterator<String> fields = obj.fieldNames();
-            while (fields.hasNext()) {
-                removeSdKeys(obj.get(fields.next()));
+            for (String string : obj.propertyNames()) {
+                removeSdKeys(obj.get(string));
             }
         } else if (node.isArray()) {
             for (JsonNode n : node) {

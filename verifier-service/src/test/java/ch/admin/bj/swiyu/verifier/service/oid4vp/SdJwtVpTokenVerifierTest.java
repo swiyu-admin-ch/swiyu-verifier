@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
@@ -19,7 +18,7 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.core.JacksonException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
@@ -86,7 +85,7 @@ class SdJwtVpTokenVerifierTest {
     }
 
     @Test
-    void verifyVpToken_Legacy_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+    void verifyVpToken_Legacy_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JacksonException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
         // Arrange: VC issued by third party, not directly trusted via acceptedIssuerDids
         var vcIssuerDid = "did:example:third";
         var vcIssuerKid = vcIssuerDid + "#key-1";

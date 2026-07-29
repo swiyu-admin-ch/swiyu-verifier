@@ -10,7 +10,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSHeader;

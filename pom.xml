@@ -36,14 +36,14 @@
         <javacrumbs.shedlock.version>7.7.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
-        <openapi-generator-maven-plugin.version>7.23.0</openapi-generator-maven-plugin.version>
+        <openapi-generator-maven-plugin.version>7.24.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
-        <logback.version>1.5.37</logback.version>
+        <logback.version>1.6.0</logback.version>
         <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
         <bcprov-jdk18on.version>1.85</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.85</bcpkix-jdk18on.version>
-        <postgres.version>42.7.12</postgres.version>
+        <postgres.version>42.7.13</postgres.version>
         <swagger-parser.version>2.1.45</swagger-parser.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>
@@ -62,9 +62,10 @@
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
         <generic-java-lib.version>1.8.4</generic-java-lib.version>
+        <pact.version>4.7.3</pact.version>
         <openapi-generator-maven-plugin.version>7.23.0</openapi-generator-maven-plugin.version>
         <!-- Fixes CVE-2026-13006 -->
-        <logback-core.version>1.5.37</logback-core.version>
+        <logback-core.version>1.6.0</logback-core.version>
         <!-- Fixes SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890 / 17733746 -->
         <tomcat.version>11.0.23</tomcat.version>
     </properties>
@@ -75,20 +76,20 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.21.5</version>
+                <version>2.22.1</version>
             </dependency>
 
             <!-- COMPLETELY EXCLUDE Jackson 3.x to prevent CVE-2026-59889 -->
             <dependency>
                 <groupId>tools.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>3.1.5</version>
+                <version>3.2.1</version>
                 <scope>provided</scope> <!-- Mark as provided so it's never included -->
             </dependency>
             <dependency>
                 <groupId>tools.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>3.1.5</version>
+                <version>3.2.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -140,6 +141,12 @@
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-ts-verifier</artifactId>
                 <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>au.com.dius.pact.consumer</groupId>
+                <artifactId>junit5</artifactId>
+                <version>${pact.version}</version>
+                <scope>test</scope>
             </dependency>
           </dependencies>
     </dependencyManagement>

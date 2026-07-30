@@ -21,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -197,6 +199,8 @@ public class RequestObjectService {
     private JWTClaimsSet createJWTClaimsSet(String issuer, RequestObjectDto requestObject) {
         JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder();
         builder.issuer(issuer);
+        builder.issueTime(Date.from(Instant.now()));
+        builder.expirationTime(Date.from(Instant.now().plusSeconds(applicationProperties.getRequestObjectTTLSeconds())));
 
         // Get all properties of the request object as a JSON-ready map
         Map<String, Object> requestObjectProperties = JsonUtil.getJsonObject(objectMapper.convertValue(requestObject, Map.class));

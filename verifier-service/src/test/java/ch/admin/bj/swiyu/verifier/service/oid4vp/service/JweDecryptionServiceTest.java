@@ -25,8 +25,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class JweDecryptionServiceTest {
 
@@ -45,8 +43,8 @@ class JweDecryptionServiceTest {
 
     @BeforeEach
     void setUp() {
-        applicationProperties = mock(ApplicationProperties.class);
-        when(applicationProperties.getMaxCompressedCipherTextLength()).thenReturn(100000);
+        applicationProperties = new ApplicationProperties();
+        applicationProperties.setMaxCompressedCipherTextLength(100000);
         jweDecryptionService = new JweDecryptionService(objectMapper, applicationProperties);
     }
 
@@ -71,6 +69,47 @@ class JweDecryptionServiceTest {
         @SuppressWarnings("unchecked")
         Map<String, List<String>> vpToken = (Map<String, List<String>>) decrypted.getVp_token();
         assertThat(vpToken).containsEntry(presentationId, presentationPayload);
+    }
+
+    @Test
+    void decrypt_whenCompressedCipherTextIsExactlyAtLimit_thenReturnsParsedUnionDto() throws Exception {
+        Management management = createTestManagementWithPrivateKey();
+        String claims = new JWTClaimsSet.Builder()
+                .claim("vp_token", Map.of("credential", List.of("payload".repeat(1_000))))
+                .build()
+                .toString();
+        String jwe = jweEncryptCompressed(claims, ecKey);
+        int compressedCipherTextLength = JWEObject.parse(jwe).getCipherText().toString().length();
+        applicationProperties.setMaxCompressedCipherTextLength(compressedCipherTextLength);
+
+        VerificationPresentationUnionDto decrypted = jweDecryptionService.decrypt(
+                management,
+                VerificationPresentationUnionDto.builder().response(jwe).build());
+
+        assertThat(decrypted.getVp_token()).isInstanceOf(Map.class);
+    }
+
+    @Test
+    void decrypt_whenCompressedCipherTextExceedsLimitByOneCharacter_thenThrowsVerificationException()
+            throws Exception {
+        Management management = createTestManagementWithPrivateKey();
+        String claims = new JWTClaimsSet.Builder()
+                .claim("vp_token", Map.of("credential", List.of("payload".repeat(1_000))))
+                .build()
+                .toString();
+        String jwe = jweEncryptCompressed(claims, ecKey);
+        int compressedCipherTextLength = JWEObject.parse(jwe).getCipherText().toString().length();
+        applicationProperties.setMaxCompressedCipherTextLength(compressedCipherTextLength - 1);
+
+        VerificationException exception = assertThrows(VerificationException.class, () ->
+                jweDecryptionService.decrypt(
+                        management,
+                        VerificationPresentationUnionDto.builder().response(jwe).build()));
+
+        assertThat(exception.getErrorDescription()).isEqualTo("Response cannot be decrypted.");
+        assertThat(exception).hasRootCauseMessage(
+                "The JWE compressed cipher text exceeds the maximum allowed length of %d characters"
+                        .formatted(compressedCipherTextLength - 1));
     }
 
     @Test
@@ -142,6 +181,18 @@ class JweDecryptionServiceTest {
     private String jweEncrypt(String claims, ECKey key) throws JOSEException {
         JWEObject jweObject = new JWEObject(
                 new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
+                        .keyID(key.getKeyID())
+                        .build(),
+                new Payload(claims)
+        );
+        jweObject.encrypt(new ECDHEncrypter(key.toECPublicKey()));
+        return jweObject.serialize();
+    }
+
+    private String jweEncryptCompressed(String claims, ECKey key) throws JOSEException {
+        JWEObject jweObject = new JWEObject(
+                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
+                        .compressionAlgorithm(CompressionAlgorithm.DEF)
                         .keyID(key.getKeyID())
                         .build(),
                 new Payload(claims)

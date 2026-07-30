@@ -18,6 +18,7 @@ import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -96,9 +97,14 @@ class DcqlVpTokenVerifierTest {
         assertThat(verifiedToken).isEqualTo(vpToken);
     }
 
-    @Test
-    void verifyVpTokenForDCQLRequest_whenTrustIsValidated_kidIsUsed() {
-        when(vpToken.getClaims()).thenReturn(new JWTClaimsSet.Builder().issuer("Test").build());
+    /**
+     * Test to validate that the ID is utilized for Trust mechanics. The Issuer will be ignored according to swiss profile
+     */
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "https://www.example.com", "did:webvh:sid:example.com"})
+    void verifyVpTokenForDCQLRequest_whenTrustIsValidated_kidIsUsed_issIgnored(String issuer) {
+        when(vpToken.getClaims()).thenReturn(new JWTClaimsSet.Builder().issuer(issuer).build());
         when(vpToken.hasKeyBinding()).thenReturn(false);
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(false).build();
 

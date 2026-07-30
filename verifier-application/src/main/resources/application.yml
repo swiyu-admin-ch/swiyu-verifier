@@ -111,7 +111,7 @@ management:
       show-values: ALWAYS # NEVER to hide all values
       # Values to expose on the env endpoint
       allowedProperties: >
-        local.server.port
+        local.server.port,
         server.ports,
         application.signing-key-verification-method,
         application.client_id_prefix,
@@ -119,7 +119,7 @@ management:
         application.external-url,
         application.deeplink-schema,
         verification.object-size-limit,
-        verification.expiry-must-be-present
+        verification.expiry-must-be-present,
         application.key-management-method,
         spring.flyway.enabled,
         springdoc.swagger-ui.path,

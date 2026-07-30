@@ -68,7 +68,7 @@ class RequestObjectServiceTest {
                 jwtSigningService,
                 Optional.empty()
         );
-
+        
         // Mock application configurations
         when(applicationProperties.getClientId()).thenReturn(clientId);
         when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
@@ -76,10 +76,11 @@ class RequestObjectServiceTest {
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("did:example:123#key1");
         when(openIdClientMetadataConfiguration.getOpenIdClientMetadata()).thenReturn(openidClientMetadataDto);
     }
-
+    
     @Test
     void assembleRequestObjectWithSignedJWT_thenSuccess() throws Exception {
         var mockedManagement = mockManagement(true);
+        String keyId = "did:example:123#key1";
 
         when(signerProvider.canProvideSigner()).thenReturn(true);
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
@@ -88,11 +89,11 @@ class RequestObjectServiceTest {
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.eq("did:example:123#key1")
+                org.mockito.ArgumentMatchers.eq(keyId)
         )).thenAnswer(invocation -> {
             var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
-                    .keyID("did:example:123#key1")
+                    .keyID(keyId)
                     .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
                     .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
                     .build();
@@ -109,7 +110,8 @@ class RequestObjectServiceTest {
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
         // verify JWT body
         String clientIdWithPrefix = prefix + ":" + clientId;
-        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(clientIdWithPrefix);
+        assertThat(jwt.getJWTClaimsSet().getIssuer()).as("iss claim is REQUIRED and SHOULD be present with prefix").isEqualTo(clientIdWithPrefix);
+        assertThat(jwt.getHeader().getKeyID()).isEqualTo(keyId);
         var state = jwt.getJWTClaimsSet().getClaim("state");
         assertThat(state)
             .as("state should be set as of swiss-profile-verification 1.0").isNotNull()
@@ -160,8 +162,12 @@ class RequestObjectServiceTest {
         SignedJWT jwt = SignedJWT.parse(jwtString);
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
-        assertEquals(verificationMethod, jwt.getHeader().getKeyID());
-        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(prefix + ":" + overrideDid);
+        assertThat(jwt.getJWTClaimsSet().getIssuer())
+            .as("iss claim MUST be present using the override value")
+            .isEqualTo(prefix + ":" + overrideDid);
+        assertThat(jwt.getHeader().getKeyID())
+            .as("Override Verificaiton method must be present to validate the jwt")
+            .isEqualTo(verificationMethod);
         assertThat(jwt.getJWTClaimsSet().getClaim("response_uri").toString()).startsWith(externalUrl);
         @SuppressWarnings("unchecked")
         var extractedClientMetadata = (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("client_metadata");

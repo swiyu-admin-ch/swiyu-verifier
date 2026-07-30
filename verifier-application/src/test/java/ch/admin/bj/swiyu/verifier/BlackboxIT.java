@@ -61,7 +61,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
 class BlackboxIT {
     private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
-    private static final String ACCEPTED_ISSUER = "did:example:12345";
+    private static final String ACCEPTED_ISSUER = "did:webvh:scid:some-issuer-id";
+    private static final String VERIFIER_DID = "did:example:12345";
 
     private static final String MANAGEMENT_BASE_URL = "/management/api/verifications";
     private static final String OID4VP_API_BASE_URL = "/oid4vp/api/request-object";
@@ -362,20 +363,26 @@ class BlackboxIT {
         );
     }
 
+    /**
+     * Create a flat credential without iss claim
+     */
     private String createMockCredential(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, "some_issuer_id#key-1");
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(null, ACCEPTED_ISSUER + "#key-1");
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
-        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + ACCEPTED_ISSUER);
+        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + VERIFIER_DID);
     }
 
+    /**
+     * Create a recursive credential including an always revealed iss claim
+     */
     private String createMockCredential_rec(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, "some_issuer_id#key-1");
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, ACCEPTED_ISSUER + "#key-1");
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMockWithRecursiveListArray();
-        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + ACCEPTED_ISSUER);
+        return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + VERIFIER_DID);
     }
 
     private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {

@@ -19,7 +19,7 @@ import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 
 class StatusListCacheServiceTest {
 
@@ -27,7 +27,7 @@ class StatusListCacheServiceTest {
     StatusListCacheService cacheService;
     CacheProperties cacheProperties;
     DidJwtValidator didJwtValidator;
-    IssuerPublicKeyLoader issuerPublicKeyLoader;
+    DidResolverFacade issuerPublicKeyLoader;
     StatusListResolver statusListResolver;
 
     @BeforeEach
@@ -36,7 +36,7 @@ class StatusListCacheServiceTest {
         cacheProperties.setStatusListCacheSize(100);
         cacheProperties.setRequestBackoffSeconds(100);
         didJwtValidator = mock(DidJwtValidator.class);
-        issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
+        issuerPublicKeyLoader = mock(DidResolverFacade.class);
         statusListResolver = mock(StatusListResolver.class);
     }
 
@@ -52,7 +52,7 @@ class StatusListCacheServiceTest {
             .keyID("did:webvh:example.com#key-1")
             .keyUse(KeyUse.SIGNATURE)
             .generate();
-        when(issuerPublicKeyLoader.loadJWK(eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
+        when(issuerPublicKeyLoader.resolveKey(eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
         var statusListJwt = StatusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST, testKey, "did:example", testKey.getKeyID());
         when(statusListResolver.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenReturn(statusListJwt);
 
@@ -80,7 +80,7 @@ class StatusListCacheServiceTest {
             .keyID("did:webvh:example.com#key-1")
             .keyUse(KeyUse.SIGNATURE)
             .generate();
-        when(issuerPublicKeyLoader.loadJWK(eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
+        when(issuerPublicKeyLoader.resolveKey(eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
         var statusListJwt = StatusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST, testKey, "did:example", testKey.getKeyID());
 
         when(statusListResolver.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenReturn(statusListJwt);

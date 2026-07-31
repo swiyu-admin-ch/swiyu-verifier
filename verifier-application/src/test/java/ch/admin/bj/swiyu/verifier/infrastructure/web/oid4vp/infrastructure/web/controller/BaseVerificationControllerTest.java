@@ -61,7 +61,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(false)
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
@@ -74,7 +74,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
@@ -87,7 +87,7 @@ public abstract class BaseVerificationControllerTest {
                 .oauthState(REQUEST_ID_NESTED_SECURED.toString())
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(dcqlQuery(dcqlQueryNestedObjectJson()))
                 .build());
@@ -101,7 +101,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(0)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -125,7 +125,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
                 .build());
 
@@ -139,7 +139,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(false)))
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -150,7 +150,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -162,7 +162,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -180,7 +180,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .oauthState(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED.toString())
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .responseSpecification(ResponseSpecification.builder()
                         .responseModeType(ResponseModeType.DIRECT_POST_JWT)
                         .jwksPrivate(jwkSet.toString(false))

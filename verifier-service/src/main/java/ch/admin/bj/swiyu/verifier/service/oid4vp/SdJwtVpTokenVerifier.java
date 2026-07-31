@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListBit;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
@@ -14,8 +16,7 @@ import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 
@@ -28,7 +29,6 @@ import tools.jackson.databind.node.ObjectNode;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -70,18 +70,24 @@ public class SdJwtVpTokenVerifier {
 
     private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
 
-    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
+    private final DidResolverFacade didResolver;
+    private final DidJwtValidator jwtValidator;
     private final StatusListCacheService statusListCacheService;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
     private final TokenStatusListVerifier statusListVerifier;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    @Deprecated(since = "Trust Protocol 2.0")
+    private final DidKidParser didKidParser = new DidKidParser();
 
     @Deprecated(since = "Trust Protocol 2.0")
     public SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management) {
         // Re-use the shared verification building blocks
         verifyVerifiableCredentialJWT(vpToken, management);
-
+        // For Trust Protocol 1.0 the KID and DID must match
+        if (!didKidParser.getDidFromAbsoluteKid(vpToken.getHeader().getKeyID()).equals(vpToken.getClaims().getIssuer())) {
+            throw credentialError(CREDENTIAL_INVALID, "Trust Statements 1.0 MUST have correlating and iss claims");
+        }
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken, management);
         } else if (canHaveKeyBinding(vpToken.getClaims())) {
@@ -91,7 +97,7 @@ public class SdJwtVpTokenVerifier {
 
         verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
         validateDisclosures(vpToken, management);
-
+        
         return vpToken;
     }
 
@@ -107,22 +113,15 @@ public class SdJwtVpTokenVerifier {
             validateHeader(header);
             var claims = nimbusJwt.getJWTClaimsSet();
             // Only technical verification here; issuer trust is validated at service layer
-            var publicKey = issuerPublicKeyLoader.loadJWK(header.getKeyID());
-            // TODO EIDOMNI-1112 Use generic lib SdJwtVcValidator here. 
+            var publicKey = didResolver.resolveKey(header.getKeyID());
             log.trace("Loaded issuer public key for id {}", managementEntity.getId());
-            // Verify the JWS signature of the JWT
-            // TODO EIDOMNI-1171
-            if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey.toECKey().toPublicKey()))) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Signature mismatch");
-            }
+            jwtValidator.validateJwt(sdJwt.getJwt(), publicKey);
             log.trace("Successfully verified signature of id {}", managementEntity.getId());
             validateJwtTimes(claims);
             sdJwt.setHeader(header);
             sdJwt.setClaims(claims);
-        } catch (ParseException e) {
+        } catch (ParseException | JwtValidatorException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
-        } catch (LoadingPublicKeyOfIssuerFailedException | JOSEException e) {
-            throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
         }
     }
 

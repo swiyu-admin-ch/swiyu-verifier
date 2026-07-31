@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
@@ -12,13 +13,10 @@ import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
-
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
-import tools.jackson.core.JacksonException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
@@ -30,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import tools.jackson.core.JacksonException;
 
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
@@ -50,11 +49,6 @@ class SdJwtVpTokenVerifierTest {
     private static final String TEST_NONCE = "test-nonce";
 
     private DidResolverFacade issuerPublicKeyLoader;
-    private DidJwtValidator didJwtValidator;
-    private StatusListCacheService statusListResolver;
-    private ApplicationProperties applicationProperties;
-    private VerificationProperties verificationProperties;
-    private TokenStatusListVerifier statusListVerifier;
     private Management management;
 
     private SdJwtVpTokenVerifier verifier;
@@ -62,13 +56,13 @@ class SdJwtVpTokenVerifierTest {
     private final String clientId = "did:example:verifier";
 
     @BeforeEach
-    void setUp() throws LoadingPublicKeyOfIssuerFailedException {
+    void setUp() {
         issuerPublicKeyLoader = mock(DidResolverFacade.class);
-        statusListResolver = mock(StatusListCacheService.class);
-        didJwtValidator = mock(DidJwtValidator.class);
-        statusListVerifier = mock(TokenStatusListVerifier.class);
-        applicationProperties = mock(ApplicationProperties.class);
-        verificationProperties = mock(VerificationProperties.class);
+        StatusListCacheService statusListResolver = mock(StatusListCacheService.class);
+        DidJwtValidator didJwtValidator = mock(DidJwtValidator.class);
+        TokenStatusListVerifier statusListVerifier = mock(TokenStatusListVerifier.class);
+        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
+        VerificationProperties verificationProperties = mock(VerificationProperties.class);
         management = mock(Management.class);
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
@@ -88,7 +82,7 @@ class SdJwtVpTokenVerifierTest {
 
     @Deprecated(since = "Trust Protocol 2.0")
     @Test
-    void verifyVpToken_Legacy_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JacksonException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+    void verifyVpToken_Legacy_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JacksonException, NoSuchAlgorithmException, ParseException {
         // Arrange: VC issued by third party, not directly trusted via acceptedIssuerDids
         var vcIssuerDid = "did:webvh:scid:third";
         var vcIssuerKid = vcIssuerDid + "#key-1";
@@ -149,7 +143,7 @@ class SdJwtVpTokenVerifierTest {
     }
 
     @Test
-    void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+    void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, NoSuchAlgorithmException, ParseException {
         // Arrange: valid SD-JWT with key binding, but audience is not our clientId
         var emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE);
         var sdjwt = emulator.createSDJWTMock();

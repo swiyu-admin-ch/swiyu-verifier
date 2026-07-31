@@ -6,8 +6,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialSet;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +27,7 @@ class DcqlQueryDtoTest {
     }
 
     @Test
-    void testSerializationDcqlQuery () throws JsonProcessingException {
+    void testSerializationDcqlQuery () throws JacksonException {
         var dcqlQuery = new DcqlQuery();
         DcqlMapper.toDcqlQueryDto(dcqlQuery);
         assertNoNullContained(dcqlQuery);
@@ -43,7 +43,7 @@ class DcqlQueryDtoTest {
     }
 
     @Test
-    void testSerializationDcqlQueryCredentialSet() throws JsonProcessingException {
+    void testSerializationDcqlQueryCredentialSet() throws JacksonException {
         var dcqlQuery = new DcqlQuery();
         DcqlMapper.toDcqlQueryDto(dcqlQuery);
         assertNoNullContained(dcqlQuery);
@@ -52,7 +52,7 @@ class DcqlQueryDtoTest {
         assertNoNullContained(dcqlQuery);
     }
 
-    private String assertNoNullContained(DcqlQuery dcqlQuery) throws JsonProcessingException {
+    private String assertNoNullContained(DcqlQuery dcqlQuery) throws JacksonException {
         var serialized = objectMapper.writeValueAsString(DcqlMapper.toDcqlQueryDto(dcqlQuery));
         assertThat(serialized).doesNotContain("null");
         return serialized;

@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
@@ -11,14 +12,11 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
-
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
@@ -30,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import tools.jackson.core.JacksonException;
 
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
@@ -51,7 +50,7 @@ class SdJwtVpTokenVerifierTest {
 
     private static final String TEST_NONCE = "test-nonce";
 
-    private IssuerPublicKeyLoader issuerPublicKeyLoader;
+    private DidResolverFacade issuerPublicKeyLoader;
     private Management management;
 
     private SdJwtVpTokenVerifier verifier;
@@ -59,9 +58,10 @@ class SdJwtVpTokenVerifierTest {
     private final String clientId = "did:example:verifier";
 
     @BeforeEach
-    void setUp() throws LoadingPublicKeyOfIssuerFailedException {
-        issuerPublicKeyLoader = mock(IssuerPublicKeyLoader.class);
+    void setUp() {
+        issuerPublicKeyLoader = mock(DidResolverFacade.class);
         StatusListCacheService statusListResolver = mock(StatusListCacheService.class);
+        DidJwtValidator didJwtValidator = mock(DidJwtValidator.class);
         TokenStatusListVerifier statusListVerifier = mock(TokenStatusListVerifier.class);
         ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
         VerificationProperties verificationProperties = mock(VerificationProperties.class);
@@ -76,18 +76,19 @@ class SdJwtVpTokenVerifierTest {
         when(management.getRequestNonce()).thenReturn(TEST_NONCE);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
 
-        when(issuerPublicKeyLoader.loadJWK(DEFAULT_KID_HEADER_VALUE))
+        when(issuerPublicKeyLoader.resolveKey(DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
 
-        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, statusListResolver, applicationProperties, verificationProperties, statusListVerifier);
+        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, didJwtValidator, statusListResolver, applicationProperties, verificationProperties, statusListVerifier);
     }
 
+    @Deprecated(since = "Trust Protocol 2.0")
     @Test
-    void verifyVpToken_Legacy_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JsonProcessingException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+    void verifyVpToken_Legacy_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JacksonException, NoSuchAlgorithmException, ParseException {
         // Arrange: VC issued by third party, not directly trusted via acceptedIssuerDids
-        var vcIssuerDid = "did:example:third";
+        var vcIssuerDid = "did:webvh:scid:third";
         var vcIssuerKid = vcIssuerDid + "#key-1";
-        when(issuerPublicKeyLoader.loadJWK(vcIssuerKid))
+        when(issuerPublicKeyLoader.resolveKey(vcIssuerKid))
                 .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
 
         var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
@@ -97,17 +98,17 @@ class SdJwtVpTokenVerifierTest {
 
         // Trust Statement: separate trust anchor vouches that vcIssuerDid canIssue DEFAULT_VCT
         var trustRegistryUrl = "https://trust-registry.example.com";
-        var trustIssuerDid = "did:example:trust";
+        var trustIssuerDid = "did:webvh:scid:trust";
         var trustIssuerKid = trustIssuerDid + "#key-1";
-        when(issuerPublicKeyLoader.loadJWK(trustIssuerKid))
+        when(issuerPublicKeyLoader.resolveKey(trustIssuerKid))
                 .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
 
         // Important: subject of trust statement must match vcIssuerDid so that isProvidingTrust() returns true
         var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, vcIssuerDid);
         when(management.getTrustAnchors())
                 .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
-        when(issuerPublicKeyLoader.loadTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
-                .thenReturn(List.of(trustStatement));
+        when(issuerPublicKeyLoader.resolveTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
+                .thenReturn(trustStatement);
 
         // Act
         SdJwt verified = verifier.verifyVpTokenTrustStatement(sdJwt, management);
@@ -119,13 +120,37 @@ class SdJwtVpTokenVerifierTest {
         assertThat(verified.getHeader()).isNotNull();
     }
 
+    /**
+     * Test where the issuer tries to provide his own trust statement
+     */
+    @Deprecated(since = "Trust Protocol 2.0")
     @Test
-    void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, LoadingPublicKeyOfIssuerFailedException, NoSuchAlgorithmException, ParseException {
+    void verifyVpToken_Legacy_whenTrustIssuerMismatch_thenFailure() throws Exception {
+        var vcIssuerDid = "did:webvh:scid:third";
+        var vcIssuerKid = vcIssuerDid + "#key-1";
+
+        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
+
+        // Trust Statement: separate trust anchor vouches that vcIssuerDid canIssue DEFAULT_VCT
+        var trustIssuerDid = "did:webvh:scid:trust";
+        // The Trust Statement is not a real trust statement, but signed by the malicious issuer
+        var trustIssuerKid = vcIssuerDid + "#key-1";
+
+        // Important: subject of trust statement must match vcIssuerDid so that isProvidingTrust() returns true
+        var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, vcIssuerDid);
+        var sdJwt = new SdJwt(trustStatement);
+
+        // Act
+        assertThrows(VerificationException.class, () ->  verifier.verifyVpTokenTrustStatement(sdJwt, management));
+    }
+
+    @Test
+    void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, NoSuchAlgorithmException, ParseException {
         // Arrange: valid SD-JWT with key binding, but audience is not our clientId
         var emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE);
         var sdjwt = emulator.createSDJWTMock();
 
-        when(issuerPublicKeyLoader.loadJWK(DEFAULT_KID_HEADER_VALUE))
+        when(issuerPublicKeyLoader.resolveKey(DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
 
         // Audience intentionally mismatched

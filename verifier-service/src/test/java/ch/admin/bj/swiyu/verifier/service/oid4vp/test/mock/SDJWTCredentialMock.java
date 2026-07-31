@@ -5,8 +5,8 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDJWT;
 import com.authlete.sd.SDObjectBuilder;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.ECKey;
@@ -25,7 +25,7 @@ import static java.util.Objects.nonNull;
 
 @Getter
 public class SDJWTCredentialMock {
-    public static final String DEFAULT_ISSUER_ID = "TEST_ISSUER_ID";
+    public static final String DEFAULT_ISSUER_ID = "did:webvh:some-scid:TEST-ISSUER-ID";
     public static final String DEFAULT_KID_HEADER_VALUE = DEFAULT_ISSUER_ID + "#key-1";
     public static final String DEFAULT_VCT = "defaultTestVCT";
 
@@ -64,7 +64,7 @@ public class SDJWTCredentialMock {
      *
      * @param sdjwt full sd jwt serialized as string
      */
-    public static String createMultipleVPTokenMock(String sdjwt) throws JsonProcessingException {
+    public static String createMultipleVPTokenMock(String sdjwt) throws JacksonException {
         ObjectMapper objectMapper = new ObjectMapper();
         return Base64.getUrlEncoder().encodeToString(objectMapper.writeValueAsBytes(List.of("test", sdjwt)));
     }
@@ -297,7 +297,10 @@ public class SDJWTCredentialMock {
     }
 
     public String createSdJWT(SDObjectBuilder builder, List<Disclosure> disclosures, Long validFrom, Long validUntil, Integer statusListIndex, String vct, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {
-        builder.putClaim("iss", issuerId);
+        if (issuerId != null) {
+            // Issuer is optional and may be missing. Only kid is relevent
+            builder.putClaim("iss", issuerId);
+        }
         builder.putClaim("iat", Instant.now().getEpochSecond());
 
         if (nonNull(validFrom)) {

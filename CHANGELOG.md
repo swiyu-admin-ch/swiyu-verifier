@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Changed
+- Updated to Jackson 3
+- `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`
+
 ## Fixed
 - Check dcql format with vp_token header type. Throws error if the format is not correct. (#1118)
 

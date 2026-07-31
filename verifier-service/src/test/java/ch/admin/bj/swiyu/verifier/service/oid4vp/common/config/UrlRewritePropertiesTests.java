@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.common.config;
 
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.core.JacksonException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -19,7 +19,7 @@ class UrlRewritePropertiesTests {
             "https://identifier.bit.admin.ch/my/awesome/url, https://svcgw-esb:45/my/awesome/url",
             "https://somethingcrazy, https://somethingcrazy"
     })
-    void testGetRewrittenUrl_WithMapping_Returns(String original, String mapped) throws JsonProcessingException {
+    void testGetRewrittenUrl_WithMapping_Returns(String original, String mapped) throws JacksonException {
         var config = new UrlRewriteProperties();
         config.setMapping("""
                     {
@@ -32,7 +32,7 @@ class UrlRewritePropertiesTests {
     }
 
     @Test
-    void testGetRewrittenUrl_WithNoMapping() throws JsonProcessingException {
+    void testGetRewrittenUrl_WithNoMapping() throws JacksonException {
         var config = new UrlRewriteProperties();
         config.init();
         assertEquals("https://status.bit.admin.ch/", config.getRewrittenUrl("https://status.bit.admin.ch/"));

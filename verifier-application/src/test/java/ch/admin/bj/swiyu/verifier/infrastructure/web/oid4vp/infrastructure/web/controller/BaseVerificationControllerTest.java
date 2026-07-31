@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
+import tools.jackson.core.JacksonException;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
@@ -50,7 +51,7 @@ public abstract class BaseVerificationControllerTest {
     protected ManagementRepository managementEntityRepository;
 
     @BeforeEach
-    void setUp() throws JOSEException {
+    void setUp() throws JacksonException, JOSEException {
 
         managementEntityRepository.save(Management.builder()
                 .id(REQUEST_ID_SDJWT_MGMT_NO_SIGNATURE)
@@ -59,7 +60,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(false)
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
@@ -72,7 +73,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
@@ -85,7 +86,7 @@ public abstract class BaseVerificationControllerTest {
                 .oauthState(REQUEST_ID_NESTED_SECURED.toString())
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryNestedObjectJson()))
                 .build());
@@ -99,7 +100,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(0)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -123,7 +124,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
                 .build());
 
@@ -137,7 +138,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(false)))
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -148,7 +149,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -160,7 +161,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -178,7 +179,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .oauthState(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED.toString())
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .responseSpecification(ResponseSpecification.builder()
                         .responseModeType(ResponseModeType.DIRECT_POST_JWT)
                         .jwksPrivate(jwkSet.toString(false))

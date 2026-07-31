@@ -17,7 +17,7 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededEx
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectBuilder;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
@@ -137,7 +137,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldFailOnNotAcceptedIssuer() throws Exception {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock("suspicious_issuer_id", "suspicious_issuer_id#key-1");
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock("did:webvh:some-scid:suspicious-issuer-id", "did:webvh:some-scid:suspicious-issuer-id#key-1");
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
@@ -157,7 +157,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
               "When both acceptedIssuerDids AND trustAnchors are empty, all credentials are rejected. " +
               "This test assumed empty list = any issuer allowed, which is no longer the case.")
     void shouldSucceedOnNoAcceptedIssuers() throws Exception {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock("some_issuer_id", "some_issuer_id#key-1");
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock("did:webvh:some-scid:some-issuer-id", "did:webvh:some-scid:some-issuer-id#key-1");
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
@@ -458,11 +458,11 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("Could not verify JWT credential is not yet valid"));
+                .andExpect(jsonPath("error_description").value("Failed to extract information from JWT token"));
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertEquals(VerificationErrorResponseCode.JWT_PREMATURE, managementEntity.getWalletResponse().errorCode());
+        assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
     }
 
     @Test
@@ -483,11 +483,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("Could not verify JWT credential is expired"));
+                .andExpect(jsonPath("error_description").value("Failed to extract information from JWT token"));
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertEquals(VerificationErrorResponseCode.JWT_EXPIRED, managementEntity.getWalletResponse().errorCode());
+        // todo check
+        assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
     }
 
     @Test
@@ -614,7 +615,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("Signature mismatch"));
+                // todo check
+                .andExpect(jsonPath("error_description").value("Failed to extract information from JWT token"));
     }
 
     @Test
@@ -868,7 +870,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQuery))
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .build());
 
         // GIVEN

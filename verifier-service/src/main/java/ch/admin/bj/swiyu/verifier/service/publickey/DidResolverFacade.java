@@ -8,6 +8,7 @@ import ch.admin.eid.did_sidekicks.DidSidekicksException;
 import com.nimbusds.jose.jwk.JWK;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -64,6 +65,7 @@ public class DidResolverFacade implements KeyResolver {
      * @param vct the VCT identifier
      * @return the trust statement as a String, or null if resolution fails
      */
+    @Deprecated(since = "Trust Protocol 2.0")
     @Cacheable(TRUST_STATEMENT_CACHE)
     public String resolveTrustStatement(String trustRegistryUrl, String vct) {
         try {

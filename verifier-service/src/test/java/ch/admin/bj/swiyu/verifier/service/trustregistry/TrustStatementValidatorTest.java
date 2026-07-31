@@ -33,7 +33,7 @@ import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 
@@ -43,7 +43,7 @@ public class TrustStatementValidatorTest {
     private TrustRegistryProperties trustRegistryProperties;
     private StatusListCacheService statusListCacheService;
     private CacheProperties cacheProperties;
-    private IssuerPublicKeyLoader keyLoader;
+    private DidResolverFacade keyLoader;
     private TokenStatusListVerifier statusListVerifier;
     private TokenStatusListTokenDto statusListTokenDto;
 
@@ -63,7 +63,7 @@ public class TrustStatementValidatorTest {
         trustRegistryProperties = mock(TrustRegistryProperties.class);
         statusListCacheService = mock(StatusListCacheService.class);
         cacheProperties = mock(CacheProperties.class);
-        keyLoader = mock(IssuerPublicKeyLoader.class);
+        keyLoader = mock(DidResolverFacade.class);
         statusListVerifier = mock(TokenStatusListVerifier.class);
         validator = new TrustStatementValidator(
                 trustStatementDidJwtValidator,
@@ -74,7 +74,7 @@ public class TrustStatementValidatorTest {
                 statusListVerifier);
         when(trustStatementDidJwtValidator.getAndValidateResolutionUrl(anyString())).thenReturn("TEST");
         when(trustStatementDidJwtValidator.getDidString(anyString())).thenReturn("TEST");
-        when(keyLoader.loadJWK(eq(KID))).thenReturn(testKey.toPublicJWK());
+        when(keyLoader.resolveKey(eq(KID))).thenReturn(testKey.toPublicJWK());
         statusListTokenDto = mock(TokenStatusListTokenDto.class);
         when(statusListCacheService.getTokenStatusListTokenByUri(eq(STATUS_LIST_URI))).thenReturn(statusListTokenDto);
         expiry = Instant.now().plusSeconds(DEFAULT_VALIDITY_SECONDS).getEpochSecond();

@@ -16,8 +16,7 @@ import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.util.time.TimeUtil;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +33,7 @@ public class StatusListCacheService {
     private final CacheProperties cacheProperties;
     private final DidKidParser didKidParser = new DidKidParser();
     private final DidJwtValidator didJwtValidator;
-    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
+    private final DidResolverFacade issuerPublicKeyLoader;
     private final StatusListResolver statusListResolver;
 
     @Getter(value = AccessLevel.PROTECTED) // Allow Protected level access to cache for unit tests
@@ -45,7 +44,7 @@ public class StatusListCacheService {
 
 
     public StatusListCacheService(CacheProperties cacheProperties, DidJwtValidator didJwtValidator,
-            IssuerPublicKeyLoader issuerPublicKeyLoader, StatusListResolver statusListResolver) {
+            DidResolverFacade issuerPublicKeyLoader, StatusListResolver statusListResolver) {
         this.cacheProperties = cacheProperties;
         this.didJwtValidator = didJwtValidator;
         this.issuerPublicKeyLoader = issuerPublicKeyLoader;
@@ -75,11 +74,11 @@ public class StatusListCacheService {
         SignedJWT tokenStatusListJWT = SignedJWT.parse(statusListJWT);
         TokenStatusListVerifier.hasValidTokenStatusListTokenHeader(tokenStatusListJWT.getHeader());
         String kid = didKidParser.extractKidFromHeader(statusListJWT);
-        JWK statusListKey = issuerPublicKeyLoader.loadJWK(kid);
+        JWK statusListKey = issuerPublicKeyLoader.resolveKey(kid);
         TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims(), tokenStatusListJWT.getHeader());
         didJwtValidator.validateJwt(statusListJWT, statusListKey);
         return Optional.of(statusList);
-        } catch (StatusListFetchFailedException | IllegalArgumentException | ParseException | LoadingPublicKeyOfIssuerFailedException e) {
+        } catch (StatusListFetchFailedException | IllegalArgumentException | ParseException e) {
             log.info("Failed to load status list {}", uri, e);
             return Optional.empty();
         }

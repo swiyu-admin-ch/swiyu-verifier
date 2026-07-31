@@ -23,7 +23,7 @@ import static java.util.Objects.nonNull;
 
 @Getter
 public class SDJWTCredentialMock {
-    public static final String DEFAULT_ISSUER_ID = "TEST_ISSUER_ID";
+    public static final String DEFAULT_ISSUER_ID = "did:webvh:some-scid:TEST-ISSUER-ID";
     public static final String DEFAULT_KID_HEADER_VALUE = DEFAULT_ISSUER_ID + "#key-1";
     public static final String DEFAULT_VCT = "defaultTestVCT";
 
@@ -303,7 +303,10 @@ public class SDJWTCredentialMock {
     }
 
     public String createSdJWT(SDObjectBuilder builder, List<Disclosure> disclosures, Long validFrom, Long validUntil, Integer statusListIndex, String vct, boolean useLegacyCnfFormat, String credentialFormat, JWSAlgorithm jwsAlgorithm, boolean skipCnf) {
-        builder.putClaim("iss", issuerId);
+        if (issuerId != null) {
+            // Issuer is optional and may be missing. Only kid is relevent
+            builder.putClaim("iss", issuerId);
+        }
         builder.putClaim("iat", Instant.now().getEpochSecond());
 
         if (nonNull(validFrom)) {

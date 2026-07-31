@@ -7,8 +7,8 @@ import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
@@ -99,7 +99,7 @@ public class ManagementMapper {
 
         try {
             return OBJECT_MAPPER.readValue(jsonString, Map.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException("Invalid string cannot be converted to map");
         }
     }
@@ -195,7 +195,7 @@ public class ManagementMapper {
     public static JwkSetDto toJWKSetDto(String jwks) {
         try {
             return OBJECT_MAPPER.readValue(jwks, JwkSetDto.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Malformed Json Web Key Set saved", e);
         }
     }

@@ -283,6 +283,8 @@
                         <dateLibrary>java21</dateLibrary>
                         <useJakartaEe>true</useJakartaEe>
                         <openApiNullable>false</openApiNullable>
+                        <useJackson3>true</useJackson3>
+                        <useSpringBoot4>true</useSpringBoot4>
                     </configOptions>
                     <output>${project.build.directory}/generated-sources</output>
                 </configuration>

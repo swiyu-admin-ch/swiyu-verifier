@@ -21,8 +21,8 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationSer
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,7 +90,7 @@ class PresentationVerificationUsecaseTest {
     }
 
     @Test
-    void receiveDcqlVerificationPresentation_withoutHolderRequestedHolderBinding_thenSuccess() throws JsonProcessingException {
+    void receiveDcqlVerificationPresentation_withoutHolderRequestedHolderBinding_thenSuccess() throws JacksonException {
         var credentialRequestId = "TestIdRequest";
         var dcqlQuery = getDcqlQuery(credentialRequestId, false);
         var vpToken = getVpToken();

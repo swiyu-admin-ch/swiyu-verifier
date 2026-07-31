@@ -13,7 +13,7 @@ import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementInjectionService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;

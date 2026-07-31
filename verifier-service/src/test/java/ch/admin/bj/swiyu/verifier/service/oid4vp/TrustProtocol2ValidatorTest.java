@@ -19,7 +19,7 @@ import com.nimbusds.jwt.SignedJWT;
 
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TestTrustStatementGenerator;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
@@ -44,7 +44,7 @@ class TrustProtocol2ValidatorTest {
     @Mock
     private DidJwtValidator jwtValidator;
     @Mock
-    private IssuerPublicKeyLoader keyLoader;
+    private DidResolverFacade keyLoader;
 
     private TrustProtocol2Validator validator;
     private Management management;
@@ -71,7 +71,7 @@ class TrustProtocol2ValidatorTest {
         mockKey = new ECKeyGenerator(Curve.P_256).keyID(TRUST_ROOT_KID).generate();
         trustStatementGenerator = new TestTrustStatementGenerator(mockKey);
 
-        when(keyLoader.loadJWK(anyString())).thenReturn(mockKey.toPublicJWK());
+        when(keyLoader.resolveKey(anyString())).thenReturn(mockKey.toPublicJWK());
         when(statusListResolverAdapter.resolveStatusList(anyString())).then(a -> trustStatementGenerator.generateTokenStatusList(TRUST_ROOT_KID, a.getArgument(0)));
 
         trustStatements = List.of(

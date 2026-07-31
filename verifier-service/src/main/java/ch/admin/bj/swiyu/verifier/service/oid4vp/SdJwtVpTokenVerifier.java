@@ -239,8 +239,8 @@ public class SdJwtVpTokenVerifier {
 
     void validateFormat( DcqlCredential dcqlCredential, SdJwt vpToken) {
         var expectedFormatType = dcqlCredential.getFormat();
-        var actualFormatType = vpToken.getHeader().getType().toString();
-        if (!expectedFormatType.equalsIgnoreCase(actualFormatType)) {
+        var actualFormatType = vpToken.getHeader().getType();
+        if (actualFormatType == null || !expectedFormatType.equalsIgnoreCase(String.valueOf(actualFormatType))) {
             var error = "Wrong format for %s - expected %s but received %s".formatted(dcqlCredential.getId(), expectedFormatType, actualFormatType);
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, error);
         }

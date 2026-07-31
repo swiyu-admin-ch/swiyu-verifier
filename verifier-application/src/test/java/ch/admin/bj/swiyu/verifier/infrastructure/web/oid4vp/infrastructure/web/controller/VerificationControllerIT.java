@@ -487,7 +487,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        // todo check
         assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
     }
 
@@ -547,7 +546,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson(credentialFormat)))
                 .build());
@@ -615,7 +614,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                // todo check
                 .andExpect(jsonPath("error_description").value("Failed to extract information from JWT token"));
     }
 
@@ -810,7 +808,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(dcql)
                 .build());
@@ -818,7 +816,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock(true, DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT);
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);

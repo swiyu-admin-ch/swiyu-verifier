@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Changed 
+- Wallet response is now added to the verification management object instead of `client_rejection` as default. `(#1189)`
+
 # [4.1.1] - 2026-07-24
 ## Added
 - Added `expiryMustBePresent` or `verification.expiry-must-be-present` configuration property to control whether the expiry must be present in the verification (

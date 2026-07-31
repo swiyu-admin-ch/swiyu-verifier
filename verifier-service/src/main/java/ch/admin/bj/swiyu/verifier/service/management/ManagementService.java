@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
@@ -178,9 +179,9 @@ public class ManagementService {
      * Marks the verification as failed due to client rejection.
      *
      * @param managementEntityId the UUID of the management entity
-     * @param errorDescription   the description of the error
+     * @param rejection          the error response from the wallet
      */
-    public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
-        managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, errorDescription);
+    public void markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
+        managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
     }
 }

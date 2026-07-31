@@ -42,7 +42,7 @@ import lombok.Getter;
 | invalid_client                              | client_metadata parameter exists, but the Wallet recognizes Client Identifier and knows metadata associated with it, Verifier's pre-registered metadata has been found based on the Client Identifier, but client_metadata parameter is also present |
 | vp_formats_not_supported                    | The Wallet doesn't support any of the formats requested by the Verifier                                                                                                                                                                              |
 | invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
-| invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |        
+| invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |
         """)
 public enum VerificationErrorResponseCodeDto {
     CREDENTIAL_INVALID("credential_invalid"),
@@ -72,7 +72,8 @@ public enum VerificationErrorResponseCodeDto {
     INVALID_PRESENTATION_DEFINITION_URI("invalid_presentation_definition_uri"),
     INVALID_PRESENTATION_DEFINITION_REFERENCE("invalid_presentation_definition_reference"),
     JWT_PREMATURE("jwt_premature"),
-    INVALID_TOKEN_STATUS_LIST("invalid_token_status_list");
+    INVALID_TOKEN_STATUS_LIST("invalid_token_status_list"),
+    ACCESS_DENIED("access_denied");
 
     private final String displayName;
 

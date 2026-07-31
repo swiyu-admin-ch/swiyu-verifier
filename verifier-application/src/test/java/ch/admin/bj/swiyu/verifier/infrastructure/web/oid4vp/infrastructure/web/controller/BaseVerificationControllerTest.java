@@ -4,8 +4,8 @@ import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
@@ -52,7 +52,7 @@ public abstract class BaseVerificationControllerTest {
     protected ManagementRepository managementEntityRepository;
 
     @BeforeEach
-    void setUp() throws JsonProcessingException, JOSEException {
+    void setUp() throws JacksonException, JOSEException {
 
         managementEntityRepository.save(Management.builder()
                 .id(REQUEST_ID_SDJWT_MGMT_NO_SIGNATURE)
@@ -61,7 +61,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(false)
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
@@ -74,7 +74,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
@@ -87,7 +87,7 @@ public abstract class BaseVerificationControllerTest {
                 .oauthState(REQUEST_ID_NESTED_SECURED.toString())
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .dcqlQuery(dcqlQuery(dcqlQueryNestedObjectJson()))
                 .build());
@@ -101,7 +101,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(0)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -125,7 +125,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
                 .build());
 
@@ -139,7 +139,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(false)))
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -150,7 +150,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -162,7 +162,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(dcqlQuery(dcqlQueryJson()))
                 .build());
 
@@ -180,7 +180,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .oauthState(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED.toString())
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .responseSpecification(ResponseSpecification.builder()
                         .responseModeType(ResponseModeType.DIRECT_POST_JWT)
                         .jwksPrivate(jwkSet.toString(false))
@@ -197,7 +197,7 @@ public abstract class BaseVerificationControllerTest {
         managementEntityRepository.deleteAll();
     }
 
-    DcqlQuery dcqlQuery(String dcqlQuery) throws JsonProcessingException {
+    DcqlQuery dcqlQuery(String dcqlQuery) throws JacksonException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readValue(dcqlQuery, DcqlQuery.class);
     }

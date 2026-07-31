@@ -12,8 +12,7 @@ import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.common.util.time.TimeUtil;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.SignedJWT;
 
 /**
@@ -63,7 +61,7 @@ public class TrustStatementValidator {
     private final CacheProperties cacheProperties;
 
     private final StatusListCacheService statusListCacheService;
-    private final IssuerPublicKeyLoader keyLoader;
+    private final DidResolverFacade keyLoader;
     private final TokenStatusListVerifier statusListVerifier;
     private final DidKidParser didKidParser = new DidKidParser();
 
@@ -90,7 +88,7 @@ public class TrustStatementValidator {
             log.debug("Trust statement allowlist check passed - DID: {}, URL: {}", didString, didUrl);
             String kid = didKidParser.extractKidFromHeader(jwtString);
             SignedJWT trustStatementJWT = SignedJWT.parse(jwtString);
-            JWK trustStatementKey = keyLoader.loadJWK(kid);
+            JWK trustStatementKey = keyLoader.resolveKey(kid);
             trustStatementDidJwtValidator.validateJwt(jwtString, trustStatementKey);
             log.debug("Trust statement validation passed - DID: {}, URL: {}", didString, didUrl);
             TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(trustStatementJWT.getJWTClaimsSet().getClaims(), trustStatementJWT.getHeader());
@@ -110,7 +108,7 @@ public class TrustStatementValidator {
             // If we reached this point the status list state hold the information whether the trust statement can be used. Either way we should not reprocess it until the timeout is through
             return new TrustStatementValidationResult(statusListState.valid(), minimumTimeoutNs);
 
-        } catch (IllegalArgumentException | ParseException | LoadingPublicKeyOfIssuerFailedException | IOException e) {
+        } catch (IllegalArgumentException | ParseException | IOException e) {
             log.info("Malformed or invalid Trust Statement detected: {} - Ignoring it", jwtString, e);
             return new TrustStatementValidationResult(false, TimeUtil.secondsToNanos(cacheProperties.getRequestBackoffSeconds()));
         }

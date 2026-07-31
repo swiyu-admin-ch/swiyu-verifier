@@ -8,11 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [NEXT]
 
 ## Changed
-- Adapt metadata logic to issuers implementation
+- `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`
+- Updated to Jackson 3 `(#944)`
 
 ## Removed
-- Removed Metadata Endpoint as it is not used by the wallet
-- Removed `client_id` from metadata.
+- Removed Metadata Endpoint as it is not used by the wallet `(#1153)`
+- Removed `client_id` from metadata `(#1153)`
 
 # [4.1.1] - 2026-07-24
 ## Added
@@ -31,16 +32,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 - New default value for `MAX_COMPRESSED_CIPHER_TEXT_LENGTH` is 20MiB
-
-## Added
-- Static compliance checks for Swiss Profile conformance on OID4VP endpoints (`#829`):
-  - Add `profile_version` and `encrypted_response_enc_values_supported` fields to Request Object DTO to comply with Swiss Profile requirements `(#829)`.
-  - Mark `vp_formats` as a required field in `OpenidClientMetadataDto` `(#829)`.
-  - Update Response Data endpoint to return `ResponseEntity<Map<String, Object>>` instead of `void` and document the `application/json` response body schema in OpenAPI `(#829)`.
+- Moved Status List Verification to shared generic library (#1010)
+- Improved trust statement list validation to continue processing valid trust statements even when individual statements are faulty (#1010)
+- Updated swiyu-generic-library to 1.8.3
+- Updated public key handling to use JWK directly instead of JWKSet for signature verification
+- Improved public key resolution by centralizing the logic (removed logic using JWK iss logi)
 
 ## Fixed
 - Added client_id with prefix to all JWTs created by the verifier and also added the correct one to the initial verification deeplink (#1175)
-- Fixed type of `VerificationPurpose`, `ConfigurationOverrideDto` and `OpenIdClientMetadataVpFormatSdJwt` in openapi.yaml to `type: object` (#1174).
+- Fixed type of `VerificationPurpose`, `ConfigurationOverrideDto` and `OpenIdClientMetadataVpFormatSdJwt` in openapi.yaml to `type: object` (#1174)
 
 # [4.0.0] - 2026-07-08
 

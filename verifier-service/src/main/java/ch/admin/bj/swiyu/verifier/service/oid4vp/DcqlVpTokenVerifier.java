@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
@@ -22,6 +23,7 @@ public class DcqlVpTokenVerifier {
 
     private final SdJwtVpTokenVerifier sdJwtVpTokenVerifier;
     private final IssuerTrustValidator issuerTrustValidator; // new dependency for issuer trust
+    private final DidKidParser didKidParser = new DidKidParser();
 
 
     public SdJwt verifyVpTokenForDCQLRequest(SdJwt vpToken, Management management, DcqlCredential dcqlCredential) {
@@ -31,7 +33,10 @@ public class DcqlVpTokenVerifier {
         // Perform issuer trust validation based on claims
         JWTClaimsSet claims = vpToken.getClaims();
         try {
-            issuerTrustValidator.validateTrust(claims.getIssuer(), claims.getStringClaim("vct"), management);
+            issuerTrustValidator.validateTrust(
+                didKidParser.getDidFromAbsoluteKid(
+                    didKidParser.extractKidFromHeader(vpToken.getJwt())),
+                    claims.getStringClaim("vct"), management);
         } catch (ParseException e) {
             log.error("Failed to extract vct claim from JWT token", e);
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");

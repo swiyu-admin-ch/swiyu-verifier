@@ -87,7 +87,7 @@ curl -X POST \
       "default": "Test"
     },
     "purpose_description": {
-      "default": "This is a test and this its description"
+      "default": "This is a test and this is its description"
     }
   },
   "dcql_query": {
@@ -313,7 +313,6 @@ Decoded Key-Binding example:
     "nonce": "jbX1XQ81..."
 }
 ```
-
 
 **Request:**
 ```bash

@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.publickey;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,14 +35,13 @@ public class TrustProtocolv1Resolver {
 
 
     /**
-     *
      * @param trustRegistryUri URI of the trust registry to be used
      * @param vct The VCT for which the TrustStatementIssuance is to be loaded
      * @return A list of TrustStatementIssuance as raw JWTs
-     * @throws JsonProcessingException if something is wrong with the format of the response
+     * @throws JacksonException if something is wrong with the format of the response
      */
     @Deprecated(since = "Trust Protocol 2.0")
-    public List<String> loadTrustStatement(String trustRegistryUri, String vct) throws JsonProcessingException {
+    public List<String> loadTrustStatement(String trustRegistryUri, String vct) {
         log.debug("Resolving trust statement at registry {} for {}", trustRegistryUri, vct);
         var rawTrustStatements = didResolverFacade.resolveTrustStatement(trustRegistryUri + TRUST_STATEMENT_ISSUANCE_ENDPOINT, vct);
         return objectMapper.readValue(rawTrustStatements, List.class);

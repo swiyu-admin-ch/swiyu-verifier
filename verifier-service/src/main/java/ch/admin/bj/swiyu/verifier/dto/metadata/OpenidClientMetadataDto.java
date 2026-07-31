@@ -61,11 +61,15 @@ public class OpenidClientMetadataDto {
     private OpenIdClientMetadataVpFormatsSupported vpFormatsSupported;
 
     // Dynamic fields
+    @Builder.Default
     private Map<String, Object> additionalProperties = new HashMap<>();
 
     @JsonAnySetter
     public void setAdditionalProperty(String key, Object value) {
-        this.additionalProperties.put(key, value);
+        if (additionalProperties == null) {
+            additionalProperties = new HashMap<>();
+        }
+        additionalProperties.put(key, value);
     }
 
     @JsonAnyGetter

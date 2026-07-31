@@ -4,8 +4,8 @@ import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
@@ -52,7 +52,7 @@ public abstract class BaseVerificationControllerTest {
     protected ManagementRepository managementEntityRepository;
 
     @BeforeEach
-    void setUp() throws JsonProcessingException, JOSEException {
+    void setUp() throws JacksonException, JOSEException {
 
         managementEntityRepository.save(Management.builder()
                 .id(REQUEST_ID_SDJWT_MGMT_NO_SIGNATURE)
@@ -197,7 +197,7 @@ public abstract class BaseVerificationControllerTest {
         managementEntityRepository.deleteAll();
     }
 
-    DcqlQuery dcqlQuery(String dcqlQuery) throws JsonProcessingException {
+    DcqlQuery dcqlQuery(String dcqlQuery) throws JacksonException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readValue(dcqlQuery, DcqlQuery.class);
     }

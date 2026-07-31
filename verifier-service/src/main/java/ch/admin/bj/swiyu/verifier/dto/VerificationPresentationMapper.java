@@ -1,9 +1,9 @@
 package ch.admin.bj.swiyu.verifier.dto;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
@@ -63,7 +63,7 @@ public class VerificationPresentationMapper {
             return dto;
         } catch (IllegalArgumentException e) {
             throw e;
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException("Failed to parse vp_token as DCQL format: " + e.getMessage(), e);
         }
     }
@@ -80,9 +80,9 @@ public class VerificationPresentationMapper {
      *
      * @param vpTokenRaw raw value from the union DTO
      * @return parsed token map
-     * @throws JsonProcessingException if parsing fails
+     * @throws JacksonException if parsing fails
      */
-    private static Map<String, List<String>> parseVpToken(Object vpTokenRaw) throws JsonProcessingException {
+    private static Map<String, List<String>> parseVpToken(Object vpTokenRaw) throws JacksonException {
         if (!(vpTokenRaw instanceof String vpTokenString)) {
             return OBJECT_MAPPER.convertValue(vpTokenRaw, new TypeReference<>() {});
         }

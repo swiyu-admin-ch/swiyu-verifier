@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`
 - Updated to Jackson 3 `(#944)`
 
+## Fixed
+- Fixed several unhandled null value cases in DCQL presentation processing (`null`/missing vp_token entries and vp_token lists containing `null`, as well as a missing DCQL query on the verification request) that previously caused an unhandled `NullPointerException` (HTTP 500) instead of a proper `invalid_presentation_submission` error `(#1120)`
+
 # [4.1.1] - 2026-07-24
 ## Added
 - Added `expiryMustBePresent` or `verification.expiry-must-be-present` configuration property to control whether the expiry must be present in the verification (

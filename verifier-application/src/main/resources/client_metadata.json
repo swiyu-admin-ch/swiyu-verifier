@@ -1,4 +1,5 @@
 {
+  "client_id": "${client-id}",
   "client_name#en": "English name (all regions)",
   "client_name#fr": "French name (all regions)",
   "client_name#de-DE": "German name (region Germany)",

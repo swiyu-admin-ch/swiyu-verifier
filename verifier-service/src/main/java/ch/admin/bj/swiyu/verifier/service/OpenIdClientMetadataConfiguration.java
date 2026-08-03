@@ -14,12 +14,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.util.PropertyPlaceholderHelper;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 @Configuration
@@ -45,6 +48,11 @@ public class OpenIdClientMetadataConfiguration {
      */
     @Cacheable(CachingConfig.VERIFIER_METADATA_CACHE)
     public OpenidClientMetadataDto getVerifierMetadata() {
+
+        if (clientMetadataResource == null) {
+            throw new IllegalStateException("Property 'application.client-metadata-file' must be configured");
+        }
+
         try {
             var metadata = resourceToMappedData(clientMetadataResource);
             metadata.setClientId(applicationProperties.getClientIdWithPrefix());
@@ -58,10 +66,7 @@ public class OpenIdClientMetadataConfiguration {
     }
 
     private OpenidClientMetadataDto resourceToMappedData(Resource res) throws IOException {
-        if (res == null || !res.exists()) {
-            throw new ConfigurationException("Unable to find OpenID client metadata file", null);
-        }
-        var json = res.getContentAsString(Charset.defaultCharset());
+        var json = replaceTemplateProps(res.getContentAsString(Charset.defaultCharset()));
         return objectMapper.readValue(json, OpenidClientMetadataDto.class);
     }
 
@@ -98,5 +103,14 @@ public class OpenIdClientMetadataConfiguration {
                 .replaceAll("([A-Z])(?=[A-Z])", "$1_")
                 .replaceAll("([a-z])([A-Z])", "$1_$2")
                 .toLowerCase(Locale.ROOT); // although equivalent to toLowerCase(), it makes PMD way much happier
+    }
+
+    private String replaceTemplateProps(String template) {
+        Properties prop = new Properties();
+        for (Map.Entry<String, String> replacementEntrySet : applicationProperties.getTemplateReplacement().entrySet()) {
+            prop.setProperty(replacementEntrySet.getKey(), replacementEntrySet.getValue());
+        }
+        PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper("${", "}");
+        return helper.replacePlaceholders(template, prop);
     }
 }

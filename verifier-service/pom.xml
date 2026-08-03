@@ -8,7 +8,7 @@
     <parent>
         <groupId>ch.admin.bj.swiyu</groupId>
         <artifactId>swiyu-verifier-parent</artifactId>
-        <version>4.1.0-SNAPSHOT</version>
+        <version>4.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>swiyu-verifier-service</artifactId>
@@ -193,6 +193,11 @@
             <artifactId>swiyu-jwt-validator</artifactId>
             <version>${generic-java-lib.version}</version>
         </dependency>
+        <dependency>
+            <groupId>au.com.dius.pact.consumer</groupId>
+            <artifactId>junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -247,7 +252,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.5.1</version>
                 <executions>
                     <execution>
                         <goals>
@@ -260,6 +265,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.6</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <pact.rootDir>${project.build.directory}/pacts</pact.rootDir>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.openapitools</groupId>
@@ -273,6 +283,8 @@
                         <dateLibrary>java21</dateLibrary>
                         <useJakartaEe>true</useJakartaEe>
                         <openApiNullable>false</openApiNullable>
+                        <useJackson3>true</useJackson3>
+                        <useSpringBoot4>true</useSpringBoot4>
                     </configOptions>
                     <output>${project.build.directory}/generated-sources</output>
                 </configuration>
@@ -316,6 +328,15 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>au.com.dius.pact.provider</groupId>
+                <artifactId>maven</artifactId>
+                <version>${pact.version}</version>
+                <configuration>
+                    <pactDirectory>${project.build.directory}/pacts</pactDirectory>
+                    <trimSnapshot>false</trimSnapshot>
+                </configuration>
             </plugin>
         </plugins>
 

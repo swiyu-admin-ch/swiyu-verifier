@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
@@ -154,10 +155,10 @@ public class ManagementTransactionalService {
             noRollbackFor = VerificationException.class,
             timeout = 10
     )
-    public void markVerificationFailedDueToClientRejection(UUID managementEntityId, String errorDescription) {
+    public void markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         var managementEntity = getInProgressManagementEntity(managementEntityId);
         log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
-        managementEntity.verificationFailedDueToClientRejection(errorDescription);
+        managementEntity.verificationFailedDueToClientRejection(rejection.getErrorDescription(), ManagementMapper.toVerificationErrorResponseCode(rejection.getError()));
     }
 
     @Transactional

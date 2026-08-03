@@ -1,5 +1,14 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
+import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
+import ch.admin.bj.swiyu.statuslist.TokenStatusListBit;
+import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
+import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
+import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
+import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
+import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -7,20 +16,19 @@ import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReference;
-import ch.admin.bj.swiyu.verifier.domain.statuslist.StatusListReferenceFactory;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
+
 import com.authlete.sd.Disclosure;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -33,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.*;
@@ -61,16 +70,24 @@ public class SdJwtVpTokenVerifier {
 
     private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
 
-    private final IssuerPublicKeyLoader issuerPublicKeyLoader;
-    private final StatusListReferenceFactory statusListReferenceFactory;
+    private final DidResolverFacade didResolver;
+    private final DidJwtValidator jwtValidator;
+    private final StatusListCacheService statusListCacheService;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
+    private final TokenStatusListVerifier statusListVerifier;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    @Deprecated(since = "Trust Protocol 2.0")
+    private final DidKidParser didKidParser = new DidKidParser();
 
+    @Deprecated(since = "Trust Protocol 2.0")
     public SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management) {
         // Re-use the shared verification building blocks
         verifyVerifiableCredentialJWT(vpToken, management);
-
+        // For Trust Protocol 1.0 the KID and DID must match
+        if (!didKidParser.getDidFromAbsoluteKid(vpToken.getHeader().getKeyID()).equals(vpToken.getClaims().getIssuer())) {
+            throw credentialError(CREDENTIAL_INVALID, "Trust Statements 1.0 MUST have correlating and iss claims");
+        }
         if (vpToken.hasKeyBinding()) {
             validateKeyBinding(vpToken, management);
         } else if (canHaveKeyBinding(vpToken.getClaims())) {
@@ -78,9 +95,9 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
 
-        verifyStatus(vpToken.getClaims().getClaims(), management);
+        verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
         validateDisclosures(vpToken, management);
-
+        
         return vpToken;
     }
 
@@ -96,20 +113,15 @@ public class SdJwtVpTokenVerifier {
             validateHeader(header);
             var claims = nimbusJwt.getJWTClaimsSet();
             // Only technical verification here; issuer trust is validated at service layer
-            var publicKey = issuerPublicKeyLoader.loadPublicKey(claims.getIssuer(), header.getKeyID());
+            var publicKey = didResolver.resolveKey(header.getKeyID());
             log.trace("Loaded issuer public key for id {}", managementEntity.getId());
-            // Verify the JWS signature of the JWT
-            if (!nimbusJwt.verify(new DefaultJWSVerifierFactory().createJWSVerifier(header, publicKey))) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Signature mismatch");
-            }
+            jwtValidator.validateJwt(sdJwt.getJwt(), publicKey);
             log.trace("Successfully verified signature of id {}", managementEntity.getId());
             validateJwtTimes(claims);
             sdJwt.setHeader(header);
             sdJwt.setClaims(claims);
-        } catch (ParseException e) {
+        } catch (ParseException | JwtValidatorException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
-        } catch (LoadingPublicKeyOfIssuerFailedException | JOSEException e) {
-            throw credentialError(e, PUBLIC_KEY_OF_ISSUER_UNRESOLVABLE, e.getMessage());
         }
     }
 
@@ -172,8 +184,34 @@ public class SdJwtVpTokenVerifier {
         }
     }
 
-    void verifyStatus(Map<String, Object> vcClaims, Management managementEntity) {
-        statusListReferenceFactory.createStatusListReferences(vcClaims, managementEntity).forEach(StatusListReference::verifyStatus);
+    protected void verifyStatus(Map<String, Object> vcClaims, JWSHeader header) {
+        TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(vcClaims, header);
+        if (reference.getStatus() == null) {
+            // no Status Reference -> VC has no Status
+            return;
+        }
+        try {
+            TokenStatusListTokenDto statusList = statusListCacheService.getTokenStatusListTokenByUri(reference.getReferencedStatusListUri());
+            if(statusList == null) {
+                throw credentialError(UNRESOLVABLE_STATUS_LIST, "Status List not found or malformed");
+            }
+            StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(reference, statusList);
+            // TODO EIDOMNI-1090 - Pass through state to business component, removing the if else logic below
+            if(statusListState.status().filter(s -> s > TokenStatusListBit.REVOKED.getBitNumber()).isPresent()) {
+                // Suspended or Custom State
+                throw credentialError(CREDENTIAL_SUSPENDED, "Credential is suspended");
+            } else if (!statusListState.valid()) {
+                // Something wrong with the status list or revoked
+                throw credentialError(CREDENTIAL_REVOKED, "Credential is not valid");
+            }
+        } catch (
+            IndexOutOfBoundsException | 
+            IOException |
+            JwtValidatorException e) {
+            throw credentialError(e, UNRESOLVABLE_STATUS_LIST, "Status List Token malformed");
+        } catch (StatusListMaxSizeExceededException e) {
+            throw credentialError(e, UNRESOLVABLE_STATUS_LIST, "Status list size from %s exceeds maximum allowed size".formatted(reference.getReferencedStatusListUri()));
+        }
     }
 
     /**
@@ -256,7 +294,7 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
         }
 
-        String clientId = applicationProperties.getClientIdWithPrefix(configurationOverride.verifierDidOrDefault(applicationProperties.getClientId()));
+        String clientId = configurationOverride.verifierDidOrDefaultWithPrefix(applicationProperties);
 
         // Exact match only
         if (!clientId.equals(aud)) {
@@ -358,8 +396,8 @@ public class SdJwtVpTokenVerifier {
         removeSdKeys(processed);
 
         // 3.6 Check if correct _sd_alg-value Remove _sd_alg
-        if (processed.hasNonNull(SDJWT_ALG_CLAIM) && !SUPPORTED_SDJWT_ALGORITHMS.contains(processed.get(SDJWT_ALG_CLAIM).asText())) {
-            throw credentialError(INVALID_FORMAT, "Unsupported _sd_alg value: %s".formatted(processed.get(SDJWT_ALG_CLAIM).asText()));
+        if (processed.hasNonNull(SDJWT_ALG_CLAIM) && !SUPPORTED_SDJWT_ALGORITHMS.contains(processed.get(SDJWT_ALG_CLAIM).asString())) {
+            throw credentialError(INVALID_FORMAT, "Unsupported _sd_alg value: %s".formatted(processed.get(SDJWT_ALG_CLAIM).asString()));
         }
         ((ObjectNode) processed).remove(SDJWT_ALG_CLAIM);
 
@@ -398,7 +436,7 @@ public class SdJwtVpTokenVerifier {
                                        List<String> usedDigests) {
         // if no _sd key present, just recurse into fields
         if (!object.has("_sd")) {
-            Iterator<String> fields = object.fieldNames();
+            Iterator<String> fields = object.propertyNames().iterator();
             List<String> names = new ArrayList<>();
             fields.forEachRemaining(names::add);
             for (String name : names) {
@@ -412,7 +450,7 @@ public class SdJwtVpTokenVerifier {
 
         // snapshot original fields to avoid processing newly added fields
         List<String> originalFields = new ArrayList<>();
-        object.fieldNames().forEachRemaining(originalFields::add);
+        object.propertyNames().iterator().forEachRemaining(originalFields::add);
 
         handleSdArray(object, sdArray, digestMap, usedDigests);
 
@@ -430,7 +468,7 @@ public class SdJwtVpTokenVerifier {
                                Map<String, Disclosure> digestMap,
                                List<String> usedDigests) {
         for (JsonNode digestNode : sdArray) {
-            String digest = digestNode.asText();
+            String digest = digestNode.asString();
 
             if (!digestMap.containsKey(digest)) continue;
 
@@ -465,7 +503,7 @@ public class SdJwtVpTokenVerifier {
 
         for (JsonNode element : array) {
             if (element.isObject() && element.has("...")) {
-                String digest = element.get("...").asText();
+                String digest = element.get("...").asString();
 
                 JsonNode value;
 
@@ -498,9 +536,8 @@ public class SdJwtVpTokenVerifier {
             ObjectNode obj = (ObjectNode) node;
             obj.remove("_sd");
 
-            Iterator<String> fields = obj.fieldNames();
-            while (fields.hasNext()) {
-                removeSdKeys(obj.get(fields.next()));
+            for (String string : obj.propertyNames()) {
+                removeSdKeys(obj.get(string));
             }
         } else if (node.isArray()) {
             for (JsonNode n : node) {

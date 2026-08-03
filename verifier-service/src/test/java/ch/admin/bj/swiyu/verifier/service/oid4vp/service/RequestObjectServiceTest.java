@@ -10,7 +10,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -68,18 +69,20 @@ class RequestObjectServiceTest {
                 jwtSigningService,
                 Optional.empty()
         );
-
+        
         // Mock application configurations
         when(applicationProperties.getClientId()).thenReturn(clientId);
         when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
         when(applicationProperties.getExternalUrl()).thenReturn("https://test");
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn("did:example:123#key1");
+        when(applicationProperties.getRequestObjectTTLSeconds()).thenReturn( 600);
         when(openIdClientMetadataConfiguration.getOpenIdClientMetadata()).thenReturn(openidClientMetadataDto);
     }
-
+    
     @Test
     void assembleRequestObjectWithSignedJWT_thenSuccess() throws Exception {
         var mockedManagement = mockManagement(true);
+        String keyId = "did:example:123#key1";
 
         when(signerProvider.canProvideSigner()).thenReturn(true);
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
@@ -88,11 +91,11 @@ class RequestObjectServiceTest {
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.eq("did:example:123#key1")
+                org.mockito.ArgumentMatchers.eq(keyId)
         )).thenAnswer(invocation -> {
             var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
-                    .keyID("did:example:123#key1")
+                    .keyID(keyId)
                     .type(new com.nimbusds.jose.JOSEObjectType("oauth-authz-req+jwt"))
                     .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
                     .build();
@@ -108,16 +111,21 @@ class RequestObjectServiceTest {
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
         // verify JWT body
-        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(clientId);
-        var state = jwt.getJWTClaimsSet().getClaim("state");
+        String clientIdWithPrefix = prefix + ":" + clientId;
+        var claims = jwt.getJWTClaimsSet();
+        assertThat(claims.getIssuer()).as("iss claim is REQUIRED and SHOULD be present with prefix").isEqualTo(clientIdWithPrefix);
+        assertThat(jwt.getHeader().getKeyID()).isEqualTo(keyId);
+        var state = claims.getClaim("state");
         assertThat(state)
             .as("state should be set as of swiss-profile-verification 1.0").isNotNull()
             .as("state should match the one provided in management object").isEqualTo(mockedManagement.getOauthState());
-        assertThat(jwt.getJWTClaimsSet().getAudience()).isEqualTo(List.of(RequestObjectService.AUDIENCE));
-        assertThat(jwt.getJWTClaimsSet().getClaim("nonce")).isEqualTo(nonce);
-        assertThat(jwt.getJWTClaimsSet().getClaim("response_mode")).isEqualTo(ResponseModeTypeDto.DIRECT_POST.toString());
-        assertThat(jwt.getJWTClaimsSet().getClaim("client_metadata")).isNotNull();
-        assertThat(jwt.getJWTClaimsSet().getClaim("response_type")).isEqualTo(RequestObjectService.RESPONSE_TYPE);
+        assertThat(claims.getAudience()).isEqualTo(List.of(RequestObjectService.AUDIENCE));
+        assertThat(claims.getClaim("nonce")).isEqualTo(nonce);
+        assertThat(claims.getClaim("response_mode")).isEqualTo(ResponseModeTypeDto.DIRECT_POST.toString());
+        assertThat(claims.getClaim("client_metadata")).isNotNull();
+        assertThat(claims.getClaim("response_type")).isEqualTo(RequestObjectService.RESPONSE_TYPE);
+        assertThat(claims.getIssueTime()).isNotNull().isBeforeOrEqualTo(Instant.now());
+        assertThat(claims.getExpirationTime()).isNotNull().isAfter(Instant.now());
     }
 
     @Test
@@ -159,11 +167,16 @@ class RequestObjectServiceTest {
         SignedJWT jwt = SignedJWT.parse(jwtString);
         assertEquals("oauth-authz-req+jwt", jwt.getHeader().getType().toString());
         assertEquals(SwissProfileVersions.VERIFICATION_PROFILE_VERSION, jwt.getHeader().getCustomParam(SwissProfileVersions.PROFILE_VERSION_PARAM));
-        assertEquals(verificationMethod, jwt.getHeader().getKeyID());
-        assertThat(jwt.getJWTClaimsSet().getIssuer()).isEqualTo(overrideDid);
-        assertThat(jwt.getJWTClaimsSet().getClaim("response_uri").toString()).startsWith(externalUrl);
+        var claims = jwt.getJWTClaimsSet();
+        assertThat(claims.getIssuer())
+            .as("iss claim MUST be present using the override value")
+            .isEqualTo(prefix + ":" + overrideDid);
+        assertThat(jwt.getHeader().getKeyID())
+            .as("Override Verificaiton method must be present to validate the jwt")
+            .isEqualTo(verificationMethod);
+        assertThat(claims.getClaim("response_uri").toString()).startsWith(externalUrl);
         @SuppressWarnings("unchecked")
-        var extractedClientMetadata = (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("client_metadata");
+        var extractedClientMetadata = (Map<String, Object>) claims.getClaim("client_metadata");
         assertThat(extractedClientMetadata.get("client_name")).as("client_name in client_metadata was overridden").isEqualTo("Override Client");
         assertThat(extractedClientMetadata.get("logo_uri")).as("logo_uri in client_metadata was overridden").isEqualTo(logoUri);
 

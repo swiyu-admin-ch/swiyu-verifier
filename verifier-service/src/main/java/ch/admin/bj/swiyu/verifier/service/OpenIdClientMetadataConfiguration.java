@@ -2,8 +2,8 @@ package ch.admin.bj.swiyu.verifier.service;
 
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -67,7 +67,7 @@ public class OpenIdClientMetadataConfiguration {
     private OpenidClientMetadataDto parseMetadata(final String json) {
         try {
             return objectMapper.readValue(json, OpenidClientMetadataDto.class);
-        } catch (JsonProcessingException exc) {
+        } catch (JacksonException exc) {
             log.error("Failed to deserialize DTO from JSON config OpenidClientMetadata : {}", exc.getMessage());
             throw new IllegalStateException("Unable to parse OpenID client metadata JSON", exc);
         }

@@ -14,13 +14,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.util.CollectionUtils.isEmpty;
 
 class ManagementMapperTest {
 
     private static final String EXTERNAL_URL = "https://example.com/oid4vp";
     private static final String CLIENT_ID = "client_id";
     private static final String SWIYU_VERIFIER = "openid4vp";
+    private static final String CLIENT_ID_PREFIX = "decentralized_identifier";
 
     @Mock
     ApplicationProperties applicationProperties;
@@ -31,6 +31,7 @@ class ManagementMapperTest {
         when(applicationProperties.getExternalUrl()).thenReturn(EXTERNAL_URL);
         when(applicationProperties.getClientId()).thenReturn(CLIENT_ID);
         when(applicationProperties.getDeeplinkSchema()).thenReturn(SWIYU_VERIFIER);
+        when(applicationProperties.getClientIdPrefix()).thenReturn(CLIENT_ID_PREFIX);
     }
 
     @Test
@@ -63,7 +64,7 @@ class ManagementMapperTest {
     }
 
     private String getExpectedVerificationDeeplink(String deeplinkSchema, String clientId, String requestUri) {
-        var urlEncodedClientId = URLEncoder.encode(clientId, StandardCharsets.UTF_8);
+        var urlEncodedClientId = URLEncoder.encode(CLIENT_ID_PREFIX + ":" + clientId, StandardCharsets.UTF_8);
         var urlEncodedRequestUri = URLEncoder.encode(requestUri, StandardCharsets.UTF_8);
         return "%s://?client_id=%s&request_uri=%s".formatted(deeplinkSchema, urlEncodedClientId, urlEncodedRequestUri);
     }

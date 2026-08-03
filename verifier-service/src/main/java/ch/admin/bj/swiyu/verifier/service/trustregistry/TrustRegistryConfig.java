@@ -4,10 +4,11 @@ import ch.admin.bj.swiyu.core.trust.client.api.TrustProtocol20Api;
 import ch.admin.bj.swiyu.core.trust.client.invoker.ApiClient;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.UrlRestriction;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +29,7 @@ import java.util.Set;
 public class TrustRegistryConfig {
 
     private final TrustRegistryProperties properties;
-    private final ApplicationProperties applicationProperties;
+    
     private final WebClient webClient;
 
     /**
@@ -62,13 +63,15 @@ public class TrustRegistryConfig {
      * <p>The allowlist is derived from the {@code swiyu.trust-registry.api-url} property,
      * ensuring that trust statement JWTs are only accepted when their {@code kid} resolves
      * to the same host as the configured TMS endpoint.</p>
+     * It is used with {@code @Qualifier("trustStatementValidator")}
      *
      * @return the {@link DidJwtValidator} bean named {@code trustStatementDidJwtValidator}
      * @throws IllegalArgumentException if the configured {@code api-url} is malformed
      */
     @Bean
+    @Qualifier("trustStatementValidator")
     public DidJwtValidator trustStatementDidJwtValidator() {
-        Set<String> hosts = new HashSet<>(applicationProperties.getAcceptedRegistryHosts());
+        Set<String> hosts = Set.of(properties.getApiUrl());
         log.info("Configuring trust statement JWT validator with allowed host: {}", hosts);
         return new DidJwtValidator(new UrlRestriction(hosts));
     }

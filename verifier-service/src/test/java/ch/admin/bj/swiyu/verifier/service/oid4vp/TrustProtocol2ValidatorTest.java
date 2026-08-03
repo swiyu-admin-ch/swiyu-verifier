@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
@@ -20,15 +19,14 @@ import com.nimbusds.jwt.SignedJWT;
 
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
-import ch.admin.bj.swiyu.verifier.service.publickey.IssuerPublicKeyLoader;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolverAdapter;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TestTrustStatementGenerator;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 
 /**
  * Unit tests for {@link TrustProtocol2Validator}.
- *
  * The real {@link ch.admin.bj.swiyu.tsverifier.TrustStatementVerifier} is
  * replaced
  * by a test double (see
@@ -42,14 +40,13 @@ class TrustProtocol2ValidatorTest {
     @Mock
     private TrustStatementCacheService statementProvider;
     @Mock
-    private StatusListResolverAdapter statusListResolverAdapter;
+    private StatusListResolver statusListResolverAdapter;
     @Mock
     private DidJwtValidator jwtValidator;
     @Mock
-    private IssuerPublicKeyLoader keyLoader;
+    private DidResolverFacade keyLoader;
 
     private TrustProtocol2Validator validator;
-    private ObjectMapper mapper = new ObjectMapper();
     private Management management;
     private TrustAnchor anchor;
     private ECKey mockKey;
@@ -66,8 +63,7 @@ class TrustProtocol2ValidatorTest {
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        validator = new TrustProtocol2Validator(statementProvider, statusListResolverAdapter,
-                jwtValidator, keyLoader, mapper);
+        validator = new TrustProtocol2Validator(statementProvider);
         anchor = new TrustAnchor(TRUST_ROOT, "https://www.example.com");
         management = Management.builder()
                 .trustAnchors(List.of(anchor))
@@ -75,7 +71,7 @@ class TrustProtocol2ValidatorTest {
         mockKey = new ECKeyGenerator(Curve.P_256).keyID(TRUST_ROOT_KID).generate();
         trustStatementGenerator = new TestTrustStatementGenerator(mockKey);
 
-        when(keyLoader.loadJWK(anyString(), anyString())).thenReturn(mockKey.toPublicJWK());
+        when(keyLoader.resolveKey(anyString())).thenReturn(mockKey.toPublicJWK());
         when(statusListResolverAdapter.resolveStatusList(anyString())).then(a -> trustStatementGenerator.generateTokenStatusList(TRUST_ROOT_KID, a.getArgument(0)));
 
         trustStatements = List.of(
@@ -96,8 +92,5 @@ class TrustProtocol2ValidatorTest {
 
         boolean result = validator.isTrusted(ISSUER_DID, TRUSTED_VCT, management);
         assertThat(result).as("Issuer should be trusted when markers indicate trust").isTrue();
-        // Ensure Status List and Key Loader have been called
-        verify(statusListResolverAdapter, atLeastOnce()).resolveStatusList(anyString());
-        verify(keyLoader, atLeastOnce()).loadJWK(anyString(), anyString());
     }
 }

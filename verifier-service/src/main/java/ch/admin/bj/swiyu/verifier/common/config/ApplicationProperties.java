@@ -39,7 +39,6 @@ public class ApplicationProperties {
     @NotNull
     private String keyManagementMethod;
 
-    // Temporary change: do not alter this value here (default is 100000).
     // Limits the maximum length of compressed ciphertext accepted by the application
     // to avoid excessive memory usage or potential DoS.
     @NotNull
@@ -50,13 +49,17 @@ public class ApplicationProperties {
 
     private HSMProperties hsm;
 
+    /**
+     * Seconds the Request Object should be valid for (controlls expiry of the request object)
+     */
+    private int requestObjectTTLSeconds = 600;
+
+    /**
+     * List of accepted registry hosts, containing both status and trust hosts
+     */
     private List<String> acceptedRegistryHosts;
 
     public String getClientIdWithPrefix() {
-        return getClientIdWithPrefix(clientId);
-    }
-
-    public String getClientIdWithPrefix(String clientId) {
         if (StringUtils.isBlank(clientIdPrefix)) {
             return clientId;
         }

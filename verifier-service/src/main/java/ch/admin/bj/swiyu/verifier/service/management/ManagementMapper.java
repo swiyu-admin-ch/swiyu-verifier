@@ -1,13 +1,14 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.*;
 import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
@@ -18,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Objects.nonNull;
-import static org.springframework.util.CollectionUtils.isEmpty;
 
 
 @UtilityClass
@@ -32,7 +32,7 @@ public class ManagementMapper {
 
         var override = management.getConfigurationOverride();
         String externalUrl = override.externalUrlOrDefault(props.getExternalUrl());
-        String clientId = override.verifierDidOrDefault(props.getClientId());
+        String clientId = override.verifierDidOrDefaultWithPrefix(props);
         var verificationUrl = String.format("%s/oid4vp/api/request-object/%s", externalUrl, management.getId());
         return new ManagementResponseDto(
                 management.getId(),
@@ -99,7 +99,7 @@ public class ManagementMapper {
 
         try {
             return OBJECT_MAPPER.readValue(jsonString, Map.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException("Invalid string cannot be converted to map");
         }
     }
@@ -143,6 +143,24 @@ public class ManagementMapper {
                     VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION_REFERENCE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
             case INVALID_TOKEN_STATUS_LIST -> VerificationErrorResponseCodeDto.INVALID_TOKEN_STATUS_LIST;
+            case ACCESS_DENIED -> VerificationErrorResponseCodeDto.ACCESS_DENIED;
+        };
+    }
+
+    public VerificationErrorResponseCode toVerificationErrorResponseCode(VerificationClientErrorDto rejectionCode) {
+        if (rejectionCode == null) {
+            return null;
+        }
+
+        return switch (rejectionCode) {
+            case INVALID_SCOPE -> VerificationErrorResponseCode.INVALID_SCOPE;
+            case INVALID_REQUEST -> VerificationErrorResponseCode.INVALID_REQUEST;
+            case INVALID_CLIENT -> VerificationErrorResponseCode.INVALID_CLIENT;
+            case VP_FORMATS_NOT_SUPPORTED -> VerificationErrorResponseCode.VP_FORMATS_NOT_SUPPORTED;
+            case INVALID_PRESENTATION_DEFINITION_URI -> VerificationErrorResponseCode.INVALID_PRESENTATION_DEFINITION_URI;
+            case INVALID_PRESENTATION_DEFINITION_REFERENCE -> VerificationErrorResponseCode.INVALID_PRESENTATION_DEFINITION_REFERENCE;
+            case CLIENT_REJECTED -> VerificationErrorResponseCode.CLIENT_REJECTED;
+            case ACCESS_DENIED -> VerificationErrorResponseCode.ACCESS_DENIED;
         };
     }
 
@@ -177,7 +195,7 @@ public class ManagementMapper {
     public static JwkSetDto toJWKSetDto(String jwks) {
         try {
             return OBJECT_MAPPER.readValue(jwks, JwkSetDto.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Malformed Json Web Key Set saved", e);
         }
     }

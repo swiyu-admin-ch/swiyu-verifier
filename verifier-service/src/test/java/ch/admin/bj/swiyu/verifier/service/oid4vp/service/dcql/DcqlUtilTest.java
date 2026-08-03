@@ -4,8 +4,8 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 class DcqlUtilTest {
     private SdJwt sdJwt;
     @BeforeEach
-    void setUp() throws JsonProcessingException {
+    void setUp() throws JacksonException {
         ObjectMapper objectMapper = new ObjectMapper();
         // OID4VP 1.0 7.3 Claims Path Pointer Example https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-7.3
         // all numbers are float, as sdjwt lib marshalls all numbers to float

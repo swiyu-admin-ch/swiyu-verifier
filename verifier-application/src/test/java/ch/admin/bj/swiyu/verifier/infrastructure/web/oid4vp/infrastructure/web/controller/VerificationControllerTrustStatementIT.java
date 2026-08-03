@@ -10,9 +10,10 @@ import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementValidator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
@@ -159,7 +160,7 @@ class VerificationControllerTrustStatementIT {
                 .jwtSecuredAuthorizationRequest(true)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(objectMapper.readValue(dcqlJson, DcqlQuery.class))
                 .build());
     }
@@ -280,7 +281,7 @@ class VerificationControllerTrustStatementIT {
                 .jwtSecuredAuthorizationRequest(true)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of("TEST_ISSUER_ID"))
+                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .dcqlQuery(objectMapper.readValue(dcqlJson, DcqlQuery.class))
                 .vqpsQueryHash(VQPS_QUERY_HASH)
                 .build());

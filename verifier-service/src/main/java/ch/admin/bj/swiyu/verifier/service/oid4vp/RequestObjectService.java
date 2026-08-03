@@ -13,16 +13,16 @@ import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementInjectionService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.*;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -75,7 +75,7 @@ public class RequestObjectService {
         var effectiveConfig = resolveEffectiveConfig(managementEntity);
 
         log.trace("Build the request object DTO (incl. optional TP2.0 verifier_info injection).");
-        var requestObject = buildRequestObject(managementEntity, effectiveConfig, managementEntityId);
+        var requestObject = buildRequestObject(managementEntity, effectiveConfig);
 
         log.trace("Sign and return the JWT string");
         return signRequestObject(requestObject, managementEntity, effectiveConfig);
@@ -88,8 +88,7 @@ public class RequestObjectService {
      * DCQL query, response specification, etc.) into the wire-level request object.
      */
     private RequestObjectDto buildRequestObject(Management managementEntity,
-                                                EffectiveRequestObjectConfig effectiveConfig,
-                                                UUID managementEntityId) {
+                                                EffectiveRequestObjectConfig effectiveConfig) {
         var dcqlQuery = managementEntity.getDcqlQuery();
 
         var clientMetadata = openIdClientMetadataConfiguration.getOpenIdClientMetadata();
@@ -116,14 +115,14 @@ public class RequestObjectService {
                 .audience(AUDIENCE)
                 .nonce(managementEntity.getRequestNonce())
                 .dcqlQuery(DcqlMapper.toDcqlQueryDto(dcqlQuery))
-                .clientId(getClientId(effectiveConfig))
+                .clientId(effectiveConfig.clientId())
                 .clientMetadata(builtMetadata)
 
                 .responseType(RESPONSE_TYPE)
                 .responseMode(ManagementMapper.toResponseModeDto(responseSpecification.getResponseModeType()))
                 .responseUri(String.format("%s/oid4vp/api/request-object/%s/response-data",
                         effectiveConfig.externalUrl(),
-                        managementEntityId))
+                        managementEntity.getId()))
                 .state(managementEntity.getOauthState())
                 .encryptedResponseEncValuesSupported(responseSpecification.getEncryptedResponseEncValuesSupported())
                 .build();
@@ -134,14 +133,6 @@ public class RequestObjectService {
         return trustStatementInjectionService
                 .map(svc -> svc.injectVerifierInfo(baseRequestObject, effectiveConfig.clientId(), managementEntity))
                 .orElse(baseRequestObject);
-    }
-
-    private String getClientId(EffectiveRequestObjectConfig effectiveConfig) {
-         if (StringUtils.isBlank(applicationProperties.getClientIdPrefix())) {
-            return effectiveConfig.clientId();
-         }
-
-         return applicationProperties.getClientIdPrefix() + ":" + effectiveConfig.clientId();
     }
 
     /**
@@ -174,7 +165,7 @@ public class RequestObjectService {
     private EffectiveRequestObjectConfig resolveEffectiveConfig(Management managementEntity) {
         var override = managementEntity.getConfigurationOverride();
         var externalUrl = override.externalUrlOrDefault(applicationProperties.getExternalUrl());
-        var clientId = override.verifierDidOrDefault(applicationProperties.getClientId());
+        var clientId = override.verifierDidOrDefaultWithPrefix(applicationProperties);
         var verificationMethod = override.verificationMethodOrDefault(applicationProperties.getSigningKeyVerificationMethod());
 
         return new EffectiveRequestObjectConfig(externalUrl, clientId, verificationMethod);
@@ -208,6 +199,8 @@ public class RequestObjectService {
     private JWTClaimsSet createJWTClaimsSet(String issuer, RequestObjectDto requestObject) {
         JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder();
         builder.issuer(issuer);
+        builder.issueTime(Date.from(Instant.now()));
+        builder.expirationTime(Date.from(Instant.now().plusSeconds(applicationProperties.getRequestObjectTTLSeconds())));
 
         // Get all properties of the request object as a JSON-ready map
         Map<String, Object> requestObjectProperties = JsonUtil.getJsonObject(objectMapper.convertValue(requestObject, Map.class));

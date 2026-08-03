@@ -1,7 +1,18 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
-import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.FAILED;
-import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
+import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import jakarta.persistence.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -9,30 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.apache.commons.lang3.StringUtils;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.Table;
-import jakarta.persistence.Version;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.FAILED;
 
 @Entity
 @Table(
@@ -118,7 +106,7 @@ public class Management {
     private ResponseSpecification responseSpecification = ResponseSpecification.builder().responseModeType(ResponseModeType.DIRECT_POST).build();
 
     /**
-     * SHA-256 query hash linking this session to a persisted {@link ch.admin.bj.swiyu.verifier.domain.vqps.VqpsCache} entry.
+     * SHA-256 query hash linking this session to a persisted {@link ch.admin.bj.swiyu.verifier.domain.vqps.Vqps} entry.
      * When set, the request object service looks up the vqPS JWT by this hash (the PK of
      * {@code vqps_cache}) and injects it into the {@code verifier_info} array of the Authorization Request.
      */
@@ -147,7 +135,6 @@ public class Management {
     /**
      * Marks this session as exclusively claimed for processing by transitioning the
      * state from {@link VerificationStatus#PENDING} to {@link VerificationStatus#IN_PROGRESS}.
-     *
      * If a concurrent thread has already called this method and flushed the version increment,
      * JPA will throw an {@link jakarta.persistence.OptimisticLockException}.
      *
@@ -170,12 +157,12 @@ public class Management {
                 .build();
     }
 
-    public void verificationFailedDueToClientRejection(String errorDescription) {
+    public void verificationFailedDueToClientRejection(String description, VerificationErrorResponseCode walletErrorCode) {
         ensureClaimedForProcessing();
         this.state = FAILED;
         this.walletResponse = ResponseData.builder()
-                .errorCode(VerificationErrorResponseCode.CLIENT_REJECTED)
-                .errorDescription(errorDescription)
+                .errorCode(walletErrorCode)
+                .errorDescription(description)
                 .build();
     }
 

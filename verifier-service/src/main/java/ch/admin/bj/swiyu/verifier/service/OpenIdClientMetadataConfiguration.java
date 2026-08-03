@@ -66,9 +66,6 @@ public class OpenIdClientMetadataConfiguration {
     }
 
     private OpenidClientMetadataDto resourceToMappedData(Resource res) throws IOException {
-        if (res == null || !res.exists()) {
-            throw new ConfigurationException("Unable to find OpenID client metadata file", null);
-        }
         var json = replaceTemplateProps(res.getContentAsString(Charset.defaultCharset()));
         return objectMapper.readValue(json, OpenidClientMetadataDto.class);
     }

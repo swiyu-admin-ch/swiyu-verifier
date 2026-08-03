@@ -39,7 +39,6 @@ configs:
     # Verifier logo configuration guide: https://swiyu-admin-ch.github.io/cookbooks/vc-visual-presentation/#verifier-logo
     content: |
       {
-        "client_id": "${VERIFIER_DID}",
         "client_name#en": "Development Demo Verifier",
         "client_name#fr": "Vérificateur de démonstration de développement",
         "client_name#de-DE": "Entwicklungs-Demo-Verifizierer",

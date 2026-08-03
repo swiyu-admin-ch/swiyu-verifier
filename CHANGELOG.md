@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated to Jackson 3 `(#944)`
 
 ## Fixed
-- Fixed several unhandled null value cases in DCQL presentation processing (`null`/missing vp_token entries and vp_token lists containing `null`, as well as a missing DCQL query on the verification request) that previously caused an unhandled `NullPointerException` (HTTP 500) instead of a proper `invalid_presentation_submission` error `(#1120)`
+- Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`
 
 # [4.1.1] - 2026-07-24
 ## Added

@@ -43,8 +43,9 @@ public class DcqlPresentationVerificationService {
      * <p>
      * Throws a {@link VerificationException} with {@link VerificationErrorResponseCode#INVALID_PRESENTATION_SUBMISSION}
      * if required VP tokens are missing, {@code null}, contain {@code null} entries, do not match the DCQL
-     * constraints, if serialization fails, or if the given {@link Management} entity has no DCQL query configured
-     * (e.g. a legacy verification request that receives a DCQL-formatted wallet response).
+     * constraints, if serialization fails, if the {@code vp_token} object itself is missing/{@code null}, or if the
+     * given {@link Management} entity has no DCQL query configured (e.g. a legacy verification request that
+     * receives a DCQL-formatted wallet response).
      */
     public String process(Management entity, VerificationPresentationDCQLRequestDto request) {
         var dcqlQuery = entity.getDcqlQuery();
@@ -55,6 +56,9 @@ public class DcqlPresentationVerificationService {
         }
         var requestedCredentials = dcqlQuery.getCredentials();
         var vpTokens = request.getVpToken();
+        if (vpTokens == null) {
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp_token object in presentation submission");
+        }
         var verifiedResponses = new HashMap<String, List<Map<String, Object>>>();
         for (var requestedCredential : requestedCredentials) {
             if (!vpTokens.containsKey(requestedCredential.getId())) {

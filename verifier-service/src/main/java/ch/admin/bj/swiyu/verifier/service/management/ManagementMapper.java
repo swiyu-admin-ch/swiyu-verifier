@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.*;
 import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
@@ -142,6 +143,24 @@ public class ManagementMapper {
                     VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION_REFERENCE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
             case INVALID_TOKEN_STATUS_LIST -> VerificationErrorResponseCodeDto.INVALID_TOKEN_STATUS_LIST;
+            case ACCESS_DENIED -> VerificationErrorResponseCodeDto.ACCESS_DENIED;
+        };
+    }
+
+    public VerificationErrorResponseCode toVerificationErrorResponseCode(VerificationClientErrorDto rejectionCode) {
+        if (rejectionCode == null) {
+            return null;
+        }
+
+        return switch (rejectionCode) {
+            case INVALID_SCOPE -> VerificationErrorResponseCode.INVALID_SCOPE;
+            case INVALID_REQUEST -> VerificationErrorResponseCode.INVALID_REQUEST;
+            case INVALID_CLIENT -> VerificationErrorResponseCode.INVALID_CLIENT;
+            case VP_FORMATS_NOT_SUPPORTED -> VerificationErrorResponseCode.VP_FORMATS_NOT_SUPPORTED;
+            case INVALID_PRESENTATION_DEFINITION_URI -> VerificationErrorResponseCode.INVALID_PRESENTATION_DEFINITION_URI;
+            case INVALID_PRESENTATION_DEFINITION_REFERENCE -> VerificationErrorResponseCode.INVALID_PRESENTATION_DEFINITION_REFERENCE;
+            case CLIENT_REJECTED -> VerificationErrorResponseCode.CLIENT_REJECTED;
+            case ACCESS_DENIED -> VerificationErrorResponseCode.ACCESS_DENIED;
         };
     }
 

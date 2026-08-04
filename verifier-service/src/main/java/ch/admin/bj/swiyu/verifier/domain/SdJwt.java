@@ -27,6 +27,7 @@ public class SdJwt {
      * The compact serialized format for the SD-JWT is the concatenation of each part delineated with a single tilde ('~') character.
      */
     public static final String JWT_PART_DELINEATION_CHARACTER = "~";
+    public static final List<String> SD_JWT_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
 
     @Getter
     private final String[] parts;
@@ -130,5 +131,19 @@ public class SdJwt {
             throw new IllegalStateException("claims has not yet been verified");
         }
         return claims;
+    }
+
+    /**
+     * Checks whether the supplied credential format represents a supported SD-JWT credential type.
+     *
+     * @param format credential format to inspect
+     * @return true when the format is one of the supported SD-JWT credential types
+     */
+    public static boolean isSdJwtFormat(String format) {
+        return format != null && SD_JWT_FORMATS.stream().anyMatch(supportedFormat -> supportedFormat.equalsIgnoreCase(format));
+    }
+
+    public boolean isSDJWTType() {
+        return getHeader().getType() != null && isSdJwtFormat(getHeader().getType().getType());
     }
 }

@@ -239,8 +239,18 @@ public class SdJwtVpTokenVerifier {
     void validateFormat(DcqlCredential dcqlCredential, SdJwt vpToken) {
         var expectedFormatType = dcqlCredential.getFormat();
         var actualFormatType = vpToken.getHeader().getType();
-        if (actualFormatType == null || !expectedFormatType.equalsIgnoreCase(String.valueOf(actualFormatType))) {
-            var error = "Wrong format for %s - expected %s but received %s".formatted(dcqlCredential.getId(), expectedFormatType, actualFormatType);
+        var actualFormatValue = actualFormatType == null ? null : actualFormatType.getType();
+
+        if (dcqlCredential.expectsSDJWTCredential()) {
+            if (!vpToken.isSDJWTType()) {
+                var error = "Wrong format for %s - expected SD-JWT but received %s".formatted(dcqlCredential.getId(), actualFormatValue);
+                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, error);
+            }
+            return;
+        }
+
+        if (actualFormatValue == null || !expectedFormatType.equalsIgnoreCase(actualFormatValue)) {
+            var error = "Wrong format for %s - expected %s but received %s".formatted(dcqlCredential.getId(), expectedFormatType, actualFormatValue);
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, error);
         }
     }

@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
@@ -279,6 +280,41 @@ class SdJwtVpTokenVerifierTest {
         assertThat(ex.getErrorDescription())
                 .as("Should throw understandable error message indicating the claim name collision")
                 .startsWith("Duplicate digest detected");
+    }
+
+    @Test
+    void validateFormat_whenDcSdJwtIsRequestedAndVcSdJwtIsPresented_thenSucceeds() {
+        var dcqlCredential = DcqlCredential.builder().id("credential-id").format(DC_SD_JWT_CREDENTIAL_FORMAT).build();
+        var vpToken = mock(SdJwt.class);
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType(VC_SD_JWT_CREDENTIAL_FORMAT)).build();
+
+        when(vpToken.getHeader()).thenReturn(header);
+        when(vpToken.isSDJWTType()).thenCallRealMethod();
+
+        assertDoesNotThrow(() -> verifier.validateFormat(dcqlCredential, vpToken));
+    }
+
+    @Test
+    void validateFormat_whenVcSdJwtIsRequestedAndDcSdJwtIsPresented_thenSucceeds() {
+        var dcqlCredential = DcqlCredential.builder().id("credential-id").format(VC_SD_JWT_CREDENTIAL_FORMAT).build();
+        var vpToken = mock(SdJwt.class);
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType(DC_SD_JWT_CREDENTIAL_FORMAT)).build();
+
+        when(vpToken.getHeader()).thenReturn(header);
+        when(vpToken.isSDJWTType()).thenCallRealMethod();
+
+        assertDoesNotThrow(() -> verifier.validateFormat(dcqlCredential, vpToken));
+    }
+
+    @Test
+    void validateFormat_whenNonSdJwtFormatDoesNotMatch_thenThrowsException() {
+        var dcqlCredential = DcqlCredential.builder().id("credential-id").format("jwt_vc_json").build();
+        var vpToken = mock(SdJwt.class);
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("jwt_vc")).build();
+
+        when(vpToken.getHeader()).thenReturn(header);
+
+        assertThrows(VerificationException.class, () -> verifier.validateFormat(dcqlCredential, vpToken));
     }
 
     @ParameterizedTest

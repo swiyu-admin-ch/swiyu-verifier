@@ -796,44 +796,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_NESTED_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
-    @Test
-    void verification_withIncorrectFormat_throws() throws Exception {
-        var requestId = UUID.randomUUID();
-        var dcql = DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson(DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT));
-        managementEntityRepository.save(Management.builder()
-                .id(requestId)
-                .requestNonce(NONCE_SD_JWT_SQL)
-                .state(PENDING)
-                .oauthState(requestId.toString())
-                .walletResponse(null)
-                .expirationInSeconds(86400)
-                .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
-                .jwtSecuredAuthorizationRequest(true)
-                .dcqlQuery(dcql)
-                .build());
-
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSDJWTMock(true, DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT);
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
-
-        // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
-
-        // WHEN / THEN
-        var submissionData = objectMapper.writeValueAsString(Map.of(dcql.getCredentials().getFirst().getId(), List.of(vpToken)));
-        // WHEN / THEN
-        postVerificationResponse(requestId, submissionData, requestId)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("$.detail").value("invalid_presentation_submission"))
-                .andExpect(jsonPath("$.error_description").value("Wrong format for %s - expected %s but received %s".formatted(
-                        dcql.getCredentials().getFirst().getId(),
-                        DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT,
-                        DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT
-                )));
-    }
 
     @Test
     void testDCQLNestedEndpoint_forArray_thenSuccess() throws Exception {

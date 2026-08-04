@@ -75,6 +75,10 @@ public record CreateVerificationManagementDto(
                 "When present, the verifier registers the DCQL query and injects the resulting vqPS " +
                 "into subsequent Authorization Requests.")
         @JsonProperty("verification_purpose")
-        VerificationPurposeDto verificationPurpose
+        VerificationPurposeDto verificationPurpose,
+
+        @ValidUri
+        @JsonProperty("redirect_uri")
+        String redirectUri
 ) {
 }

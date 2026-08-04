@@ -2,6 +2,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import tools.jackson.databind.ObjectMapper;
 import jakarta.validation.Validation;
@@ -24,8 +25,6 @@ import static org.mockito.Mockito.when;
 
 class OpenIdClientMetadataConfigurationTest {
 
-    private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private Resource clientMetadataResource;
@@ -33,6 +32,10 @@ class OpenIdClientMetadataConfigurationTest {
 
     @BeforeEach
     void setUp() {
+        Validator validator;
+        try (var val = Validation.buildDefaultValidatorFactory()) {
+            validator = val.getValidator();
+        }
         ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
         clientMetadataResource = mock(Resource.class);
 
@@ -51,9 +54,7 @@ class OpenIdClientMetadataConfigurationTest {
 
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
 
-        config.initOpenIdClientMetadata();
-
-        var metadata = config.getOpenIdClientMetadata();
+        var metadata = config.getVerifierMetadata();
 
         assertThat(metadata.getAdditionalProperties())
                 .containsEntry("logo", "logo");
@@ -65,10 +66,10 @@ class OpenIdClientMetadataConfigurationTest {
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset()))
                 .thenThrow(new IOException(ioExcMsg));
 
-        var exc = assertThrowsExactly(IllegalStateException.class, config::initOpenIdClientMetadata);
+        var exc = assertThrowsExactly(ConfigurationException.class, config::getVerifierMetadata);
 
         assertThat(exc)
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ConfigurationException.class)
                 .hasMessageContaining(ioExcMsg);
     }
 
@@ -77,10 +78,10 @@ class OpenIdClientMetadataConfigurationTest {
     void initOpenIdClientMetadata_invalidCases_throwsException(String template, String expectedMessage) throws IOException {
         when(clientMetadataResource.getContentAsString(Charset.defaultCharset())).thenReturn(template);
 
-        var exception = assertThrows(IllegalStateException.class, config::initOpenIdClientMetadata);
+        var exception = assertThrows(ConfigurationException.class, config::getVerifierMetadata);
 
         assertThat(exception)
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ConfigurationException.class)
                 .hasMessageContaining(expectedMessage);
     }
 

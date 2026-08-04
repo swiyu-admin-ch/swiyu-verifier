@@ -1,6 +1,9 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Verifier Application" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
     <option name="ACTIVE_PROFILES" value="local" />
+    <envs>
+      <env name="VERIFIER_DID" value="did:webvh:QmdQFaWsjEbfNnpnXSuVmavevU9krcYJeonmWyJURmeQw4:identifier-reg-a.trust-infra.swiyu-int.admin.ch:api:v1:did:f2bb31e7-d2d7-40a0-b6d9-dc926246db2a" />
+    </envs>
     <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
     <module name="swiyu-verifier-application" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="ch.admin.bj.swiyu.verifier.Application" />

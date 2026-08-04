@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -177,6 +178,7 @@ class ApplicationPropertiesTest {
      */
     private ApplicationProperties createValidProperties() {
         ApplicationProperties properties = new ApplicationProperties();
+        properties.setTemplateReplacement(Map.of("client-id", "test-client"));
         properties.setVerificationTTL(3600);
         properties.setExternalUrl("https://example.com");
         properties.setClientId("test-client");

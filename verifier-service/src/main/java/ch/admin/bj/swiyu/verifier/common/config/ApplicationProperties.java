@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.common.config;
 
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -46,7 +47,12 @@ public class ApplicationProperties {
     // Limits the maximum length of compressed ciphertext accepted by the application
     // to avoid excessive memory usage or potential DoS.
     @NotNull
+    @Min(1)
     private Integer maxCompressedCipherTextLength;
+
+    @NotNull
+    @Min(1)
+    private Integer maxDecompressedPayloadLength;
 
     @NotNull
     private Integer maxVcsAccepted = 1;

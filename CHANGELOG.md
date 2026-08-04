@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
-## Changed 
+## Changed
 - Wallet response is now added to the verification management object instead of `client_rejection` as default. `(#1189)`
 - `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`
 - Updated to Jackson 3 `(#944)`
+
+## Fixed
+- Mitigated JWE decompression bomb vulnerability: added a `MAX_DECOMPRESSED_PAYLOAD_LENGTH` defense-in-depth limit that rejects oversized decrypted/decompressed payloads before JSON parsing (#1117)
 
 # [4.1.1] - 2026-07-24
 ## Added

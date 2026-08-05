@@ -1,14 +1,14 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHDecrypter;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
@@ -16,8 +16,6 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
@@ -34,7 +32,6 @@ import static org.mockito.Mockito.*;
 class ManagementServiceTest {
 
     private ManagementRepository repository;
-    private ManagementTransactionalService managementTransactionalService;
     private ApplicationProperties applicationProperties;
     private ManagementService service;
     private UUID id;
@@ -44,7 +41,7 @@ class ManagementServiceTest {
         id = UUID.randomUUID();
         repository = mock(ManagementRepository.class);
         applicationProperties = mock(ApplicationProperties.class);
-        managementTransactionalService = new ManagementTransactionalService(repository, applicationProperties);
+        ManagementTransactionalService managementTransactionalService = new ManagementTransactionalService(repository, applicationProperties);
         service = new ManagementService(applicationProperties, managementTransactionalService, null);
     }
 
@@ -59,6 +56,7 @@ class ManagementServiceTest {
                 ResponseModeTypeDto.DIRECT_POST,
                 null,
                 dcqlQueryDto,
+                null,
                 null
         );
         var management = mock(Management.class);
@@ -85,6 +83,7 @@ class ManagementServiceTest {
                 null,
                 false,
                 ResponseModeTypeDto.DIRECT_POST,
+                null,
                 null,
                 null,
                 null
@@ -149,6 +148,7 @@ class ManagementServiceTest {
                 ResponseModeTypeDto.DIRECT_POST_JWT,
                 null,
                 dcqlQueryDto,
+                null,
                 null
         );
         var management = mock(Management.class);
@@ -180,8 +180,8 @@ class ManagementServiceTest {
 
         // Validate that keys can be indeed be used together by doing a dry run of the encryption
         for (JWK jwk : jwkSet.getKeys()) {
-            assertThat(jwk.getAlgorithm()).isNotNull().as("For OID4VP algorithm MUST be not null");
-            assertThat(jwk.getAlgorithm()).isEqualTo(JWEAlgorithm.ECDH_ES).as("For swiss profile verification 1.0 only ECDH-ES is supported");
+            assertThat(jwk.getAlgorithm()).as("For OID4VP algorithm MUST be not null").isNotNull();
+            assertThat(jwk.getAlgorithm()).as("For swiss profile verification 1.0 only ECDH-ES is supported").isEqualTo(JWEAlgorithm.ECDH_ES);
             // This part would be done by the wallet
             var encryptionMethod = EncryptionMethod.parse(responseSpec.getEncryptedResponseEncValuesSupported().getFirst());
             JWEObject jweObject = new JWEObject(

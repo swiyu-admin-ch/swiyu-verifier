@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,13 +57,15 @@ public class ManagementTransactionalService {
      * @param trustAnchors                  resolved trust anchors
      * @param responseSpecificationBuilder  builder for the response specification
      * @param vqpsQueryHash                 optional SHA-256 query hash linking this session to a cached vqPS JWT (PK of {@code vqps_cache})
+     * @param redirectURI                   optional redirect URI for the response
      */
     @Transactional
     public Management saveNewManagement(DcqlQuery dcqlQuery,
                                         CreateVerificationManagementDto request,
                                         List<TrustAnchor> trustAnchors,
                                         ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder,
-                                        String vqpsQueryHash) {
+                                        String vqpsQueryHash,
+                                        URI redirectURI) {
         return repository.save(Management.builder()
             .expirationInSeconds(applicationProperties.getVerificationTTL())
             .dcqlQuery(dcqlQuery)
@@ -72,6 +75,7 @@ public class ManagementTransactionalService {
             .trustAnchors(trustAnchors)
             .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
             .vqpsQueryHash(vqpsQueryHash)
+            .redirectURI(redirectURI)
             .build()
             .resetExpiresAt());
     }

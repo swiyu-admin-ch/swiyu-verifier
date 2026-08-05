@@ -14,6 +14,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
@@ -104,6 +105,10 @@ public class Management {
     @JdbcTypeCode(SqlTypes.JSON)
     @NotNull
     private ResponseSpecification responseSpecification = ResponseSpecification.builder().responseModeType(ResponseModeType.DIRECT_POST).build();
+
+    @Column(name = "redirect_uri")
+    @Convert(converter = UriAttributeConverter.class)
+    private URI redirectURI;
 
     /**
      * SHA-256 query hash linking this session to a persisted {@link ch.admin.bj.swiyu.verifier.domain.vqps.Vqps} entry.

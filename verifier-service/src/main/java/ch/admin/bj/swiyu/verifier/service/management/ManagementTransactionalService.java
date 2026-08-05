@@ -74,7 +74,7 @@ public class ManagementTransactionalService {
             .trustAnchors(trustAnchors)
             .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
             .vqpsQueryHash(vqpsQueryHash)
-            .redirectUri(redirectUri)
+            .redirectURI(redirectUri)
             .build()
             .resetExpiresAt());
     }

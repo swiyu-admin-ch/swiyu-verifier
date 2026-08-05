@@ -108,7 +108,7 @@ public class Management {
 
     @Column(name = "redirect_uri")
     @Convert(converter = UriAttributeConverter.class)
-    private URI redirectUri;
+    private URI redirectURI;
 
     /**
      * SHA-256 query hash linking this session to a persisted {@link ch.admin.bj.swiyu.verifier.domain.vqps.Vqps} entry.

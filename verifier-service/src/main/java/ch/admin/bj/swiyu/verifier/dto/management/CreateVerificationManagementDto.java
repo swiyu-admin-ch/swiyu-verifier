@@ -78,7 +78,7 @@ public record CreateVerificationManagementDto(
         @JsonProperty("verification_purpose")
         VerificationPurposeDto verificationPurpose,
 
-        // Todo check @ValidUri
+        @ValidUri
         @SessionNonce
         @Schema(description = "[NOT FINISHED] Do not use this field yet! Optional URI to redirect the user after the verification process. Must contain a session_nonce parameter.",
                 hidden = true,

@@ -57,6 +57,7 @@ public class ManagementTransactionalService {
      * @param trustAnchors                  resolved trust anchors
      * @param responseSpecificationBuilder  builder for the response specification
      * @param vqpsQueryHash                 optional SHA-256 query hash linking this session to a cached vqPS JWT (PK of {@code vqps_cache})
+     * @param redirectURI                   optional redirect URI for the response
      */
     @Transactional
     public Management saveNewManagement(DcqlQuery dcqlQuery,

@@ -89,9 +89,8 @@ def _build_llm() -> ChatOpenAI:
     if not adesso_api_key or not adesso_base_url:
         raise ValueError("ERROR: Please set ADESSO_API_KEY and ADESSO_BASE_URL as environment variables!")
 
-    return ChatOpenAI(
+    llm_kwargs = dict(
         model=llm_model_name,
-        temperature=0,
         api_key=adesso_api_key,
         base_url=adesso_base_url,
         max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "5000")), # Must be high enough for the full JSON; truncated output cannot be parsed
@@ -99,6 +98,13 @@ def _build_llm() -> ChatOpenAI:
         max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504) with backoff
         # http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
     )
+    # Claude models behind the adesso AI Hub proxy (routed via Vertex AI) reject
+    # the 'temperature' param outright ("temperature is deprecated for this
+    # model"), so it must only be sent for models that still accept it.
+    if "claude" not in llm_model_name.lower():
+        llm_kwargs["temperature"] = 0
+
+    return ChatOpenAI(**llm_kwargs)
 
 
 def analyze_diff_node(state: ReviewState) -> ReviewState:

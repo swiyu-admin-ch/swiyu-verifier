@@ -26,6 +26,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class OpenidClientMetadataDto {
 
+    @JsonProperty("client_id")
+    private String clientId;
+
     @JsonProperty("jwks")
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = """
             One or more public keys, such as those used by the Wallet as an input to a key agreement
@@ -61,15 +64,22 @@ public class OpenidClientMetadataDto {
     private OpenIdClientMetadataVpFormatsSupported vpFormatsSupported;
 
     // Dynamic fields
+    @Builder.Default
     private Map<String, Object> additionalProperties = new HashMap<>();
 
     @JsonAnySetter
     public void setAdditionalProperty(String key, Object value) {
-        this.additionalProperties.put(key, value);
+        if (additionalProperties == null) {
+            additionalProperties = new HashMap<>();
+        }
+        additionalProperties.put(key, value);
     }
 
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
+        if (additionalProperties == null) {
+            additionalProperties = new HashMap<>();
+        }
         return additionalProperties;
     }
 }

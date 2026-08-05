@@ -1,8 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
-import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialMetaDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
@@ -22,7 +20,7 @@ class CreateVerificationManagementValidatorTest {
 
     @Test
     void validate_shouldThrow_whenDCQLQueryIsNull() {
-        var request = createRequest(null, null);
+        var request = createRequest(null);
         assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
     }
 
@@ -41,7 +39,7 @@ class CreateVerificationManagementValidatorTest {
                 )
         );
         var dcqlQuery = new DcqlQueryDto(credentials, List.of());
-        var request = createRequest(dcqlQuery, null);
+        var request = createRequest(dcqlQuery);
         assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
     }
 
@@ -60,20 +58,20 @@ class CreateVerificationManagementValidatorTest {
                 )
         );
         var dcqlQuery = new DcqlQueryDto(credentials, List.of());
-        var request = createRequest(dcqlQuery, null);
+        var request = createRequest(dcqlQuery);
         assertDoesNotThrow(() -> CreateVerificationManagementValidator.validate(request));
     }
 
-    private CreateVerificationManagementDto createRequest(DcqlQueryDto dcqlQuery,
-                                                          List<TrustAnchorDto> trustAnchors) {
+    private CreateVerificationManagementDto createRequest(DcqlQueryDto dcqlQuery) {
         return new CreateVerificationManagementDto(
                 null, // acceptedIssuerDids
-                trustAnchors,
+                null,
                 null, // jwtSecuredAuthorizationRequest
                 null, // responseMode
                 null, // configuration_override
                 dcqlQuery,
-                null
+                null, // verificationPurpose
+                null // redirectUri
         );
     }
 

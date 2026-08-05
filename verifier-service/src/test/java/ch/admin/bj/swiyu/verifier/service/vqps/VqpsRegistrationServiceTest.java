@@ -8,7 +8,7 @@ import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSASigner;

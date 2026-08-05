@@ -42,16 +42,16 @@ public class PresentationVerificationUsecase {
      * </ul>
      *
      * @param managementEntityId the id of the Management
-     * @param request            the presentation rejection request from the client
+     * @param rejection            the presentation rejection request from the client
      */
-    public void receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto request) {
+    public void receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         log.debug("Processing rejection for request_id: {}", managementEntityId);
 
         try {
             // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
             managementService.claimSessionForProcessing(managementEntityId);
             // 2. Mark as failed due to client rejection in its own short-lived transaction
-            managementService.markVerificationFailedDueToClientRejection(managementEntityId, request.getErrorDescription());
+            managementService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
         } catch (VerificationException e) {
             // 2a. Persist failed verification result in a dedicated short transaction
             managementService.markVerificationFailed(managementEntityId, e);

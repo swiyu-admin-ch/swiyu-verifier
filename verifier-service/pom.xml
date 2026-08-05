@@ -252,7 +252,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.5.1</version>
                 <executions>
                     <execution>
                         <goals>
@@ -283,6 +283,8 @@
                         <dateLibrary>java21</dateLibrary>
                         <useJakartaEe>true</useJakartaEe>
                         <openApiNullable>false</openApiNullable>
+                        <useJackson3>true</useJackson3>
+                        <useSpringBoot4>true</useSpringBoot4>
                     </configOptions>
                     <output>${project.build.directory}/generated-sources</output>
                 </configuration>

@@ -10,7 +10,7 @@ import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSASigner;

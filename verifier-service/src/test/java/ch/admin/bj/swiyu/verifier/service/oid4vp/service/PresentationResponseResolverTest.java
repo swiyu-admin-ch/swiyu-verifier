@@ -11,7 +11,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.JweDecryptionService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResponseResolver;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.jwk.Curve;

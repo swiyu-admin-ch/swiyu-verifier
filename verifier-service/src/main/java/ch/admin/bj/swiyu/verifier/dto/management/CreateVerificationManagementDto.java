@@ -84,6 +84,6 @@ public record CreateVerificationManagementDto(
                 hidden = true,
                 example = "https://example.com/redirect?session_nonce=12345")
         @JsonProperty("redirect_uri")
-        URI redirectUri
+        URI redirectURI
 ) {
 }

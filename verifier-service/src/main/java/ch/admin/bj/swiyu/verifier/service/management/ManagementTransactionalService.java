@@ -64,7 +64,7 @@ public class ManagementTransactionalService {
                                         List<TrustAnchor> trustAnchors,
                                         ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder,
                                         String vqpsQueryHash,
-                                        URI redirectUri) {
+                                        URI redirectURI) {
         return repository.save(Management.builder()
             .expirationInSeconds(applicationProperties.getVerificationTTL())
             .dcqlQuery(dcqlQuery)
@@ -74,7 +74,7 @@ public class ManagementTransactionalService {
             .trustAnchors(trustAnchors)
             .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
             .vqpsQueryHash(vqpsQueryHash)
-            .redirectURI(redirectUri)
+            .redirectURI(redirectURI)
             .build()
             .resetExpiresAt());
     }

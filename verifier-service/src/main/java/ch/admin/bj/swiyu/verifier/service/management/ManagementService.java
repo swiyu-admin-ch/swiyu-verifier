@@ -105,7 +105,7 @@ public class ManagementService {
                 trustAnchors,
                 responseSpecificationBuilder,
                 vqpsQueryHash,
-                request.redirectUri()
+                request.redirectURI()
         );
         log.info("Created pending verification for id: {}", management.getId());
         return toManagementResponseDto(management, applicationProperties);

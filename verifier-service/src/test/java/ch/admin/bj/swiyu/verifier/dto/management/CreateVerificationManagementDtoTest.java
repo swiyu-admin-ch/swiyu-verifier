@@ -39,13 +39,13 @@ class CreateVerificationManagementDtoTest {
     }
 
     @Test
-    void validate_withRedirectUri_shouldSucceed() {
+    void validate_withRedirectURI_shouldSucceed() {
         CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of("did:example:12345"))
                 .jwtSecuredAuthorizationRequest(Boolean.TRUE)
                 .responseMode(ResponseModeTypeDto.DIRECT_POST)
                 .dcqlQuery(createValidDcqlQuery())
-                .redirectUri(URI.create("https://wallet.example/callback?session_nonce=test"))
+                .redirectURI(URI.create("https://wallet.example/callback?session_nonce=test"))
                 .build();
 
         Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
@@ -54,17 +54,17 @@ class CreateVerificationManagementDtoTest {
     }
 
     @Test
-    void validate_withInvalidHttpRedirectUri_shouldFail() {
+    void validate_withInvalidHttpRedirectURI_shouldFail() {
         CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of("did:example:12345"))
                 .dcqlQuery(createValidDcqlQuery())
-                .redirectUri(URI.create("http://test.com?session_nonce=test"))
+                .redirectURI(URI.create("http://test.com?session_nonce=test"))
                 .build();
 
         Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
 
         assertThat(violations).singleElement().satisfies(violation -> {
-            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectUri");
+            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectURI");
             assertThat(violation.getMessage()).isEqualTo("must be a valid URI");
         });
     }
@@ -203,7 +203,7 @@ class CreateVerificationManagementDtoTest {
                 ))
                 .dcqlQuery(createValidDcqlQuery())
                 .verificationPurpose(verificationPurpose)
-                .redirectUri(URI.create("https://wallet.example/callback?session_nonce=test"))
+                .redirectURI(URI.create("https://wallet.example/callback?session_nonce=test"))
                 .build();
     }
 
@@ -227,33 +227,33 @@ class CreateVerificationManagementDtoTest {
     }
 
     @Test
-    void validate_withRedirectUriMissingSessionNonce_shouldFail() {
+    void validate_withRedirectURIMissingSessionNonce_shouldFail() {
         CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of("did:example:12345"))
                 .dcqlQuery(createValidDcqlQuery())
-                .redirectUri(URI.create("https://wallet.example/callback"))
+                .redirectURI(URI.create("https://wallet.example/callback"))
                 .build();
 
         Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
 
         assertThat(violations).singleElement().satisfies(violation -> {
-            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectUri");
+            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectURI");
             assertThat(violation.getMessage()).isEqualTo("must contain a session nonce");
         });
     }
 
     @Test
-    void validate_withRedirectUriEmptySessionNonce_shouldFail() {
+    void validate_withRedirectURIEmptySessionNonce_shouldFail() {
         CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of("did:example:12345"))
                 .dcqlQuery(createValidDcqlQuery())
-                .redirectUri(URI.create("https://wallet.example/callback?session_nonce="))
+                .redirectURI(URI.create("https://wallet.example/callback?session_nonce="))
                 .build();
 
         Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
 
         assertThat(violations).singleElement().satisfies(violation -> {
-            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectUri");
+            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectURI");
             assertThat(violation.getMessage()).isEqualTo("must contain a session nonce");
         });
     }

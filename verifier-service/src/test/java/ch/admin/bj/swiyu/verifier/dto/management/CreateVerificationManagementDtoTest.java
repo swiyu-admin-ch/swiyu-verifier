@@ -10,6 +10,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,7 @@ class CreateVerificationManagementDtoTest {
                 .jwtSecuredAuthorizationRequest(Boolean.TRUE)
                 .responseMode(ResponseModeTypeDto.DIRECT_POST)
                 .dcqlQuery(createValidDcqlQuery())
-                .redirectUri("https://wallet.example/callback?session_nonce=test")
+                .redirectUri(URI.create("https://wallet.example/callback?session_nonce=test"))
                 .build();
 
         Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
@@ -53,11 +54,11 @@ class CreateVerificationManagementDtoTest {
     }
 
     @Test
-    void validate_withInvalidRedirectUri_shouldFail() {
+    void validate_withInvalidHttpRedirectUri_shouldFail() {
         CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of("did:example:12345"))
                 .dcqlQuery(createValidDcqlQuery())
-                .redirectUri("http://in valid")
+                .redirectUri(URI.create("http://test.com?session_nonce=test"))
                 .build();
 
         Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
@@ -202,7 +203,7 @@ class CreateVerificationManagementDtoTest {
                 ))
                 .dcqlQuery(createValidDcqlQuery())
                 .verificationPurpose(verificationPurpose)
-                .redirectUri("https://wallet.example/callback?session_nonce=test")
+                .redirectUri(URI.create("https://wallet.example/callback?session_nonce=test"))
                 .build();
     }
 
@@ -223,5 +224,37 @@ class CreateVerificationManagementDtoTest {
                 null
         );
         return new DcqlQueryDto(List.of(credential), List.of());
+    }
+
+    @Test
+    void validate_withRedirectUriMissingSessionNonce_shouldFail() {
+        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of("did:example:12345"))
+                .dcqlQuery(createValidDcqlQuery())
+                .redirectUri(URI.create("https://wallet.example/callback"))
+                .build();
+
+        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
+
+        assertThat(violations).singleElement().satisfies(violation -> {
+            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectUri");
+            assertThat(violation.getMessage()).isEqualTo("must contain a session nonce");
+        });
+    }
+
+    @Test
+    void validate_withRedirectUriEmptySessionNonce_shouldFail() {
+        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of("did:example:12345"))
+                .dcqlQuery(createValidDcqlQuery())
+                .redirectUri(URI.create("https://wallet.example/callback?session_nonce="))
+                .build();
+
+        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
+
+        assertThat(violations).singleElement().satisfies(violation -> {
+            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectUri");
+            assertThat(violation.getMessage()).isEqualTo("must contain a session nonce");
+        });
     }
 }

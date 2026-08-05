@@ -4,23 +4,19 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
-public class UriValidator implements ConstraintValidator<ValidUri, String> {
+public class UriValidator implements ConstraintValidator<ValidUri, URI> {
 
     @Override
-    public boolean isValid(String value, ConstraintValidatorContext context) {
+    public boolean isValid(URI value, ConstraintValidatorContext context) {
 
-        // Null or Blank values must be handled by @NotNull or @NotBlank annotations
-        if (value == null || value.isBlank()) {
+        // Null values must be handled by @NotNull annotation
+        if (value == null) {
             return true;
         }
 
-        try {
-            new URI(value);
-            return true;
-        } catch (URISyntaxException e) {
-            return false;
-        }
+        return value.isAbsolute()
+            && "https".equalsIgnoreCase(value.getScheme())
+            && value.getHost() != null;
     }
 }

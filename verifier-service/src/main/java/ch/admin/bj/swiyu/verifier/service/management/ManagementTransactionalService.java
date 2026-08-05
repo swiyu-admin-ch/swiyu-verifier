@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,7 +63,8 @@ public class ManagementTransactionalService {
                                         CreateVerificationManagementDto request,
                                         List<TrustAnchor> trustAnchors,
                                         ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder,
-                                        String vqpsQueryHash) {
+                                        String vqpsQueryHash,
+                                        URI redirectUri) {
         return repository.save(Management.builder()
             .expirationInSeconds(applicationProperties.getVerificationTTL())
             .dcqlQuery(dcqlQuery)
@@ -72,6 +74,7 @@ public class ManagementTransactionalService {
             .trustAnchors(trustAnchors)
             .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
             .vqpsQueryHash(vqpsQueryHash)
+            .redirectUri(redirectUri)
             .build()
             .resetExpiresAt());
     }

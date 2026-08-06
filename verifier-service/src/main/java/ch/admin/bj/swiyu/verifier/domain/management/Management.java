@@ -247,7 +247,7 @@ public class Management {
      * Creates a response code for the redirect_uri and updates the redirect_uri with the response_code query_parameter if redirect_uri was provided initially
      * (does not overwrite existing query parameters)
      */
-    public void updateRedirectURIIfNecessary() {
+    private void updateRedirectURIIfNecessary() {
         if (this.redirectURI == null) {
             return;
         }

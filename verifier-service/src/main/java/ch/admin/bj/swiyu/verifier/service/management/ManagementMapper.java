@@ -1,9 +1,9 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
- import ch.admin.bj.swiyu.verifier.VerificationPresentationResponseDto;
-import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
+ import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.dto.management.*;
+ import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationMapper;
+ import ch.admin.bj.swiyu.verifier.dto.management.*;
 import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -202,7 +202,7 @@ public class ManagementMapper {
         }
     }
 
-    public static VerificationPresentationResponseDto uriToVerificationPresentation(URI uri) {
-        return new VerificationPresentationResponseDto(uri);
+    public static VerificationPresentationMapper.VerificationPresentationResponseDto uriToVerificationPresentation(URI uri) {
+        return new VerificationPresentationMapper.VerificationPresentationResponseDto(uri);
     }
 }

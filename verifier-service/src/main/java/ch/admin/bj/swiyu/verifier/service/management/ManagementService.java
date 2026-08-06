@@ -1,12 +1,12 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationMapper;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
@@ -163,8 +163,9 @@ public class ManagementService {
      *
      * @param managementEntityId     the UUID of the management entity
      * @param credentialSubjectData  the data from the credential subject
+     * @return the {@link VerificationPresentationMapper.VerificationPresentationResponseDto} containing the response URI
      */
-    public VerificationPresentationResponseDto markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
+    public VerificationPresentationMapper.VerificationPresentationResponseDto markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
         var uri = managementTransactionalService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
         return uriToVerificationPresentation(uri);
     }
@@ -184,8 +185,9 @@ public class ManagementService {
      *
      * @param managementEntityId the UUID of the management entity
      * @param rejection          the error response from the wallet
+     * @return the {@link VerificationPresentationMapper.VerificationPresentationResponseDto} containing the response URI
      */
-    public VerificationPresentationResponseDto markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
+    public VerificationPresentationMapper.VerificationPresentationResponseDto markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
         return uriToVerificationPresentation(null);
     }

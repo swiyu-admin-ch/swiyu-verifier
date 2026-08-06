@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.controller;
+package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
@@ -490,7 +490,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void verifyNestedSDJWTCredentialSD_thenSuccess() throws Exception {
+    void shouldVerifyNestedSDJWTCredentialSD_thenSuccess() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();

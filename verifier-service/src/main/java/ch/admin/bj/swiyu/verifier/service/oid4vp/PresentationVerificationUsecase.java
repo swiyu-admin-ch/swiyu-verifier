@@ -1,10 +1,10 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationMapper;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
@@ -44,9 +44,9 @@ public class PresentationVerificationUsecase {
      *
      * @param managementEntityId the id of the Management
      * @param rejection          the presentation rejection request from the client
-     * @return the {@link VerificationPresentationResponseDto} to be sent to the wallet
+     * @return the {@link VerificationPresentationMapper.VerificationPresentationResponseDto} to be sent to the wallet
      */
-    public VerificationPresentationResponseDto receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
+    public VerificationPresentationMapper.VerificationPresentationResponseDto receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         log.debug("Processing rejection for request_id: {}", managementEntityId);
 
         try {
@@ -56,7 +56,6 @@ public class PresentationVerificationUsecase {
             return managementService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
         } catch (VerificationException e) {
             // 2a. Persist failed verification result in a dedicated short transaction
-            // TODO: EIDOMNI-1062 check if this still works
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
 
@@ -86,8 +85,9 @@ public class PresentationVerificationUsecase {
      *
      * @param managementEntityId the id of the Management
      * @param request            the DCQL presentation request to verify
+     * @return the {@link VerificationPresentationMapper.VerificationPresentationResponseDto} to be sent to the wallet
      */
-    public VerificationPresentationResponseDto receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
+    public VerificationPresentationMapper.VerificationPresentationResponseDto receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
         log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
 
         // Flag, to know if WE are allowed to fire the event in the finally block
@@ -109,7 +109,6 @@ public class PresentationVerificationUsecase {
             return responseDto;
         } catch (VerificationException e) {
             // 3b. Persist failed verification result in a dedicated short transaction
-            // TODO: EIDOMNI-1062 check if this still works
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed DCQL verification result for {}", managementEntityId);
 

@@ -1,8 +1,8 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationMapper;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
@@ -186,7 +186,7 @@ public class VerificationController {
                     )
             }
     )
-    public VerificationPresentationResponseDto receiveVerificationPresentation(
+    public VerificationPresentationMapper.VerificationPresentationResponseDto receiveVerificationPresentation(
             @RequestHeader(name = "SWIYU-API-Version", required = false) String versionString,
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationUnionDto unionDto) {

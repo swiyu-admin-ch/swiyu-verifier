@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.controller;
+package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
@@ -28,7 +28,7 @@ public class RedirectURIUseCaseIT extends BaseVerificationControllerTest {
 
     @ParameterizedTest
     @EnumSource(ResponseModeTypeDto.class)
-    public void checkRedirectFlow_withResponseModeTypeDto_thenSuccess(ResponseModeTypeDto responseModeTypeDto) throws Exception {
+    public void givenResponseMode_whenVerificationCompletes_thenRedirectUriReturned(ResponseModeTypeDto responseModeTypeDto) throws Exception {
         var request = createVerificationManagement(responseModeTypeDto);
 
         var mgmt = BaseVerificationControllerTest.createVerificationRequest(mock, request);

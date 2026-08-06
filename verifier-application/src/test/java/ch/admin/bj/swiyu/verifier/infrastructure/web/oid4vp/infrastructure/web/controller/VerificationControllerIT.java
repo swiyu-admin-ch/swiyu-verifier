@@ -11,7 +11,6 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import com.authlete.sd.Disclosure;
@@ -42,7 +41,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.ObjectMapper;
 
@@ -86,8 +84,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     private static final List<UUID> DEFAULT_REQUEST_OBJECT_SOURCE = List.of(REQUEST_ID_SECURED, REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED);
 
     @Autowired
-    private MockMvc mock;
-    @Autowired
     private ManagementRepository managementEntityRepository;
     @MockitoSpyBean
     private ApplicationProperties applicationProperties;
@@ -96,8 +92,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Autowired
     private DataSource dataSource;
 
-    @MockitoBean
-    private DidResolverFacade didResolverFacade;
     @MockitoBean
     private StatusListResolver mockedStatusListResolverAdapter;
 
@@ -694,17 +688,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdPrefix() + ":" +  applicationProperties.getClientId()))
                 .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()));
-    }
-
-    private void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
-        try {
-            // Parse the JSON Web Key string into a Nimbus JWK object to ensure correct type
-            JWK nimbusJwk = JWK.parse(KeyFixtures.issuerPublicKeyAsJsonWebKey());
-            when(didResolverFacade.resolveKey(sdjwt.getKidHeaderValue())).thenReturn(nimbusJwk);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
-
     }
 
     @Test

@@ -3,13 +3,11 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,9 +25,6 @@ class ErrorCodesIT extends BaseVerificationControllerTest {
 
     @Autowired
     private MockMvc mock;
-    @MockitoBean
-    private DidResolverFacade didResolverFacade;
-
 
     @Test
     void testExistingErrorCodesFromClientToManagement_thenSuccess() throws Exception {

@@ -1,19 +1,19 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
- import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
-import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
- import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationMapper;
- import ch.admin.bj.swiyu.verifier.dto.management.*;
-import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.management.*;
+import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -183,14 +183,14 @@ public class ManagementMapper {
     public static @NotNull ResponseModeType toResponseMode(ResponseModeTypeDto responseModeTypeDto) {
         return switch (responseModeTypeDto) {
             case DIRECT_POST -> ResponseModeType.DIRECT_POST;
-            case DIRECT_POST_JWT ->  ResponseModeType.DIRECT_POST_JWT;
+            case DIRECT_POST_JWT -> ResponseModeType.DIRECT_POST_JWT;
         };
     }
 
     public static ResponseModeTypeDto toResponseModeDto(@NotNull ResponseModeType responseModeType) {
         return switch (responseModeType) {
             case DIRECT_POST -> ResponseModeTypeDto.DIRECT_POST;
-            case DIRECT_POST_JWT ->  ResponseModeTypeDto.DIRECT_POST_JWT;
+            case DIRECT_POST_JWT -> ResponseModeTypeDto.DIRECT_POST_JWT;
         };
     }
 
@@ -202,7 +202,7 @@ public class ManagementMapper {
         }
     }
 
-    public static VerificationPresentationMapper.VerificationPresentationResponseDto uriToVerificationPresentation(URI uri) {
-        return new VerificationPresentationMapper.VerificationPresentationResponseDto(uri);
+    public static VerificationPresentationResponseDto uriToVerificationPresentation(URI uri) {
+        return new VerificationPresentationResponseDto(uri);
     }
 }

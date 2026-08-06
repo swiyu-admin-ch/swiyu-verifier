@@ -4,8 +4,8 @@ import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
-import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationMapper;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import lombok.AllArgsConstructor;
@@ -44,9 +44,9 @@ public class PresentationVerificationUsecase {
      *
      * @param managementEntityId the id of the Management
      * @param rejection          the presentation rejection request from the client
-     * @return the {@link VerificationPresentationMapper.VerificationPresentationResponseDto} to be sent to the wallet
+     * @return the {@link VerificationPresentationResponseDto} to be sent to the wallet
      */
-    public VerificationPresentationMapper.VerificationPresentationResponseDto receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
+    public VerificationPresentationResponseDto receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         log.debug("Processing rejection for request_id: {}", managementEntityId);
 
         try {
@@ -85,9 +85,9 @@ public class PresentationVerificationUsecase {
      *
      * @param managementEntityId the id of the Management
      * @param request            the DCQL presentation request to verify
-     * @return the {@link VerificationPresentationMapper.VerificationPresentationResponseDto} to be sent to the wallet
+     * @return the {@link VerificationPresentationResponseDto} to be sent to the wallet
      */
-    public VerificationPresentationMapper.VerificationPresentationResponseDto receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
+    public VerificationPresentationResponseDto receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
         log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
 
         // Flag, to know if WE are allowed to fire the event in the finally block

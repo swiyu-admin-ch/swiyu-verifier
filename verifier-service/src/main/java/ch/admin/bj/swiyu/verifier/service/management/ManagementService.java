@@ -6,8 +6,8 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
-import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationMapper;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
@@ -126,9 +126,9 @@ public class ManagementService {
     private static void createEncryptionKeys(ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder) {
         try {
             var ephemeralEncryptionKey = new ECKeyGenerator(Curve.P_256)
-                .keyID(UUID.randomUUID().toString())
-                .algorithm(JWEAlgorithm.ECDH_ES)
-                .generate();
+                    .keyID(UUID.randomUUID().toString())
+                    .algorithm(JWEAlgorithm.ECDH_ES)
+                    .generate();
             JWKSet jwkSet = new JWKSet(ephemeralEncryptionKey);
 
             // Public keys used in request object
@@ -161,11 +161,11 @@ public class ManagementService {
     /**
      * Marks the verification as succeeded with the provided data.
      *
-     * @param managementEntityId     the UUID of the management entity
-     * @param credentialSubjectData  the data from the credential subject
-     * @return the {@link VerificationPresentationMapper.VerificationPresentationResponseDto} containing the response URI
+     * @param managementEntityId    the UUID of the management entity
+     * @param credentialSubjectData the data from the credential subject
+     * @return the {@link VerificationPresentationResponseDto} containing the response URI
      */
-    public VerificationPresentationMapper.VerificationPresentationResponseDto markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
+    public VerificationPresentationResponseDto markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
         var uri = managementTransactionalService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
         return uriToVerificationPresentation(uri);
     }
@@ -185,9 +185,9 @@ public class ManagementService {
      *
      * @param managementEntityId the UUID of the management entity
      * @param rejection          the error response from the wallet
-     * @return the {@link VerificationPresentationMapper.VerificationPresentationResponseDto} containing the response URI
+     * @return the {@link VerificationPresentationResponseDto} containing the response URI
      */
-    public VerificationPresentationMapper.VerificationPresentationResponseDto markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
+    public VerificationPresentationResponseDto markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
         return uriToVerificationPresentation(null);
     }

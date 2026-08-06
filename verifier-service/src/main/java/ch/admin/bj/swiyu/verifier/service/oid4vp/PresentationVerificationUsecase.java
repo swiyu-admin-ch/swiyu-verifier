@@ -1,10 +1,11 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
-import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
+import ch.admin.bj.swiyu.verifier.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import lombok.AllArgsConstructor;
@@ -42,18 +43,20 @@ public class PresentationVerificationUsecase {
      * </ul>
      *
      * @param managementEntityId the id of the Management
-     * @param rejection            the presentation rejection request from the client
+     * @param rejection          the presentation rejection request from the client
+     * @return the {@link VerificationPresentationResponseDto} to be sent to the wallet
      */
-    public void receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
+    public VerificationPresentationResponseDto receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         log.debug("Processing rejection for request_id: {}", managementEntityId);
 
         try {
             // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
             managementService.claimSessionForProcessing(managementEntityId);
             // 2. Mark as failed due to client rejection in its own short-lived transaction
-            managementService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
+            return managementService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
         } catch (VerificationException e) {
             // 2a. Persist failed verification result in a dedicated short transaction
+            // TODO check if this still works
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
 
@@ -84,7 +87,7 @@ public class PresentationVerificationUsecase {
      * @param managementEntityId the id of the Management
      * @param request            the DCQL presentation request to verify
      */
-    public void receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
+    public VerificationPresentationResponseDto receiveVerificationPresentationDCQL(UUID managementEntityId, VerificationPresentationDCQLRequestDto request) {
         log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
 
         // Flag, to know if WE are allowed to fire the event in the finally block
@@ -100,8 +103,10 @@ public class PresentationVerificationUsecase {
             log.trace("DCQL submission verification completed for {}", managementEntityId);
 
             // 3a. Persist successful verification result in a dedicated short transaction
-            managementService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
+            var responseDto = managementService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
+
+            return responseDto;
         } catch (VerificationException e) {
             // 3b. Persist failed verification result in a dedicated short transaction
             managementService.markVerificationFailed(managementEntityId, e);

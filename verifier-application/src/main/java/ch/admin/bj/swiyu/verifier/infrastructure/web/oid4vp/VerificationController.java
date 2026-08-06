@@ -1,11 +1,16 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.dto.*;
+import ch.admin.bj.swiyu.verifier.VerificationPresentationResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.*;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.*;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.Dcql;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.EncryptedDcql;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.Rejection;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -181,7 +186,7 @@ public class VerificationController {
                     )
             }
     )
-    public ResponseEntity<Map<String, Object>> receiveVerificationPresentation(
+    public VerificationPresentationResponseDto receiveVerificationPresentation(
             @RequestHeader(name = "SWIYU-API-Version", required = false) String versionString,
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationUnionDto unionDto) {
@@ -191,13 +196,14 @@ public class VerificationController {
 
         var managementEntity = managementService.getManagementById(requestId);
         VerificationPresentationUnionDto decryptedUnionDto = presentationResponseResolver.decryptIfNecessary(managementEntity, unionDto);
+
         if (!managementEntity.matchesOauthState(decryptedUnionDto.getState())) {
                 throw new IllegalArgumentException("OAuth2.0 State mismatch. Expected to receive the state as in Request Object");
         }
 
         PresentationResult result = presentationResponseResolver.mapToPresentationResult(managementEntity, version, decryptedUnionDto);
 
-        switch (result) {
+        var response = switch (result) {
             // Processing rejection
             case Rejection(var rejectionDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
@@ -210,10 +216,9 @@ public class VerificationController {
             case EncryptedDcql(var encryptedDcqlDto) ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, encryptedDcqlDto);
 
-        }
+        };
 
         log.info("Successfully processed verification presentation for request_id: {}", requestId);
-        return ResponseEntity.ok(Map.of());
-
+        return response;
     }
 }

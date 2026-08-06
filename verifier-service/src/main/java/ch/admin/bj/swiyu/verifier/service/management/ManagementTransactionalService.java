@@ -132,9 +132,10 @@ public class ManagementTransactionalService {
             noRollbackFor = VerificationException.class,
             timeout = 10
     )
-    public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
+    public URI markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
         var managementEntity = getInProgressManagementEntity(managementEntityId);
         managementEntity.verificationSucceeded(credentialSubjectData);
+        return managementEntity.getRedirectURI();
     }
 
     /**
@@ -187,5 +188,4 @@ public class ManagementTransactionalService {
         }
         return managementEntity;
     }
-
 }

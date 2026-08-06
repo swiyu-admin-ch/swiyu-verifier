@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
+ import ch.admin.bj.swiyu.verifier.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.*;
@@ -14,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -198,5 +200,9 @@ public class ManagementMapper {
         } catch (JacksonException e) {
             throw new IllegalStateException("Malformed Json Web Key Set saved", e);
         }
+    }
+
+    public static VerificationPresentationResponseDto uriToVerificationPresentation(URI uri) {
+        return new VerificationPresentationResponseDto(uri);
     }
 }

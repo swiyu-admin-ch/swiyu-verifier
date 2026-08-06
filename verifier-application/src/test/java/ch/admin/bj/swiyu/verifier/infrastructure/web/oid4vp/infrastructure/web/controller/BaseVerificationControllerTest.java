@@ -3,7 +3,12 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -25,6 +30,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -263,5 +271,19 @@ public abstract class BaseVerificationControllerTest {
                   ]
                 }
                 """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT, requireCryptographicHolderBinding);
+    }
+
+    static ManagementResponseDto createVerificationRequest(MockMvc mvc, CreateVerificationManagementDto createVerificationManagementDto) {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        var body = assertDoesNotThrow(() -> objectMapper.writeValueAsString(createVerificationManagementDto));
+        MvcResult createVerificationResult = assertDoesNotThrow(() -> mvc.perform(post("/management/api/verifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andReturn()
+        );
+
+        return assertDoesNotThrow(() -> objectMapper.readValue(createVerificationResult.getResponse().getContentAsString(), ManagementResponseDto.class));
     }
 }

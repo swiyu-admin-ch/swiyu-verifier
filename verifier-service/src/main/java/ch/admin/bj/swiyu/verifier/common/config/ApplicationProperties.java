@@ -9,11 +9,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.Map;
 
 @Validated
 @Data
 @ConfigurationProperties(prefix = "application")
 public class ApplicationProperties {
+
+    @NotNull
+    private Map<String, String> templateReplacement;
 
     @NotNull
     private Integer verificationTTL;

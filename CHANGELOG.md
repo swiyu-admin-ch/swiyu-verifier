@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`
+## Added
+- Added `redirect_uri` to the `CreateVerificationManagementDto` to allow the wallet to redirect the user after verification is completed. `(#1189)` (This is still experimental and not yet ready to be used)
 
 # [4.1.1] - 2026-07-24
 ## Added

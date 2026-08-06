@@ -24,7 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           languages: java
           config-file: ./.github/codeql/codeql-config.yml
@@ -43,7 +43,7 @@ jobs:
       - name: Build & test with Maven (produce JaCoCo)
         run: mvn --batch-mode clean verify -DskipTests=false
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           category: "/language:java"
       - name: Upload JaCoCo reports
@@ -71,7 +71,7 @@ jobs:
           cache: true
 
       - name: Upload PMD SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           sarif_file: pmd-report.sarif
 
@@ -88,7 +88,7 @@ jobs:
           args: --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif
       - name: Upload result as sarif to GitHub Code Scanning 📦
         if: always() # We want to upload the SARIF file even if the Snyk action fails, to have the results in the Code Scanning tab of GitHub
-        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           sarif_file: snyk.sarif
 
@@ -178,7 +178,7 @@ jobs:
           ADESSO_API_KEY: ${{ secrets.ADESSO_API_KEY }}
           # These variables can be defined directly here
           ADESSO_BASE_URL: "https://adesso-ai-hub.3asabc.de/v1"
-          LLM_MODEL_NAME: "google/gemma-3-27b-it"
+          LLM_MODEL_NAME: "claude-sonnet-5*"
           # Tells the script which branch the PR targets (e.g. origin/main)
           GIT_DIFF_TARGET: "origin/${{ github.base_ref }}...HEAD"
         run: |

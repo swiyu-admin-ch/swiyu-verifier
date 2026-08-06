@@ -2,22 +2,18 @@ package ch.admin.bj.swiyu.verifier.service.management.fixtures;
 
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.dto.management.dcql.*;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialMetaDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @UtilityClass
 public class ApiFixtures {
-
-    public static CreateVerificationManagementDto createVerificationManagementDto(List<String> acceptedIssuerDids) {
-        return CreateVerificationManagementDto.builder()
-                .acceptedIssuerDids(acceptedIssuerDids)
-                .jwtSecuredAuthorizationRequest(false)
-                .responseMode(ResponseModeTypeDto.DIRECT_POST)
-                .build();
-    }
 
     public static CreateVerificationManagementDto createVerificationManagementWithDcqlQueryDto(DcqlQueryDto dcqlQueryDto, List<String> acceptedIssuerDids) {
         return CreateVerificationManagementDto.builder()
@@ -29,7 +25,7 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementWithoutResponseMode(List<String> acceptedIssuerDids, DcqlQueryDto dcqlQueryDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, null, dcqlQueryDto, null);
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, null, dcqlQueryDto, null, null);
     }
 
     @NotNull

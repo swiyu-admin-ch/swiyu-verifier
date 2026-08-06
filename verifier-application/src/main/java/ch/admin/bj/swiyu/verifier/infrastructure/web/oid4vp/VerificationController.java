@@ -3,13 +3,9 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 import ch.admin.bj.swiyu.verifier.dto.*;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
-import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResponseResolver;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.*;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.*;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,8 +45,8 @@ public class VerificationController {
     private final RequestObjectService requestObjectService;
     private final PresentationResponseResolver presentationResponseResolver;
     private final PresentationVerificationUsecase presentationVerificationUsecase;
-    private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementService managementService;
+    private final MetadataService metadataService;
 
     @Timed
     @GetMapping(value = {"openid-client-metadata.json"})
@@ -80,7 +76,7 @@ public class VerificationController {
                             )
                     )})
     public OpenidClientMetadataDto getOpenIdClientMetadata() {
-        return openIdClientMetadataConfiguration.getOpenIdClientMetadata();
+        return metadataService.getOpenidClientMetadata();
     }
 
     @Timed

@@ -4,7 +4,9 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
-import ch.admin.bj.swiyu.verifier.domain.management.*;
+import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
@@ -158,7 +160,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        sendPresentation(REQUEST_ID_WITHOUT_ACCEPTED_ISSUER, vpToken);
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
+        sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_SECURED), vpToken, requestObject)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
     }
 
     @Test
@@ -241,41 +246,15 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
-
         // WHEN / THEN
-        sendPresentation(requestObjectId, vpToken);
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", requestObjectId));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, requestObjectId), vpToken, requestObject)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
 
         var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
-    }
-
-    private void sendPresentation(UUID requestObjectId, String vpToken) throws Exception {
-        var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
-        ResponseSpecification responseSpecification = managementEntity.getResponseSpecification();
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-        if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST) {
-            postVerificationResponse(requestObjectId, dcqlVpToken, requestObjectId)
-                    .andExpect(status().isOk());
-        } else if (responseSpecification.getResponseModeType() == ResponseModeType.DIRECT_POST_JWT) {
-            // JWKS & encryptionMethod are normally provided in Request Object
-            ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
-            var encryptionMethod = EncryptionMethod.parse(responseSpecification.getEncryptedResponseEncValuesSupported().getFirst());
-
-            JWEObject jweObject = new JWEObject(
-                    new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, encryptionMethod)
-                            .keyID(publicKey.getKeyID()).build(),
-                    new JWTClaimsSet.Builder()
-                            .claim("vp_token", dcqlVpToken)
-                            .claim("state", requestObjectId.toString())
-                            .build().toPayload()
-            );
-            jweObject.encrypt(new ECDHEncrypter(publicKey));
-            mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
-                            .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                            .formField("response", jweObject.serialize()))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
-        }
     }
 
     private HikariPoolMXBean hikariPool() {
@@ -511,7 +490,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void shouldSucceedVerifyingNestedSDJWTCredentialSD_thenSuccess() throws Exception {
+    void verifyNestedSDJWTCredentialSD_thenSuccess() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
@@ -521,7 +500,11 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        sendPresentation(REQUEST_ID_SECURED, vpToken);
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_SECURED), vpToken, requestObject)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
@@ -539,7 +522,11 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        sendPresentation(REQUEST_ID_SECURED, vpToken);
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_SECURED), vpToken, requestObject)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
     }
 
     @Test

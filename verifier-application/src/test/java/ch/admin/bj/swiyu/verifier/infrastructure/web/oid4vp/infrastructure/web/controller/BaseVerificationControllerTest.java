@@ -6,7 +6,6 @@ import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
-import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
@@ -335,21 +334,35 @@ public abstract class BaseVerificationControllerTest {
         return SignedJWT.parse(content);
     }
 
-    ResultActions sendVerificationResponse(String verificationUrl, String state, String vpToken, SignedJWT requestObject, ResponseModeTypeDto responseModeTypeDto) throws Exception {
-        var path = verificationUrl.split("http://localhost:8080")[1] + "/response-data";
-        var builder = post(path)
-                .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                .header("SWIYU-API-Version", VPApiVersion.V1.getValue());
+    ResultActions sendVerificationResponse(String verificationUrl, String vpToken, SignedJWT requestObject) throws Exception {
+        var builder = post(verificationUrl)
+                .contentType(APPLICATION_FORM_URLENCODED_VALUE);
+
+        ResponseModeTypeDto responseModeTypeDto = getResponseModeTypeDtoFromRequestObject(requestObject);
+
+        var state = requestObject.getJWTClaimsSet().getStringClaim("state");
+
+        JsonNode claimsNode = objectMapper.valueToTree(requestObject.getJWTClaimsSet().getClaims());
+
+        var dcqlId = claimsNode.get("dcql_query").get("credentials").get(0).get("id").stringValue();
+
+        var submissionData = objectMapper.writeValueAsString(Map.of(dcqlId, List.of(vpToken)));
 
         if (responseModeTypeDto.equals(ResponseModeTypeDto.DIRECT_POST)) {
             builder
                     .formField("state", state)
-                    .formField("vp_token", vpToken);
+                    .formField("vp_token", submissionData);
         } else if (responseModeTypeDto.equals(ResponseModeTypeDto.DIRECT_POST_JWT)) {
-            builder.formField("response", encryptResponse(Map.of("vp_token", vpToken, "state", state), requestObject));
+            builder.formField("response", encryptResponse(Map.of("vp_token", submissionData, "state", state), requestObject));
         }
 
         return mock.perform(builder);
+    }
+
+    ResponseModeTypeDto getResponseModeTypeDtoFromRequestObject(SignedJWT requestObject) throws Exception {
+        JsonNode requestObjectNode = objectMapper.valueToTree(requestObject.getJWTClaimsSet().getClaims());
+        var teest = requestObjectNode.get("response_mode").asString();
+        return ResponseModeTypeDto.fromValue(teest);
     }
 
     private String encryptResponse(Map<String,String> fields, SignedJWT requestObjectDto) throws ParseException, JOSEException {
@@ -372,5 +385,4 @@ public abstract class BaseVerificationControllerTest {
         jweObject.encrypt(new ECDHEncrypter(jwk.toECKey()));
         return jweObject.serialize();
     }
-
 }

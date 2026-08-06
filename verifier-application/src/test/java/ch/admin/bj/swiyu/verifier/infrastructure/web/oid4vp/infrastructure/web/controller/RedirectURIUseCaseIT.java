@@ -13,7 +13,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,11 +40,9 @@ public class RedirectURIUseCaseIT extends BaseVerificationControllerTest {
 
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, mgmt.requestNonce(), "decentralized_identifier:" + applicationProperties.getClientId());
-        var state = requestObject.getJWTClaimsSet().getStringClaim("state");
 
-        var vpTokens = Map.of("identity_credential_dcql", List.of(vpToken));
-        var submissionData = objectMapper.writeValueAsString(vpTokens);
-        sendVerificationResponse(mgmt.verificationUrl(), state, submissionData, requestObject, responseModeTypeDto)
+        var verificationUrl = mgmt.verificationUrl().split("http://localhost:8080")[1] + "/response-data";
+        sendVerificationResponse(verificationUrl, vpToken, requestObject)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.redirect_uri", startsWith("https://this.is.a.redirect.uri?session_nonce=test&response_code=")));
     }

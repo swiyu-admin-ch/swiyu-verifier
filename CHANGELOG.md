@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 - Added redirect functionality to the verifier to allow the wallet to redirect the user after verification is completed. `(#1060, #1061)` (This is still experimental and not yet ready to be used)
     - Added `redirect_uri` to the `CreateVerificationManagementDto` to allow the wallet to redirect the user after verification is completed. `(#1060)`
-    - Added `redirect_uri` and `response_code` to the `VerificationResponseDto` to allow the wallet to redirect the user after verification is completed. `(#1061)`
+    - Added `redirect_uri` with `response_code` to the `VerificationResponseDto` to allow the wallet to redirect the user after verification is completed. `(#1061)`
     - Updated `Management`entity to include `redirect_uri` and `response_code` to allow the wallet to redirect the user after verification is completed. `(#1061)` -> Changes are non-breaking as the new fields are optional and will be null if not set.
 
 # [4.1.1] - 2026-07-24

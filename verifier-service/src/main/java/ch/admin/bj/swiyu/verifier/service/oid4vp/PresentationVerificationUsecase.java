@@ -56,7 +56,7 @@ public class PresentationVerificationUsecase {
             return managementService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
         } catch (VerificationException e) {
             // 2a. Persist failed verification result in a dedicated short transaction
-            // TODO check if this still works
+            // TODO: EIDOMNI-1062 check if this still works
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed verification result for {}", managementEntityId);
 
@@ -109,6 +109,7 @@ public class PresentationVerificationUsecase {
             return responseDto;
         } catch (VerificationException e) {
             // 3b. Persist failed verification result in a dedicated short transaction
+            // TODO: EIDOMNI-1062 check if this still works
             managementService.markVerificationFailed(managementEntityId, e);
             log.debug("Saved failed DCQL verification result for {}", managementEntityId);
 

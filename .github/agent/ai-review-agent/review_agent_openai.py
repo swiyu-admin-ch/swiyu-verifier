@@ -2,6 +2,7 @@ import os
 import re
 import time
 import subprocess
+import httpx
 from langchain_core.messages import SystemMessage
 from typing import List, TypedDict
 from pydantic import BaseModel, Field
@@ -77,6 +78,16 @@ def _is_excluded(file_path: str) -> bool:
     return any(pattern.search(file_path) for pattern in _EXCLUDED_FILE_PATTERNS)
 
 
+def _run_local() -> bool:
+    """Whether the script runs on a developer machine rather than in CI.
+
+    Set RUN_LOCAL=true to also print the report to the console and to
+    disable TLS verification (needed behind a corporate proxy that
+    intercepts HTTPS with a self-signed certificate).
+    """
+    return os.environ.get("RUN_LOCAL", "false").lower() == "true"
+
+
 def _build_llm() -> ChatOpenAI:
     """Creates the configured chat model, failing early on missing configuration."""
     adesso_api_key = os.environ.get("ADESSO_API_KEY")
@@ -89,15 +100,26 @@ def _build_llm() -> ChatOpenAI:
     if not adesso_api_key or not adesso_base_url:
         raise ValueError("ERROR: Please set ADESSO_API_KEY and ADESSO_BASE_URL as environment variables!")
 
+    # A single request now covers the whole diff (see SPLIT_DIFF_BY_FILE), so the
+    # JSON response has to fit far more findings than the old per-file default.
+    # Too low a value truncates the JSON mid-object, which fails to parse and
+    # discards ALL findings from the request, not just the last one.
+    split_by_file = os.environ.get("SPLIT_DIFF_BY_FILE", "false").lower() == "true"
+    default_max_tokens = "5000" if split_by_file else "16000"
+
     llm_kwargs = dict(
         model=llm_model_name,
         api_key=adesso_api_key,
         base_url=adesso_base_url,
-        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "5000")), # Must be high enough for the full JSON; truncated output cannot be parsed
+        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", default_max_tokens)), # Must be high enough for the full JSON; truncated output cannot be parsed
         timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "300")), # Fail fast instead of hanging
         max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504) with backoff
-        # http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
     )
+    if _run_local():
+        # Corporate proxies used for local runs terminate TLS with a
+        # self-signed cert; the CI runner talks to the API directly and
+        # doesn't need this.
+        llm_kwargs["http_client"] = httpx.Client(verify=False)
     # Claude models behind the adesso AI Hub proxy (routed via Vertex AI) reject
     # the 'temperature' param outright ("temperature is deprecated for this
     # model"), so it must only be sent for models that still accept it.
@@ -110,10 +132,13 @@ def _build_llm() -> ChatOpenAI:
 def analyze_diff_node(state: ReviewState) -> ReviewState:
     """Node 1: Analyzes the code against the swiyu/adesso guidelines.
 
-    The diff is reviewed file-by-file so each request to the model stays small.
-    This prevents 504 gateway timeouts on large changesets and makes the run
-    resilient: if a single file times out, its error is recorded and the
-    remaining files are still reviewed.
+    By default the whole diff is reviewed in a single request, which large-
+    context models like Claude Sonnet handle fine. Set SPLIT_DIFF_BY_FILE=true
+    to fall back to the old per-file mode (smaller, more numerous requests),
+    which is useful for models with a small context window or when hitting
+    upstream gateway timeouts (504) on large diffs; it also makes the run
+    resilient, since a single failing/timing-out file no longer aborts the
+    whole review.
     """
     print("-> Analyzing git diff with the configured LLM (adesso AI Hub)...")
 
@@ -161,7 +186,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
 
     ## Output
     - Respond in English only.
-    - Keep the response compact to stay within the token limit: write "description" and "suggestion" as ONE short sentence each (no multi-paragraph explanations). Report at most the 10 most important findings per file, prioritising HIGH severity.
+    - Keep the response compact to stay within the token limit: write "description" and "suggestion" as ONE short sentence each (no multi-paragraph explanations). The diff may contain multiple files; report at most the 10 most important findings PER FILE, but no more than 40 findings TOTAL across all files, prioritising HIGH severity.
     - YOU MUST RETURN A VALID JSON OBJECT WITH THIS EXACT STRUCTURE AND NO OTHER FIELDS:
     {
       "summary": "A brief overall summary of the review.",
@@ -204,36 +229,66 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
         print(f"-> Skipping {len(excluded_files)} documentation/instructions file(s): "
               f"{', '.join(excluded_files)}")
 
-    print(f"-> Reviewing {len(chunks)} changed file(s) individually...")
-
-    # Cap the size of a single file chunk so one huge file cannot trigger a
-    # gateway timeout. Large files are truncated rather than dropped entirely.
-    # Kept moderate (not 20000+): larger prompts take the model longer to
-    # process, increasing the risk of hitting the upstream gateway's fixed
-    # read-timeout (504), which our client-side `timeout` setting cannot override.
-    max_chunk_chars = int(os.environ.get("MAX_FILE_DIFF_CHARS", "20000"))
+    split_by_file = os.environ.get("SPLIT_DIFF_BY_FILE", "false").lower() == "true"
 
     all_findings: List[ReviewFinding] = []
     reviewed = 0
     failed = 0
-    for i, chunk in enumerate(chunks, 1):
-        if len(chunk) > max_chunk_chars:
-            # NOTE: only the first max_chunk_chars characters are reviewed; the
-            # remainder of this file's diff is NOT seen by the model.
-            print(f"   [{i}/{len(chunks)}] WARNING: diff truncated to {max_chunk_chars} chars, "
-                  f"review may be incomplete for this file.")
-            chunk = chunk[:max_chunk_chars] + "\n\n[... file diff truncated due to size ...]\n"
+
+    if split_by_file:
+        print(f"-> Reviewing {len(chunks)} changed file(s) individually...")
+
+        # Cap the size of a single file chunk so one huge file cannot trigger a
+        # gateway timeout. Large files are truncated rather than dropped entirely.
+        # Kept moderate (not 20000+): larger prompts take the model longer to
+        # process, increasing the risk of hitting the upstream gateway's fixed
+        # read-timeout (504), which our client-side `timeout` setting cannot override.
+        max_chunk_chars = int(os.environ.get("MAX_FILE_DIFF_CHARS", "20000"))
+
+        for i, chunk in enumerate(chunks, 1):
+            if len(chunk) > max_chunk_chars:
+                # NOTE: only the first max_chunk_chars characters are reviewed; the
+                # remainder of this file's diff is NOT seen by the model.
+                print(f"   [{i}/{len(chunks)}] WARNING: diff truncated to {max_chunk_chars} chars, "
+                      f"review may be incomplete for this file.")
+                chunk = chunk[:max_chunk_chars] + "\n\n[... file diff truncated due to size ...]\n"
+            try:
+                start = time.monotonic()
+                result = chain.invoke({"diff": chunk})
+                elapsed = time.monotonic() - start
+                all_findings.extend(result.findings)
+                reviewed += 1
+                print(f"   [{i}/{len(chunks)}] reviewed in {elapsed:.1f}s ({len(result.findings)} finding(s), "
+                      f"{len(chunk)} chars).")
+            except Exception as e:
+                failed += 1
+                print(f"   [{i}/{len(chunks)}] skipped due to error: {e}")
+    else:
+        print(f"-> Reviewing {len(chunks)} changed file(s) in a single request...")
+
+        # Cap the size of the combined diff sent in one request. Much higher
+        # than the per-file cap since large-context models (e.g. Claude Sonnet)
+        # can handle the whole diff at once.
+        max_total_chars = int(os.environ.get("MAX_TOTAL_DIFF_CHARS", "150000"))
+
+        combined_diff = "".join(chunks)
+        if len(combined_diff) > max_total_chars:
+            # NOTE: only the first max_total_chars characters are reviewed; the
+            # remainder of the diff is NOT seen by the model.
+            print(f"   WARNING: diff truncated to {max_total_chars} chars, review may be incomplete.")
+            combined_diff = combined_diff[:max_total_chars] + "\n\n[... diff truncated due to size ...]\n"
+
         try:
             start = time.monotonic()
-            result = chain.invoke({"diff": chunk})
+            result = chain.invoke({"diff": combined_diff})
             elapsed = time.monotonic() - start
             all_findings.extend(result.findings)
-            reviewed += 1
-            print(f"   [{i}/{len(chunks)}] reviewed in {elapsed:.1f}s ({len(result.findings)} finding(s), "
-                  f"{len(chunk)} chars).")
+            reviewed = len(chunks)
+            print(f"   reviewed in {elapsed:.1f}s ({len(result.findings)} finding(s), "
+                  f"{len(combined_diff)} chars).")
         except Exception as e:
-            failed += 1
-            print(f"   [{i}/{len(chunks)}] skipped due to error: {e}")
+            failed = len(chunks)
+            print(f"   skipped due to error: {e}")
 
     summary = (
         f"Reviewed {reviewed} file(s), {failed} skipped due to errors. "
@@ -259,6 +314,10 @@ def _clean_snippet(raw: str) -> str:
             line = line[1:]
         cleaned_lines.append(line)
     return "\n".join(cleaned_lines).strip()
+
+
+# Order in which findings are sorted within the report; unknown severities sort last.
+_SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 
 
 # Maps common file extensions to Markdown code-fence languages.
@@ -296,6 +355,8 @@ def format_report_node(state: ReviewState) -> ReviewState:
         return {"markdown_report": report}
 
     report += f"Found **{len(findings)}** remarks:\n\n"
+
+    findings = sorted(findings, key=lambda f: _SEVERITY_ORDER.get(f.severity, len(_SEVERITY_ORDER)))
 
     for idx, f in enumerate(findings, 1):
         icon = "🔴" if f.severity == "HIGH" else "🟡" if f.severity == "MEDIUM" else "🔵"
@@ -378,5 +439,10 @@ if __name__ == "__main__":
             f.write(report)
 
         print("\n✅ Analysis complete. Report saved to 'ai-review-report.md'.")
+
+        if _run_local():
+            print("\n" + "=" * 80)
+            print(report)
+            print("=" * 80)
     except Exception as e:
         print(f"\nAn error occurred: {e}")

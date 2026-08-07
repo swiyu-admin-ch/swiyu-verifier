@@ -15,7 +15,6 @@ import org.hibernate.type.SqlTypes;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.net.URI;
-import java.security.SecureRandom;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -116,9 +115,6 @@ public class Management {
      */
     @Column(name = "vqps_query_hash")
     private String vqpsQueryHash;
-
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
 
     /**
      * Guarded set State, preventing illegal transaction

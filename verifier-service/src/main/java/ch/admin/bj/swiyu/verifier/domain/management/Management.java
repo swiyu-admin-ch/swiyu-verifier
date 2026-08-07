@@ -16,7 +16,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.net.URI;
 import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -53,7 +52,7 @@ public class Management {
     private Long version;
 
     @Builder.Default
-    private String requestNonce = createNonce();
+    private String requestNonce = UUID.randomUUID().toString();
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -92,7 +91,7 @@ public class Management {
 
     @Builder.Default
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name="configuration_override", columnDefinition = "jsonb")
+    @Column(name = "configuration_override", columnDefinition = "jsonb")
     private ConfigurationOverride configurationOverride = ConfigurationOverride.builder().build();
 
     @Column(name = "dcql_query", columnDefinition = "jsonb")
@@ -126,7 +125,7 @@ public class Management {
      * @param state the new state to be set
      */
     public void setState(VerificationStatus state) {
-        if ( this.getState() == null ) {
+        if (this.getState() == null) {
             this.state = state;
         } else {
             throw new IllegalStateException("State may not be changed through setter");
@@ -175,15 +174,6 @@ public class Management {
         if (this.getState() != VerificationStatus.IN_PROGRESS) {
             throw new IllegalStateException("Object should be claimed for processing!");
         }
-    }
-
-    private static String createNonce() {
-        final Base64.Encoder base64encoder = Base64.getEncoder().withoutPadding();
-
-        byte[] randomBytes = new byte[24];
-        SECURE_RANDOM.nextBytes(randomBytes);
-
-        return base64encoder.encodeToString(randomBytes);
     }
 
     private static long calculateExpiresAt(int expirationInSeconds) {

@@ -85,7 +85,8 @@ public class SdJwtVpTokenVerifier {
         // Re-use the shared verification building blocks
         verifyVerifiableCredentialJWT(vpToken, management);
         // For Trust Protocol 1.0 the KID and DID must match
-        if (!didKidParser.getDidFromAbsoluteKid(vpToken.getHeader().getKeyID()).equals(vpToken.getClaims().getIssuer())) {
+        var didFromKid = didKidParser.getDidFromAbsoluteKid(vpToken.getHeader().getKeyID());
+        if (didFromKid == null || !didFromKid.equals(vpToken.getClaims().getIssuer())) {
             throw credentialError(CREDENTIAL_INVALID, "Trust Statements 1.0 MUST have correlating and iss claims");
         }
         if (vpToken.hasKeyBinding()) {
@@ -165,7 +166,7 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(INVALID_FORMAT, "Invalid Algorithm: alg is not supported must be one of %s, but was %s"
                     .formatted(SUPPORTED_JWT_ALGORITHMS, header.getAlgorithm().getName()));
         }
-        if (!SUPPORTED_CREDENTIAL_FORMATS.contains(header.getType().getType())) {
+        if (header.getType() == null || !SUPPORTED_CREDENTIAL_FORMATS.contains(header.getType().getType())) {
             throw credentialError(INVALID_FORMAT, "Type header must be one of %s".formatted(SUPPORTED_CREDENTIAL_FORMATS));
         }
         if (StringUtils.isBlank(header.getKeyID())) {
@@ -308,13 +309,13 @@ public class SdJwtVpTokenVerifier {
      * Check they type and format of the key binding jwt
      */
     private void validateKeyBindingHeader(JWSHeader keyBindingHeader) {
-        if (!"kb+jwt".equals(keyBindingHeader.getType().toString())) {
+        if (keyBindingHeader.getType() == null || !"kb+jwt".equals(keyBindingHeader.getType().toString())) {
             throw credentialError(HOLDER_BINDING_MISMATCH,
                     String.format("Type of holder binding typ is expected to be kb+jwt but was %s",
                             keyBindingHeader.getType()));
         }
 
-        if (!SUPPORTED_JWT_ALGORITHMS.contains(keyBindingHeader.getAlgorithm().getName())) {
+        if (keyBindingHeader.getAlgorithm() == null || !SUPPORTED_JWT_ALGORITHMS.contains(keyBindingHeader.getAlgorithm().getName())) {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Holder binding algorithm must be in %s".formatted(SUPPORTED_CREDENTIAL_FORMATS));
         }
     }
@@ -361,7 +362,7 @@ public class SdJwtVpTokenVerifier {
 
     private void validateNonce(JWTClaimsSet keyBindingClaims, String expectedNonce) {
         var actualNonce = keyBindingClaims.getClaim("nonce");
-        if (!expectedNonce.equals(actualNonce)) {
+        if (!Objects.equals(expectedNonce, actualNonce)) {
             throw credentialError(MISSING_NONCE,
                     String.format("Holder Binding lacks correct nonce expected '%s' but was '%s'", expectedNonce,
                             actualNonce));
@@ -446,7 +447,10 @@ public class SdJwtVpTokenVerifier {
         }
 
         // object has _sd -> process disclosures first
-        ArrayNode sdArray = (ArrayNode) object.get("_sd");
+        JsonNode sdNode = object.get("_sd");
+        if (!(sdNode instanceof ArrayNode sdArray)) {
+            throw credentialError(MALFORMED_CREDENTIAL, "'_sd' claim must be a JSON array");
+        }
 
         // snapshot original fields to avoid processing newly added fields
         List<String> originalFields = new ArrayList<>();

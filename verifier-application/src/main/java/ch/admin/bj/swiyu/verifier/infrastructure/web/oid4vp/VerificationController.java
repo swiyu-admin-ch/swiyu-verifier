@@ -176,7 +176,7 @@ public class VerificationController {
                             description = "Verification Presentation received and processed successfully",
                             content = @Content(
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(type = "object", implementation = Map.class)
+                                    schema = @Schema(type = "object", implementation = VerificationPresentationResponseDto.class)
                             )
                     ),
                     @ApiResponse(

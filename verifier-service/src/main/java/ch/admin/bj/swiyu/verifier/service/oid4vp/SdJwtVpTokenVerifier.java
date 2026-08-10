@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtutil.JwtUtilException;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
@@ -121,7 +122,7 @@ public class SdJwtVpTokenVerifier {
             validateJwtTimes(claims);
             sdJwt.setHeader(header);
             sdJwt.setClaims(claims);
-        } catch (ParseException | JwtValidatorException e) {
+        } catch (JwtUtilException | ParseException | JwtValidatorException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
         }
     }

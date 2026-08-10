@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 
+import ch.admin.bj.swiyu.jwtutil.JwtUtilException;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
@@ -78,7 +79,7 @@ public class StatusListCacheService {
         TokenStatusListTokenDto statusList = TokenStatusListMapper.toTokenStatusListToken(tokenStatusListJWT.getJWTClaimsSet().getClaims(), tokenStatusListJWT.getHeader());
         didJwtValidator.validateJwt(statusListJWT, statusListKey);
         return Optional.of(statusList);
-        } catch (StatusListFetchFailedException | IllegalArgumentException | ParseException e) {
+        } catch (JwtUtilException | StatusListFetchFailedException | IllegalArgumentException | ParseException e) {
             log.info("Failed to load status list {}", uri, e);
             return Optional.empty();
         }

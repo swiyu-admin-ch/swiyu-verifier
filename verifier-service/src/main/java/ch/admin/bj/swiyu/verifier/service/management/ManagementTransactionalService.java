@@ -126,15 +126,19 @@ public class ManagementTransactionalService {
 
     /**
      * Persists a successful verification result in its own short-lived transaction.
+     * @param managementEntityId the id of the Management entity to update
+     * @param credentialSubjectData the credential subject data to store in the Management entity
+     * @return the redirect URI to which the client should be sent after successful verification
      */
     @Transactional(
             propagation = Propagation.REQUIRES_NEW,
             noRollbackFor = VerificationException.class,
             timeout = 10
     )
-    public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
+    public URI markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
         var managementEntity = getInProgressManagementEntity(managementEntityId);
         managementEntity.verificationSucceeded(credentialSubjectData);
+        return managementEntity.getRedirectURI();
     }
 
     /**
@@ -187,5 +191,4 @@ public class ManagementTransactionalService {
         }
         return managementEntity;
     }
-
 }

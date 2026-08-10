@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.dto.management;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -18,5 +19,15 @@ public enum ResponseModeTypeDto {
     @Override
     public String toString() {
         return this.display;
+    }
+
+    @JsonCreator
+    public static ResponseModeTypeDto fromValue(String value) {
+        for (ResponseModeTypeDto type : values()) {
+            if (type.display.equals(value)) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("Unknown response mode: " + value);
     }
 }

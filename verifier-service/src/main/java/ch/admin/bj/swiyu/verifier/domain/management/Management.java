@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.security.SecureRandom;
@@ -92,7 +93,7 @@ public class Management {
 
     @Builder.Default
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name="configuration_override", columnDefinition = "jsonb")
+    @Column(name = "configuration_override", columnDefinition = "jsonb")
     private ConfigurationOverride configurationOverride = ConfigurationOverride.builder().build();
 
     @Column(name = "dcql_query", columnDefinition = "jsonb")
@@ -110,6 +111,9 @@ public class Management {
     @Convert(converter = UriAttributeConverter.class)
     private URI redirectURI;
 
+    @Column(name = "response_code")
+    private UUID responseCode;
+
     /**
      * SHA-256 query hash linking this session to a persisted {@link ch.admin.bj.swiyu.verifier.domain.vqps.Vqps} entry.
      * When set, the request object service looks up the vqPS JWT by this hash (the PK of
@@ -123,10 +127,11 @@ public class Management {
 
     /**
      * Guarded set State, preventing illegal transaction
+     *
      * @param state the new state to be set
      */
     public void setState(VerificationStatus state) {
-        if ( this.getState() == null ) {
+        if (this.getState() == null) {
             this.state = state;
         } else {
             throw new IllegalStateException("State may not be changed through setter");
@@ -144,7 +149,7 @@ public class Management {
      * JPA will throw an {@link jakarta.persistence.OptimisticLockException}.
      *
      * @throws ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException if the
-     *         session is not {@code PENDING} or has already expired
+     *                                                                            session is not {@code PENDING} or has already expired
      */
     public void claimForProcessing() {
         if (!isProcessStillOpen()) {
@@ -160,6 +165,7 @@ public class Management {
                 .errorCode(errorCode)
                 .errorDescription(errorDescription)
                 .build();
+        this.updateRedirectURIIfNecessary();
     }
 
     public void verificationFailedDueToClientRejection(String description, VerificationErrorResponseCode walletErrorCode) {
@@ -169,6 +175,7 @@ public class Management {
                 .errorCode(walletErrorCode)
                 .errorDescription(description)
                 .build();
+        this.updateRedirectURIIfNecessary();
     }
 
     private void ensureClaimedForProcessing() {
@@ -196,6 +203,7 @@ public class Management {
         this.walletResponse = ResponseData.builder()
                 .credentialSubjectData(credentialSubjectData)
                 .build();
+        this.updateRedirectURIIfNecessary();
     }
 
     public boolean isExpired() {
@@ -212,6 +220,7 @@ public class Management {
 
     /**
      * Reset the timestamp at which this object will count as expired with the <code>expirationInSeconds</code>
+     *
      * @return this object for daisy chaining
      */
     public Management resetExpiresAt() {
@@ -232,5 +241,25 @@ public class Management {
      */
     public boolean matchesOauthState(String state) {
         return oauthState.equals(state);
+    }
+
+    /**
+     * Creates a response code for the redirect_uri and updates the redirect_uri with the response_code query_parameter if redirect_uri was provided initially
+     * (does not overwrite existing query parameters)
+     */
+    private void updateRedirectURIIfNecessary() {
+        if (this.redirectURI == null) {
+            return;
+        }
+
+        // only set response code if null otherwise has already been set
+        if (this.responseCode != null) {
+            return;
+        }
+
+        this.responseCode = UUID.randomUUID();
+        this.redirectURI = UriComponentsBuilder.fromUri(this.redirectURI)
+                .queryParam("response_code", this.responseCode.toString())
+                .build().toUri();
     }
 }

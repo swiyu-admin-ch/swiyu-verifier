@@ -139,4 +139,87 @@ class DcqlPresentationVerificationServiceTest {
         var exp = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
         assertEquals("Cannot Accept more than 2 vcs received 3", exp.getErrorDescription());
     }
+
+    @Test
+    void process_managementHasNoDcqlQuery_throwsVerificationException() {
+        // Arrange: legacy verification request without a DCQL query, but wallet responds in DCQL format
+        var management = mock(Management.class);
+        when(management.getDcqlQuery()).thenReturn(null);
+        var request = new VerificationPresentationDCQLRequestDto(Map.of());
+
+        // Act + Assert
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
+        assertEquals("No DCQL query configured for this verification request", ex.getErrorDescription());
+    }
+
+    @Test
+    void process_vpTokenMapValueIsNull_throwsVerificationException() {
+        // Arrange: vp_token={"cred-1":null} -> map contains the key but with a null value
+        var management = mock(Management.class);
+        var credentialId = "cred-1";
+        var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
+        var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
+        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, false);
+        var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
+        when(management.getDcqlQuery()).thenReturn(dcqlQuery);
+
+        var vpTokenMap = new java.util.HashMap<String, List<String>>();
+        vpTokenMap.put(credentialId, null);
+        var request = new VerificationPresentationDCQLRequestDto(vpTokenMap);
+
+        // Act + Assert
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
+        assertEquals("Vp token entry for requested credential id " + credentialId + " must not be null", ex.getErrorDescription());
+    }
+
+    @Test
+    void process_vpTokenListContainsNullEntry_throwsVerificationException() {
+        // Arrange: vp_token={"cred-1":[null]} -> list contains a null element
+        var management = mock(Management.class);
+        var credentialId = "cred-1";
+        var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
+        var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
+        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, false);
+        var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
+        when(management.getDcqlQuery()).thenReturn(dcqlQuery);
+
+        var vpTokens = new ArrayList<String>();
+        vpTokens.add(null);
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, vpTokens));
+
+        // Act + Assert
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
+        assertEquals("Vp token list for requested credential id " + credentialId + " must not contain null entries", ex.getErrorDescription());
+    }
+
+    @Test
+    void process_noMatchingVctAfterFilter_throwsVerificationExceptionNotNoSuchElement() {
+        // Regression test for a previously reported NoSuchElementException (Example 4):
+        // when no presented credential matches the requested vct_values, filterByVct returns an empty
+        // list. Calling getFirst() on it must not raise NoSuchElementException but a clean VerificationException.
+        var management = mock(Management.class);
+        var credentialId = "cred-1";
+        var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
+        var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
+        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, false);
+        var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
+        when(management.getDcqlQuery()).thenReturn(dcqlQuery);
+
+        var vpToken = "vp-token-sdjwt";
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken)));
+
+        var sdJwt = mock(SdJwt.class);
+        when(sdJwtLegacyPresentationVerifier.verify(vpToken, management, requestedCredential)).thenReturn(sdJwt);
+        // No presented SD-JWT matches the requested vct -> empty list
+        when(dcqlEvaluator.filterByVct(anyList(), eq(meta))).thenReturn(List.of());
+
+        // Act + Assert
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
+        assertEquals("No matching SD-JWT for requested credential id " + credentialId, ex.getErrorDescription());
+        verify(dcqlEvaluator, never()).validateRequestedClaims(any(), any());
+    }
 }

@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`
 - Updated to Jackson 3 `(#944)`
 
+## Fixed
+- Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`
 ## Added
 - Added redirect functionality to the verifier to allow the wallet to redirect the user after verification is completed. `(#1060, #1061)` (This is still experimental and not yet ready to be used)
     - Added `redirect_uri` to the `CreateVerificationManagementDto` to allow the wallet to redirect the user after verification is completed. `(#1060)`

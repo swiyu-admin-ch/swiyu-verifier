@@ -185,7 +185,7 @@ public class ManagementService {
      *
      * @param managementEntityId the UUID of the management entity
      * @param rejection          the error response from the wallet
-     * @return the {@link VerificationPresentationResponseDto} containing the response URI
+     * @return the {@link VerificationPresentationResponseDto} without a redirect uri
      */
     public VerificationPresentationResponseDto markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);

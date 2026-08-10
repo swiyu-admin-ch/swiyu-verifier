@@ -160,8 +160,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
-        sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_SECURED), vpToken, requestObject)
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_WITHOUT_ACCEPTED_ISSUER));
+        sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_WITHOUT_ACCEPTED_ISSUER), vpToken, requestObject)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
     }
@@ -169,7 +169,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldGetRequestObject() throws Exception {
         var expectedClientIdWithPrefix = applicationProperties.getClientIdPrefix() + ":" +  applicationProperties.getClientId();
-        mock.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
+        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
@@ -195,7 +195,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldGetRequestObject_withoutClientIdPrefix() throws Exception {
         when(applicationProperties.getClientIdPrefix()).thenReturn(null);
-        mock.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
+        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
@@ -207,7 +207,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldAcceptRefusalIWithValidErrorType() throws Exception {
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+        mockMvc.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .formField("state", REQUEST_ID_SECURED.toString())
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really just dont want to"))
@@ -218,7 +218,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldFailWhenRefusalWithInvalidErrorTypeIs() throws Exception {
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+        mockMvc.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
                         .formField("error", "non_existing_Type")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isBadRequest());
@@ -230,7 +230,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldRespond404onGetRequestObject() throws Exception {
         UUID notExistingRequestId = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        mock.perform(get(String.format("/request-object/%s", notExistingRequestId)))
+        mockMvc.perform(get(String.format("/request-object/%s", notExistingRequestId)))
                 .andExpect(status().isNotFound());
     }
 
@@ -496,7 +496,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
 
-        // mock did resolver response so we get a valid public key for the issuer
+        // mock did r§esolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
@@ -670,7 +670,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldGetCorrectMandatoryMetadata_thenSuccess() throws Exception {
 
-        mock.perform(get("/oid4vp/api/openid-client-metadata.json")
+        mockMvc.perform(get("/oid4vp/api/openid-client-metadata.json")
                         .contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdPrefix() + ":" +  applicationProperties.getClientId()))
@@ -1035,7 +1035,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .when(applicationProperties).getMaxCompressedCipherTextLength();
 
         // WHEN / THEN
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
+        mockMvc.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("response", jweObject.serialize()))
                 .andExpect(status().isBadRequest())
@@ -1063,7 +1063,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     @Test
     void shouldHandleClientRejectionWithOnlyError() throws Exception {
         // WHEN / THEN
-        mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mockMvc.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
                         .formField("state", REQUEST_ID_SECURED.toString())
@@ -1111,7 +1111,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldGetRequestObjectEncryptionRequired() throws Exception {
-        mock.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
+        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
@@ -1219,7 +1219,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             final String finalVpToken = vpToken;
             executor.submit(() -> {
                 try {
-                    mock.perform(
+                    mockMvc.perform(
                             post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
                                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                                     .formField("vp_token", finalVpToken)
@@ -1242,14 +1242,14 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     private @NonNull ResultActions postVerificationResponse(UUID requestObjectId, String dcqlVpToken, UUID state) throws Exception {
-        return mock.perform(post(String.format(responseDataUriFormat, requestObjectId))
+        return mockMvc.perform(post(String.format(responseDataUriFormat, requestObjectId))
                 .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                 .formField("state", state.toString())
                 .formField("vp_token", dcqlVpToken));
     }
 
     private @NonNull ResultActions postVerificationErrorResponse(UUID requestObjectId, UUID state, String error, String errorDescription) throws Exception {
-        return mock.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", requestObjectId))
+        return mockMvc.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", requestObjectId))
                 .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                 .formField("state", state.toString())
                 .formField("error", error)

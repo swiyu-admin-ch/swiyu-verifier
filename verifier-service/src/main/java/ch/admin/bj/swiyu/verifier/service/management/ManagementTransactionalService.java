@@ -126,6 +126,9 @@ public class ManagementTransactionalService {
 
     /**
      * Persists a successful verification result in its own short-lived transaction.
+     * @param managementEntityId the id of the Management entity to update
+     * @param credentialSubjectData the credential subject data to store in the Management entity
+     * @return the redirect URI to which the client should be sent after successful verification
      */
     @Transactional(
             propagation = Propagation.REQUIRES_NEW,

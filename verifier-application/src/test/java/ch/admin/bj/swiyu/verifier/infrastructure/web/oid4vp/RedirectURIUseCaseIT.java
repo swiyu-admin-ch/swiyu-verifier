@@ -41,7 +41,7 @@ public class RedirectURIUseCaseIT extends BaseVerificationControllerTest {
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, mgmt.requestNonce(), "decentralized_identifier:" + applicationProperties.getClientId());
 
-        var verificationUrl = mgmt.verificationUrl().split("http://localhost:8080")[1] + "/response-data";
+        var verificationUrl = mgmt.verificationUrl().split(applicationProperties.getExternalUrl())[1] + "/response-data";
         sendVerificationResponse(verificationUrl, vpToken, requestObject)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.redirect_uri", startsWith("https://this.is.a.redirect.uri?session_nonce=test&response_code=")));

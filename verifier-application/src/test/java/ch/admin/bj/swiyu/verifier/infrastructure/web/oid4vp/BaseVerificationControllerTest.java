@@ -80,7 +80,7 @@ public abstract class BaseVerificationControllerTest {
     protected DidResolverFacade didResolverFacade;
 
     @Autowired
-    protected MockMvc mock;
+    protected MockMvc mockMvc;
 
     @Autowired
     protected ObjectMapper objectMapper;
@@ -232,7 +232,6 @@ public abstract class BaseVerificationControllerTest {
     }
 
     DcqlQuery dcqlQuery(String dcqlQuery) throws JacksonException {
-        ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readValue(dcqlQuery, DcqlQuery.class);
     }
 
@@ -324,7 +323,7 @@ public abstract class BaseVerificationControllerTest {
     }
 
     SignedJWT getRequestObject(String requestUri) throws Exception {
-        String content = mock.perform(get(requestUri)
+        String content = mockMvc.perform(get(requestUri)
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -356,7 +355,7 @@ public abstract class BaseVerificationControllerTest {
             builder.formField("response", encryptResponse(Map.of("vp_token", submissionData, "state", state), requestObject));
         }
 
-        return mock.perform(builder);
+        return mockMvc.perform(builder);
     }
 
     ResponseModeTypeDto getResponseModeTypeDtoFromRequestObject(SignedJWT requestObject) throws Exception {

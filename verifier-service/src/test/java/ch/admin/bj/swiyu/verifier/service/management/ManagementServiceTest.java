@@ -204,7 +204,7 @@ class ManagementServiceTest {
     }
 
     @Test
-    void markVerificationSucceeded_shouldReturnRedirectURI() {
+    void markVerificationSucceeded_withValidRequest_returnsRedirectURI() {
         var transactionalService = mock(ManagementTransactionalService.class);
         var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
         var managementId = UUID.randomUUID();
@@ -221,7 +221,6 @@ class ManagementServiceTest {
         var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
         var managementId = UUID.randomUUID();
         var rejection = new VerificationPresentationRejectionDto(VerificationClientErrorDto.CLIENT_REJECTED, "reason");
-        doNothing().when(transactionalService).markVerificationFailedDueToClientRejection(managementId, rejection);
         var dto = mgmtService.markVerificationFailedDueToClientRejection(managementId, rejection);
         assertThat(dto.redirectURI()).isNull();
         verify(transactionalService).markVerificationFailedDueToClientRejection(managementId, rejection);

@@ -202,6 +202,11 @@ public class ManagementMapper {
         }
     }
 
+    /**
+     * Creates a {@link VerificationPresentationResponseDto} that wraps the given verification presentation {@link URI}.
+     * @param uri the verification presentation URI to wrap; may be {@code null}
+     * @return a {@link VerificationPresentationResponseDto} containing the provided {@code uri} *
+     **/
     public static VerificationPresentationResponseDto uriToVerificationPresentation(URI uri) {
         return new VerificationPresentationResponseDto(uri);
     }

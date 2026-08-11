@@ -8,8 +8,8 @@ import java.lang.annotation.*;
 @Target({ ElementType.FIELD, ElementType.PARAMETER })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Constraint(validatedBy = SessionNonceValidator.class)
-public @interface SessionNonce {
+@Constraint(validatedBy = RedirectUriValidator.class)
+public @interface RedirectUri {
 
     String message() default "must contain a session nonce";
 

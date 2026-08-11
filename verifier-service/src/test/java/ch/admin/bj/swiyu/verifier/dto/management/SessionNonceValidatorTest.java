@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SessionNonceValidatorTest {
 
-    private final SessionNonceValidator validator = new SessionNonceValidator();
+    private final RedirectUriValidator validator = new RedirectUriValidator();
 
     @Test
     void isValid_nullUri_returnsTrue() {

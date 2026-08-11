@@ -6,8 +6,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 
-public class SessionNonceValidator
-        implements ConstraintValidator<SessionNonce, URI> {
+public class RedirectUriValidator
+        implements ConstraintValidator<RedirectUri, URI> {
 
     @Override
     public boolean isValid(URI uri, ConstraintValidatorContext context) {
@@ -28,5 +28,4 @@ public class SessionNonceValidator
 
         return queryParts.containsKey("session_nonce") && (queryParts.getFirst("session_nonce") != null && !queryParts.getFirst("session_nonce").isBlank());
     }
-
 }

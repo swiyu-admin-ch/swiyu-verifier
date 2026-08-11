@@ -8,6 +8,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ManagementTest {
 
+    /**
+     * Test case where a request nonce is generated for a management entity.
+     * Expected result: the nonce is a canonical UUID version 4 using the IETF variant.
+     */
     @Test
     public void testRequestNonce_isUuidVersion4() {
         Management management = Management.builder().build();
@@ -19,6 +23,10 @@ class ManagementTest {
         assertThat(requestNonce.variant()).isEqualTo(2);
     }
 
+    /**
+     * Test case where two management entities are created.
+     * Expected result: each entity receives a different request nonce.
+     */
     @Test
     public void testRequestNonce_isFreshForEveryManagement() {
         Management firstManagement = Management.builder().build();

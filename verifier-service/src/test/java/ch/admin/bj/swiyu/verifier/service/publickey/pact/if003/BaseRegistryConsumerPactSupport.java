@@ -5,8 +5,8 @@ import ch.admin.bj.swiyu.didresolveradapter.DidResolverAdapter;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverWebClient;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 

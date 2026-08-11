@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Wallet response is now added to the verification management object instead of `client_rejection` as default. `(#1189)`
 - `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`
 - Updated to Jackson 3 `(#944)`
+- Changed nonce implementation to use UUIDs, matching the issuer's implementation `(#1133)`
 
 ## Fixed
 - Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`

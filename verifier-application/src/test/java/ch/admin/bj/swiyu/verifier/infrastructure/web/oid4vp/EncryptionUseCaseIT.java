@@ -51,7 +51,7 @@ class EncryptionUseCaseIT extends BaseVerificationControllerTest {
 
     @ParameterizedTest
     @MethodSource("provideCreateDtos")
-    void testVerificationFlowDirectPostAndDirectPostJWT(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+    void testVerificationFlow_withAndWithoutRequestedEncryption_thenSuccess(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
         var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
         var createResponseDto = createVerificationRequest(createDto);
         var requestId = createResponseDto.id().toString();
@@ -76,7 +76,7 @@ class EncryptionUseCaseIT extends BaseVerificationControllerTest {
 
     @ParameterizedTest
     @MethodSource("provideCreateDtos")
-    void testVerificationFlowDirectPostJWT_walletSendsError(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
+    void testVerificationFlow_withAndWithoutRequestedEncryption_thenWalletSendsReject(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {
         var createDto = objectMapper.writeValueAsString(createVerificationManagementDto);
         var createResponseDto = createVerificationRequest(createDto);
         var requestId = createResponseDto.id().toString();
@@ -86,16 +86,16 @@ class EncryptionUseCaseIT extends BaseVerificationControllerTest {
         var nonce = requestObject.getJWTClaimsSet().getClaim("nonce").toString();
 
         // Check status, should be pending
-        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
+        assertTrue(hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Check status, should still be pending
-        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
+        assertTrue(hasStatus(createResponseDto.id().toString(), VerificationStatusDto.PENDING));
 
         // Wallet sends error response
         assertDoesNotThrow(() -> sendVerificationRejection(String.format("%s/%s/response-data", OID4VP_API_BASE_URL, requestId), "vp_formats_not_supported", "I don't want to", requestObject)
                 .andExpect(status().isOk()));
 
-        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
+        assertTrue(hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
 
         // Wallet sends valid credential, should be rejected
         var vpToken = createMockCredential(nonce);
@@ -104,7 +104,7 @@ class EncryptionUseCaseIT extends BaseVerificationControllerTest {
                 .andExpect(status().isGone()));
 
         // Status should not have changed, status should not change
-        assert (hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
+        assertTrue(hasStatus(createResponseDto.id().toString(), VerificationStatusDto.FAILED));
     }
 
     @Test

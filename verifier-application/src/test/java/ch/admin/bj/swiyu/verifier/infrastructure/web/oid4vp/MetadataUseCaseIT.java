@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class MetadataUseCaseIT extends BaseVerificationControllerTest {
 
     @Test
-    void shouldGetCorrectMandatoryMetadata_thenSuccess() {
+    void getMetadataRequest_withCorrectMetadata_thenReturnsMandatoryFields() {
         assertDoesNotThrow(() -> this.getMetadata()
                 .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdWithPrefix()))
                 .andExpect(jsonPath("$.vp_formats_supported['dc+sd-jwt']['sd-jwt_alg_values']").isArray())

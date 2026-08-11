@@ -96,11 +96,16 @@ public class RequestObjectDto {
                         "client_name": "Fallback name",
                         "client_logo": "www.example.com/logo.png",
                         "client_logo#fr": "www.example.com/logo_fr.png",
-                        "vp_formats": {
-                            "jwt_vp": {
-                                "alg": [
-                                    "ES256"
+                        "vp_formats_supported": {
+                            "dc+sd-jwt": {
+                                "sd-jwt_alg_values": [
+                                    "ES256",
+                                    "Ed25519"
                                 ],
+                                "kb-jwt_alg_values": [
+                                    "ES256",
+                                    "Ed25519"
+                                ]
                             }
                         }
                     }""")

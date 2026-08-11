@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
@@ -26,8 +27,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -52,12 +55,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
+@ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
 @ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 public abstract class BaseVerificationControllerTest {
+
+    public static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     protected static final UUID REQUEST_ID_SECURED = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbeef");
     protected static final UUID REQUEST_ID_SDJWT_MGMT_NO_SIGNATURE = UUID.fromString("deadbeef-dead-dead-dead-deaddeafbee1");
@@ -84,6 +90,9 @@ public abstract class BaseVerificationControllerTest {
 
     @Autowired
     protected ObjectMapper objectMapper;
+
+    @MockitoSpyBean
+    protected ApplicationProperties applicationProperties;
 
     @BeforeEach
     void setUp() throws JacksonException, JOSEException {
@@ -339,13 +348,13 @@ public abstract class BaseVerificationControllerTest {
 
         ResponseModeTypeDto responseModeTypeDto = getResponseModeTypeDtoFromRequestObject(requestObject);
 
-        var state = requestObject.getJWTClaimsSet().getStringClaim("state");
-
         JsonNode claimsNode = objectMapper.valueToTree(requestObject.getJWTClaimsSet().getClaims());
 
         var dcqlId = claimsNode.get("dcql_query").get("credentials").get(0).get("id").stringValue();
 
         var submissionData = objectMapper.writeValueAsString(Map.of(dcqlId, List.of(vpToken)));
+
+        var state = getStateFromRequestObject(requestObject);
 
         if (responseModeTypeDto.equals(ResponseModeTypeDto.DIRECT_POST)) {
             builder
@@ -358,13 +367,35 @@ public abstract class BaseVerificationControllerTest {
         return mockMvc.perform(builder);
     }
 
-    ResponseModeTypeDto getResponseModeTypeDtoFromRequestObject(SignedJWT requestObject) throws Exception {
-        JsonNode requestObjectNode = objectMapper.valueToTree(requestObject.getJWTClaimsSet().getClaims());
-        var teest = requestObjectNode.get("response_mode").asString();
-        return ResponseModeTypeDto.fromValue(teest);
+    ResultActions sendVerificationRejection(String verificationUrl, String error, String errorDescription, SignedJWT requestObject) throws Exception {
+
+        var builder = post(verificationUrl)
+                .contentType(APPLICATION_FORM_URLENCODED_VALUE);
+        var state = getStateFromRequestObject(requestObject);
+        ResponseModeTypeDto responseModeTypeDto = getResponseModeTypeDtoFromRequestObject(requestObject);
+
+        if (responseModeTypeDto.equals(ResponseModeTypeDto.DIRECT_POST)) {
+            builder
+                    .formField("state", state)
+                    .formField("error", error)
+                    .formField("error_description", errorDescription);
+        } else if (responseModeTypeDto.equals(ResponseModeTypeDto.DIRECT_POST_JWT)) {
+            builder.formField("response", encryptResponse(Map.of("error", error, "error_description", errorDescription, "state", state), requestObject));
+        }
+
+        return mockMvc.perform(builder);
     }
 
-    private String encryptResponse(Map<String,String> fields, SignedJWT requestObjectDto) throws ParseException, JOSEException {
+    String getStateFromRequestObject(SignedJWT requestObject) throws ParseException {
+        return requestObject.getJWTClaimsSet().getStringClaim("state");
+    }
+
+    ResponseModeTypeDto getResponseModeTypeDtoFromRequestObject(SignedJWT requestObject) throws Exception {
+        JsonNode requestObjectNode = objectMapper.valueToTree(requestObject.getJWTClaimsSet().getClaims());
+        return ResponseModeTypeDto.fromValue( requestObjectNode.get("response_mode").asString());
+    }
+
+    String encryptResponse(Map<String,String> fields, SignedJWT requestObjectDto) throws ParseException, JOSEException {
         JsonNode requestObjectNode = objectMapper.valueToTree(requestObjectDto.getJWTClaimsSet().getClaims());
         JsonNode metadata = requestObjectNode.get("client_metadata");
         var JWKsNode = metadata.get("jwks");

@@ -8,10 +8,15 @@
   "client_name": "Fallback name",
   "logo_uri": "www.example.com/logo.png",
   "logo_uri#fr": "www.example.com/logo_fr.png",
-  "vp_formats": {
-    "jwt_vp": {
-      "alg": [
-        "ES256"
+  "vp_formats_supported": {
+    "dc+sd-jwt": {
+      "sd-jwt_alg_values": [
+        "ES256",
+        "Ed25519"
+      ],
+      "kb-jwt_alg_values": [
+        "ES256",
+        "Ed25519"
       ]
     }
   }

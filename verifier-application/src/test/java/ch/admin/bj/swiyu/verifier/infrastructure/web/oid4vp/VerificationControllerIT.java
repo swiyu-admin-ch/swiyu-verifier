@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
@@ -8,7 +7,6 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
-import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
@@ -17,13 +15,11 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededEx
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectBuilder;
-import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.ECDHEncrypter;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -40,9 +36,7 @@ import org.junit.jupiter.params.provider.FieldSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.ObjectMapper;
 
@@ -63,7 +57,6 @@ import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentia
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -72,10 +65,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-@ActiveProfiles("test")
 class VerificationControllerIT extends BaseVerificationControllerTest {
-
-    private static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";
@@ -87,17 +77,17 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Autowired
     private ManagementRepository managementEntityRepository;
-    @MockitoSpyBean
-    private ApplicationProperties applicationProperties;
+
     @Autowired
     private VerificationProperties verificationProperties;
+
     @Autowired
     private DataSource dataSource;
 
     @MockitoBean
     private StatusListResolver mockedStatusListResolverAdapter;
 
-    private final String clientId =  "did:example:12345";
+    private final String clientId = "did:example:12345";
     private final String prefix = "decentralized_identifier";
     private final String clientIdWithPrefix = prefix + ":" + clientId;
 
@@ -149,8 +139,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     @Disabled("Behavior changed: IssuerTrustValidator now requires explicit trust configuration. " +
-              "When both acceptedIssuerDids AND trustAnchors are empty, all credentials are rejected. " +
-              "This test assumed empty list = any issuer allowed, which is no longer the case.")
+            "When both acceptedIssuerDids AND trustAnchors are empty, all credentials are rejected. " +
+            "This test assumed empty list = any issuer allowed, which is no longer the case.")
     void shouldSucceedOnNoAcceptedIssuers() throws Exception {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock("did:webvh:some-scid:some-issuer-id", "did:webvh:some-scid:some-issuer-id#key-1");
         var sdJWT = emulator.createSDJWTMock();
@@ -168,7 +158,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldGetRequestObject() throws Exception {
-        var expectedClientIdWithPrefix = applicationProperties.getClientIdPrefix() + ":" +  applicationProperties.getClientId();
+        var expectedClientIdWithPrefix = applicationProperties.getClientIdPrefix() + ":" + applicationProperties.getClientId();
         mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
@@ -391,7 +381,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     @Disabled("Management entity REQUEST_DIFFERENT_KB_ALGS was migrated to DCQL format and no longer enforces " +
-              "kb-jwt algorithm restrictions. The presentationDefinitionJsonDiffKbAlgs() config is unused.")
+            "kb-jwt algorithm restrictions. The presentationDefinitionJsonDiffKbAlgs() config is unused.")
     void wrongKeyBindingAlgorithm_thenError() throws Exception {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -496,7 +486,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
 
-        // mock did r§esolver response so we get a valid public key for the issuer
+        // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
@@ -668,16 +658,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void shouldGetCorrectMandatoryMetadata_thenSuccess() throws Exception {
-
-        mockMvc.perform(get("/oid4vp/api/openid-client-metadata.json")
-                        .contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.client_id").value(applicationProperties.getClientIdPrefix() + ":" +  applicationProperties.getClientId()))
-                .andExpect(jsonPath("$.vp_formats.jwt_vp.alg").value(JWSAlgorithm.ES256.getName()));
-    }
-
-    @Test
     void testDCQLEndpoint_thenSuccess() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -688,15 +668,15 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var parts = unsignedSdJwt.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
         var disclosures = Arrays.copyOfRange(parts, 1, parts.length);
         var discList = new java.util.ArrayList<>(Arrays.asList(disclosures));
-            // remove index 2 first, then index 1 to keep indices stable
-            discList.remove(2);
-            discList.remove(1);
+        // remove index 2 first, then index 1 to keep indices stable
+        discList.remove(2);
+        discList.remove(1);
         var rebuiltSdJwt = parts[0]
                 + SdJwt.JWT_PART_DELINEATION_CHARACTER
                 + StringUtils.join(discList, SdJwt.JWT_PART_DELINEATION_CHARACTER)
                 + SdJwt.JWT_PART_DELINEATION_CHARACTER;
 
-        var sdJwt = emulator.addKeyBindingProof(rebuiltSdJwt, NONCE_SD_JWT_SQL,  applicationProperties.getClientIdWithPrefix());
+        var sdJwt = emulator.addKeyBindingProof(rebuiltSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
 
         // remove unused list disclosures
@@ -721,7 +701,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL,  applicationProperties.getClientIdWithPrefix());
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
         mockDidResolverResponse(emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
@@ -809,7 +789,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .concat(used.stream().map(disc -> "~" + disc.toString()).reduce("", String::concat))
                 .concat("~");
 
-        var sdJwt = emulator.addKeyBindingProof(test, NONCE_SD_JWT_SQL,  applicationProperties.getClientIdWithPrefix());
+        var sdJwt = emulator.addKeyBindingProof(test, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
         mockDidResolverResponse(emulator);
         var vpToken = Map.of(dcqlCredentialId, List.of(sdJwt));
@@ -824,7 +804,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL,  applicationProperties.getClientIdWithPrefix());
+        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
@@ -1012,40 +992,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void encryptedResponse_whenCompressedCipherTextExceedsConfiguredLimit_thenBadRequestAndRemainsPending()
-            throws Exception {
-        // GIVEN
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED).orElseThrow();
-        var responseSpecification = managementEntity.getResponseSpecification();
-        ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
-        String payload = new JWTClaimsSet.Builder()
-                .claim("vp_token", Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of("payload".repeat(1_000))))
-                .claim("state", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED.toString())
-                .build()
-                .toString();
-        JWEObject jweObject = new JWEObject(
-                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
-                        .compressionAlgorithm(CompressionAlgorithm.DEF)
-                        .keyID(publicKey.getKeyID())
-                        .build(),
-                new Payload(payload));
-        jweObject.encrypt(new ECDHEncrypter(publicKey));
-        int compressedCipherTextLength = jweObject.getCipherText().toString().length();
-        doReturn(compressedCipherTextLength - 1)
-                .when(applicationProperties).getMaxCompressedCipherTextLength();
-
-        // WHEN / THEN
-        mockMvc.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("response", jweObject.serialize()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error_description").value("Response cannot be decrypted."));
-
-        assertThat(managementEntityRepository.findById(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED).orElseThrow().getState())
-                .isEqualTo(PENDING);
-    }
-
-    @Test
     void shouldHandleClientRejectionThroughRejectionEndpoint() throws Exception {
         // GIVEN
         String errorDescription = "User declined the verification request";
@@ -1110,39 +1056,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void shouldGetRequestObjectEncryptionRequired() throws Exception {
-        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
-                        .accept("application/oauth-authz-req+jwt"))
-                .andExpect(status().isOk())
-                .andDo(result -> {
-                    var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
-                    assertThat(responseJwt.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
-                    assertThat(responseJwt.getHeader().getKeyID()).isEqualTo(applicationProperties.getSigningKeyVerificationMethod());
-                    assertThat(responseJwt.verify(new ECDSAVerifier(ECKey.parse(PUBLIC_KEY)))).isTrue();
-
-                    // checking claims
-                    var claims = responseJwt.getJWTClaimsSet();
-                    assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
-                    assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post.jwt");
-                    assertThat(claims.getStringClaim("nonce")).isNotNull();
-                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED));
-
-                    assertDcqlIsComplete(claims);
-
-                    assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
-                    var metadata = objectMapper.readValue(objectMapper.writeValueAsString(claims.getClaim("client_metadata")), OpenidClientMetadataDto.class);
-                    assertThat(metadata.getJwks()).isNotNull();
-                    assertThat(metadata.getJwks().keys()).isNotEmpty();
-                    assertThat(metadata.getEncryptedResponseEncValuesSupported()).isNotEmpty();
-                    assertThat(metadata.getEncryptedResponseEncValuesSupported()).contains("A256GCM");
-                    var encryptionKeys = JWKSet.parse(objectMapper.writeValueAsString(metadata.getJwks()));
-                    assertThat(encryptionKeys.containsNonPublicKeys()).isFalse();
-                    assertThat(encryptionKeys.getKeys()).isNotEmpty();
-                });
-
-    }
-
-    @Test
     void shouldHandleConcurrentVerificationRequests_whenExternalDependencyBlocks() throws Exception {
 
         final SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -1170,7 +1083,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         executor.submit(() -> {
             try {
                 postVerificationResponse(REQUEST_ID_SECURED, finalVpToken, REQUEST_ID_SECURED);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         });
 
         assertThat(didCallStarted.await(5, TimeUnit.SECONDS)).isTrue();
@@ -1185,7 +1099,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Disabled("EIDOMNI-962: Race condition in test design - pool.getActiveConnections() is checked before " +
-              "all submitted threads have actually started, making the assertion trivially true and the test unreliable.")
+            "all submitted threads have actually started, making the assertion trivially true and the test unreliable.")
     @Test
     void shouldNotDeadlockVerificationFlow_whenExternalDependencyBlocks() throws Exception {
         final int concurrentRequests = 5;

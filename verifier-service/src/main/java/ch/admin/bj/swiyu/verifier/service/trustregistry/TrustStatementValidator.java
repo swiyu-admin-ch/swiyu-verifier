@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.trustregistry;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverAdapter;
+import ch.admin.bj.swiyu.jwtutil.JwtUtilException;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
@@ -108,7 +109,7 @@ public class TrustStatementValidator {
             // If we reached this point the status list state hold the information whether the trust statement can be used. Either way we should not reprocess it until the timeout is through
             return new TrustStatementValidationResult(statusListState.valid(), minimumTimeoutNs);
 
-        } catch (IllegalArgumentException | ParseException | IOException e) {
+        } catch (JwtUtilException | IllegalArgumentException | ParseException | IOException e) {
             log.info("Malformed or invalid Trust Statement detected: {} - Ignoring it", jwtString, e);
             return new TrustStatementValidationResult(false, TimeUtil.secondsToNanos(cacheProperties.getRequestBackoffSeconds()));
         }

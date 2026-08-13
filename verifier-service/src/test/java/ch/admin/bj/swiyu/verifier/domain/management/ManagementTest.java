@@ -2,9 +2,38 @@ package ch.admin.bj.swiyu.verifier.domain.management;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ManagementTest {
+
+    /**
+     * Test case where a request nonce is generated for a management entity.
+     * Expected result: the nonce is a canonical UUID version 4 using the IETF variant.
+     */
+    @Test
+    public void testRequestNonce_isUuidVersion4() {
+        Management management = Management.builder().build();
+
+        UUID requestNonce = UUID.fromString(management.getRequestNonce());
+
+        assertThat(requestNonce.toString()).isEqualTo(management.getRequestNonce());
+        assertThat(requestNonce.version()).isEqualTo(4);
+        assertThat(requestNonce.variant()).isEqualTo(2);
+    }
+
+    /**
+     * Test case where two management entities are created.
+     * Expected result: each entity receives a different request nonce.
+     */
+    @Test
+    public void testRequestNonce_isFreshForEveryManagement() {
+        Management firstManagement = Management.builder().build();
+        Management secondManagement = Management.builder().build();
+
+        assertThat(firstManagement.getRequestNonce()).isNotEqualTo(secondManagement.getRequestNonce());
+    }
 
     /**
      * Test case where both expected and provided OAuth states are blank.

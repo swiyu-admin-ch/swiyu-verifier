@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
@@ -34,6 +35,8 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.*;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -137,7 +140,7 @@ class SdJwtVpTokenVerifierTest {
         // Important: subject of trust statement must match vcIssuerDid so that isProvidingTrust() returns true
         var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, vcIssuerDid);
         var sdJwt = new SdJwt(trustStatement);
-        
+
         // Act
         assertThrows(VerificationException.class, () ->  verifier.verifyVpTokenTrustStatement(sdJwt, management));
     }
@@ -245,7 +248,7 @@ class SdJwtVpTokenVerifierTest {
 
         JWSHeader header =
                 new JWSHeader.Builder(JWSAlgorithm.ES256)
-                        .type(new JOSEObjectType("dc+sd-jwt")).build();
+                        .type(new JOSEObjectType(DC_SD_JWT_CREDENTIAL_FORMAT)).build();
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(builder.build(true));
         SignedJWT jwt = new SignedJWT(header, claimsSet);
@@ -279,8 +282,43 @@ class SdJwtVpTokenVerifierTest {
                 .startsWith("Duplicate digest detected");
     }
 
+    @Test
+    void validateFormat_whenDcSdJwtIsRequestedAndVcSdJwtIsPresented_thenSucceeds() {
+        var dcqlCredential = DcqlCredential.builder().id("credential-id").format(DC_SD_JWT_CREDENTIAL_FORMAT).build();
+        var vpToken = mock(SdJwt.class);
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType(VC_SD_JWT_CREDENTIAL_FORMAT)).build();
+
+        when(vpToken.getHeader()).thenReturn(header);
+        when(vpToken.isSDJWTType()).thenCallRealMethod();
+
+        assertDoesNotThrow(() -> verifier.validateFormat(dcqlCredential, vpToken));
+    }
+
+    @Test
+    void validateFormat_whenVcSdJwtIsRequestedAndDcSdJwtIsPresented_thenSucceeds() {
+        var dcqlCredential = DcqlCredential.builder().id("credential-id").format(VC_SD_JWT_CREDENTIAL_FORMAT).build();
+        var vpToken = mock(SdJwt.class);
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType(DC_SD_JWT_CREDENTIAL_FORMAT)).build();
+
+        when(vpToken.getHeader()).thenReturn(header);
+        when(vpToken.isSDJWTType()).thenCallRealMethod();
+
+        assertDoesNotThrow(() -> verifier.validateFormat(dcqlCredential, vpToken));
+    }
+
+    @Test
+    void validateFormat_whenNonSdJwtFormatDoesNotMatch_thenThrowsException() {
+        var dcqlCredential = DcqlCredential.builder().id("credential-id").format("jwt_vc_json").build();
+        var vpToken = mock(SdJwt.class);
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("jwt_vc")).build();
+
+        when(vpToken.getHeader()).thenReturn(header);
+
+        assertThrows(VerificationException.class, () -> verifier.validateFormat(dcqlCredential, vpToken));
+    }
+
     @ParameterizedTest
-    @ValueSource(strings = {"vc+sd-jwt", "dc+sd-jwt"})
+    @ValueSource(strings = {VC_SD_JWT_CREDENTIAL_FORMAT, DC_SD_JWT_CREDENTIAL_FORMAT})
     void validateDisclosures_whenDeeplyNested_thenSuccess(String credentialTyp) throws ParseException, JOSEException {
 
         List<Disclosure> disclosure = new ArrayList<>();

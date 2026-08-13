@@ -1,11 +1,11 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
+import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
@@ -97,7 +97,7 @@ public abstract class BaseVerificationControllerTest {
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(false)
-                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -110,7 +110,7 @@ public abstract class BaseVerificationControllerTest {
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
-                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -123,7 +123,7 @@ public abstract class BaseVerificationControllerTest {
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
-                .dcqlQuery(dcqlQuery(dcqlQueryNestedObjectJson()))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryNestedObjectJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -136,7 +136,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(0)
                 .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
-                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -147,7 +147,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -160,7 +160,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
-                .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(true)))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -172,7 +172,7 @@ public abstract class BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .dcqlQuery(dcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(false)))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJsonWithCryptographicHolderBinding(false)))
                 .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
                 .build());
 
@@ -185,7 +185,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
-                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
         managementEntityRepository.save(Management.builder()
@@ -197,7 +197,7 @@ public abstract class BaseVerificationControllerTest {
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
                 .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
-                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
 
 
@@ -222,7 +222,7 @@ public abstract class BaseVerificationControllerTest {
                         .encryptedResponseEncValuesSupported(List.of("A256GCM"))
                         .build())
                 .jwtSecuredAuthorizationRequest(true)
-                .dcqlQuery(dcqlQuery(dcqlQueryJson()))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson()))
                 .build());
     }
 
@@ -231,18 +231,17 @@ public abstract class BaseVerificationControllerTest {
         managementEntityRepository.deleteAll();
     }
 
-    DcqlQuery dcqlQuery(String dcqlQuery) throws JacksonException {
-        return objectMapper.readValue(dcqlQuery, DcqlQuery.class);
+    public static String dcqlQueryJson() {
+        return dcqlQueryJson(DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT);
     }
 
-
-    private static String dcqlQueryJson() {
+    public static String dcqlQueryJson(String format) {
         return """
                 {
                 "credentials": [
                     {
                       "id": "%s",
-                      "format": "dc+sd-jwt",
+                      "format": "%s",
                       "meta": {
                         "vct_values": [ "%s" ]
                       },
@@ -254,7 +253,7 @@ public abstract class BaseVerificationControllerTest {
                     }
                   ]
                 }
-                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT);
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, format, SDJWTCredentialMock.DEFAULT_VCT);
     }
 
     private static String dcqlQueryNestedObjectJson() {
@@ -263,7 +262,7 @@ public abstract class BaseVerificationControllerTest {
                 "credentials": [
                     {
                       "id": "%s",
-                      "format": "dc+sd-jwt",
+                      "format": "%s",
                       "meta": {
                         "vct_values": [ "%s" ]
                       },
@@ -274,16 +273,16 @@ public abstract class BaseVerificationControllerTest {
                     }
                   ]
                 }
-                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT);
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT);
     }
 
-     static String dcqlQueryJsonWithCryptographicHolderBinding(boolean requireCryptographicHolderBinding) {
+    static String dcqlQueryJsonWithCryptographicHolderBinding(boolean requireCryptographicHolderBinding) {
         return """
                 {
                 "credentials": [
                     {
                       "id": "%s",
-                      "format": "dc+sd-jwt",
+                      "format": "%s",
                       "meta": {
                         "vct_values": [ "%s" ]
                       },
@@ -295,7 +294,7 @@ public abstract class BaseVerificationControllerTest {
                     }
                   ]
                 }
-                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, SDJWTCredentialMock.DEFAULT_VCT, requireCryptographicHolderBinding);
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, requireCryptographicHolderBinding);
     }
 
     static ManagementResponseDto createVerificationRequest(MockMvc mvc, CreateVerificationManagementDto createVerificationManagementDto) {

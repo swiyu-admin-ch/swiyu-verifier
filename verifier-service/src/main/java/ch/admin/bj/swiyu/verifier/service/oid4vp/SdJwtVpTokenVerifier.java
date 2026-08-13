@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtutil.JwtUtilException;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
@@ -11,12 +12,14 @@ import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 
@@ -50,6 +53,7 @@ import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 
 /**
  * Verifies SD-JWT trust statements (which are themselves VP tokens) using the
@@ -98,7 +102,7 @@ public class SdJwtVpTokenVerifier {
 
         verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
         validateDisclosures(vpToken, management);
-        
+
         return vpToken;
     }
 
@@ -121,7 +125,7 @@ public class SdJwtVpTokenVerifier {
             validateJwtTimes(claims);
             sdJwt.setHeader(header);
             sdJwt.setClaims(claims);
-        } catch (ParseException | JwtValidatorException e) {
+        } catch (JwtUtilException | ParseException | JwtValidatorException e) {
             throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
         }
     }
@@ -232,6 +236,25 @@ public class SdJwtVpTokenVerifier {
                         .orElse(new ConfigurationOverride(null, null, null, null, null, null)));
         validateNonce(keyBindingClaims, management.getRequestNonce());
         validateSDHash(sdJwt, keyBindingClaims);
+    }
+
+    void validateFormat(DcqlCredential dcqlCredential, SdJwt vpToken) {
+        var expectedFormatType = dcqlCredential.getFormat();
+        var actualFormatType = vpToken.getHeader().getType();
+        var actualFormatValue = actualFormatType == null ? null : actualFormatType.getType();
+
+        if (dcqlCredential.expectsSDJWTCredential()) {
+            if (!vpToken.isSDJWTType()) {
+                var error = "Wrong format for %s - expected SD-JWT but received %s".formatted(dcqlCredential.getId(), actualFormatValue);
+                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, error);
+            }
+            return;
+        }
+
+        if (actualFormatValue == null || !expectedFormatType.equalsIgnoreCase(actualFormatValue)) {
+            var error = "Wrong format for %s - expected %s but received %s".formatted(dcqlCredential.getId(), expectedFormatType, actualFormatValue);
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, error);
+        }
     }
 
     private void validateSDHash(SdJwt sdjwt, JWTClaimsSet keyBindingClaims) {

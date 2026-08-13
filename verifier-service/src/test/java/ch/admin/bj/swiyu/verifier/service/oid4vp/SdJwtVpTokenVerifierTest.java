@@ -349,4 +349,31 @@ class SdJwtVpTokenVerifierTest {
 
         assertDoesNotThrow(() -> verifier.validateDisclosures(sdjwt, mgmtEntity));
     }
+
+    @Test
+    void validateHeader_whenTypeHeaderMissing_thenInvalidFormatInsteadOfNPE() {
+        // Arrange: JWS header without the optional "typ" claim (attacker-controllable, spec allows omitting it)
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(DEFAULT_KID_HEADER_VALUE).build();
+
+        // Act + Assert: must throw a clean VerificationException instead of a NullPointerException
+        var ex = assertThrows(VerificationException.class, () -> verifier.validateHeader(header));
+        assertEquals(VerificationErrorResponseCode.INVALID_FORMAT, ex.getErrorResponseCode());
+    }
+
+    @Test
+    void processDisclosures_whenSdClaimIsNotAnArray_thenMalformedCredentialInsteadOfClassCastException() {
+        // Arrange: "_sd" present but not a JSON array (e.g. attacker sends a string instead)
+        Map<String, Object> credentialSubject = new HashMap<>();
+        credentialSubject.put("_sd", "not-an-array");
+
+        JWTClaimsSet claimSet = new JWTClaimsSet.Builder()
+                .claim("credentialSubject", credentialSubject)
+                .build();
+
+        // Act + Assert: must throw a clean VerificationException instead of a ClassCastException
+        var ex = assertThrows(VerificationException.class,
+                () -> verifier.processDisclosures(claimSet, List.of(), UUID.randomUUID()));
+        assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, ex.getErrorResponseCode());
+        assertThat(ex.getErrorDescription()).contains("'_sd' claim must be a JSON array");
+    }
 }

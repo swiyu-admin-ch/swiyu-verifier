@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
+import java.net.URI;
 import java.util.List;
 
 @Builder
@@ -75,6 +76,14 @@ public record CreateVerificationManagementDto(
                 "When present, the verifier registers the DCQL query and injects the resulting vqPS " +
                 "into subsequent Authorization Requests.")
         @JsonProperty("verification_purpose")
-        VerificationPurposeDto verificationPurpose
+        VerificationPurposeDto verificationPurpose,
+
+        @ValidUri
+        @SessionNonce
+        @Schema(description = "[NOT FINISHED] Do not use this field yet! Optional URI to redirect the user after the verification process. Must contain a session_nonce parameter.",
+                hidden = true,
+                example = "https://example.com/redirect?session_nonce=12345")
+        @JsonProperty("redirect_uri")
+        URI redirectURI
 ) {
 }

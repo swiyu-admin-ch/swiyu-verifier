@@ -1,15 +1,16 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.dto.*;
+import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationUnionDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
-import ch.admin.bj.swiyu.verifier.service.OpenIdClientMetadataConfiguration;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResponseResolver;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.RequestObjectService;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.*;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.*;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.Dcql;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.EncryptedDcql;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.Rejection;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,8 +50,8 @@ public class VerificationController {
     private final RequestObjectService requestObjectService;
     private final PresentationResponseResolver presentationResponseResolver;
     private final PresentationVerificationUsecase presentationVerificationUsecase;
-    private final OpenIdClientMetadataConfiguration openIdClientMetadataConfiguration;
     private final ManagementService managementService;
+    private final MetadataService metadataService;
 
     @Timed
     @GetMapping(value = {"openid-client-metadata.json"})
@@ -80,7 +81,7 @@ public class VerificationController {
                             )
                     )})
     public OpenidClientMetadataDto getOpenIdClientMetadata() {
-        return openIdClientMetadataConfiguration.getOpenIdClientMetadata();
+        return metadataService.getOpenidClientMetadata();
     }
 
     @Timed
@@ -93,14 +94,14 @@ public class VerificationController {
                             responseCode = "200",
                             description = """
                                     Request object either as plaintext or signed JWT.
-
+                                    
                                     The 'application/oauth-authz-req+jwt' representation is a compact serialized JWS (optionally nested JWE) \
                                     representing the Request Object claims. As this is a JWT and not a JSON object, its structural requirements \
                                     cannot be expressed as a JSON Schema and are documented here instead:
                                     - The JOSE header MUST require the 'profile_version' parameter to indicate the Swiss Profile version.
                                     - The JWT Claims Set corresponds to the [RequestObject](#/components/schemas/RequestObject) schema documented \
                                     for the 'application/json' representation below, with 'request' and 'request_uri' claims strictly prohibited.
-
+                                    
                                     The 'application/json' representation is kept for documentation purposes only, mirroring the JWT Claims Set of \
                                     the 'application/oauth-authz-req+jwt' representation; it is not actually returned when JAR (JWT-secured \
                                     Authorization Request) is enabled.""",
@@ -125,9 +126,9 @@ public class VerificationController {
     public ResponseEntity<Object> getRequestObject(@PathVariable(name = "request_id") UUID requestId) {
         String jwt = requestObjectService.assembleRequestObject(requestId);
         return ResponseEntity
-                    .ok()
-                    .contentType(new MediaType("application", "oauth-authz-req+jwt"))
-                    .body(jwt);
+                .ok()
+                .contentType(new MediaType("application", "oauth-authz-req+jwt"))
+                .body(jwt);
     }
 
     @Timed
@@ -175,7 +176,7 @@ public class VerificationController {
                             description = "Verification Presentation received and processed successfully",
                             content = @Content(
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(type = "object", implementation = Map.class)
+                                    schema = @Schema(type = "object", implementation = VerificationPresentationResponseDto.class)
                             )
                     ),
                     @ApiResponse(
@@ -185,7 +186,7 @@ public class VerificationController {
                     )
             }
     )
-    public ResponseEntity<Map<String, Object>> receiveVerificationPresentation(
+    public VerificationPresentationResponseDto receiveVerificationPresentation(
             @RequestHeader(name = "SWIYU-API-Version", required = false) String versionString,
             @PathVariable(name = "request_id") UUID requestId,
             VerificationPresentationUnionDto unionDto) {
@@ -195,29 +196,29 @@ public class VerificationController {
 
         var managementEntity = managementService.getManagementById(requestId);
         VerificationPresentationUnionDto decryptedUnionDto = presentationResponseResolver.decryptIfNecessary(managementEntity, unionDto);
+
         if (!managementEntity.matchesOauthState(decryptedUnionDto.getState())) {
-                throw new IllegalArgumentException("OAuth2.0 State mismatch. Expected to receive the state as in Request Object");
+            throw new IllegalArgumentException("OAuth2.0 State mismatch. Expected to receive the state as in Request Object");
         }
 
         PresentationResult result = presentationResponseResolver.mapToPresentationResult(managementEntity, version, decryptedUnionDto);
 
-        switch (result) {
+        var response = switch (result) {
             // Processing rejection
             case Rejection(var rejectionDto) ->
-                presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
+                    presentationVerificationUsecase.receiveVerificationPresentationClientRejection(requestId, rejectionDto);
 
             // Processing DCQL presentation
             case Dcql(var dcqlDto) ->
-                presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, dcqlDto);
+                    presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, dcqlDto);
 
             // Processing encrypted DCQL presentation
             case EncryptedDcql(var encryptedDcqlDto) ->
-                presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, encryptedDcqlDto);
+                    presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, encryptedDcqlDto);
 
-        }
+        };
 
         log.info("Successfully processed verification presentation for request_id: {}", requestId);
-        return ResponseEntity.ok(Map.of());
-
+        return response;
     }
 }

@@ -2,6 +2,7 @@ import os
 import re
 import time
 import subprocess
+import httpx
 from langchain_core.messages import SystemMessage
 from typing import List, TypedDict
 from pydantic import BaseModel, Field
@@ -53,6 +54,40 @@ def _split_diff_by_file(diff: str) -> List[str]:
     return [chunk for chunk in chunks if chunk]
 
 
+# File paths matching any of these regexes are skipped entirely: they contain
+# documentation, instructions, example/template code (e.g. placeholders like
+# "XXX") or generated artefacts that must not be judged against production-code
+# rules (naming, architecture, etc.), which would otherwise produce
+# false-positive findings.
+_EXCLUDED_FILE_PATTERNS = [
+    re.compile(r"\.md$", re.IGNORECASE),
+    re.compile(r"^\.github/instructions/"),
+    re.compile(r"^\.github/agent/"),
+    re.compile(r"^openapi\.yaml$"),  # auto-generated via 'mvn verify -P generate-doc', not hand-written
+]
+
+
+def _extract_file_path(chunk: str) -> str:
+    """Extracts the 'b/...' target file path from a per-file diff chunk's header line."""
+    match = re.search(r"^diff --git a/\S+ b/(\S+)", chunk, re.MULTILINE)
+    return match.group(1) if match else ""
+
+
+def _is_excluded(file_path: str) -> bool:
+    """Checks whether a file path matches one of the documentation/instructions exclusion patterns."""
+    return any(pattern.search(file_path) for pattern in _EXCLUDED_FILE_PATTERNS)
+
+
+def _run_local() -> bool:
+    """Whether the script runs on a developer machine rather than in CI.
+
+    Set RUN_LOCAL=true to also print the report to the console and to
+    disable TLS verification (needed behind a corporate proxy that
+    intercepts HTTPS with a self-signed certificate).
+    """
+    return os.environ.get("RUN_LOCAL", "false").lower() == "true"
+
+
 def _build_llm() -> ChatOpenAI:
     """Creates the configured chat model, failing early on missing configuration."""
     adesso_api_key = os.environ.get("ADESSO_API_KEY")
@@ -65,25 +100,45 @@ def _build_llm() -> ChatOpenAI:
     if not adesso_api_key or not adesso_base_url:
         raise ValueError("ERROR: Please set ADESSO_API_KEY and ADESSO_BASE_URL as environment variables!")
 
-    return ChatOpenAI(
+    # A single request now covers the whole diff (see SPLIT_DIFF_BY_FILE), so the
+    # JSON response has to fit far more findings than the old per-file default.
+    # Too low a value truncates the JSON mid-object, which fails to parse and
+    # discards ALL findings from the request, not just the last one.
+    split_by_file = os.environ.get("SPLIT_DIFF_BY_FILE", "false").lower() == "true"
+    default_max_tokens = "5000" if split_by_file else "16000"
+
+    llm_kwargs = dict(
         model=llm_model_name,
-        temperature=0,
         api_key=adesso_api_key,
         base_url=adesso_base_url,
-        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", "5000")), # Must be high enough for the full JSON; truncated output cannot be parsed
+        max_tokens=int(os.environ.get("LLM_MAX_TOKENS", default_max_tokens)), # Must be high enough for the full JSON; truncated output cannot be parsed
         timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "300")), # Fail fast instead of hanging
         max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504) with backoff
-        # http_client=httpx.Client(verify=False) # <--- Disables SSL verification for corporate proxies
     )
+    if _run_local():
+        # Corporate proxies used for local runs terminate TLS with a
+        # self-signed cert; the CI runner talks to the API directly and
+        # doesn't need this.
+        llm_kwargs["http_client"] = httpx.Client(verify=False)
+    # Claude models behind the adesso AI Hub proxy (routed via Vertex AI) reject
+    # the 'temperature' param outright ("temperature is deprecated for this
+    # model"), so it must only be sent for models that still accept it.
+    if "claude" not in llm_model_name.lower():
+        llm_kwargs["temperature"] = 0
+
+    return ChatOpenAI(**llm_kwargs)
 
 
 def analyze_diff_node(state: ReviewState) -> ReviewState:
     """Node 1: Analyzes the code against the swiyu/adesso guidelines.
 
-    The diff is reviewed file-by-file so each request to the model stays small.
-    This prevents 504 gateway timeouts on large changesets and makes the run
-    resilient: if a single file times out, its error is recorded and the
-    remaining files are still reviewed.
+    By default the whole diff is reviewed in a single request, which large-
+    context models like Claude Sonnet handle fine. Set SPLIT_DIFF_BY_FILE=true
+    to fall back to the old per-file mode (smaller, more numerous requests),
+    which is useful for models with a small context window or when hitting
+    upstream gateway timeouts (504) on large diffs; it also makes the run
+    resilient, since a single failing/timing-out file no longer aborts the
+    whole review.
     """
     print("-> Analyzing git diff with the configured LLM (adesso AI Hub)...")
 
@@ -98,7 +153,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
 
     ## Review rules (only report REAL violations)
     1. Clean Code (SoC/SRP): high cohesion, low coupling. Flag "god classes", classes > ~200 LOC, or methods doing more than one logical task (mixing validation + mapping + I/O + business rules).
-    2. Naming Conventions: enforce suffixes *Controller, *Service, *Repository. Flag ANY '*Interface' suffix. Test names must follow 'MethodName_StateUnderTest_ExpectedBehavior' (unit) or 'given_when_then' (integration/application); flag generic names like 'test2()'.
+    2. Naming Conventions: enforce suffixes *Controller, *Service, *Repository. Flag ANY '*Interface' suffix. Test names must follow 'MethodName_StateUnderTest_ExpectedBehavior' (unit) or 'given_when_then' (integration/application); flag generic names like 'test2()'. EXCEPTION: classes ending in '*ComplianceTest' are static OpenAPI/contract compliance checks with their own documented convention (descriptive '@DisplayName' such as "Path: ...", "Schema: ...", using @Test methods named e.g. 'testXyz...'); do NOT apply the naming/given_when_then rule to them.
     3. Architecture & Layering:
        - @RestController must live in a '..web..' package, end with 'Controller', and carry a @Tag annotation with a unique 'IF-xxx' interface code.
        - @Service must live in '..service..' and end with 'Service'; repositories belong in '..domain..'.
@@ -113,8 +168,8 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     8. Documentation & Logging: public classes/interfaces/methods need English JavaDoc explaining why/what (not redundant getters). Prefer @Slf4j with STRUCTURED logging (include identifiers/keys). FLAG any logging of secrets/PII (tokens, passwords, keys). Integration tests must have Javadoc describing what/why, boundary conditions, and expected result.
     9. Framework Usage: correct Spring Boot usage (annotations, transaction boundaries, validation).
     10. Testing Pyramid: unit tests must mock external dependencies and cover edge cases; do not push business-logic assertions into integration tests; do not decrease coverage without reason.
-    11. Changelog: any user-facing or otherwise relevant change (feature, bug fix, behavioural/config/API change) must be accompanied by an entry in CHANGELOG.md under the '[NEXT]' section, grouped under Added/Fixed/Changed/Removed, and referencing the ticket number in parentheses (e.g. `(#949)`). Flag relevant code changes in the diff that do NOT include a corresponding CHANGELOG.md update or that omit the ticket reference. Pure refactorings, docs-only or merge commits are exempt.
-    12. Configuration Documentation: whenever application properties / configuration or environment variables are added, renamed, or changed (e.g. in application.yml, application-*.yml, @ConfigurationProperties classes, or env-var mappings), the README.md must be updated to document the new/changed property. Flag any such configuration change in the diff that is not reflected in README.md.
+    11. Changelog: any user-facing or otherwise relevant change (feature, bug fix, behavioural/config/API change) must be accompanied by an entry in CHANGELOG.md under the '[NEXT]' section. IMPORTANT: you are reviewing this ONE file in isolation and cannot see CHANGELOG.md's actual content (it is never included in this request) - so you can NEVER be sure an entry is missing. Therefore do NOT report this rule at all; leave it to a human reviewer who can see the full changeset. Never flag pom.xml dependency/plugin version bumps under this rule either way.
+    12. Configuration Documentation: whenever application properties / configuration or environment variables are added, renamed, or changed (e.g. in application.yml, application-*.yml, @ConfigurationProperties classes, or env-var mappings), the README.md must be updated to document the new/changed property. IMPORTANT: you are reviewing this ONE file in isolation and cannot see README.md's actual content (it is never included in this request) - so you can NEVER be sure the documentation is missing. Therefore do NOT report this rule at all; leave it to a human reviewer who can see the full changeset. Never flag pom.xml changes (dependency versions, plugin versions, build-only properties) under this rule either way - those are build/dependency management, not application configuration.
     13. Database Migrations: new Flyway migration scripts (e.g. under db/migration) must be backwards compatible following the EMC (Expand-Migrate-Contract) pattern, so the previous application version keeps working against the new schema during a rolling deployment. Flag destructive or breaking changes in the same migration as the expand step, e.g. dropping/renaming columns or tables still used by the current version, adding NOT NULL columns without a default or backfill, or narrowing types. Such changes must be split into separate expand and contract migrations across releases. Also flag edits to already-released migration scripts (migrations must be immutable once released).
     14. Spelling & Language (scoped, not nitpicking): only flag typos that have real impact - in public API names, configuration/property keys, environment variable names, and in log or exception messages. All code comments and JavaDoc must be written in English; flag any non-English comment/JavaDoc. Do NOT report minor typos in local variables or general prose.
 
@@ -123,13 +178,15 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     - Derive line numbers from the diff hunk headers ('@@ -a,b +c,d @@').
     - Judge ONLY what is visible in the diff; do NOT assume unseen code.
     - Do NOT report formatting, whitespace, or import ordering (handled by PMD/EditorConfig).
+    - Do NOT flag JavaDoc, comments, @Schema/@ApiResponse descriptions, or test @DisplayName strings merely for being verbose, long, or "could be shorter" - only flag them if they violate one of the 14 rules above (missing, wrong language, factually incorrect, or exposing secrets/PII). Verbosity/style alone is never a valid finding.
+    - Before reporting a naming/convention finding, double-check that the current identifier actually violates the rule; NEVER report a finding whose "suggestion" would result in the exact same name/text that is already there (e.g. do not say a constant "is not UPPER_SNAKE_CASE" if it already is).
     - Prefer precision over quantity: no speculative or duplicate findings. If unsure, omit it.
     - Map severity to the review categories: HIGH = must fix (Critical), MEDIUM = should fix, LOW = optional/nice to have.
     - For each finding, if the problem is confined to a single line or a few (<= 5) lines, copy those exact source lines (without the leading '+' diff marker) verbatim into "code_snippet". If the finding spans many lines, a whole method or class, leave "code_snippet" as an empty string.
 
     ## Output
     - Respond in English only.
-    - Keep the response compact to stay within the token limit: write "description" and "suggestion" as ONE short sentence each (no multi-paragraph explanations). Report at most the 10 most important findings per file, prioritising HIGH severity.
+    - Keep the response compact to stay within the token limit: write "description" and "suggestion" as ONE short sentence each (no multi-paragraph explanations). The diff may contain multiple files; report at most the 10 most important findings PER FILE, but no more than 40 findings TOTAL across all files, prioritising HIGH severity.
     - YOU MUST RETURN A VALID JSON OBJECT WITH THIS EXACT STRUCTURE AND NO OTHER FIELDS:
     {
       "summary": "A brief overall summary of the review.",
@@ -154,37 +211,84 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     ])
     chain = prompt | structured_llm
 
-    chunks = _split_diff_by_file(state["git_diff"])
-    print(f"-> Reviewing {len(chunks)} changed file(s) individually...")
+    all_chunks = _split_diff_by_file(state["git_diff"])
 
-    # Cap the size of a single file chunk so one huge file cannot trigger a
-    # gateway timeout. Large files are truncated rather than dropped entirely.
-    # Kept moderate (not 20000+): larger prompts take the model longer to
-    # process, increasing the risk of hitting the upstream gateway's fixed
-    # read-timeout (504), which our client-side `timeout` setting cannot override.
-    max_chunk_chars = int(os.environ.get("MAX_FILE_DIFF_CHARS", "20000"))
+    # Skip documentation/instructions/example files upfront: applying Java
+    # production-code rules (naming, architecture, ...) to them causes false
+    # positives, e.g. flagging an intentional "XXX" placeholder in a template.
+    chunks: List[str] = []
+    excluded_files: List[str] = []
+    for chunk in all_chunks:
+        file_path = _extract_file_path(chunk)
+        if file_path and _is_excluded(file_path):
+            excluded_files.append(file_path)
+        else:
+            chunks.append(chunk)
+
+    if excluded_files:
+        print(f"-> Skipping {len(excluded_files)} documentation/instructions file(s): "
+              f"{', '.join(excluded_files)}")
+
+    split_by_file = os.environ.get("SPLIT_DIFF_BY_FILE", "false").lower() == "true"
 
     all_findings: List[ReviewFinding] = []
     reviewed = 0
     failed = 0
-    for i, chunk in enumerate(chunks, 1):
-        if len(chunk) > max_chunk_chars:
-            # NOTE: only the first max_chunk_chars characters are reviewed; the
-            # remainder of this file's diff is NOT seen by the model.
-            print(f"   [{i}/{len(chunks)}] WARNING: diff truncated to {max_chunk_chars} chars, "
-                  f"review may be incomplete for this file.")
-            chunk = chunk[:max_chunk_chars] + "\n\n[... file diff truncated due to size ...]\n"
+
+    if split_by_file:
+        print(f"-> Reviewing {len(chunks)} changed file(s) individually...")
+
+        # Cap the size of a single file chunk so one huge file cannot trigger a
+        # gateway timeout. Large files are truncated rather than dropped entirely.
+        # Kept moderate (not 20000+): larger prompts take the model longer to
+        # process, increasing the risk of hitting the upstream gateway's fixed
+        # read-timeout (504), which our client-side `timeout` setting cannot override.
+        max_chunk_chars = int(os.environ.get("MAX_FILE_DIFF_CHARS", "20000"))
+
+        for i, chunk in enumerate(chunks, 1):
+            if len(chunk) > max_chunk_chars:
+                # NOTE: only the first max_chunk_chars characters are reviewed; the
+                # remainder of this file's diff is NOT seen by the model.
+                print(f"   [{i}/{len(chunks)}] WARNING: diff truncated to {max_chunk_chars} chars, "
+                      f"review may be incomplete for this file.")
+                chunk = chunk[:max_chunk_chars] + "\n\n[... file diff truncated due to size ...]\n"
+            try:
+                start = time.monotonic()
+                result = chain.invoke({"diff": chunk})
+                elapsed = time.monotonic() - start
+                all_findings.extend(result.findings)
+                reviewed += 1
+                print(f"   [{i}/{len(chunks)}] reviewed in {elapsed:.1f}s ({len(result.findings)} finding(s), "
+                      f"{len(chunk)} chars).")
+            except Exception as e:
+                failed += 1
+                print(f"   [{i}/{len(chunks)}] skipped due to error: {e}")
+    else:
+        print(f"-> Reviewing {len(chunks)} changed file(s) in a single request...")
+
+        # Cap the size of the combined diff sent in one request. Much higher
+        # than the per-file cap since large-context models (e.g. Claude Sonnet)
+        # can handle the whole diff at once.
+        max_total_chars = int(os.environ.get("MAX_TOTAL_DIFF_CHARS", "150000"))
+
+        combined_diff = "".join(chunks)
+        if len(combined_diff) > max_total_chars:
+            # NOTE: only the first max_total_chars characters are reviewed; the
+            # remainder of the diff is NOT seen by the model.
+            print(f"   WARNING: diff truncated to {max_total_chars} chars, review may be incomplete.")
+            combined_diff = combined_diff[:max_total_chars] + "\n\n[... diff truncated due to size ...]\n"
+
         try:
             start = time.monotonic()
-            result = chain.invoke({"diff": chunk})
+            result = chain.invoke({"diff": combined_diff})
             elapsed = time.monotonic() - start
             all_findings.extend(result.findings)
-            reviewed += 1
-            print(f"   [{i}/{len(chunks)}] reviewed in {elapsed:.1f}s ({len(result.findings)} finding(s), "
-                  f"{len(chunk)} chars).")
+            reviewed = len(chunks)
+            print(f"   reviewed in {elapsed:.1f}s ({len(result.findings)} finding(s), "
+                  f"{len(combined_diff)} chars).")
         except Exception as e:
-            failed += 1
-            print(f"   [{i}/{len(chunks)}] skipped due to error: {e}")
+            failed = len(chunks)
+            print(f"   skipped due to error: {e}")
 
     summary = (
         f"Reviewed {reviewed} file(s), {failed} skipped due to errors. "
@@ -210,6 +314,10 @@ def _clean_snippet(raw: str) -> str:
             line = line[1:]
         cleaned_lines.append(line)
     return "\n".join(cleaned_lines).strip()
+
+
+# Order in which findings are sorted within the report; unknown severities sort last.
+_SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 
 
 # Maps common file extensions to Markdown code-fence languages.
@@ -247,6 +355,8 @@ def format_report_node(state: ReviewState) -> ReviewState:
         return {"markdown_report": report}
 
     report += f"Found **{len(findings)}** remarks:\n\n"
+
+    findings = sorted(findings, key=lambda f: _SEVERITY_ORDER.get(f.severity, len(_SEVERITY_ORDER)))
 
     for idx, f in enumerate(findings, 1):
         icon = "🔴" if f.severity == "HIGH" else "🟡" if f.severity == "MEDIUM" else "🔵"
@@ -329,5 +439,10 @@ if __name__ == "__main__":
             f.write(report)
 
         print("\n✅ Analysis complete. Report saved to 'ai-review-report.md'.")
+
+        if _run_local():
+            print("\n" + "=" * 80)
+            print(report)
+            print("=" * 80)
     except Exception as e:
         print(f"\nAn error occurred: {e}")

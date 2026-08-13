@@ -1,18 +1,21 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.dto.management.*;
-import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.management.*;
+import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,6 +145,24 @@ public class ManagementMapper {
                     VerificationErrorResponseCodeDto.INVALID_PRESENTATION_DEFINITION_REFERENCE;
             case CLIENT_REJECTED -> VerificationErrorResponseCodeDto.CLIENT_REJECTED;
             case INVALID_TOKEN_STATUS_LIST -> VerificationErrorResponseCodeDto.INVALID_TOKEN_STATUS_LIST;
+            case ACCESS_DENIED -> VerificationErrorResponseCodeDto.ACCESS_DENIED;
+        };
+    }
+
+    public VerificationErrorResponseCode toVerificationErrorResponseCode(VerificationClientErrorDto rejectionCode) {
+        if (rejectionCode == null) {
+            return null;
+        }
+
+        return switch (rejectionCode) {
+            case INVALID_SCOPE -> VerificationErrorResponseCode.INVALID_SCOPE;
+            case INVALID_REQUEST -> VerificationErrorResponseCode.INVALID_REQUEST;
+            case INVALID_CLIENT -> VerificationErrorResponseCode.INVALID_CLIENT;
+            case VP_FORMATS_NOT_SUPPORTED -> VerificationErrorResponseCode.VP_FORMATS_NOT_SUPPORTED;
+            case INVALID_PRESENTATION_DEFINITION_URI -> VerificationErrorResponseCode.INVALID_PRESENTATION_DEFINITION_URI;
+            case INVALID_PRESENTATION_DEFINITION_REFERENCE -> VerificationErrorResponseCode.INVALID_PRESENTATION_DEFINITION_REFERENCE;
+            case CLIENT_REJECTED -> VerificationErrorResponseCode.CLIENT_REJECTED;
+            case ACCESS_DENIED -> VerificationErrorResponseCode.ACCESS_DENIED;
         };
     }
 
@@ -162,14 +183,14 @@ public class ManagementMapper {
     public static @NotNull ResponseModeType toResponseMode(ResponseModeTypeDto responseModeTypeDto) {
         return switch (responseModeTypeDto) {
             case DIRECT_POST -> ResponseModeType.DIRECT_POST;
-            case DIRECT_POST_JWT ->  ResponseModeType.DIRECT_POST_JWT;
+            case DIRECT_POST_JWT -> ResponseModeType.DIRECT_POST_JWT;
         };
     }
 
     public static ResponseModeTypeDto toResponseModeDto(@NotNull ResponseModeType responseModeType) {
         return switch (responseModeType) {
             case DIRECT_POST -> ResponseModeTypeDto.DIRECT_POST;
-            case DIRECT_POST_JWT ->  ResponseModeTypeDto.DIRECT_POST_JWT;
+            case DIRECT_POST_JWT -> ResponseModeTypeDto.DIRECT_POST_JWT;
         };
     }
 
@@ -179,5 +200,14 @@ public class ManagementMapper {
         } catch (JacksonException e) {
             throw new IllegalStateException("Malformed Json Web Key Set saved", e);
         }
+    }
+
+    /**
+     * Creates a {@link VerificationPresentationResponseDto} that wraps the given verification presentation {@link URI}.
+     * @param uri the verification presentation URI to wrap; may be {@code null}
+     * @return a {@link VerificationPresentationResponseDto} containing the provided {@code uri} *
+     **/
+    public static VerificationPresentationResponseDto uriToVerificationPresentation(URI uri) {
+        return new VerificationPresentationResponseDto(uri);
     }
 }

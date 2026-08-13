@@ -41,6 +41,9 @@ application:
     proxy-user: "${HSM_PROXY_USER:}"
     proxy-password: "${HSM_PROXY_PASSWORD:}"
 
+  template-replacement: # Hash Map of Values replaced in the templating
+    client-id: "${VERIFIER_DID:}" # the client id of the verifier, used for templating in the metadata
+
   url-rewrite:
     mapping: "${URL_REWRITE_MAPPING:{}}"
   accepted-registry-hosts:
@@ -132,7 +135,8 @@ management:
         application.verification-ttl,
         webhook.callback-uri,
         application.hsm.host,
-        application.hsm.port
+        application.hsm.port,
+        application.template-replacement.client-id
   health:
     # Set to false if no static signing key is configured (e.g. dynamic key management via ConfigurationOverride).
     # Env: SIGNING_KEY_VERIFICATION_ENABLED

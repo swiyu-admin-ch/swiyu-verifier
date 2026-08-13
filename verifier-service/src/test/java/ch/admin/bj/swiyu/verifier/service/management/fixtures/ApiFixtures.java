@@ -2,11 +2,15 @@ package ch.admin.bj.swiyu.verifier.service.management.fixtures;
 
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.dto.management.dcql.*;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialMetaDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_VCT;
@@ -24,7 +28,7 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementWithoutResponseMode(List<String> acceptedIssuerDids, DcqlQueryDto dcqlQueryDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, null, dcqlQueryDto, null);
+        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, null, dcqlQueryDto, null, null);
     }
 
     @NotNull

@@ -14,6 +14,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementTransactionalService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationService;
@@ -117,7 +118,7 @@ class PresentationVerificationUsecaseTest {
 
         presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, request);
 
-        verify(managementEntity).verificationFailedDueToClientRejection("User cancelled");
+        verify(managementEntity).verificationFailedDueToClientRejection(request.getErrorDescription(), ManagementMapper.toVerificationErrorResponseCode(request.getError()));
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationSucceeded(any());
     }
@@ -167,7 +168,7 @@ class PresentationVerificationUsecaseTest {
 
         presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest);
 
-        verify(managementEntity).verificationFailedDueToClientRejection(errorDescription);
+        verify(managementEntity).verificationFailedDueToClientRejection(rejectionRequest.getErrorDescription(), ManagementMapper.toVerificationErrorResponseCode(rejectionRequest.getError()));
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationSucceeded(any());
     }
@@ -184,7 +185,7 @@ class PresentationVerificationUsecaseTest {
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
 
         verify(callbackEventProducer).produceEvent(managementId);
-        verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
+        verify(managementEntity, never()).verificationFailedDueToClientRejection(any(), any());
     }
 
     @Test
@@ -199,7 +200,7 @@ class PresentationVerificationUsecaseTest {
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
 
         verify(callbackEventProducer).produceEvent(managementId);
-        verify(managementEntity, never()).verificationFailedDueToClientRejection(any());
+        verify(managementEntity, never()).verificationFailedDueToClientRejection(any(), any());
     }
 
     /**

@@ -1,15 +1,13 @@
-package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.infrastructure.web.controller;
+package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
-import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
+import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,9 +25,6 @@ class ErrorCodesIT extends BaseVerificationControllerTest {
 
     @Autowired
     private MockMvc mock;
-    @MockitoBean
-    private DidResolverFacade didResolverFacade;
-
 
     @Test
     void testExistingErrorCodesFromClientToManagement_thenSuccess() throws Exception {
@@ -55,9 +50,11 @@ class ErrorCodesIT extends BaseVerificationControllerTest {
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
 
+        var expectedStatus = ManagementMapper.toVerificationErrorResponseCode(verificationClientErrorCode);
+
         mock.perform(get(BASE_URL + "/" + REQUEST_ID_SECURED))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value(VerificationStatus.FAILED.toString()))
-                .andExpect(jsonPath("$.wallet_response.error_code").value(VerificationErrorResponseCodeDto.CLIENT_REJECTED.toString()));
+                .andExpect(jsonPath("$.wallet_response.error_code").value(expectedStatus.toString()));
     }
 }

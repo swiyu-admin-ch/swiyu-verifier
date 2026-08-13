@@ -1,14 +1,16 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHDecrypter;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
@@ -16,11 +18,10 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,7 +35,6 @@ import static org.mockito.Mockito.*;
 class ManagementServiceTest {
 
     private ManagementRepository repository;
-    private ManagementTransactionalService managementTransactionalService;
     private ApplicationProperties applicationProperties;
     private ManagementService service;
     private UUID id;
@@ -44,12 +44,12 @@ class ManagementServiceTest {
         id = UUID.randomUUID();
         repository = mock(ManagementRepository.class);
         applicationProperties = mock(ApplicationProperties.class);
-        managementTransactionalService = new ManagementTransactionalService(repository, applicationProperties);
+        ManagementTransactionalService managementTransactionalService = new ManagementTransactionalService(repository, applicationProperties);
         service = new ManagementService(applicationProperties, managementTransactionalService, null);
     }
 
     @Test
-    void createVerificationManagementDcql_thenSuccess() {
+    void createVerificationManagement_withDCQL_thenSuccess() {
         var dcqlQueryDto = mock(DcqlQueryDto.class);
         var dcqlQuery = mock(DcqlQuery.class);
         CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
@@ -59,6 +59,7 @@ class ManagementServiceTest {
                 ResponseModeTypeDto.DIRECT_POST,
                 null,
                 dcqlQueryDto,
+                null,
                 null
         );
         var management = mock(Management.class);
@@ -79,12 +80,13 @@ class ManagementServiceTest {
     }
 
     @Test
-    void createVerificationManagement_whenNoDcql_thenFailure() {
+    void createVerificationManagement_whenNoDCQL_thenFailure() {
         CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
                 List.of("did:example:123"),
                 null,
                 false,
                 ResponseModeTypeDto.DIRECT_POST,
+                null,
                 null,
                 null,
                 null
@@ -94,12 +96,12 @@ class ManagementServiceTest {
     }
 
     @Test
-    void createVerificationManagementWithNullRequest_throwsException() {
+    void createVerificationManagement_withNullRequest_throwsException() {
         assertThrows(IllegalArgumentException.class, () -> service.createVerificationManagement(null));
     }
 
     @Test
-    void getManagement_ResponseDto_thenSuccess() {
+    void getManagementResponseDto_thenSuccess() {
         var management = mock(Management.class);
         when(management.isExpired()).thenReturn(false);
         when(repository.findById(id)).thenReturn(Optional.of(management));
@@ -116,13 +118,13 @@ class ManagementServiceTest {
     }
 
     @Test
-    void getManagement_ResponseDto_throwsException() {
+    void getManagementResponseDto_withUnknownId_throwsException() {
         when(repository.findById(id)).thenReturn(Optional.empty());
         assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id));
     }
 
     @Test
-    void getManagementResponseDtoWithExpired_shouldDelete() {
+    void getManagementResponseDto_withExpired_shouldDelete() {
         var management = mock(Management.class);
         when(management.isExpired()).thenReturn(true);
         when(management.getId()).thenReturn(id);
@@ -139,7 +141,7 @@ class ManagementServiceTest {
     }
 
     @Test
-    void createManagementWithDirectPostJwt_thenSuccess() {
+    void createVerificationManagement_withDirectPostJwt_thenSuccess() {
         var dcqlQueryDto = mock(DcqlQueryDto.class);
         var dcqlQuery = mock(DcqlQuery.class);
         CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
@@ -149,6 +151,7 @@ class ManagementServiceTest {
                 ResponseModeTypeDto.DIRECT_POST_JWT,
                 null,
                 dcqlQueryDto,
+                null,
                 null
         );
         var management = mock(Management.class);
@@ -180,8 +183,8 @@ class ManagementServiceTest {
 
         // Validate that keys can be indeed be used together by doing a dry run of the encryption
         for (JWK jwk : jwkSet.getKeys()) {
-            assertThat(jwk.getAlgorithm()).isNotNull().as("For OID4VP algorithm MUST be not null");
-            assertThat(jwk.getAlgorithm()).isEqualTo(JWEAlgorithm.ECDH_ES).as("For swiss profile verification 1.0 only ECDH-ES is supported");
+            assertThat(jwk.getAlgorithm()).as("For OID4VP algorithm MUST be not null").isNotNull();
+            assertThat(jwk.getAlgorithm()).as("For swiss profile verification 1.0 only ECDH-ES is supported").isEqualTo(JWEAlgorithm.ECDH_ES);
             // This part would be done by the wallet
             var encryptionMethod = EncryptionMethod.parse(responseSpec.getEncryptedResponseEncValuesSupported().getFirst());
             JWEObject jweObject = new JWEObject(
@@ -198,6 +201,28 @@ class ManagementServiceTest {
             assertDoesNotThrow(() -> parsedJWE.decrypt(new ECDHDecrypter(privateKey)));
             assertEquals("Test", parsedJWE.getPayload().toString());
         }
+    }
 
+    @Test
+    void markVerificationSucceeded_withValidRequest_returnsRedirectURI() {
+        var transactionalService = mock(ManagementTransactionalService.class);
+        var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
+        var managementId = UUID.randomUUID();
+        var expected = URI.create("https://wallet.example/callback?response_code=abc");
+        when(transactionalService.markVerificationSucceeded(managementId, "credentialData")).thenReturn(expected);
+        var dto = mgmtService.markVerificationSucceeded(managementId, "credentialData");
+        assertThat(dto.redirectURI()).isEqualTo(expected);
+        verify(transactionalService).markVerificationSucceeded(managementId, "credentialData");
+    }
+
+    @Test
+    void markVerificationFailedDueToClientRejection_shouldReturnNullRedirect_andPersistFailure() {
+        var transactionalService = mock(ManagementTransactionalService.class);
+        var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
+        var managementId = UUID.randomUUID();
+        var rejection = new VerificationPresentationRejectionDto(VerificationClientErrorDto.CLIENT_REJECTED, "reason");
+        var dto = mgmtService.markVerificationFailedDueToClientRejection(managementId, rejection);
+        assertThat(dto.redirectURI()).isNull();
+        verify(transactionalService).markVerificationFailedDueToClientRejection(managementId, rejection);
     }
 }

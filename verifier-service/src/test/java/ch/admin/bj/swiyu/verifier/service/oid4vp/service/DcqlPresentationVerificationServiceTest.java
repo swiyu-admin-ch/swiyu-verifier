@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -53,7 +54,7 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, false);
+        var requestedCredential = new DcqlCredential(credentialId, DC_SD_JWT_CREDENTIAL_FORMAT, meta, claims, true, false);
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 
@@ -71,6 +72,7 @@ class DcqlPresentationVerificationServiceTest {
         JWTClaimsSet claimsObj = mock(JWTClaimsSet.class);
         when(claimsObj.getClaims()).thenReturn(claimMap);
         when(sdJwt.getClaims()).thenReturn(claimsObj);
+        when(sdJwt.getResolvedClaims()).thenReturn(claimMap);
 
         // Act
         var resultJson = dcqlPresentationVerificationService.process(management, request);
@@ -89,7 +91,7 @@ class DcqlPresentationVerificationServiceTest {
         var management = mock(Management.class);
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
-        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, List.of(), true, false);
+        var requestedCredential = new DcqlCredential(credentialId, DC_SD_JWT_CREDENTIAL_FORMAT, meta, List.of(), true, false);
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 
@@ -109,7 +111,7 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, multiple);
+        var requestedCredential = new DcqlCredential(credentialId, DC_SD_JWT_CREDENTIAL_FORMAT, meta, claims, true, multiple);
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
         var vpToken = "vp-token-sdjwt";
@@ -126,7 +128,7 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, true);
+        var requestedCredential = new DcqlCredential(credentialId, DC_SD_JWT_CREDENTIAL_FORMAT, meta, claims, true, true);
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
         var vpToken = "vp-token-sdjwt";

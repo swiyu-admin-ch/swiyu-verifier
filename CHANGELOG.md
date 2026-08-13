@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added `redirect_uri` with `response_code` to the `VerificationResponseDto` to allow the wallet to redirect the user after verification is completed. `(#1061)`
     - Updated `Management`entity to include `redirect_uri` and `response_code` to allow the wallet to redirect the user after verification is completed. `(#1061)` -> Changes are non-breaking as the new fields are optional and will be null if not set.
 
+## Fixed
+- Check dcql format with vp_token header type. Throws error if the format is not correct. (#1118)
+
 # [4.1.1] - 2026-07-24
 ## Added
 - Added `expiryMustBePresent` or `verification.expiry-must-be-present` configuration property to control whether the expiry must be present in the verification (

@@ -5,11 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.AssertFalse;
+import jakarta.validation.constraints.*;
 
 import java.util.List;
 
@@ -70,6 +66,7 @@ public record DcqlCredentialDto(
         List<DcqlClaimDto> claims,  // OPTIONAL
 
         @Hidden
+        @Null(message = "The claim_sets field is not yet supported")
         @Schema(description = "[NOT IMPLEMENTED] An optional non-empty array containing arrays of identifiers for elements in claims " +
                 "that specifies which combinations of claims for the Credential are requested. This feature is only partially supported; behavior may be limited.")
         @JsonProperty("claim_sets")
@@ -89,6 +86,7 @@ public record DcqlCredentialDto(
         Boolean requireCryptographicHolderBinding, // OPTIONAL
 
         @Hidden
+        @Null(message = "The trusted_authorities field is not yet supported")
         @Schema(description = "[NOT IMPLEMENTED] An optional non-empty array of Trusted Authorities Query objects. Some aspects of trusted authorities processing are not implemented in this release.")
         @JsonProperty("trusted_authorities")
         List<DcqlTrustedAuthoritiesDto> trustedAuthorities // OPTIONAL (not yet supported)

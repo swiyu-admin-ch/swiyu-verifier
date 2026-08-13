@@ -8,7 +8,6 @@ import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
-import com.authlete.sd.SDObjectDecoder;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -83,22 +82,18 @@ public class DcqlPresentationVerificationService {
             var sdJwts = requestedVpTokens.stream()
                     .map(token -> presentationVerifier.verify(token, entity, requestedCredential))
                     .toList();
+
             sdJwts = dcqlEvaluator.filterByVct(sdJwts, requestedCredential.getMeta());
+
             if (sdJwts.isEmpty()) {
                 throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "No matching SD-JWT for requested credential id " + requestedCredential.getId());
             }
-            dcqlEvaluator.validateRequestedClaims(sdJwts.getFirst(), requestedCredential.getClaims());
-            verifiedResponses.put(requestedCredential.getId(), extractClaimsList(sdJwts));
+
+            var sdjwt = sdJwts.getFirst();
+            dcqlEvaluator.validateRequestedClaims(sdjwt, requestedCredential.getClaims());
+            verifiedResponses.put(requestedCredential.getId(), List.of(sdjwt.getResolvedClaims()));
         }
         return writeAsString(verifiedResponses);
-    }
-
-
-    private List<Map<String, Object>> extractClaimsList(List<SdJwt> sdJwts) {
-        var decoder = new SDObjectDecoder();
-        return sdJwts.stream()
-                .map(sdJwt -> decoder.decode(sdJwt.getClaims().getClaims(), sdJwt.getDisclosures()))
-                .toList();
     }
 
     private String writeAsString(Object object) {

@@ -16,8 +16,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -54,7 +52,7 @@ public class Management {
     private Long version;
 
     @Builder.Default
-    private String requestNonce = createNonce();
+    private String requestNonce = UUID.randomUUID().toString();
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -122,9 +120,6 @@ public class Management {
     @Column(name = "vqps_query_hash")
     private String vqpsQueryHash;
 
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
-
     /**
      * Guarded set State, preventing illegal transaction
      *
@@ -182,15 +177,6 @@ public class Management {
         if (this.getState() != VerificationStatus.IN_PROGRESS) {
             throw new IllegalStateException("Object should be claimed for processing!");
         }
-    }
-
-    private static String createNonce() {
-        final Base64.Encoder base64encoder = Base64.getEncoder().withoutPadding();
-
-        byte[] randomBytes = new byte[24];
-        SECURE_RANDOM.nextBytes(randomBytes);
-
-        return base64encoder.encodeToString(randomBytes);
     }
 
     private static long calculateExpiresAt(int expirationInSeconds) {

@@ -430,9 +430,17 @@ def _render_findings(findings: List[ReviewFinding], start_index: int = 1) -> str
     for idx, f in enumerate(findings, start_index):
         icon = _SEVERITY_ICON.get(f.severity, "⚪")
         open_attr = " open" if f.severity == "HIGH" else ""
-        location = f" — {f.line_number}" if f.line_number else ""
+        # Show only the basename in the (collapsed) summary line - the full path is often long
+        # (e.g. "verifier-application/src/main/.../VerificationController.java") and makes that
+        # single line hard to scan; the full path still appears right below once expanded.
+        basename = f.file_name.rsplit("/", 1)[-1] if f.file_name else f.file_name
         section += f"<details{open_attr}>\n"
-        section += f"<summary>#{idx} {icon} <b>{f.severity}</b> · {f.category} · <code>{f.file_name}</code>{location}</summary>\n\n"
+        # NOTE: don't prefix idx with '#' - GitHub auto-links "#<number>" as an issue/PR reference.
+        section += f"<summary>Finding {idx} — {icon} <b>{f.severity}</b> · {f.category} · <code>{basename}</code></summary>\n\n"
+        section += f"**File:** `{f.file_name}`"
+        if f.line_number:
+            section += f" (line {f.line_number})"
+        section += "\n\n"
         section += f"**Problem:** {f.description}\n\n"
         # Show the offending code only when the model provided a short snippet
         snippet = _clean_snippet(f.code_snippet)

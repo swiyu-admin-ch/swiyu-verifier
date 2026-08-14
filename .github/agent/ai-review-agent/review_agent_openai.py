@@ -400,36 +400,67 @@ def _language_for(file_name: str) -> str:
 _ZDD_CATEGORY = "Backward Compatibility (ZDD/JSON)"
 
 
+# Icon shown per severity, both in the summary table and each finding's collapsed summary line.
+_SEVERITY_ICON = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🔵"}
+
+
+def _severity_summary_table(findings: List[ReviewFinding]) -> str:
+    """Renders a compact Markdown table with the finding count per severity.
+
+    Long PR comments with one heading per finding are hard to scan; a table up top lets
+    reviewers gauge how bad the diff is at a glance before expanding anything.
+    """
+    counts = {}
+    for f in findings:
+        counts[f.severity] = counts.get(f.severity, 0) + 1
+    rows = "\n".join(
+        f"| {_SEVERITY_ICON.get(severity, '⚪')} {severity} | {count} |"
+        for severity, count in sorted(counts.items(), key=lambda kv: _SEVERITY_ORDER.get(kv[0], len(_SEVERITY_ORDER)))
+    )
+    return f"| Severity | Count |\n|---|---|\n{rows}\n\n"
+
+
 def _render_findings(findings: List[ReviewFinding], start_index: int = 1) -> str:
-    """Renders a list of findings as numbered Markdown entries."""
+    """Renders findings as collapsible <details> blocks (GitHub-native, keeps PR comments scannable).
+
+    HIGH severity findings start expanded (they're must-fix and should be visible immediately);
+    MEDIUM/LOW start collapsed so they don't dominate the comment.
+    """
     section = ""
     for idx, f in enumerate(findings, start_index):
-        icon = "🔴" if f.severity == "HIGH" else "🟡" if f.severity == "MEDIUM" else "🔵"
-        section += f"### {idx}. {icon} [{f.category}] in `{f.file_name}`\n"
-        section += f"- **Line/Context:** {f.line_number}\n"
-        section += f"- **Problem:** {f.description}\n"
+        icon = _SEVERITY_ICON.get(f.severity, "⚪")
+        open_attr = " open" if f.severity == "HIGH" else ""
+        location = f" — {f.line_number}" if f.line_number else ""
+        section += f"<details{open_attr}>\n"
+        section += f"<summary>#{idx} {icon} <b>{f.severity}</b> · {f.category} · <code>{f.file_name}</code>{location}</summary>\n\n"
+        section += f"**Problem:** {f.description}\n\n"
         # Show the offending code only when the model provided a short snippet
         snippet = _clean_snippet(f.code_snippet)
         if snippet:
-            section += f"- **Code:**\n\n```{_language_for(f.file_name)}\n{snippet}\n```\n"
-        section += f"- **Suggestion:** {f.suggestion}\n\n"
+            section += f"**Code:**\n\n```{_language_for(f.file_name)}\n{snippet}\n```\n\n"
+        section += f"**Suggestion:** {f.suggestion}\n\n"
+        section += "</details>\n\n"
     return section
 
 
 def format_report_node(state: ReviewState) -> ReviewState:
-    """Node 2: Formats the results into a clean Markdown report."""
+    """Node 2: Formats the results into a clean, GitHub-friendly Markdown report."""
     print("-> Creating Markdown report...")
 
     findings = state.get("findings", [])
     summary = state.get("summary", "No summary available.")
 
-    report = f"# 🤖 AI Code Review Report\n\n**Summary:** {summary}\n\n"
+    report = "# 🤖 AI Code Review Report\n\n"
 
     if not findings:
+        report += f"> [!TIP]\n> {summary}\n\n"
         report += "✅ **Great! The code complies with all guidelines. No issues found.**\n"
         return {"markdown_report": report}
 
-    report += f"Found **{len(findings)}** remarks:\n\n"
+    # Use a more attention-grabbing alert box when there's at least one must-fix finding.
+    alert = "WARNING" if any(f.severity == "HIGH" for f in findings) else "NOTE"
+    report += f"> [!{alert}]\n> {summary}\n\n"
+    report += _severity_summary_table(findings)
 
     findings = sorted(findings, key=lambda f: _SEVERITY_ORDER.get(f.severity, len(_SEVERITY_ORDER)))
 

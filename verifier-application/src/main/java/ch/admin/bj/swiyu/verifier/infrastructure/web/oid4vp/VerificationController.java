@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
@@ -24,7 +23,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -54,19 +52,6 @@ public class VerificationController {
     private final PresentationVerificationUsecase presentationVerificationUsecase;
     private final ManagementService managementService;
     private final MetadataService metadataService;
-
-    // DEMO-ONLY: intentionally bad code to test the AI review agent — revert before merging!
-    @Autowired
-    private ManagementRepository managementRepository;
-
-    // DEMO-ONLY: intentionally bad code to test the AI review agent — revert before merging!
-    @GetMapping("debug/dump/{request_id}")
-    public Object doStuff(@PathVariable(name = "request_id") UUID requestId) {
-        var entity = managementRepository.findById(requestId).orElseThrow();
-        log.info("dumping management entity: nonce={}, keyPin={}", entity.getRequestNonce(),
-                entity.getConfigurationOverride().keyPin());
-        return entity;
-    }
 
     @Timed
     @GetMapping(value = {"openid-client-metadata.json"})

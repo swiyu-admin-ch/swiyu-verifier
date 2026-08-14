@@ -7,4 +7,4 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 // path (e.g. @JsonAlias), and keep any new field optional with a default.
 // DEMO-ONLY: intentionally breaks ZDD/JSON backward compatibility to test the AI review agent — revert before merging!
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record TrustAnchor(String did, String registryUrl, String issuerName){}
+public record TrustAnchor(String did, String trustRegistryUri){}

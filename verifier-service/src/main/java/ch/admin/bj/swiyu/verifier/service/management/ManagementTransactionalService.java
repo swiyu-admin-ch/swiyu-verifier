@@ -59,7 +59,7 @@ public class ManagementTransactionalService {
             throw new VerificationNotFoundException(id);
         }
 
-        if (management.getRedirectURI() != null && (management.getResponseCode() == null || !management.getResponseCode().equals(responseCode))) {
+        if (management.getResponseCode() != null && !management.getResponseCode().equals(responseCode)) {
             var msg = "Matching verification for id %s with response_code could not be found".formatted(id);
             log.warn(msg);
             throw new IllegalArgumentException(msg);

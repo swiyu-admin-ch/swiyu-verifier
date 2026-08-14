@@ -12,9 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`
 - Updated to Jackson 3 `(#944)`
 - Changed nonce implementation to use UUIDs, matching the issuer's implementation `(#1133)`
+- Renamed cache properties to be more descriptive:`(#1227)`
+  - Renamed `caching.status-list-cache-ttl` to `caching.status-list-cache-ttl-ms`
+  - Renamed `caching.jwk-cache-ttl` to `caching.jwk-cache-ttl-ms`
+  - Renamed `caching.trust-cache-ttl` to `caching.trust-cache-ttl-ms`
 
 ## Fixed
 - Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`
+- Fixed incorrect usage of cache times (incorrect usage of seconds vs milliseconds) in the `StatusListResolverAdapter` additionally fixes expireAfterRead with correct return `(#1227)`
+
 ## Added
 - Added redirect functionality to the verifier to allow the wallet to redirect the user after verification is completed. `(#1060, #1061)` (This is still experimental and not yet ready to be used)
     - Added `redirect_uri` to the `CreateVerificationManagementDto` to allow the wallet to redirect the user after verification is completed. `(#1060)`

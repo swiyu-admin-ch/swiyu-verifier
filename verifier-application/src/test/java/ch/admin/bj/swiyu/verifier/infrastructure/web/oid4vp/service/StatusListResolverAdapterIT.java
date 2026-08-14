@@ -42,8 +42,8 @@ import static org.mockserver.model.HttpResponse.response;
 @Import({WebClientConfig.class, StatusListResolverAdapterIT.TestConfig.class, VerificationProperties.class})
 @TestPropertySource(properties = {
         "verification.object-size-limit=10",
-        "caching.status-list-cache-ttl=250",
-        "caching.jwk-cache-ttl=1000"
+        "caching.status-list-cache-ttl-ms=250",
+        "caching.jwk-cache-ttl-ms=1000"
 })
 class StatusListResolverAdapterIT {
 
@@ -96,7 +96,7 @@ class StatusListResolverAdapterIT {
     void setUp() {
 
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
+        when(cacheProperties.getStatusListCacheTtlMs()).thenReturn(0L);
 
         mockServerClient = new MockServerClient(mockServerContainer.getHost(), mockServerContainer.getServerPort());
 
@@ -157,7 +157,7 @@ class StatusListResolverAdapterIT {
     @Test
     void testStatusListCaching_thenSuccess() {
 
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
+        when(cacheProperties.getStatusListCacheTtlMs()).thenReturn(1000L);
         var expectedCacheValue = "statusList";
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn("http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist");
 
@@ -173,7 +173,7 @@ class StatusListResolverAdapterIT {
     @Test
     void testStatusIfCachingUsed_thenSuccess() {
 
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
+        when(cacheProperties.getStatusListCacheTtlMs()).thenReturn(1000L);
 
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn(url);
         when(urlRewriteProperties.getRewrittenUrl(url)).thenReturn("http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist");
@@ -193,7 +193,7 @@ class StatusListResolverAdapterIT {
     @Test
     void testStatusListCaching_whenCachingDisabled_thenAlwaysFetchesFromRemote() {
         // caching is disabled when ttl = 0
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(0L);
+        when(cacheProperties.getStatusListCacheTtlMs()).thenReturn(0L);
 
         mockServerClient
                 .when(request().withMethod("GET").withPath("/statuslist"))
@@ -210,7 +210,7 @@ class StatusListResolverAdapterIT {
 
     @Test
     void testStatusListCaching_whenCacheEvicted_thenFetchesFromRemoteAgain() {
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
+        when(cacheProperties.getStatusListCacheTtlMs()).thenReturn(1000L);
 
         mockServerClient
                 .when(request().withMethod("GET").withPath("/statuslist"))
@@ -227,7 +227,7 @@ class StatusListResolverAdapterIT {
 
     @Test
     void testStatusListCaching_differentUris_areCachedSeparately() {
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(1000L);
+        when(cacheProperties.getStatusListCacheTtlMs()).thenReturn(1000L);
 
         var url2 = "https://example.com/statuslist2";
         var rewrittenUrl2 = "http://" + mockServerContainer.getHost() + ":" + mockServerContainer.getServerPort() + "/statuslist2";
@@ -266,7 +266,7 @@ class StatusListResolverAdapterIT {
      */
     @Test
     void testStatusListCaching_whenScheduledEvictionRuns_thenCacheEntryIsRemoved() throws InterruptedException {
-        when(cacheProperties.getStatusListCacheTtl()).thenReturn(100000L);
+        when(cacheProperties.getStatusListCacheTtlMs()).thenReturn(100000L);
 
         mockServerClient
                 .when(request().withMethod("GET").withPath("/statuslist"))

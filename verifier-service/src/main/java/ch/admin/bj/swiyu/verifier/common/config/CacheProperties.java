@@ -14,19 +14,26 @@ public class CacheProperties {
     /**
      * Maximum size of the status list cache
      */
-    private long statusListCacheSize = 1000l;
+    private long statusListCacheSize = 1000L;
  
     /**
      * Cache Timeout time in milliseconds for token status lists
      */
     @NotNull
-    private Long statusListCacheTtl = 0l;
+    private Long statusListCacheTtlMs = 0L;
 
     /**
      * Cache Timeout time in milliseconds for public keys fetched to perform a verification
      */
     @NotNull
-    private Long jwkCacheTtl = 3_600_000l;
+    private Long jwkCacheTtlMs = 3_600_000L;
+
+
+    /**
+     * Cache Timeout time in milliseconds for trust statements
+     */
+    @NotNull
+    private Long trustCacheTtlMs = 3_600_000L;
 
 
     /**

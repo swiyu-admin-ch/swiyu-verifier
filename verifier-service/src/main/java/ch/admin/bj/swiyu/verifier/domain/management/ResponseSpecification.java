@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
@@ -13,6 +14,10 @@ import java.util.List;
 /**
  * Collection of settings and data stored for the request object defining the expected wallet response
  */
+// JSON-PERSISTED (ZDD): serialized to JSON in the "management" table (see Management.responseSpecification).
+// Keep this type backward compatible across releases: don't rename/remove fields without a migration
+// path (e.g. @JsonAlias), and keep any new field optional with a default.
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @Builder
 @NoArgsConstructor

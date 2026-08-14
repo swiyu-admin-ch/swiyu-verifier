@@ -8,6 +8,8 @@ import lombok.Getter;
 /**
  * Custom Error Codes expanding on OID4VP defined errors to give additional information on what is wrong
  */
+// JSON-PERSISTED (ZDD): referenced from ResponseData, which is serialized to JSON in the "management" table.
+// Don't rename/remove a constant without a migration path for already-stored rows.
 @Getter
 @AllArgsConstructor
 @Schema(name = "VerificationErrorResponseCode")

@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.domain.management.dcql;
 
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotEmpty;
@@ -17,6 +18,10 @@ import java.util.List;
  * Domain model for DCQL Credential Query.
  * Represents a single credential query within a DCQL query.
  */
+// JSON-PERSISTED (ZDD): nested within DcqlQuery, which is serialized to JSON in the "management" table.
+// Keep this type backward compatible across releases: don't rename/remove fields without a migration
+// path (e.g. @JsonAlias), and keep any new field optional with a default.
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @Builder
 @NoArgsConstructor

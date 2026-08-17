@@ -19,12 +19,14 @@ public class CacheCustomizer {
      * This method is scheduled to run at a fixed rate defined by the property
      * 'caching.jwk-cache-ttl-ms'. It clears all entries in the 'JWK_CACHE'.
      */
+    // Todo: EIDOMNI-1246 Contract - remove caching.jwk-cache-ttl
     @CacheEvict(value = JWK_CACHE, allEntries = true)
     @Scheduled(fixedRateString = "${caching.jwk-cache-ttl:${caching.jwk-cache-ttl-ms}}")
     public void emptyIssuerPublicKeyCache() {
         log.debug("emptying public keys cache");
     }
 
+    // Todo: EIDOMNI-1246 Contract - remove caching.trust-cache-ttl
     @CacheEvict(value = TRUST_STATEMENT_CACHE, allEntries = true)
     @Scheduled(fixedDelayString = "${caching.trust-cache-ttl:${caching.trust-cache-ttl-ms}}")
     public void emptyTrustCache() {

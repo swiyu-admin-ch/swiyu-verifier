@@ -20,13 +20,13 @@ public class CacheCustomizer {
      * 'caching.jwk-cache-ttl-ms'. It clears all entries in the 'JWK_CACHE'.
      */
     @CacheEvict(value = JWK_CACHE, allEntries = true)
-    @Scheduled(fixedRateString = "${caching.jwk-cache-ttl-ms:${caching.jwk-cache-ttl:3600000}}")
+    @Scheduled(fixedRateString = "${caching.jwk-cache-ttl-ms:${caching.jwk-cache-ttl}}")
     public void emptyIssuerPublicKeyCache() {
         log.debug("emptying public keys cache");
     }
 
     @CacheEvict(value = TRUST_STATEMENT_CACHE, allEntries = true)
-    @Scheduled(fixedRateString = "${caching.trust-cache-ttl-ms:${caching.trust-cache-ttl:3600000}}")
+    @Scheduled(fixedDelayString = "${caching.trust-cache-ttl-ms:${caching.trust-cache-ttl}}")
     public void emptyTrustCache() {
         log.debug("emptying trust statement cache");
     }

@@ -29,9 +29,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
 
 /**
- * Validates Trust Statement JWTs (idTS and piaTS) using the two-step Flow B of
- * {@link DidJwtValidator}, split across two distinct phases:
- *
+ * Validates Trust Statement JWTs (idTS and piaTS) using {@link DidJwtValidator}
  * <ol>
  *   <li><strong>Pre-inject validation</strong> ({@link #validateSignature(String)}):
  *       Called on every metadata response, just before the cached JWT is injected.

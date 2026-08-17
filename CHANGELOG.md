@@ -13,9 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated to Jackson 3 `(#944)`
 - Changed nonce implementation to use UUIDs, matching the issuer's implementation `(#1133)`
 - Renamed cache properties to be more descriptive:`(#1227)`
-  - Renamed `caching.status-list-cache-ttl` to `caching.status-list-cache-ttl-ms`
-  - Renamed `caching.jwk-cache-ttl` to `caching.jwk-cache-ttl-ms`
-  - Renamed `caching.trust-cache-ttl` to `caching.trust-cache-ttl-ms`
+  - Renamed `caching.status-list-cache-ttl` -> `caching.status-list-cache-ttl-ms`
+  - Renamed `caching.jwk-cache-ttl` -> `caching.jwk-cache-ttl-ms`
+  - Renamed `caching.trust-cache-ttl` -> `caching.trust-cache-ttl-ms`
 
 ## Fixed
 - Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`

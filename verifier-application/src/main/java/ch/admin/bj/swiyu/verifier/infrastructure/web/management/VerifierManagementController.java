@@ -72,7 +72,7 @@ public class VerifierManagementController {
                     ),
                     @ApiResponse(
                             responseCode = "404",
-                            description = "Verification not found or already expired or mismatching `response_code`",
+                            description = "Verification not found or already expired",
                             content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
                     )
             }

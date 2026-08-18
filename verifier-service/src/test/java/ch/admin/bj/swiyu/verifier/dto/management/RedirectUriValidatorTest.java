@@ -6,7 +6,7 @@ import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SessionNonceValidatorTest {
+class RedirectUriValidatorTest {
 
     private final RedirectUriValidator validator = new RedirectUriValidator();
 

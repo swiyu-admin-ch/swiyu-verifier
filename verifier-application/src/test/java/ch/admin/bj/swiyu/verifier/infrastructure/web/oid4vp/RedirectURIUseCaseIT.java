@@ -9,7 +9,6 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -22,7 +21,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-@ActiveProfiles("test")
 public class RedirectURIUseCaseIT extends BaseVerificationControllerTest {
 
     @Autowired

@@ -6,6 +6,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
@@ -16,9 +18,13 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,19 +52,11 @@ class ManagementServiceTest {
     }
 
     @Test
-    void createVerificationManagementDcql_thenSuccess() {
+    void createVerificationManagement_withDCQL_thenSuccess() {
         var dcqlQueryDto = mock(DcqlQueryDto.class);
         var dcqlQuery = mock(DcqlQuery.class);
-        CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
-                List.of("did:example:123"),
-                null,
-                false,
-                ResponseModeTypeDto.DIRECT_POST,
-                null,
-                dcqlQueryDto,
-                null,
-                null
-        );
+        var requestDto = createRequestDto(ResponseModeTypeDto.DIRECT_POST, dcqlQueryDto);
+
         var management = mock(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);
 
@@ -77,28 +75,20 @@ class ManagementServiceTest {
     }
 
     @Test
-    void createVerificationManagement_whenNoDcql_thenFailure() {
-        CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
-                List.of("did:example:123"),
-                null,
-                false,
-                ResponseModeTypeDto.DIRECT_POST,
-                null,
-                null,
-                null,
-                null
-        );
+    void createVerificationManagement_whenNoDCQL_thenFailure() {
+        var requestDto = createRequestDto(ResponseModeTypeDto.DIRECT_POST, null);
+
         var error = assertThrows(IllegalArgumentException.class, () -> service.createVerificationManagement(requestDto));
         assertEquals("dcql_query is required", error.getMessage());
     }
 
     @Test
-    void createVerificationManagementWithNullRequest_throwsException() {
+    void createVerificationManagement_withNullRequest_throwsException() {
         assertThrows(IllegalArgumentException.class, () -> service.createVerificationManagement(null));
     }
 
     @Test
-    void getManagement_ResponseDto_thenSuccess() {
+    void getManagementResponseDto_thenSuccess() {
         var management = mock(Management.class);
         when(management.isExpired()).thenReturn(false);
         when(repository.findById(id)).thenReturn(Optional.of(management));
@@ -107,7 +97,7 @@ class ManagementServiceTest {
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties))
                     .thenReturn(mock(ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto.class));
 
-            service.getManagementResponseDto(id);
+            service.getManagementResponseDto(id, null);
             managementMapper.verify(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties), times(1));
         }
 
@@ -115,20 +105,42 @@ class ManagementServiceTest {
     }
 
     @Test
-    void getManagement_ResponseDto_throwsException() {
+    void getManagementResponseDto_withUnknownId_throwsException() {
         when(repository.findById(id)).thenReturn(Optional.empty());
-        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id));
+        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id, null));
     }
 
     @Test
-    void getManagementResponseDtoWithExpired_shouldDelete() {
+    void getManagementResponseDto_withExpired_shouldDelete() {
         var management = mock(Management.class);
         when(management.isExpired()).thenReturn(true);
         when(management.getId()).thenReturn(id);
         when(repository.findById(id)).thenReturn(Optional.of(management));
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
-        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id));
+        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id, null));
         verify(repository).deleteById(id);
+    }
+
+    @NullSource
+    @ParameterizedTest
+    @ValueSource(strings = {"bd24c010-c11d-4db9-a389-d8d61abc7466"})
+    void getManagementResponseDto_whenAcceptableResponseCode_shouldPassToTransactionalService(String input) {
+
+        var uuid = input == null ? null : UUID.fromString(input);
+        var transactionalService = spy(new ManagementTransactionalService(repository, applicationProperties));
+        var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
+
+        // when
+        doReturn(mock(Management.class)).when(transactionalService).findAndHandleExpiration(id, uuid);
+
+        // call function
+        try (MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
+            managementMapper.when(() -> ManagementMapper.toManagementResponseDto(any(Management.class), any()))
+                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto.class));
+
+            mgmtService.getManagementResponseDto(id, uuid);
+            verify(transactionalService, times(1)).findAndHandleExpiration(id, uuid);
+        }
     }
 
     @Test
@@ -138,19 +150,11 @@ class ManagementServiceTest {
     }
 
     @Test
-    void createManagementWithDirectPostJwt_thenSuccess() {
+    void createVerificationManagement_withDirectPostJwt_thenSuccess() {
         var dcqlQueryDto = mock(DcqlQueryDto.class);
         var dcqlQuery = mock(DcqlQuery.class);
-        CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
-                List.of("did:example:123"),
-                null,
-                false,
-                ResponseModeTypeDto.DIRECT_POST_JWT,
-                null,
-                dcqlQueryDto,
-                null,
-                null
-        );
+        var requestDto = createRequestDto(ResponseModeTypeDto.DIRECT_POST_JWT, dcqlQueryDto);
+
         var management = mock(Management.class);
         var managementCaptor = ArgumentCaptor.forClass(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);
@@ -198,6 +202,41 @@ class ManagementServiceTest {
             assertDoesNotThrow(() -> parsedJWE.decrypt(new ECDHDecrypter(privateKey)));
             assertEquals("Test", parsedJWE.getPayload().toString());
         }
+    }
 
+    @Test
+    void markVerificationSucceeded_withValidRequest_returnsRedirectURI() {
+        var transactionalService = mock(ManagementTransactionalService.class);
+        var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
+        var managementId = UUID.randomUUID();
+        var expected = URI.create("https://wallet.example/callback?response_code=abc");
+        when(transactionalService.markVerificationSucceeded(managementId, "credentialData")).thenReturn(expected);
+        var dto = mgmtService.markVerificationSucceeded(managementId, "credentialData");
+        assertThat(dto.redirectURI()).isEqualTo(expected);
+        verify(transactionalService).markVerificationSucceeded(managementId, "credentialData");
+    }
+
+    @Test
+    void markVerificationFailedDueToClientRejection_shouldReturnNullRedirect_andPersistFailure() {
+        var transactionalService = mock(ManagementTransactionalService.class);
+        var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
+        var managementId = UUID.randomUUID();
+        var rejection = new VerificationPresentationRejectionDto(VerificationClientErrorDto.CLIENT_REJECTED, "reason");
+        var dto = mgmtService.markVerificationFailedDueToClientRejection(managementId, rejection);
+        assertThat(dto.redirectURI()).isNull();
+        verify(transactionalService).markVerificationFailedDueToClientRejection(managementId, rejection);
+    }
+
+    private CreateVerificationManagementDto createRequestDto(ResponseModeTypeDto responseModeTypeDto, DcqlQueryDto dcqlQueryDto) {
+        return new CreateVerificationManagementDto(
+                List.of("did:example:123"),
+                null,
+                false,
+                responseModeTypeDto,
+                null,
+                dcqlQueryDto,
+                null,
+                null
+        );
     }
 }

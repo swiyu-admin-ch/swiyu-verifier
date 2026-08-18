@@ -53,10 +53,14 @@ jobs:
           PACT_DIR=verifier-service/target/pacts
           TRUST_PACT="$PACT_DIR/swiyu-verifier-swiyu-trust-registry.json"
           BUSINESS_PACT="$PACT_DIR/swiyu-verifier-swiyu-core-business-service.json"
+          IDENTIFIER_PACT="$PACT_DIR/swiyu-verifier-swiyu-identifier-registry.json"
+          STATUS_PACT="$PACT_DIR/swiyu-verifier-swiyu-status-registry.json"
 
-          test "$(find "$PACT_DIR" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" -eq 2
+          test "$(find "$PACT_DIR" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" -eq 4
           test -s "$TRUST_PACT"
           test -s "$BUSINESS_PACT"
+          test -s "$IDENTIFIER_PACT"
+          test -s "$STATUS_PACT"
 
           jq -e '
             .consumer.name == "swiyu-verifier" and
@@ -83,6 +87,42 @@ jobs:
               all(. == "/api/v1/trust/vqps-submissions")) and
             ([.interactions[].response.status] | sort == [201, 422, 500])
           ' "$BUSINESS_PACT"
+
+          jq -e '
+            .consumer.name == "swiyu-verifier" and
+            .provider.name == "swiyu-identifier-registry" and
+            (.metadata.pactSpecification.version | startswith("4.")) and
+            (.interactions | length == 3) and
+            ([.interactions[].request.method] | all(. == "GET")) and
+            ([.interactions[].request.path] |
+              all(startswith("/api/v1/did/") and endswith("/did.jsonl"))) and
+            ([.interactions[].response.status] | sort == [200, 404, 500]) and
+            (.interactions | all(.[];
+              .request.generators.path.type == "ProviderState" and
+              (.providerStates | all(.[];
+                (.params.didId | type == "string" and length > 0) and
+                (.params.verificationMethodId | type == "string" and length > 0)
+              ))
+            ))
+          ' "$IDENTIFIER_PACT"
+
+          jq -e '
+            .consumer.name == "swiyu-verifier" and
+            .provider.name == "swiyu-status-registry" and
+            (.metadata.pactSpecification.version | startswith("4.")) and
+            (.interactions | length == 3) and
+            ([.interactions[].request.method] | all(. == "GET")) and
+            ([.interactions[].request.path] |
+              all(startswith("/api/v1/statuslist/") and endswith(".jwt"))) and
+            ([.interactions[].response.status] | sort == [200, 404, 503]) and
+            (.interactions | all(.[];
+              .request.generators.path.type == "ProviderState" and
+              (.request.headers.Authorization? == null) and
+              (.providerStates | all(.[];
+                .params.statusListId | type == "string" and length > 0
+              ))
+            ))
+          ' "$STATUS_PACT"
 
       - name: Publish contracts to Pact Broker
         env:

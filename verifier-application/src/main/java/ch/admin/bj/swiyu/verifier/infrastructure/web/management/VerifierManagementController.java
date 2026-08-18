@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,14 +66,21 @@ public class VerifierManagementController {
                             content = @Content(schema = @Schema(implementation = ManagementResponseDto.class))
                     ),
                     @ApiResponse(
+                            responseCode = "400",
+                            description = "Bad request or mismatching `response_code`",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
                             responseCode = "404",
                             description = "Verification not found or already expired",
                             content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
                     )
             }
     )
-    public ManagementResponseDto getVerification(@PathVariable UUID verificationId) {
-        return presentationService.getManagementResponseDto(verificationId);
+    public ManagementResponseDto getVerification(
+            @PathVariable UUID verificationId,
+            @Parameter(description = "Optional for normal use. Mandatory if `redirect_uri` was used") @RequestParam(name = "response_code", required = false) UUID responseCode) {
+        return presentationService.getManagementResponseDto(verificationId, responseCode);
     }
 
     @ExceptionHandler(VerificationNotFoundException.class)

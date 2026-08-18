@@ -21,7 +21,21 @@ Ask the user to run it and paste the output back to you.
 git log --since="[DATE_FROM_STEP_1]" --oneline`
 ```
 
-## Step 4: Generate the Changelog
+## Step 4: Verify "Upstream First" Policy Compliance
+
+Before generating the changelog, you must verify that no commits exist on the current release branch that are missing from the `main` branch. This enforces the architecture policy that all fixes must go to `main` first.
+
+Provide the following git command in a bash block and ask the user to run it:
+
+` ``bash
+git log main..HEAD --oneline
+` ``
+
+Stop and wait for the user's reply. Do not proceed to the next step.
+- If the output is empty: The branch is compliant. Proceed to generate the changelog.
+-
+
+## Step 5: Generate the Changelog
 Once the user provides the commit messages, generate the changelog using STRICTLY the following instructions:
 - Generate a changelog for the next release based on the provided git commit messages.
 - Group the changes by "Added", "Fixed", and "Changed".
@@ -31,12 +45,12 @@ Once the user provides the commit messages, generate the changelog using STRICTL
 - Only include user-facing changes, skip refactoring, documentation, and merge commits unless they affect functionality.
 - It there is already a entry for the change, do not change the description, but only add the new Jira ticket number in parentheses. For example, if there is already an entry "Added new API endpoint for user registration", and a new commit adds another Jira ticket related to this change, the entry should be updated to "Added new API endpoint for user registration (#123, #456)".
 
-## Step 5: Update the pom.xml Files
+## Step 6: Update the pom.xml Files
 Directly after presenting the changelog, provide the code to update the `pom.xml` files.
 Provide the exact XML snippets to update the `<version>` tags for `swiyu-verifier-parent` and `swiyu-verifier-service` to the new version defined in Step 1.
 Also, suggest the command `mvn versions:set -DnewVersion=[VERSION_FROM_STEP_1]` as a quick alternative to update all Maven modules automatically.
 
-## Step 6: Commit and Push Version Changes
+## Step 7: Commit and Push Version Changes
 Tell the user to commit and push the changed pom.xml files. Provide the following git commands in a bash code block, automatically inserting the version from Step 1 into the commit message:
 
 ```bash
@@ -44,12 +58,12 @@ git commit -am "chore(release): bump version to [VERSION_FROM_STEP_1]"
 git push
 ```
 
-## Step 7: GitHub Release Instructions
+## Step 8: GitHub Release Instructions
 Provide the user with a step-by-step checklist to publish the release on GitHub.
 Extract the major and minor version from Step 1 to suggest the correct release branch (e.g., if the version is 2.4.3, the branch is release/2.4.x).
 Output exactly this guide in German, filling in the correct variables based on the user's input:
 
-**Schritt 7: GitHub Release erstellen**
+**GitHub Release erstellen**
 Bitte führe nun die folgenden Schritte auf GitHub aus:
 1. Öffne die Release-Seite: [https://github.com/swiyu-admin-ch/swiyu-verifier/releases](https://github.com/swiyu-admin-ch/swiyu-verifier/releases)
 2. Klicke auf den Button **"Draft a new release"**.
@@ -59,12 +73,12 @@ Bitte führe nun die folgenden Schritte auf GitHub aus:
 6. **Describe this release:** Kopiere das oben generierte Changelog und füge es hier ein.
 7. Klicke auf **"Publish release"**.
 
-## Step 8: Confluence Documentation & Jira Filter
+## Step 9: Confluence Documentation & Jira Filter
 Extract all unique Jira ticket IDs (e.g., EIDOMNI-123 or similar formats) from the commit messages provided in Step 3. Remove any duplicate ticket IDs.
 Generate a JQL string formatted exactly like this: `key IN (TICKET-1, TICKET-2, TICKET-3)`
 Output exactly this guide in German, filling in the generated JQL filter and version:
 
-**Schritt 8: Confluence Dokumentation**
+**Confluence Dokumentation**
 Bitte trage das neue Release nun im Confluence ein:
 1. Gehe auf die Seite: **7.2. Generic Components Releases - e-ID Teamspace - Confluence**.
 2. Erstelle in der Tabelle einen neuen Eintrag für die Version `[VERSION_FROM_STEP_1]`.

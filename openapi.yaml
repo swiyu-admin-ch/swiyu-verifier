@@ -72,6 +72,7 @@ paths:
             application/json:
               schema:
                 type: object
+                $ref: "#/components/schemas/VerificationPresentationResponseDto"
   /management/api/verifications:
     post:
       tags:
@@ -443,6 +444,7 @@ components:
           description: |
             The OAuth State is an opaque value used by the client to maintain state between the request and callback.<br>
             If provided in the request object the state string <em>MUST</em> be returned in the response.
+    VerificationPresentationResponseDto: {}
     ApiErrorDto:
       type: object
       properties:
@@ -510,12 +512,10 @@ components:
           minLength: 1
         meta:
           $ref: "#/components/schemas/DcqlCredentialMetaDto"
-          description: "[NOT FULLY IMPLEMENTED] An object defining additional properties\
-            \ requested by the Verifier that apply to the metadata and validity data\
-            \ of the Credential. Parts of this object are not fully supported by this\
-            \ implementation; please consult the documentation. The properties of\
-            \ this object are defined per Credential Format. According to OpenID for\
-            \ Verifiable Presentations 1.0, Section 6.1, property 'meta'."
+          description: "An object defining additional properties requested by the\
+            \ Verifier that apply to the metadata and validity data of the Credential.\
+            \ The properties of this object are defined per Credential Format. According\
+            \ to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'meta'."
         claims:
           type: array
           description: "An optional non-empty array of Claims Query objects, specifying\
@@ -745,6 +745,7 @@ components:
       - invalid_presentation_definition_reference
       - jwt_premature
       - invalid_token_status_list
+      - access_denied
     VerificationStatus:
       type: string
       enum:
@@ -974,6 +975,8 @@ components:
         Additional Verifier metadata parameters MAY be defined and used, as described in [RFC7591].
         The Wallet MUST ignore any unrecognized parameters.
       properties:
+        client_id:
+          type: string
         jwks:
           $ref: "#/components/schemas/JWKSet"
           description: |
@@ -1043,24 +1046,23 @@ components:
             \ further information about the verifier, such as name and logo. It is\
             \ UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter\
             \ is present."
-          example: |-
-            {
-                "client_name#en": "English name (all regions)",
-                "client_name#fr": "French name (all regions)",
-                "client_name#de-DE": "German name (region Germany)",
-                "client_name#de-CH": "German name (region Switzerland)",
-                "client_name#de": "German name (fallback)",
-                "client_name": "Fallback name",
-                "client_logo": "www.example.com/logo.png",
-                "client_logo#fr": "www.example.com/logo_fr.png",
-                "vp_formats": {
-                    "jwt_vp": {
-                        "alg": [
-                            "ES256"
-                        ],
-                    }
-                }
-            }
+          example:
+            client_name#en: English name (all regions)
+            client_name#fr: French name (all regions)
+            client_name#de-DE: German name (region Germany)
+            client_name#de-CH: German name (region Switzerland)
+            client_name#de: German name (fallback)
+            client_name: Fallback name
+            client_logo: www.example.com/logo.png
+            client_logo#fr: www.example.com/logo_fr.png
+            vp_formats_supported:
+              dc+sd-jwt:
+                sd-jwt_alg_values:
+                - ES256
+                - Ed25519
+                kb-jwt_alg_values:
+                - ES256
+                - Ed25519
         state:
           type: string
           description: |

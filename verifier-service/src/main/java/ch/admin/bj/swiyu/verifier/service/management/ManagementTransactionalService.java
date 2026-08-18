@@ -1,7 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
-import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
-import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
@@ -9,6 +7,8 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,28 +36,47 @@ public class ManagementTransactionalService {
     private final ApplicationProperties applicationProperties;
 
     /**
-     * Loads the Management and deletes it if expired, all within a single transaction.
+     * Load a Management entity by id and enforce expiration and response-code guards within the current transaction.
+     *
+     * <p>Behavior:
+     * <ul>
+     *   <li>If the entity does not exist a {@link ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException} is thrown.</li>
+     *   <li>If the entity is expired it is deleted and a {@link ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException} is thrown.</li>
+     *   <li>If the provided, mandatory if redirectUri set, responseCode is missing or does not match, a {@link IllegalArgumentException} is thrown.</li>
+     * </ul>
+     *
+     * @param id           the Management entity id
+     * @param responseCode the expected response code for redirect-enabled sessions (optional)
+     * @return the loaded {@link ch.admin.bj.swiyu.verifier.domain.management.Management} if it passed all checks
      */
     @Transactional
-    public Management findAndHandleExpiration(UUID id) {
+    public Management findAndHandleExpiration(UUID id, UUID responseCode) {
         var management = repository.findById(id).orElseThrow(() -> new VerificationNotFoundException(id));
+
         if (management.isExpired()) {
             repository.deleteById(id);
             log.info("Deleted management for id {} since it is expired", management.getId());
             throw new VerificationNotFoundException(id);
         }
+
+        if (management.getResponseCode() != null && !management.getResponseCode().equals(responseCode)) {
+            var msg = "Matching verification for id %s with response_code could not be found".formatted(id);
+            log.warn(msg);
+            throw new IllegalArgumentException(msg);
+        }
+
         return management;
     }
 
     /**
      * Persists a new Management aggregate in its own transaction.
      *
-     * @param dcqlQuery                     the parsed DCQL query
-     * @param request                       the creation request DTO
-     * @param trustAnchors                  resolved trust anchors
-     * @param responseSpecificationBuilder  builder for the response specification
-     * @param vqpsQueryHash                 optional SHA-256 query hash linking this session to a cached vqPS JWT (PK of {@code vqps_cache})
-     * @param redirectURI                   optional redirect URI for the response
+     * @param dcqlQuery                    the parsed DCQL query
+     * @param request                      the creation request DTO
+     * @param trustAnchors                 resolved trust anchors
+     * @param responseSpecificationBuilder builder for the response specification
+     * @param vqpsQueryHash                optional SHA-256 query hash linking this session to a cached vqPS JWT (PK of {@code vqps_cache})
+     * @param redirectURI                  optional redirect URI for the response
      */
     @Transactional
     public Management saveNewManagement(DcqlQuery dcqlQuery,
@@ -67,17 +86,17 @@ public class ManagementTransactionalService {
                                         String vqpsQueryHash,
                                         URI redirectURI) {
         return repository.save(Management.builder()
-            .expirationInSeconds(applicationProperties.getVerificationTTL())
-            .dcqlQuery(dcqlQuery)
-            .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
-            .responseSpecification(responseSpecificationBuilder.build())
-            .acceptedIssuerDids(request.acceptedIssuerDids())
-            .trustAnchors(trustAnchors)
-            .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
-            .vqpsQueryHash(vqpsQueryHash)
-            .redirectURI(redirectURI)
-            .build()
-            .resetExpiresAt());
+                .expirationInSeconds(applicationProperties.getVerificationTTL())
+                .dcqlQuery(dcqlQuery)
+                .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
+                .responseSpecification(responseSpecificationBuilder.build())
+                .acceptedIssuerDids(request.acceptedIssuerDids())
+                .trustAnchors(trustAnchors)
+                .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
+                .vqpsQueryHash(vqpsQueryHash)
+                .redirectURI(redirectURI)
+                .build()
+                .resetExpiresAt());
     }
 
     /**
@@ -101,10 +120,10 @@ public class ManagementTransactionalService {
      *
      * @param managementEntityId the session to claim
      * @return the {@link Management} entity in state {@code IN_PROGRESS}
-     * @throws ProcessClosedException if the session is not {@code PENDING} or has expired
-     * @throws EntityNotFoundException if no session exists for the given id
+     * @throws ProcessClosedException                                          if the session is not {@code PENDING} or has expired
+     * @throws EntityNotFoundException                                         if no session exists for the given id
      * @throws org.springframework.orm.ObjectOptimisticLockingFailureException if a concurrent
-     *         thread committed first
+     *                                                                         thread committed first
      */
     @Transactional(timeout = 10)
     public Management claimSessionForProcessing(UUID managementEntityId) {
@@ -126,15 +145,20 @@ public class ManagementTransactionalService {
 
     /**
      * Persists a successful verification result in its own short-lived transaction.
+     *
+     * @param managementEntityId    the id of the Management entity to update
+     * @param credentialSubjectData the credential subject data to store in the Management entity
+     * @return the redirect URI to which the client should be sent after successful verification
      */
     @Transactional(
             propagation = Propagation.REQUIRES_NEW,
             noRollbackFor = VerificationException.class,
             timeout = 10
     )
-    public void markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
+    public URI markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
         var managementEntity = getInProgressManagementEntity(managementEntityId);
         managementEntity.verificationSucceeded(credentialSubjectData);
+        return managementEntity.getRedirectURI();
     }
 
     /**
@@ -176,7 +200,7 @@ public class ManagementTransactionalService {
      * that must be in {@link VerificationStatus#IN_PROGRESS}.
      *
      * @throws VerificationException if the entity is missing
-     *                                  or is in a terminal state
+     *                               or is in a terminal state
      */
     private Management getInProgressManagementEntity(UUID managementEntityId) {
         var managementEntity = repository.findById(managementEntityId)
@@ -187,5 +211,4 @@ public class ManagementTransactionalService {
         }
         return managementEntity;
     }
-
 }

@@ -1046,24 +1046,23 @@ components:
             \ further information about the verifier, such as name and logo. It is\
             \ UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter\
             \ is present."
-          example: |-
-            {
-                "client_name#en": "English name (all regions)",
-                "client_name#fr": "French name (all regions)",
-                "client_name#de-DE": "German name (region Germany)",
-                "client_name#de-CH": "German name (region Switzerland)",
-                "client_name#de": "German name (fallback)",
-                "client_name": "Fallback name",
-                "client_logo": "www.example.com/logo.png",
-                "client_logo#fr": "www.example.com/logo_fr.png",
-                "vp_formats": {
-                    "jwt_vp": {
-                        "alg": [
-                            "ES256"
-                        ],
-                    }
-                }
-            }
+          example:
+            client_name#en: English name (all regions)
+            client_name#fr: French name (all regions)
+            client_name#de-DE: German name (region Germany)
+            client_name#de-CH: German name (region Switzerland)
+            client_name#de: German name (fallback)
+            client_name: Fallback name
+            client_logo: www.example.com/logo.png
+            client_logo#fr: www.example.com/logo_fr.png
+            vp_formats_supported:
+              dc+sd-jwt:
+                sd-jwt_alg_values:
+                - ES256
+                - Ed25519
+                kb-jwt_alg_values:
+                - ES256
+                - Ed25519
         state:
           type: string
           description: |

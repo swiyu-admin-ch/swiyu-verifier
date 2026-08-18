@@ -64,14 +64,15 @@ public class ManagementService {
     }
 
     /**
-     * Retrieves and returns a management response DTO by ID, handling expiration.
+     * Retrieves and returns a management response DTO by ID, handling expiration
      *
-     * @param id the UUID of the management
-     * @return the ManagementResponseDto
+     * @param id the UUID of the management entity
+     * @param responseCode the expected response code for redirect-enabled sessions (optional)
+     * @return the mapped {@link ManagementResponseDto}
      */
-    public ManagementResponseDto getManagementResponseDto(UUID id) {
+    public ManagementResponseDto getManagementResponseDto(UUID id, UUID responseCode) {
         log.debug("requested verification for id: {}", id);
-        var management = managementTransactionalService.findAndHandleExpiration(id);
+        var management = managementTransactionalService.findAndHandleExpiration(id, responseCode);
         return toManagementResponseDto(management, applicationProperties);
     }
 

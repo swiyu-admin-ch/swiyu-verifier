@@ -17,6 +17,10 @@ public class RedirectUriValidator
             return true;
         }
 
+        if (!uri.isAbsolute() || uri.getFragment() != null) {
+            return false;
+        }
+
         String query = uri.getQuery();
         if (query == null) {
             return false;

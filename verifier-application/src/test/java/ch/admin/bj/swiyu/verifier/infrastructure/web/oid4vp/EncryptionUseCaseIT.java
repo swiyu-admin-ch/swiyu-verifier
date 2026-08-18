@@ -46,9 +46,6 @@ class EncryptionUseCaseIT extends BaseVerificationControllerTest {
     private static final String MANAGEMENT_BASE_URL = "/management/api/verifications";
     private static final String OID4VP_API_BASE_URL = "/oid4vp/api/request-object";
 
-    @Autowired
-    private ApplicationProperties applicationProperties;
-
     @ParameterizedTest
     @MethodSource("provideCreateDtos")
     void testVerificationFlow_withAndWithoutRequestedEncryption_thenSuccess(CreateVerificationManagementDto createVerificationManagementDto) throws Exception {

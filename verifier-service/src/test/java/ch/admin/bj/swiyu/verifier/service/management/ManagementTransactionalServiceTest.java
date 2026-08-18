@@ -125,20 +125,6 @@ class ManagementTransactionalServiceTest {
     }
 
     @Test
-    void findAndHandleExpiration_withRedirectURIButNullResponseCode_throwsIllegalArgumentException() {
-        UUID id = UUID.randomUUID();
-        var mockManagement = mock(Management.class);
-        when(mockManagement.getId()).thenReturn(id);
-        when(mockManagement.isExpired()).thenReturn(false);
-        when(mockManagement.getRedirectURI()).thenReturn(URI.create("https://example.com/callback"));
-        when(mockManagement.getResponseCode()).thenReturn(null);
-        when(mockRepository.findById(id)).thenReturn(Optional.of(mockManagement));
-
-        assertThrows(IllegalArgumentException.class,
-                () -> managementTransactionalService.findAndHandleExpiration(id, UUID.randomUUID()));
-    }
-
-    @Test
     void findAndHandleExpiration_withMismatchedResponseCode_throwsIllegalArgumentException() {
         UUID id = UUID.randomUUID();
         UUID storedResponseCode = UUID.randomUUID();

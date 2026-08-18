@@ -11,7 +11,7 @@ import java.lang.annotation.*;
 @Constraint(validatedBy = RedirectUriValidator.class)
 public @interface RedirectUri {
 
-    String message() default "must contain a session nonce";
+    String message() default "must be an absolute URI and contain a session_nonce parameter";
 
     Class<?>[] groups() default {};
 

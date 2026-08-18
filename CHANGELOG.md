@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 - Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`
 - Fixed metadata samples to contain correct alsgs for vp-formats and -keybindings. Structure of the metadata is also adjusted. `(#1131)`
+- Fixed `redirect_uri` validation to reject non-absolute URIs and only accept absolute URIs with a `session_nonce` parameter. `(#1249)`
 
 ## Added
 - Added redirect functionality to the verifier to allow the wallet to redirect the user after verification is completed. `(#1060, #1061)`

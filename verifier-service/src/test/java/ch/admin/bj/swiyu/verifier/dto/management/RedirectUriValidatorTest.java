@@ -22,6 +22,12 @@ class RedirectUriValidatorTest {
     }
 
     @Test
+    void isValid_relativeUri_returnsFalse() {
+        URI uri = URI.create("/callback?session_nonce=abc123");
+        assertFalse(validator.isValid(uri, null));
+    }
+
+    @Test
     void isValid_queryMissing_returnsFalse() {
         URI uri = URI.create("https://example.com/callback");
         assertFalse(validator.isValid(uri, null));

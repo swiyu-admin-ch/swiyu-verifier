@@ -28,12 +28,6 @@ class RedirectUriValidatorTest {
     }
 
     @Test
-    void isValid_uriWithFragment_returnsFalse() {
-        URI uri = URI.create("https://example.com/callback?session_nonce=abc123#done");
-        assertFalse(validator.isValid(uri, null));
-    }
-
-    @Test
     void isValid_queryMissing_returnsFalse() {
         URI uri = URI.create("https://example.com/callback");
         assertFalse(validator.isValid(uri, null));

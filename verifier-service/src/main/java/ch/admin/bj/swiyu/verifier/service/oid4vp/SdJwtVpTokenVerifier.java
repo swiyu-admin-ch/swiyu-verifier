@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtutil.JwtUtil;
 import ch.admin.bj.swiyu.jwtutil.JwtUtilException;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
@@ -29,9 +30,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -274,8 +273,9 @@ public class SdJwtVpTokenVerifier {
             SignedJWT keyBindingJWT = SignedJWT.parse(keyBindingProof);
 
             validateKeyBindingHeader(keyBindingJWT.getHeader());
-
-            if (!keyBindingJWT.verify(new ECDSAVerifier(keyBinding.toECKey()))) {
+            try {
+                JwtUtil.verifyJwt(keyBindingProof, keyBinding);
+            } catch (JwtUtilException e) {
                 throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding provided does not match the one in the credential");
             }
             validateKeyBindingClaims(keyBindingJWT);
@@ -283,8 +283,6 @@ public class SdJwtVpTokenVerifier {
             validateHolderBindingAudience(keyBindingClaims.getAudience(), configurationOverride);
         } catch (ParseException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed");
-        } catch (JOSEException e) {
-            throw credentialError(e, HOLDER_BINDING_MISMATCH, "Failed to verify the holder key binding - only supporting EC Keys");
         } catch (BadJWTException e) {
             throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding is not a valid JWT");
         }

@@ -12,6 +12,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_VCT;
+
 @UtilityClass
 public class ApiFixtures {
 
@@ -74,17 +77,11 @@ public class ApiFixtures {
     }
 
     public static DcqlQueryDto createDcqlQueryDto(List<DcqlClaimDto> claims) {
-        // Build a minimal DCQL query DTO
-        var meta = new DcqlCredentialMetaDto(
-                null,
-                List.of("defaultTestVCT"),
-                null
-        );
         var credential = new DcqlCredentialDto(
                 "identity_credential_dcql",
-                "dc+sd-jwt",
+                DC_SD_JWT_CREDENTIAL_FORMAT,
                 null,
-                meta,
+                getValidDCQLMetaDataDto(),
                 claims,
                 null,
                 true,
@@ -94,6 +91,14 @@ public class ApiFixtures {
         return new DcqlQueryDto(
                 List.of(credential),
                 List.of()
+        );
+    }
+
+    public static DcqlCredentialMetaDto getValidDCQLMetaDataDto() {
+        return new DcqlCredentialMetaDto(
+                null,
+                List.of(DEFAULT_VCT),
+                null
         );
     }
 }

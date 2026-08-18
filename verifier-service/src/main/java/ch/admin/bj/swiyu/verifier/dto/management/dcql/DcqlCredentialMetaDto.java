@@ -27,6 +27,7 @@ public record DcqlCredentialMetaDto(
         @JsonProperty("type_values")
         @Valid
         @Size(min = 1, message = "type_values must not be empty when provided")
+        // TODO: EIDOMNI-1203 Check if validation matches oid4vp and swiss-profile
         List<List<String>> typeValues,
 
         @Schema(description = "For IETF SD-JWT VC: A non-empty array of strings that specifies allowed " +
@@ -35,6 +36,7 @@ public record DcqlCredentialMetaDto(
         @JsonProperty("vct_values")
         @Valid
         @Size(min = 1, message = "vct_values must not be empty when provided")
+        // TODO: EIDOMNI-1203 Check if validation matches oid4vp and swiss-profile
         List<String> vctValues,
 
         @Schema(description = "For ISO mdoc: A string that specifies an allowed value for the 'doctype' " +

@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.domain.management.dcql;
 
+import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.annotation.Nullable;
@@ -68,5 +69,10 @@ public class DcqlCredential {
     @JsonIgnore
     public boolean isCryptographicHolderBindingRequired() {
         return requireCryptographicHolderBinding == null || Boolean.TRUE.equals(requireCryptographicHolderBinding);
+    }
+
+    @JsonIgnore
+    public boolean expectsSDJWTCredential() {
+        return SdJwt.isSdJwtFormat(format);
     }
 }

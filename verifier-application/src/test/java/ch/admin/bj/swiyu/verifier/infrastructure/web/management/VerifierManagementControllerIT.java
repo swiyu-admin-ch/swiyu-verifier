@@ -4,13 +4,15 @@ import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
 import tools.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -23,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
 import static ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,7 +44,7 @@ class VerifierManagementControllerIT {
     @Autowired
     protected MockMvc mvc;
 
-    private final List<String> issuerDids = List.of(UUID.randomUUID().toString());
+    private final List<String> issuerDIDs = List.of(UUID.randomUUID().toString());
 
 
     @Test
@@ -103,6 +106,53 @@ class VerifierManagementControllerIT {
                 .andReturn();
     }
 
+    /**
+     * Test to check if not supported fields are validated
+     */
+    @Test
+    void testCreateOffer_blockedDcqlProperties_thenThrowBadRequest() throws Exception {
+
+        var credential = new DcqlCredentialDto(
+                "identity_credential_dcql",
+                DC_SD_JWT_CREDENTIAL_FORMAT,
+                true,
+                getValidDCQLMetaDataDto(),
+                List.of(
+                        new DcqlClaimDto(null, List.of("first_name"), null),
+                        new DcqlClaimDto(null, List.of("last_name"),null)
+                ),
+                List.of(List.of("test")),
+                true,
+                List.of()
+        );
+
+        var dqclQuery = new DcqlQueryDto(
+                List.of(credential),
+                List.of()
+        );
+
+        var request = CreateVerificationManagementDto.builder()
+                .dcqlQuery(dqclQuery)
+                .trustAnchors(null)
+                .acceptedIssuerDids(List.of(UUID.randomUUID().toString()))
+                .build();
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("claimSets: The claim_sets field is not yet supported")
+                ))
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("'multiple' is not supported and must be false or omitted")
+                ))
+                .andExpect(jsonPath("$.error_description").value(
+                        containsString("trustedAuthorities: The trusted_authorities field is not yet supported")
+                ))
+                .andReturn();
+    }
+
     @Test
     void testCreateOffer_withOnlyTrustAnchors_thenSuccess()throws Exception {
         TrustAnchorDto trustAnchorDto = new TrustAnchorDto("did:example:12345", null);
@@ -124,7 +174,7 @@ class VerifierManagementControllerIT {
         void testCreateOffer_withDcqlQuery_thenSuccess() throws Exception {
 
                 // Build a minimal DCQL query DTO
-                var request = createVerificationManagementWithDcqlQueryDto(getDcqlQueryForListDto(), issuerDids);
+                var request = createVerificationManagementWithDcqlQueryDto(getDcqlQueryForListDto(), issuerDIDs);
 
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -137,7 +187,7 @@ class VerifierManagementControllerIT {
         void testCreateOffer_withDcqlQueryWithoutResponseMode_thenSuccess() throws Exception {
 
                 // Build a minimal DCQL query DTO
-                var request = createVerificationManagementWithoutResponseMode(issuerDids, getDcqlQueryForListDto());
+                var request = createVerificationManagementWithoutResponseMode(issuerDIDs, getDcqlQueryForListDto());
 
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -160,7 +210,7 @@ class VerifierManagementControllerIT {
                                                                                                   // something a bit
                                                                                                   // deeper
                 );
-                var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims), issuerDids);
+                var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims), issuerDIDs);
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(request)))
@@ -182,7 +232,7 @@ class VerifierManagementControllerIT {
                                                                                                   // something a bit
                                                                                                   // deeper
                 );
-                var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims), issuerDids);
+                var request = createVerificationManagementWithDcqlQueryDto(ApiFixtures.createDcqlQueryDto(claims), issuerDIDs);
                 mvc.perform(post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(new ObjectMapper().writeValueAsString(request)))

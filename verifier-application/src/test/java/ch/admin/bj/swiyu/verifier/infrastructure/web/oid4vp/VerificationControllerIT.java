@@ -1,11 +1,14 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
+import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
+import ch.admin.bj.swiyu.verifier.dto.metadata.OpenidClientMetadataDto;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
@@ -53,6 +56,7 @@ import java.util.stream.Stream;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 import static ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto.INVALID_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_VCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -501,8 +505,23 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"vc+sd-jwt", "dc+sd-jwt"})
+    @ValueSource(strings = {DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT})
     void shouldSucceedVerifyingCredentialWithLegacyCNFFormat_thenSuccess(String credentialFormat) throws Exception {
+
+        var requestId = UUID.randomUUID();
+        managementEntityRepository.save(Management.builder()
+                .id(requestId)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .oauthState(requestId.toString())
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
+                .jwtSecuredAuthorizationRequest(true)
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson(credentialFormat)))
+                .build());
+
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock(true, credentialFormat);
@@ -742,7 +761,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 "credentials": [
                     {
                       "id": "%s",
-                      "format": "dc+sd-jwt",
+                      "format": "%s",
                       "meta": {
                         "vct_values": [ "%s" ]
                       },
@@ -753,7 +772,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     }
                   ]
                 }
-                """.formatted(dcqlCredentialId, SDJWTCredentialMock.DEFAULT_VCT);
+                """.formatted(dcqlCredentialId, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT);
 
         var mgmt = managementEntityRepository.save(Management.builder()
                 .id(dcqlCredentialId)
@@ -764,8 +783,8 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .walletResponse(null)
                 .expirationInSeconds(86400)
                 .expiresAt(4070908800000L)
-                .dcqlQuery(dcqlQuery(dcqlQuery))
-                .acceptedIssuerDids(List.of(SDJWTCredentialMock.DEFAULT_ISSUER_ID))
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQuery))
+                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
                 .build());
 
         // GIVEN
@@ -784,7 +803,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         builder.putSDClaim(languagesDisclosure);
 
         var used = disclosures.stream().filter(disc -> (Objects.equals(disc.getClaimName(), "languages") || disc.getClaimValue().equals("IT"))).toList();
-        var sdjwtWithoutKeyBinding = emulator.createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, "vc+sd-jwt", JWSAlgorithm.ES256, false);
+        var sdjwtWithoutKeyBinding = emulator.createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, JWSAlgorithm.ES256, false);
         var test = sdjwtWithoutKeyBinding.split("~")[0]
                 .concat(used.stream().map(disc -> "~" + disc.toString()).reduce("", String::concat))
                 .concat("~");
@@ -1083,8 +1102,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         executor.submit(() -> {
             try {
                 postVerificationResponse(REQUEST_ID_SECURED, finalVpToken, REQUEST_ID_SECURED);
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
         });
 
         assertThat(didCallStarted.await(5, TimeUnit.SECONDS)).isTrue();

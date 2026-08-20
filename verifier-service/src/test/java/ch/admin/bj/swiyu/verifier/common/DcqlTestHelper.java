@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.common;
 
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import tools.jackson.databind.ObjectMapper;
 
 public class DcqlTestHelper {
@@ -12,5 +13,10 @@ public class DcqlTestHelper {
     public static DcqlQuery stringToDcqlQuery(String dcqlQuery) {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readValue(dcqlQuery, DcqlQuery.class);
+    }
+
+    public static DcqlQueryDto stringToDcqlQueryDto(String dcqlQuery) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(dcqlQuery, DcqlQueryDto.class);
     }
 }

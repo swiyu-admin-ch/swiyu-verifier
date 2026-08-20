@@ -54,22 +54,6 @@ class CreateVerificationManagementDtoTest {
     }
 
     @Test
-    void validate_withInvalidHttpRedirectURI_shouldFail() {
-        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
-                .acceptedIssuerDids(List.of("did:example:12345"))
-                .dcqlQuery(createValidDcqlQuery())
-                .redirectURI(URI.create("http://test.com?session_nonce=test"))
-                .build();
-
-        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
-
-        assertThat(violations).singleElement().satisfies(violation -> {
-            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectURI");
-            assertThat(violation.getMessage()).isEqualTo("must be a valid URI");
-        });
-    }
-
-    @Test
     void validate_withMissingAcceptedIssuerDidsAndTrustAnchors_shouldFail() {
         CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
                 .dcqlQuery(createValidDcqlQuery())
@@ -238,7 +222,7 @@ class CreateVerificationManagementDtoTest {
 
         assertThat(violations).singleElement().satisfies(violation -> {
             assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectURI");
-            assertThat(violation.getMessage()).isEqualTo("must contain a session nonce");
+            assertThat(violation.getMessage()).isEqualTo("must be an absolute URI and contain a session_nonce parameter");
         });
     }
 
@@ -254,7 +238,23 @@ class CreateVerificationManagementDtoTest {
 
         assertThat(violations).singleElement().satisfies(violation -> {
             assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectURI");
-            assertThat(violation.getMessage()).isEqualTo("must contain a session nonce");
+            assertThat(violation.getMessage()).isEqualTo("must be an absolute URI and contain a session_nonce parameter");
+        });
+    }
+
+    @Test
+    void validate_withRelativeRedirectURI_shouldFail() {
+        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of("did:example:12345"))
+                .dcqlQuery(createValidDcqlQuery())
+                .redirectURI(URI.create("/callback?session_nonce=test"))
+                .build();
+
+        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
+
+        assertThat(violations).singleElement().satisfies(violation -> {
+            assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectURI");
+            assertThat(violation.getMessage()).isEqualTo("must be an absolute URI and contain a session_nonce parameter");
         });
     }
 }

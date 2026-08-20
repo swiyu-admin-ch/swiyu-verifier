@@ -255,13 +255,16 @@ Returns a signed JWT. A decoded example of the response could look like:
         "logo_uri#fr": "www.example.com/logo_fr.png",
         "client_name": "Fallback name",
         "client_id": "decentralized_identifier:did:example:12345",
-        "vp_formats": {
-            "jwt_vp": {
-                "jwt_vp": {
-                    "alg": [
-                        "ES256"
-                    ]
-                }
+        "vp_formats_supported": {
+            "dc+sd-jwt": {
+                "sd-jwt_alg_values": [
+                    "ES256",
+                    "Ed25519"
+                ],
+                "kb-jwt_alg_values": [
+                    "ES256",
+                    "Ed25519"
+                ]
             }
         },
         "response_mode": "direct_post.jwt"

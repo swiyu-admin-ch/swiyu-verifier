@@ -38,21 +38,18 @@ class TrustStatementCacheServiceTest {
     private static final byte[] HMAC_SECRET = new byte[32]; // all-zeros, sufficient for test JWTs
 
     private TrustProtocol20Api trustProtocol20Api;
-    private TrustRegistryProperties properties;
-    private CacheMaintenanceService cacheMaintenanceService;
     private TrustStatementCacheService cacheService;
     private TrustStatementValidator statementValidator;
-    private CacheProperties cacheProperties;
 
     @BeforeEach
     void setUp() {
         trustProtocol20Api = mock(TrustProtocol20Api.class);
-        cacheMaintenanceService = mock(CacheMaintenanceService.class);
-        cacheProperties = new CacheProperties();
+        CacheMaintenanceService cacheMaintenanceService = mock(CacheMaintenanceService.class);
+        CacheProperties cacheProperties = new CacheProperties();
         cacheProperties.setRequestBackoffSeconds(10);
-        cacheProperties.setStatusListCacheTtl(100l);
+        cacheProperties.setStatusListCacheTtlMs(100L);
         statementValidator = mock(TrustStatementValidator.class);
-        properties = new TrustRegistryProperties();
+        TrustRegistryProperties properties = new TrustRegistryProperties();
         properties.setMaxCacheSize(100);
         properties.setClockSkewBufferSeconds(0);
         properties.setMaxCacheTtlSeconds(0); // no cap in tests

@@ -140,6 +140,16 @@ class ApplicationPropertiesTest {
     }
 
     @Test
+    void validate_withMaxDecompressedPayloadLengthNull_shouldFail() {
+        ApplicationProperties properties = createValidProperties();
+        properties.setMaxDecompressedPayloadLength(null);
+
+        Set<ConstraintViolation<ApplicationProperties>> violations = validator.validate(properties);
+
+        assertViolationExists(violations, "maxDecompressedPayloadLength");
+    }
+
+    @Test
     void validate_withHsmPropertiesNull_shouldSucceed() {
         ApplicationProperties properties = createValidProperties();
         properties.setHsm(null);
@@ -188,6 +198,7 @@ class ApplicationPropertiesTest {
         properties.setSigningKeyVerificationMethod("test-method");
         properties.setKeyManagementMethod("test-kms");
         properties.setMaxCompressedCipherTextLength(100000);
+        properties.setMaxDecompressedPayloadLength(20971520);
         properties.setMaxVcsAccepted(10);
         return properties;
     }

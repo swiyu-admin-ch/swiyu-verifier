@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jweutil.JweDecryptionLimits;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.jweutil.JweUtilException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
@@ -13,7 +14,6 @@ import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +28,6 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationError.INVA
  * It does not contain any business logic related to VP API versions or payload mapping.
  */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class JweDecryptionService {
 
@@ -44,7 +43,7 @@ public class JweDecryptionService {
                             INVALID_REQUEST,
                             "Missing keyId. Unable to decrypt response."));
             JWK privateKey = resolvePrivateKey(managementEntity, keyId);
-            String payload = JweUtil.decrypt(jweString, privateKey, applicationProperties.getMaxCompressedCipherTextLength());
+            String payload = JweUtil.decrypt(jweString, privateKey, resolveDecryptionLimits());
             return objectMapper.readValue(payload, VerificationPresentationUnionDto.class);
         } catch (ParseException e) {
             throw VerificationException.credentialError(e, "Failed to parse response.");
@@ -53,6 +52,15 @@ public class JweDecryptionService {
         } catch (JacksonException e) {
             throw VerificationException.credentialError(e, e.getOriginalMessage());
         }
+    }
+
+    /**
+     * Builds the JWE size limits enforced by {@code swiyu-jwe-util} from the application configuration.
+     */
+    private JweDecryptionLimits resolveDecryptionLimits() {
+        return new JweDecryptionLimits(
+                applicationProperties.getMaxCompressedCipherTextLength(),
+                applicationProperties.getMaxDecompressedPayloadLength());
     }
 
     @NotNull

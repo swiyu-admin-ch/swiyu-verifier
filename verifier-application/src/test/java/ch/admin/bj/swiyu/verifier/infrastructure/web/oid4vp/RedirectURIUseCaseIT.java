@@ -38,7 +38,7 @@ public class RedirectURIUseCaseIT extends BaseVerificationControllerTest {
         var mgmt = BaseVerificationControllerTest.createVerificationRequest(mock, request);
         var requestObject = getRequestObject(mgmt.verificationUrl());
 
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(null, "did:webvh:scid:some-issuer-id" + "#key-1");
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(null, "did:webvh:scid:example.com:api:v1:some-issuer-id" + "#key-1");
         mockDidResolverResponse(emulator);
 
         var sdJWT = emulator.createSDJWTMock();
@@ -75,7 +75,7 @@ public class RedirectURIUseCaseIT extends BaseVerificationControllerTest {
 
     private CreateVerificationManagementDto createVerificationManagement(ResponseModeTypeDto responseModeTypeDto) {
         return CreateVerificationManagementDto.builder()
-                .acceptedIssuerDids(List.of("did:webvh:scid:some-issuer-id"))
+                .acceptedIssuerDids(List.of("did:webvh:scid:example.com:api:v1:some-issuer-id"))
                 .jwtSecuredAuthorizationRequest(true)
                 .responseMode(responseModeTypeDto)
                 .dcqlQuery(ApiFixtures.getDcqlQueryDto())

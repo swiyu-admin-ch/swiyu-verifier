@@ -48,6 +48,7 @@ class PresentationResponseResolverTest {
     void setUp() {
         ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
         when(applicationProperties.getMaxCompressedCipherTextLength()).thenReturn(100000);
+        when(applicationProperties.getMaxDecompressedPayloadLength()).thenReturn(100000);
         JweDecryptionService jweDecryptionService = new JweDecryptionService(objectMapper, applicationProperties);
         presentationResponseResolver = new PresentationResponseResolver(jweDecryptionService);
     }

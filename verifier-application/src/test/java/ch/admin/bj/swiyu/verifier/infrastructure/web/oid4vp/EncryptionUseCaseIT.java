@@ -38,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DisplayName("Encryption Test")
 class EncryptionUseCaseIT extends BaseVerificationControllerTest {
-    private static final String ACCEPTED_ISSUER = "did:webvh:scid:some-issuer-id";
+    private static final String ACCEPTED_ISSUER = "did:webvh:scid:example.com:api:v1:some-issuer-id";
     private static final String VERIFIER_DID = "did:example:12345";
 
     private static final String MANAGEMENT_BASE_URL = "/management/api/verifications";

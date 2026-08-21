@@ -130,6 +130,40 @@ public class SDJWTCredentialMock {
         return builder;
     }
 
+    public static SDObjectBuilder getAddressClaimsFromSdJwt(List<Disclosure> disclosure) {
+
+        SDObjectBuilder builder = new SDObjectBuilder();
+        // ---------- Address 1 ----------
+        SDObjectBuilder address1 = new SDObjectBuilder();
+        var address1Map = Map.of("city", "Zürich", "country", "CH");
+        address1Map.forEach((claimName, claimValue) -> {
+            var disc = new Disclosure(claimName, claimValue);
+            address1.putSDClaim(disc);
+            disclosure.add(disc);
+        });
+        var addressDisc1 = new Disclosure(address1.build());
+        disclosure.add(addressDisc1);
+
+        // ---------- Address 2 ----------
+        SDObjectBuilder address2 = new SDObjectBuilder();
+        var address2Map = Map.of("city", "London", "country", "GB");
+        address2Map.forEach((claimName, claimValue) -> {
+            var disc = new Disclosure(claimName, claimValue);
+            address2.putSDClaim(disc);
+            disclosure.add(disc);
+        });
+        var addressDisc2 = new Disclosure(address2.build());
+        disclosure.add(addressDisc2);
+
+        var addressList1 = addressDisc1.toArrayElement();
+        var addressList2 = addressDisc2.toArrayElement();
+        var addressesDisc = new Disclosure("addresses", List.of(addressList1, addressList2));
+        builder.putSDClaim(addressesDisc);
+        disclosure.add(addressesDisc);
+
+        return builder;
+    }
+
     public static SDObjectBuilder getClaimsFromWithDuplicatedDigestsSdJwt(List<Disclosure> disclosure) {
         SDObjectBuilder builder = new SDObjectBuilder();
 
@@ -292,6 +326,15 @@ public class SDJWTCredentialMock {
         List<Disclosure> disclosures = new ArrayList<>();
 
         var builder = getClaimsFromSdJwt(disclosures);
+
+        return createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, JWSAlgorithm.ES256, false);
+    }
+
+    public String createSimpleNestedSDJWTMock() {
+
+        List<Disclosure> disclosures = new ArrayList<>();
+
+        var builder = getAddressClaimsFromSdJwt(disclosures);
 
         return createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, JWSAlgorithm.ES256, false);
     }

@@ -8,6 +8,9 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
@@ -32,13 +35,12 @@ import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.FieldSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
@@ -251,6 +253,93 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
+
+    @ParameterizedTest
+    @MethodSource("dcqlQueryProvider")
+    void shouldSucceedVerifyingSDJWTCredentialFullVCWithNested_thenSuccess(
+            int expectedIndex,
+            String expectedCountry) throws Exception {
+
+        var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry);
+
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSimpleNestedSDJWTMock();
+
+        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER)));
+
+        var fixedSdjwt = String.join(SdJwt.JWT_PART_DELINEATION_CHARACTER, list) + "~";
+        var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), clientIdWithPrefix);
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
+
+        var mgmtResponse = getManagementObjectById(createResponseDto.id().toString())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
+        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").asArray().get(0).get("addresses").asArray();
+
+        // as all addresses are sent in disclosures, all addresses should be present in the verification result, even if some were not requested
+        assertThat(addresses).hasSize(2);
+
+        assertThat(addresses.get(expectedIndex)).isNotNull();
+        assertThat(addresses.get(expectedIndex).get("country").asString()).isEqualTo(expectedCountry);
+    }
+
+    @ParameterizedTest
+    @MethodSource("dcqlQueryProvider")
+    void shouldSucceedVerifyingSDJWTCredentialFullVCWithNestedOnlyWithNecessaryDisclosures_thenSuccess(
+            int expectedIndex,
+            String expectedCountry,
+            int disclosureIndexStart,
+            int disclosureIndexEnd) throws Exception {
+
+        var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry);
+
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSimpleNestedSDJWTMock();
+
+        // remove fist 2 disclosures to simulate a holder that only discloses the second address
+        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER)));
+        list.subList(disclosureIndexStart, disclosureIndexEnd).clear();
+
+        var fixedSdjwt = String.join(SdJwt.JWT_PART_DELINEATION_CHARACTER, list) + "~";
+        var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), clientIdWithPrefix);
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+                .andExpect(status().isOk());
+
+        var mgmtResponse = getManagementObjectById(createResponseDto.id().toString())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
+        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").asArray().get(0).get("addresses").asArray();
+
+        // as all addresses are sent in disclosures, all addresses should be present in the verification result, even if some were not requested
+        assertThat(addresses).hasSize(2);
+
+        assertThat(addresses.get(expectedIndex)).isNotNull();
+        assertThat(addresses.get(expectedIndex).get("country").asString()).isEqualTo(expectedCountry);
     }
 
     private HikariPoolMXBean hikariPool() {
@@ -499,8 +588,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
 
         sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_SECURED), vpToken, requestObject)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
+                .andExpect(status().isOk());
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
@@ -1188,5 +1276,44 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .formField("state", state.toString())
                 .formField("error", error)
                 .formField("error_description", errorDescription));
+    }
+
+    private ResultActions getManagementObjectById(String requestObjectId) throws Exception {
+        return mockMvc.perform(get("/management/api/verifications/" + requestObjectId));
+    }
+
+    private static Stream<Arguments> dcqlQueryProvider() {
+        return Stream.of(
+                Arguments.of(0, "CH", 4, 6),
+                Arguments.of(1, "GB", 1, 3)
+        );
+    }
+
+    private ManagementResponseDto getAddressArrayManagement(int expectedIndex, String expectedCountry) {
+        var dcqlQuery = """
+                {
+                "credentials": [
+                    {
+                      "id": "%s",
+                      "format": "%s",
+                      "meta": {
+                        "vct_values": [ "%s" ]
+                      },
+                      "claims": [
+                          {"path": ["addresses", %s, "country"], "values": ["%s"]}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex, expectedCountry);
+
+        var createVerificationManagementDto = CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
+                .jwtSecuredAuthorizationRequest(true)
+                .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(dcqlQuery))
+                .build();
+
+        return createVerificationRequest(mockMvc, createVerificationManagementDto);
     }
 }

@@ -32,19 +32,21 @@
             **/org/**/*.java, **/com/**/*.java
         </sonar.exclusions>
         <!-- dependency versions -->
-        <archunit-junit5.verion>1.4.2</archunit-junit5.verion>
-        <javacrumbs.shedlock.version>7.7.0</javacrumbs.shedlock.version>
+        <archunit-junit5.verion>1.5.0</archunit-junit5.verion>
+        <javacrumbs.shedlock.version>7.8.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
         <openapi-generator-maven-plugin.version>7.24.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
-        <logback.version>1.6.1</logback.version>
+        <logback.version>1.6.3</logback.version>
         <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2025.1.1</spring-cloud-dependencies.version>
-        <bcprov-jdk18on.version>1.85</bcprov-jdk18on.version>
+        <bcprov-jdk18on.version>1.85.2</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.85</bcpkix-jdk18on.version>
         <postgres.version>42.7.13</postgres.version>
-        <swagger-parser.version>2.1.45</swagger-parser.version>
+        <swagger-parser.version>2.1.46</swagger-parser.version>
+        <!-- Fixes SNYK-JAVA-IONETTY-19005879 (Critical, io.netty:netty-handler via mockserver-core) -->
+        <mockserver-client-java.version>7.6.0</mockserver-client-java.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>
             **/*Dto.java,**/domain/*
@@ -61,28 +63,44 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
-        <generic-java-lib.version>2.0.0</generic-java-lib.version>
-        <pact.version>4.7.3</pact.version>
+        <generic-java-lib.version>2.1.0</generic-java-lib.version>
+        <pact.version>4.7.5</pact.version>
         <openapi-generator-maven-plugin.version>7.24.0</openapi-generator-maven-plugin.version>
         <!-- Fixes CVE-2026-13006 -->
-        <logback-core.version>1.6.1</logback-core.version>
+        <logback-core.version>1.6.3</logback-core.version>
         <!-- Fixes SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890 / 17733746 -->
         <tomcat.version>11.0.23</tomcat.version>
+        <!-- Fixes CVE-2026-59889. jackson-annotations/jackson-core must stay aligned with jackson-databind
+             (>= 2.22 required for e.g. JsonApplyView), otherwise dependency mediation can pick an older
+             managed version from Spring Boot and cause java.lang.NoClassDefFoundError at runtime. -->
+        <jackson.version>2.22.2</jackson.version>
+        <jackson-annotations.version>2.22</jackson-annotations.version>
+        <jackson-core.version>2.22.0</jackson-core.version>
+        <jackson3.version>3.2.2</jackson3.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Fixes CVE-2026-59889 -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.22.1</version>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson-annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson-core.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>tools.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>3.1.5</version>
+                <version>${jackson3.version}</version>
             </dependency>
             
             <!-- Check again on Spring Boot update -->

@@ -25,7 +25,7 @@ import static java.util.Objects.nonNull;
 
 @Getter
 public class SDJWTCredentialMock {
-    public static final String DEFAULT_ISSUER_ID = "did:webvh:some-scid:TEST-ISSUER-ID";
+    public static final String DEFAULT_ISSUER_ID = "did:webvh:some-scid:example.com:api:v1:TEST-ISSUER-ID";
     public static final String DEFAULT_KID_HEADER_VALUE = DEFAULT_ISSUER_ID + "#key-1";
     public static final String DEFAULT_VCT = "defaultTestVCT";
 

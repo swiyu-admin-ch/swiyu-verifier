@@ -126,7 +126,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     @Test
     void shouldFailOnNotAcceptedIssuer() throws Exception {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock("did:webvh:some-scid:suspicious-issuer-id", "did:webvh:some-scid:suspicious-issuer-id#key-1");
+        var ATTACKER_DID = "did:webvh:some-scid:example.com:api:v1:suspicious-issuer-id";
+        var ATTACKER_KID = ATTACKER_DID + "#" + "key-1";
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ATTACKER_DID, ATTACKER_KID);
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
@@ -146,7 +148,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             "When both acceptedIssuerDids AND trustAnchors are empty, all credentials are rejected. " +
             "This test assumed empty list = any issuer allowed, which is no longer the case.")
     void shouldSucceedOnNoAcceptedIssuers() throws Exception {
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock("did:webvh:some-scid:some-issuer-id", "did:webvh:some-scid:some-issuer-id#key-1");
+        var ARBITRARY_DID = "did:webvh:some-scid:example.com:api:v1:some-issuer-id";
+        var ARBITRARY_KID = ARBITRARY_DID + "#" + "key-1";
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ARBITRARY_DID, ARBITRARY_KID);
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 

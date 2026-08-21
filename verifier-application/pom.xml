@@ -275,10 +275,11 @@
         </dependency>
 
         <!-- MockServer client API -->
+        <!-- Fixes SNYK-JAVA-IONETTY-19005879 (io.netty:netty-handler, Critical) via upgraded transitive mockserver-core -->
         <dependency>
             <groupId>org.mock-server</groupId>
             <artifactId>mockserver-client-java</artifactId>
-            <version>5.15.0</version>
+            <version>${mockserver-client-java.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -308,48 +309,19 @@
                 <version>4.12.0</version>
             </dependency>
             <!-- end fix -->
-            <!-- fix CVE netty – force 4.2.13.Final 
-            Should be fixed when org.springframework.boot:spring-boot-starter-webclient > 4.0.6
-            -->
+            <!-- Fixes SNYK-JAVA-IONETTY-19005879 (Critical, Improper Check for Unusual or Exceptional
+                 Conditions) in io.netty:netty-handler, pulled in transitively via
+                 org.mock-server:mockserver-client-java > mockserver-core. Fixed in 4.2.17.Final / 4.1.137.Final.
+                 Importing the netty-bom pins ALL io.netty:* artifacts (including netty-handler) to a
+                 consistent, patched version, overriding whatever version mockserver-core /
+                 spring-boot-starter-webclient would otherwise bring in transitively.
+                 Should be re-evaluated when org.springframework.boot:spring-boot-starter-webclient > 4.0.6. -->
             <dependency>
                 <groupId>io.netty</groupId>
-                <artifactId>netty-transport-native-epoll</artifactId>
-                <version>4.2.16.Final</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-transport-classes-epoll</artifactId>
-                <version>4.2.16.Final</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-compression</artifactId>
-                <version>4.2.16.Final</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-dns</artifactId>
-                <version>4.2.16.Final</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-resolver-dns</artifactId>
-                <version>4.2.16.Final</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-http</artifactId>
-                <version>4.2.16.Final</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-http2</artifactId>
-                <version>4.2.16.Final</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-http3</artifactId>
-                <version>4.2.16.Final</version>
+                <artifactId>netty-bom</artifactId>
+                <version>4.2.17.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <!-- end fix -->
         </dependencies>

@@ -16,6 +16,7 @@ application:
 
   key-management-method: "${SIGNING_KEY_MANAGEMENT_METHOD:key}"
   max-compressed-cipher-text-length: ${MAX_COMPRESSED_CIPHER_TEXT_LENGTH:20971520} # 20 MiB
+  max-decompressed-payload-length: ${MAX_DECOMPRESSED_PAYLOAD_LENGTH:20971520} # 20 MiB
   max-vcs-accepted: 1 # At the moment the default value is set to 1 as the dcql multiple flag is not fully supported
   request-object-ttl-seconds: 600 # 10 Minutes
   # Pin to unlock the hsm
@@ -177,10 +178,10 @@ monitoring:
     password: "${MONITORING_BASIC_AUTH_PASSWORD:}"
 
 caching:
-  status-list-cache-ttl: ${STATUS_LIST_CACHE_TTL_MILLI:0} # is not cached by default if set to 0, caching is disabled
+  status-list-cache-ttl-ms: ${STATUS_LIST_CACHE_TTL_MILLI:0} # is not cached by default if set to 0, caching is disabled
   status-list-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
-  jwk-cache-ttl: ${JWK_CACHE_TTL_MILLI:${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000}} # 1 hour
-  trust-cache-ttl: ${TRUST_CACHE_TTL_MILLI:3600000} # 1 hour
+  jwk-cache-ttl-ms: ${JWK_CACHE_TTL_MILLI:${ISSUER_PUBLIC_KEY_CACHE_TTL_MILLI:3600000}} # 1 hour
+  trust-cache-ttl-ms: ${TRUST_CACHE_TTL_MILLI:3600000} # 1 hour
   request-backoff-seconds: 600 # 10 minutes
 
 swiyu:

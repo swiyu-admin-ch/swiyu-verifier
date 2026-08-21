@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.domain.management.dcql;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,9 +13,13 @@ import java.util.List;
  * Domain model for Digital Credentials Query Language (DCQL) query storage.
  * This represents the complete DCQL query structure that can be stored in the database
  * as JSON and used for DCQL-based verification requests.
- * 
+ *
  * According to OpenID for Verifiable Presentations 1.0, Section 6.
  */
+// JSON-PERSISTED (ZDD): serialized to JSON in the "management" table (see Management.dcqlQuery).
+// Keep this type backward compatible across releases: don't rename/remove fields without a migration
+// path (e.g. @JsonAlias), and keep any new field optional with a default.
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @Builder
 @NoArgsConstructor

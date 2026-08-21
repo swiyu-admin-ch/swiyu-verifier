@@ -7,14 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
-## Changed 
+## Changed
 - Wallet response is now added to the verification management object instead of `client_rejection` as default. `(#1189)`
 - `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`
 - Updated to Jackson 3 `(#944)`
 - Changed nonce implementation to use UUIDs, matching the issuer's implementation `(#1133)`
+- Renamed cache properties to be more descriptive:`(#1227)`
+  - Renamed `caching.status-list-cache-ttl` -> `caching.status-list-cache-ttl-ms`
+  - Renamed `caching.jwk-cache-ttl` -> `caching.jwk-cache-ttl-ms`
+  - Renamed `caching.trust-cache-ttl` -> `caching.trust-cache-ttl-ms`
 
 ## Fixed
+- Mitigated JWE decompression bomb vulnerability: added a `MAX_DECOMPRESSED_PAYLOAD_LENGTH` defense-in-depth limit that rejects oversized decrypted/decompressed payloads before JSON parsing (#1117)
+
 - Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`
+- Fixed incorrect usage of cache times (incorrect usage of seconds vs milliseconds) in the `StatusListResolverAdapter` additionally fixes expireAfterRead with correct return `(#1227)`
 - Fixed metadata samples to contain correct alsgs for vp-formats and -keybindings. Structure of the metadata is also adjusted. `(#1131)`
 - Fixed `redirect_uri` validation to reject non-absolute URIs and only accept absolute URIs with a `session_nonce` parameter. `(#1249)`
 

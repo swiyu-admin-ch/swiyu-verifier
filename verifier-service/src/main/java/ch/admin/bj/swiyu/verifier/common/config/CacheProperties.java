@@ -14,23 +14,33 @@ public class CacheProperties {
     /**
      * Maximum size of the status list cache
      */
-    private long statusListCacheSize = 1000l;
+    private long statusListCacheSize = 1000L;
  
     /**
      * Cache Timeout time in milliseconds for token status lists
      */
     @NotNull
-    private Long statusListCacheTtl = 0l;
+    private Long statusListCacheTtlMs = 0L;
 
     /**
-     * Cache Timeout time in milliseconds for public keys fetched to perform a verification
+     * Legacy cache Timeout time in milliseconds for token status lists
      */
-    @NotNull
-    private Long jwkCacheTtl = 3_600_000l;
-
+    @Deprecated
+    private Long statusListCacheTtl;
 
     /**
      * Backoff when no valid Status List or Trust Statement is found or the trust statement is not valid.
      */
     private long requestBackoffSeconds = 600;
+
+    /**
+     * Backwards compatibility getter: if the legacy property
+     * 'caching.status-list-cache-ttl' (without the '-ms' suffix) is present,
+     * that legacy value will be used. Otherwise, the newer
+     * 'caching.status-list-cache-ttl-ms' property is used. When both
+     * properties are present the legacy property takes precedence.
+     */
+    public Long getStatusListCacheTtlMs() {
+        return statusListCacheTtl != null ? statusListCacheTtl : statusListCacheTtlMs;
+    }
 }

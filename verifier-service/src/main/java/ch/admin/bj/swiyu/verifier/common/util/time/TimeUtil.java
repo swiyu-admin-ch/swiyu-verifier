@@ -15,12 +15,13 @@ public class TimeUtil {
 
     /**
      * Returns the minimum of two values, treating null as "no comparison".
-     * @param accumulator The base value (in nanoseconds).
-     * @param nullableValue The nullable value to compare (in nanoseconds).
-     * @return The smaller of the two values, or accumulator if nullableValue is null.
+     *
+     * @param accumulatorNs  The base value (in nanoseconds).
+     * @param nullableLongNs The nullable value to compare (in nanoseconds).
+     * @return The smaller of the two values, or accumulatorNs if nullableLongNs is null.
      */
-    public long minWithNullable(long accumulator, @Nullable Long nullableLong) {
-        return nullableLong == null ? accumulator : Math.min(accumulator, nullableLong);
+    public long minWithNullable(long accumulatorNs, @Nullable Long nullableLongNs) {
+        return nullableLongNs == null ? accumulatorNs : Math.min(accumulatorNs, nullableLongNs);
     }
 
 
@@ -51,17 +52,16 @@ public class TimeUtil {
         return nullableLongMs == null ? null : TimeUnit.MILLISECONDS.toNanos(nullableLongMs);
     }
 
-
     /**
      * Calculates nanoseconds until expiry from epoch millis.
-     * @param expirationTime Epoch in nanoseconds (nullable).
+     * @param expirationTimeNs Epoch in nanoseconds (nullable).
      * @return Nanoseconds until expiry, or null.
      */
-    public static Long nanosUntilExpiry(@Nullable Long expirationTime) {
-        if (expirationTime == null){
+    public static Long nanosUntilExpiry(@Nullable Long expirationTimeNs) {
+        if (expirationTimeNs == null) {
             return null;
         }
-        return Math.max(0, expirationTime - millisToNanos(Instant.now().toEpochMilli()));
+        return Math.max(0, expirationTimeNs - millisToNanos(Instant.now().toEpochMilli()));
     }
 
     /**
@@ -70,34 +70,33 @@ public class TimeUtil {
      * @return Nanoseconds until expiry, or null.
      */
     public static Long nanosUntilExpiry(@Nullable Date expirationTime) {
-        if (expirationTime == null){
+        if (expirationTime == null) {
             return null;
         }
         return nanosUntilExpiry(millisToNanos(expirationTime.getTime()));
     }
 
-
     /**
      * Returns the minimum of accumulator and time until expiry.
-     * @param accumulator Time in nanoseconds.
-     * @param expirationTime Epoch nanoseconds (nullable).
+     * @param accumulatorNs    Time in nanoseconds.
+     * @param expirationTimeNs Epoch nanoseconds (nullable).
      * @return Minimum of accumulator or time until expiry.
      */
-    public static long minNanosUntilExpiry(long accumulator, @Nullable Long expirationTime) {
-         if (expirationTime == null) {
-            return accumulator;
+    public static long minNanosUntilExpiry(long accumulatorNs, @Nullable Long expirationTimeNs) {
+        if (expirationTimeNs == null) {
+            return accumulatorNs;
         }
-        return minWithNullable(accumulator, nanosUntilExpiry(expirationTime));
+        return minWithNullable(accumulatorNs, nanosUntilExpiry(expirationTimeNs));
     }
 
     /**
      * Returns the minimum of accumulator and time until expiry.
-     * @param accumulator Time in nanoseconds.
+     * @param accumulator    Time in nanoseconds.
      * @param expirationTime Instant (nullable).
      * @return Minimum of accumulator or time until expiry.
      */
     public static long minNanosUntilExpiry(long accumulator, @Nullable Date expirationTime) {
-         if (expirationTime == null) {
+        if (expirationTime == null) {
             return accumulator;
         }
         return minWithNullable(accumulator, nanosUntilExpiry(expirationTime));

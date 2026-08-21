@@ -45,7 +45,7 @@ class StatusListCacheServiceTest {
      */
     @Test
     void testGetTokenStatusListTokenByUri() throws Exception {
-        cacheProperties.setStatusListCacheTtl(500l);
+        cacheProperties.setStatusListCacheTtlMs(500L);
         cacheService = new StatusListCacheService(cacheProperties, didJwtValidator, issuerPublicKeyLoader, statusListResolver);
         ECKey testKey = new ECKeyGenerator(Curve.P_256)
             .algorithm(JWSAlgorithm.ES256)
@@ -72,7 +72,7 @@ class StatusListCacheServiceTest {
      */
     @Test
     void testGetTokenStatusListTokenByUri_noCache() throws Exception {
-        cacheProperties.setStatusListCacheTtl(0l);
+        cacheProperties.setStatusListCacheTtlMs(0L);
         // Must create cache serivce here, as when initiated the TTL is set for the cache
         cacheService = new StatusListCacheService(cacheProperties, didJwtValidator, issuerPublicKeyLoader, statusListResolver);
         ECKey testKey = new ECKeyGenerator(Curve.P_256)

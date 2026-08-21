@@ -45,6 +45,7 @@ class JweDecryptionServiceTest {
     void setUp() {
         applicationProperties = new ApplicationProperties();
         applicationProperties.setMaxCompressedCipherTextLength(100000);
+        applicationProperties.setMaxDecompressedPayloadLength(100000);
         jweDecryptionService = new JweDecryptionService(objectMapper, applicationProperties);
     }
 
@@ -164,6 +165,31 @@ class JweDecryptionServiceTest {
                 () -> jweDecryptionService.decrypt(management, encryptedUnion));
 
         assertThat(ex.getMessage()).contains("Unable to decrypt response");
+    }
+
+    @Test
+    void decrypt_whenDecompressedPayloadExceedsLimit_thenThrowsVerificationException() throws Exception {
+        Management management = createTestManagementWithPrivateKey();
+        // Highly repetitive claim compresses well, allowing a small compressed ciphertext
+        // to expand into a decompressed payload larger than the configured limit.
+        String claims = new JWTClaimsSet.Builder()
+                .claim("vp_token", Map.of("credential", List.of("a".repeat(50_000))))
+                .build()
+                .toString();
+        String jwe = jweEncryptCompressed(claims, ecKey);
+        applicationProperties.setMaxDecompressedPayloadLength(claims.length() - 1);
+
+        VerificationException exception = assertThrows(VerificationException.class, () ->
+                jweDecryptionService.decrypt(
+                        management,
+                        VerificationPresentationUnionDto.builder().response(jwe).build()));
+
+        // The size check is now enforced inside swiyu-jwe-util (JweDecryptionLimits), whose
+        // JweUtilException is wrapped by JweDecryptionService into a generic VerificationException.
+        assertThat(exception.getErrorDescription()).isEqualTo("Response cannot be decrypted.");
+        assertThat(exception).hasRootCauseMessage(
+                "Decrypted payload exceeds the maximum allowed decompressed size of %d characters"
+                        .formatted(claims.length() - 1));
     }
 
     private static Management createTestManagementWithPrivateKey() {

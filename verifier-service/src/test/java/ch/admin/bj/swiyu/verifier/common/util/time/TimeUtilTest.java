@@ -128,7 +128,7 @@ class TimeUtilTest {
     @Test
     void minNanosUntilExpiry_WithNullExpiration_ReturnsAccumulator() {
         long accumulator = 1_000_000_000L;
-        Date exp = null;
+        Long exp = null;
         assertThat(TimeUtil.minNanosUntilExpiry(accumulator, exp)).isEqualTo(accumulator);
     }
 
@@ -156,6 +156,6 @@ class TimeUtilTest {
         Long nanosUntilExpiry = TimeUtil.nanosUntilExpiry(futureDate);
         long expectedMin = Math.min(accumulator, nanosUntilExpiry);
         assertThat(TimeUtil.minNanosUntilExpiry(accumulator, futureDate))
-            .isCloseTo(expectedMin, within(1_000_000L));
+                .isCloseTo(expectedMin, within(1_000_000L));
     }
 }

@@ -78,10 +78,8 @@ public record CreateVerificationManagementDto(
         @JsonProperty("verification_purpose")
         VerificationPurposeDto verificationPurpose,
 
-        @ValidUri
-        @SessionNonce
-        @Schema(description = "[NOT FINISHED] Do not use this field yet! Optional URI to redirect the user after the verification process. Must contain a session_nonce parameter.",
-                hidden = true,
+        @RedirectUri
+        @Schema(description = "[EXPERIMENTAL] Optional absolute URI to redirect the user after the verification process. Must contain a session_nonce parameter.",
                 example = "https://example.com/redirect?session_nonce=12345")
         @JsonProperty("redirect_uri")
         URI redirectURI

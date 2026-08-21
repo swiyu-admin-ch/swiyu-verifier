@@ -29,14 +29,8 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
 
 /**
- * Validates Trust Statement JWTs (idTS and piaTS) using the two-step Flow B of
- * {@link DidJwtValidator}, split across two distinct phases:
- *
+ * Validates Trust Statement JWTs (idTS and piaTS) using {@link DidJwtValidator}
  * <ol>
- *   <li><strong>Pre-cache validation</strong> ({@link #validateAllowlist(String)}):
- *       Called at fetch time. Checks that the JWT's {@code kid} resolves to a DID URL
- *       on the configured Trust Registry allowlist. Fast – no HTTP call. Prevents
- *       malicious JWTs with foreign DIDs from ever entering the cache.</li>
  *   <li><strong>Pre-inject validation</strong> ({@link #validateSignature(String)}):
  *       Called on every metadata response, just before the cached JWT is injected.
  *       Fetches the Trust Registry's DID Document fresh and verifies the signature.
@@ -101,7 +95,8 @@ public class TrustStatementValidator {
             minimumTimeoutNs = TimeUtil.minNanosUntilExpiry(minimumTimeoutNs, TimeUtil.secondsToNanos(statusList.getExp()));
             minimumTimeoutNs = TimeUtil.minNanosUntilExpiry(minimumTimeoutNs, trustStatementJWT.getJWTClaimsSet().getExpirationTime());
             // Substract the clock skew from expiration time to ensure that we fetch sufficiently soon the new Trust Statement
-            minimumTimeoutNs = Math.max(0, minimumTimeoutNs - trustRegistryProperties.getClockSkewBufferSeconds());
+            var clockSkewBufferNs = TimeUtil.secondsToNanos(trustRegistryProperties.getClockSkewBufferSeconds());
+            minimumTimeoutNs = Math.max(0, minimumTimeoutNs - clockSkewBufferNs);
             minimumTimeoutNs = TimeUtil.minWithNullable(minimumTimeoutNs, TimeUtil.secondsToNanos(statusList.getTtl()));
             minimumTimeoutNs = TimeUtil.minWithNullable(minimumTimeoutNs, TimeUtil.secondsToNanos(trustRegistryProperties.getMaxCacheTtlSeconds()));
             log.debug("Trust statement state validation completed - Validity: {} Cache TTL {} - DID: {}, URL: {}", statusListState.valid(), minimumTimeoutNs, didString, didUrl);

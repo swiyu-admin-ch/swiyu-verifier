@@ -18,6 +18,9 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
@@ -52,16 +55,8 @@ class ManagementServiceTest {
     void createVerificationManagement_withDCQL_thenSuccess() {
         var dcqlQueryDto = mock(DcqlQueryDto.class);
         var dcqlQuery = mock(DcqlQuery.class);
-        CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
-                List.of("did:example:123"),
-                null,
-                false,
-                ResponseModeTypeDto.DIRECT_POST,
-                null,
-                dcqlQueryDto,
-                null,
-                null
-        );
+        var requestDto = createRequestDto(ResponseModeTypeDto.DIRECT_POST, dcqlQueryDto);
+
         var management = mock(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);
 
@@ -81,16 +76,8 @@ class ManagementServiceTest {
 
     @Test
     void createVerificationManagement_whenNoDCQL_thenFailure() {
-        CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
-                List.of("did:example:123"),
-                null,
-                false,
-                ResponseModeTypeDto.DIRECT_POST,
-                null,
-                null,
-                null,
-                null
-        );
+        var requestDto = createRequestDto(ResponseModeTypeDto.DIRECT_POST, null);
+
         var error = assertThrows(IllegalArgumentException.class, () -> service.createVerificationManagement(requestDto));
         assertEquals("dcql_query is required", error.getMessage());
     }
@@ -110,7 +97,7 @@ class ManagementServiceTest {
             managementMapper.when(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties))
                     .thenReturn(mock(ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto.class));
 
-            service.getManagementResponseDto(id);
+            service.getManagementResponseDto(id, null);
             managementMapper.verify(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties), times(1));
         }
 
@@ -120,7 +107,7 @@ class ManagementServiceTest {
     @Test
     void getManagementResponseDto_withUnknownId_throwsException() {
         when(repository.findById(id)).thenReturn(Optional.empty());
-        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id));
+        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id, null));
     }
 
     @Test
@@ -130,8 +117,30 @@ class ManagementServiceTest {
         when(management.getId()).thenReturn(id);
         when(repository.findById(id)).thenReturn(Optional.of(management));
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
-        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id));
+        assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id, null));
         verify(repository).deleteById(id);
+    }
+
+    @NullSource
+    @ParameterizedTest
+    @ValueSource(strings = {"bd24c010-c11d-4db9-a389-d8d61abc7466"})
+    void getManagementResponseDto_whenAcceptableResponseCode_shouldPassToTransactionalService(String input) {
+
+        var uuid = input == null ? null : UUID.fromString(input);
+        var transactionalService = spy(new ManagementTransactionalService(repository, applicationProperties));
+        var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
+
+        // when
+        doReturn(mock(Management.class)).when(transactionalService).findAndHandleExpiration(id, uuid);
+
+        // call function
+        try (MockedStatic<ManagementMapper> managementMapper = mockStatic(ManagementMapper.class)) {
+            managementMapper.when(() -> ManagementMapper.toManagementResponseDto(any(Management.class), any()))
+                    .thenReturn(mock(ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto.class));
+
+            mgmtService.getManagementResponseDto(id, uuid);
+            verify(transactionalService, times(1)).findAndHandleExpiration(id, uuid);
+        }
     }
 
     @Test
@@ -144,16 +153,8 @@ class ManagementServiceTest {
     void createVerificationManagement_withDirectPostJwt_thenSuccess() {
         var dcqlQueryDto = mock(DcqlQueryDto.class);
         var dcqlQuery = mock(DcqlQuery.class);
-        CreateVerificationManagementDto requestDto = new CreateVerificationManagementDto(
-                List.of("did:example:123"),
-                null,
-                false,
-                ResponseModeTypeDto.DIRECT_POST_JWT,
-                null,
-                dcqlQueryDto,
-                null,
-                null
-        );
+        var requestDto = createRequestDto(ResponseModeTypeDto.DIRECT_POST_JWT, dcqlQueryDto);
+
         var management = mock(Management.class);
         var managementCaptor = ArgumentCaptor.forClass(Management.class);
         when(repository.save(any(Management.class))).thenReturn(management);
@@ -224,5 +225,18 @@ class ManagementServiceTest {
         var dto = mgmtService.markVerificationFailedDueToClientRejection(managementId, rejection);
         assertThat(dto.redirectURI()).isNull();
         verify(transactionalService).markVerificationFailedDueToClientRejection(managementId, rejection);
+    }
+
+    private CreateVerificationManagementDto createRequestDto(ResponseModeTypeDto responseModeTypeDto, DcqlQueryDto dcqlQueryDto) {
+        return new CreateVerificationManagementDto(
+                List.of("did:example:123"),
+                null,
+                false,
+                responseModeTypeDto,
+                null,
+                dcqlQueryDto,
+                null,
+                null
+        );
     }
 }

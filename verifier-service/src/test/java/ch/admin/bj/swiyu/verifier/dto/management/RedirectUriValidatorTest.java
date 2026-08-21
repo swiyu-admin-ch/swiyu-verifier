@@ -6,9 +6,9 @@ import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SessionNonceValidatorTest {
+class RedirectUriValidatorTest {
 
-    private final SessionNonceValidator validator = new SessionNonceValidator();
+    private final RedirectUriValidator validator = new RedirectUriValidator();
 
     @Test
     void isValid_nullUri_returnsTrue() {
@@ -19,6 +19,12 @@ class SessionNonceValidatorTest {
     void isValid_queryContainsSessionNonceWithValue_returnsTrue() {
         URI uri = URI.create("https://example.com/callback?session_nonce=abc123");
         assertTrue(validator.isValid(uri, null));
+    }
+
+    @Test
+    void isValid_relativeUri_returnsFalse() {
+        URI uri = URI.create("/callback?session_nonce=abc123");
+        assertFalse(validator.isValid(uri, null));
     }
 
     @Test

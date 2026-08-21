@@ -1,13 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.statuslist;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
-
-import java.text.ParseException;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import org.springframework.stereotype.Service;
-
 import ch.admin.bj.swiyu.jwtutil.JwtUtilException;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
@@ -18,15 +10,21 @@ import ch.admin.bj.swiyu.verifier.common.config.CacheProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.util.time.TimeUtil;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.text.ParseException;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
 @Slf4j
 @Service
@@ -39,10 +37,6 @@ public class StatusListCacheService {
 
     @Getter(value = AccessLevel.PROTECTED) // Allow Protected level access to cache for unit tests
     private final Cache<String, Optional<TokenStatusListTokenDto>> cache;
-
-
-    
-
 
     public StatusListCacheService(CacheProperties cacheProperties, DidJwtValidator didJwtValidator,
             DidResolverFacade issuerPublicKeyLoader, StatusListResolver statusListResolver) {
@@ -59,7 +53,7 @@ public class StatusListCacheService {
      * @return the TokenStatusListToken or null, if it cannot be resolved
      */
     public TokenStatusListTokenDto getTokenStatusListTokenByUri(String uri) {
-        return cache.get(uri, this::resolveValidatedStatusList).orElseThrow(() -> 
+        return cache.get(uri, this::resolveValidatedStatusList).orElseThrow(() ->
             credentialError(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST, "Status List %s cannot be resolved".formatted(uri)));
     }
 
@@ -87,14 +81,15 @@ public class StatusListCacheService {
 
 
     /**
-     * Create a Caffeine cache for TokenStatusListTokens, taking the mimimum of expiry, ttl or a property ttl for cache lifetime duration
+     * Create a Caffeine cache for TokenStatusListTokens, taking the minimum of expiry, ttl or a property ttl for cache lifetime duration
      * @return A new caffeine cache
      */
     private Cache<String, Optional<TokenStatusListTokenDto>> buildTokenStatusListTokenCache() {
+        var maxCacheTTLNs = TimeUnit.MILLISECONDS.toNanos(cacheProperties.getStatusListCacheTtlMs());
         return Caffeine.newBuilder()
-            .maximumSize(cacheProperties.getStatusListCacheSize())
-            .expireAfter(buildTokenStatusListExpire(TimeUnit.SECONDS.toNanos(cacheProperties.getStatusListCacheTtl())))
-            .build();
+                .maximumSize(cacheProperties.getStatusListCacheSize())
+                .expireAfter(buildTokenStatusListExpire(maxCacheTTLNs))
+                .build();
     }
 
     /**
@@ -119,7 +114,7 @@ public class StatusListCacheService {
                 @Override
                 public long expireAfterRead(String key, Optional<TokenStatusListTokenDto> value, long currentTime,
                         long currentDuration) {
-                    return currentTime;
+                    return currentDuration;
                 }
                 
                 private long getTtlOrBackoff(Optional<TokenStatusListTokenDto> value) {

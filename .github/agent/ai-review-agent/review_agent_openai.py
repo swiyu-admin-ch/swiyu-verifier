@@ -16,7 +16,7 @@ from langgraph.graph import StateGraph, START, END
 class ReviewFinding(BaseModel):
     file_name: str = Field(description="Name of the file in which the problem was found")
     line_number: str = Field(description="Affected line numbers or method")
-    category: str = Field(description="Category: Clean Code, Naming, Architecture, Thread Safety, Performance, Docs/Logging, Framework, Testing")
+    category: str = Field(description="Category: Clean Code, Naming, Architecture, Thread Safety, Performance, Docs/Logging, Framework, Testing, Backward Compatibility (ZDD/JSON)")
     severity: str = Field(description="Severity: LOW, MEDIUM, HIGH")
     description: str = Field(description="Exact description of what violates the guidelines")
     code_snippet: str = Field(default="", description="The exact offending source line(s) from the diff, verbatim, ONLY when it is a single line or a few (<= 5) lines. Empty string if the finding spans many lines or a whole class/method.")
@@ -25,6 +25,30 @@ class ReviewFinding(BaseModel):
 class ReviewResult(BaseModel):
     findings: List[ReviewFinding] = Field(description="List of all code smells or errors found")
     summary: str = Field(description="A short, general summary of the review")
+
+# Manually curated list of simple class/enum names that are persisted as JSON in the database
+# (currently: everything reachable from Management's @JdbcTypeCode(SqlTypes.JSON) fields). The
+# annotation itself lives on the Management entity, a separate file that is often NOT part of the
+# diff being reviewed (e.g. a change only touching ConfigurationOverride.java) - so the model has
+# no way to discover this from the diff content alone. This list is passed into every request so
+# the JSON persistence integrity rules still apply.
+# Each of these classes also carries a "// JSON-PERSISTED (ZDD): ..." marker comment above its
+# declaration, as a heads-up for developers editing it directly. Keep this list AND those marker
+# comments in sync whenever a new @JdbcTypeCode(SqlTypes.JSON) field, or a new type nested/referenced
+# underneath one, is introduced.
+KNOWN_JSON_PERSISTED_CLASSES = [
+    "ResponseData",
+    "TrustAnchor",
+    "ConfigurationOverride",
+    "ResponseSpecification",
+    "ResponseModeType",
+    "DcqlQuery",
+    "DcqlClaim",
+    "DcqlCredential",
+    "DcqlCredentialMeta",
+    "DcqlCredentialSet",
+    "VerificationErrorResponseCode",
+]
 
 # ==========================================
 # 2. LangGraph State
@@ -129,26 +153,7 @@ def _build_llm() -> ChatOpenAI:
     return ChatOpenAI(**llm_kwargs)
 
 
-def analyze_diff_node(state: ReviewState) -> ReviewState:
-    """Node 1: Analyzes the code against the swiyu/adesso guidelines.
-
-    By default the whole diff is reviewed in a single request, which large-
-    context models like Claude Sonnet handle fine. Set SPLIT_DIFF_BY_FILE=true
-    to fall back to the old per-file mode (smaller, more numerous requests),
-    which is useful for models with a small context window or when hitting
-    upstream gateway timeouts (504) on large diffs; it also makes the run
-    resilient, since a single failing/timing-out file no longer aborts the
-    whole review.
-    """
-    print("-> Analyzing git diff with the configured LLM (adesso AI Hub)...")
-
-    llm = _build_llm()
-
-    # Enforce structured output
-    #structured_llm = llm.with_structured_output(ReviewResult)
-    structured_llm = llm.with_structured_output(ReviewResult, method="json_mode")
-
-    system_prompt = """You are a strict but constructive Senior Java/Spring Boot code reviewer for the swiyu-verifier project.
+SYSTEM_PROMPT = """You are a strict but constructive Senior Java/Spring Boot code reviewer for the swiyu-verifier project.
     Review ONLY the changes in the provided unified git diff, strictly against the project guidelines below.
 
     ## Review rules (only report REAL violations)
@@ -173,6 +178,31 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     13. Database Migrations: new Flyway migration scripts (e.g. under db/migration) must be backwards compatible following the EMC (Expand-Migrate-Contract) pattern, so the previous application version keeps working against the new schema during a rolling deployment. Flag destructive or breaking changes in the same migration as the expand step, e.g. dropping/renaming columns or tables still used by the current version, adding NOT NULL columns without a default or backfill, or narrowing types. Such changes must be split into separate expand and contract migrations across releases. Also flag edits to already-released migration scripts (migrations must be immutable once released).
     14. Spelling & Language (scoped, not nitpicking): only flag typos that have real impact - in public API names, configuration/property keys, environment variable names, and in log or exception messages. All code comments and JavaDoc must be written in English; flag any non-English comment/JavaDoc. Do NOT report minor typos in local variables or general prose.
 
+    # ⚠️ CRITICAL: ZERO-DOWNTIME DEPLOYMENT (ZDD) & BACKWARD COMPATIBILITY RULES
+    You MUST strictly verify the following rules to prevent production outages during rolling updates or disaster recovery scenarios.
+
+    1. DATABASE MIGRATIONS (Flyway .sql files):
+       - FLAG AS ERROR (HIGH severity): Destructive operations (`DROP TABLE`, `DROP COLUMN`, `RENAME COLUMN`) that show NO evidence of being a deliberate EMC "Contract" step (i.e. no comment/marker such as `-- EMC: Contract` or `-- EMC: Phase 2/3` referencing an already-released Expand migration for that same table/column). Treat these as unplanned breaking changes that will crash the previous application version during a rolling deployment.
+       - FLAG AS WARNING (MEDIUM severity, NOT a hard error): The same destructive operations WHEN they are explicitly marked/commented as the EMC "Contract" step of an already-completed Expand phase. This is the correct, expected final step of Expand-Migrate-Contract - still surface it so a human confirms enough releases have passed since the Expand step, but do NOT treat it as a violation that must block the change.
+       - FLAG AS ERROR (HIGH severity): Adding `NOT NULL` constraints to existing tables WITHOUT specifying a default value. This is unsafe regardless of EMC phase.
+       - VERIFY: If a schema is expanded (e.g., adding a column), check for an in-code comment mentioning the "Expand" phase (e.g., `-- EMC: Phase 1` / `-- EMC: Expand`).
+
+    2. CONFIGURATION PROPERTIES (Spring Boot application.properties / .yml / Java @Value):
+       - FLAG AS ERROR (HIGH severity): Renaming or removing a configuration key that was NEVER kept active with a fallback in a prior release - this immediately breaks nodes still running the old version during a rolling deployment.
+       - FLAG AS WARNING (MEDIUM severity, NOT a hard error): Removing a configuration key that previously had a documented fallback/deprecation path (e.g. was resolved via `@Value("${new.key:${old.key:default}}")`). This is the expected Contract/cleanup step once the deprecation window has passed - still surface it so a human confirms the deprecation window was long enough, but do NOT treat it as a violation that must block the change.
+       - FLAG AS ERROR (HIGH severity): Missing fallback resolution in Java code when a key is renamed. Require `@Value("${new.key:${old.key:default}}")`.
+       - FLAG AS ERROR (HIGH severity): Missing default values for newly introduced properties.
+
+    3. JSON PERSISTENCE INTEGRITY (Long-Lived State):
+       A class is considered JSON-persisted if ANY of the following applies: (a) it is used with `@JdbcTypeCode(SqlTypes.JSON)` in this diff, (b) it carries a `// JSON-PERSISTED (ZDD): ...` marker comment above its declaration, or (c) its simple class/enum name is listed in the "Known JSON-persisted classes" note in the human message below - this note exists because the `@JdbcTypeCode` annotation itself often lives on a DIFFERENT file (the entity) that is not part of this diff, so you cannot rely on seeing it here. Apply the rules below whenever a listed/marked class, or a type nested/referenced underneath one, is touched - even if you cannot see the annotation:
+       - FLAG AS ERROR: Missing `@JsonIgnoreProperties(ignoreUnknown = true)` on the class or its nested types.
+       - FLAG AS ERROR: Renamed or removed fields/properties without a `@JsonAlias` annotation or explicit migration logic.
+       - FLAG AS ERROR: Newly added fields that are NOT optional/nullable or lack default values.
+       - FLAG AS ERROR: Missing or unusable Jackson creators (e.g., no default constructor, no `@JsonCreator`, or constructor parameter names that do not match JSON properties). EXCEPTION: Java `record` types are exempt from the "no default constructor" check - their canonical constructor is natively usable by Jackson as an implicit creator (both Jackson 2.12+ and Jackson 3 resolve record component names via reflection without needing `-parameters` or `@JsonCreator`), so do NOT flag a record merely for lacking a no-args constructor.
+       - FLAG AS ERROR: Renaming or deleting an `enum` constant that is referenced by these JSON classes.
+
+    For any finding related to the ZDD/JSON rules above, you MUST set the `category` to exactly "Backward Compatibility (ZDD/JSON)".
+
     ## Scope & discipline
     - Consider ONLY added/modified lines (starting with '+'). Ignore '-' lines unless a critical safeguard was removed.
     - Derive line numbers from the diff hunk headers ('@@ -a,b +c,d @@').
@@ -194,7 +224,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
         {
           "file_name": "path/to/file.java",
           "line_number": "line numbers or context",
-          "category": "One of: Clean Code, Naming, Architecture, Thread Safety, Performance, Docs/Logging, Framework, Testing",
+          "category": "One of: Clean Code, Naming, Architecture, Thread Safety, Performance, Docs/Logging, Framework, Testing, Backward Compatibility (ZDD/JSON)",
           "severity": "LOW, MEDIUM, or HIGH",
           "description": "What is wrong",
           "code_snippet": "The exact offending line(s), verbatim, only if <= 5 lines; otherwise empty string",
@@ -205,11 +235,35 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     If there are no real violations, return an empty list for findings.
     """
 
+
+def analyze_diff_node(state: ReviewState) -> ReviewState:
+    """Node 1: Analyzes the code against the swiyu/adesso guidelines.
+
+    By default the whole diff is reviewed in a single request, which large-
+    context models like Claude Sonnet handle fine. Set SPLIT_DIFF_BY_FILE=true
+    to fall back to the old per-file mode (smaller, more numerous requests),
+    which is useful for models with a small context window or when hitting
+    upstream gateway timeouts (504) on large diffs; it also makes the run
+    resilient, since a single failing/timing-out file no longer aborts the
+    whole review.
+    """
+    print("-> Analyzing git diff with the configured LLM (adesso AI Hub)...")
+
+    llm = _build_llm()
+
+    # Enforce structured output
+    #structured_llm = llm.with_structured_output(ReviewResult)
+    structured_llm = llm.with_structured_output(ReviewResult, method="json_mode")
+
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content=system_prompt),
-        ("human", "Here is the git diff:\n\n{diff}")
+        SystemMessage(content=SYSTEM_PROMPT),
+        ("human",
+         "Known JSON-persisted classes (see rule 3, JSON PERSISTENCE INTEGRITY): "
+         "{json_classes}.\n\n"
+         "Here is the git diff:\n\n{diff}")
     ])
     chain = prompt | structured_llm
+    json_classes = ", ".join(KNOWN_JSON_PERSISTED_CLASSES)
 
     all_chunks = _split_diff_by_file(state["git_diff"])
 
@@ -254,7 +308,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
                 chunk = chunk[:max_chunk_chars] + "\n\n[... file diff truncated due to size ...]\n"
             try:
                 start = time.monotonic()
-                result = chain.invoke({"diff": chunk})
+                result = chain.invoke({"diff": chunk, "json_classes": json_classes})
                 elapsed = time.monotonic() - start
                 all_findings.extend(result.findings)
                 reviewed += 1
@@ -280,7 +334,7 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
 
         try:
             start = time.monotonic()
-            result = chain.invoke({"diff": combined_diff})
+            result = chain.invoke({"diff": combined_diff, "json_classes": json_classes})
             elapsed = time.monotonic() - start
             all_findings.extend(result.findings)
             reviewed = len(chunks)
@@ -341,33 +395,97 @@ def _language_for(file_name: str) -> str:
     return _LANGUAGE_BY_EXTENSION.get(extension, "")
 
 
+# Category used for backward-compatibility / ZDD findings (must match the
+# value the SYSTEM_PROMPT instructs the model to set).
+_ZDD_CATEGORY = "Backward Compatibility (ZDD/JSON)"
+
+
+# Icon shown per severity, both in the summary table and each finding's collapsed summary line.
+_SEVERITY_ICON = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🔵"}
+
+
+def _severity_summary_table(findings: List[ReviewFinding]) -> str:
+    """Renders a compact Markdown table with the finding count per severity.
+
+    Long PR comments with one heading per finding are hard to scan; a table up top lets
+    reviewers gauge how bad the diff is at a glance before expanding anything.
+    """
+    counts = {}
+    for f in findings:
+        counts[f.severity] = counts.get(f.severity, 0) + 1
+    rows = "\n".join(
+        f"| {_SEVERITY_ICON.get(severity, '⚪')} {severity} | {count} |"
+        for severity, count in sorted(counts.items(), key=lambda kv: _SEVERITY_ORDER.get(kv[0], len(_SEVERITY_ORDER)))
+    )
+    return f"| Severity | Count |\n|---|---|\n{rows}\n\n"
+
+
+def _render_findings(findings: List[ReviewFinding], start_index: int = 1) -> str:
+    """Renders findings as collapsible <details> blocks (GitHub-native, keeps PR comments scannable).
+
+    HIGH severity findings start expanded (they're must-fix and should be visible immediately);
+    MEDIUM/LOW start collapsed so they don't dominate the comment.
+    """
+    section = ""
+    for idx, f in enumerate(findings, start_index):
+        icon = _SEVERITY_ICON.get(f.severity, "⚪")
+        open_attr = " open" if f.severity == "HIGH" else ""
+        # Show only the basename in the (collapsed) summary line - the full path is often long
+        # (e.g. "verifier-application/src/main/.../VerificationController.java") and makes that
+        # single line hard to scan; the full path still appears right below once expanded.
+        basename = f.file_name.rsplit("/", 1)[-1] if f.file_name else f.file_name
+        section += f"<details{open_attr}>\n"
+        # NOTE: don't prefix idx with '#' - GitHub auto-links "#<number>" as an issue/PR reference.
+        section += f"<summary>Finding {idx} — {icon} <b>{f.severity}</b> · {f.category} · <code>{basename}</code></summary>\n\n"
+        section += f"**File:** `{f.file_name}`"
+        if f.line_number:
+            section += f" (line {f.line_number})"
+        section += "\n\n"
+        section += f"**Problem:** {f.description}\n\n"
+        # Show the offending code only when the model provided a short snippet
+        snippet = _clean_snippet(f.code_snippet)
+        if snippet:
+            section += f"**Code:**\n\n```{_language_for(f.file_name)}\n{snippet}\n```\n\n"
+        section += f"**Suggestion:** {f.suggestion}\n\n"
+        section += "</details>\n\n"
+    return section
+
+
 def format_report_node(state: ReviewState) -> ReviewState:
-    """Node 2: Formats the results into a clean Markdown report."""
+    """Node 2: Formats the results into a clean, GitHub-friendly Markdown report."""
     print("-> Creating Markdown report...")
 
     findings = state.get("findings", [])
     summary = state.get("summary", "No summary available.")
 
-    report = f"# 🤖 AI Code Review Report\n\n**Summary:** {summary}\n\n"
+    report = "# 🤖 AI Code Review Report\n\n"
 
     if not findings:
+        report += f"> [!TIP]\n> {summary}\n\n"
         report += "✅ **Great! The code complies with all guidelines. No issues found.**\n"
         return {"markdown_report": report}
 
-    report += f"Found **{len(findings)}** remarks:\n\n"
+    # Use a more attention-grabbing alert box when there's at least one must-fix finding.
+    alert = "WARNING" if any(f.severity == "HIGH" for f in findings) else "NOTE"
+    report += f"> [!{alert}]\n> {summary}\n\n"
+    report += _severity_summary_table(findings)
 
     findings = sorted(findings, key=lambda f: _SEVERITY_ORDER.get(f.severity, len(_SEVERITY_ORDER)))
 
-    for idx, f in enumerate(findings, 1):
-        icon = "🔴" if f.severity == "HIGH" else "🟡" if f.severity == "MEDIUM" else "🔵"
-        report += f"### {idx}. {icon} [{f.category}] in `{f.file_name}`\n"
-        report += f"- **Line/Context:** {f.line_number}\n"
-        report += f"- **Problem:** {f.description}\n"
-        # Show the offending code only when the model provided a short snippet
-        snippet = _clean_snippet(f.code_snippet)
-        if snippet:
-            report += f"- **Code:**\n\n```{_language_for(f.file_name)}\n{snippet}\n```\n"
-        report += f"- **Suggestion:** {f.suggestion}\n\n"
+    zdd_findings = [f for f in findings if f.category == _ZDD_CATEGORY]
+    other_findings = [f for f in findings if f.category != _ZDD_CATEGORY]
+
+    report += "## ⚠️ Zero-Downtime & EMC Verification (ZDD/JSON)\n\n"
+    if zdd_findings:
+        report += _render_findings(zdd_findings)
+    else:
+        report += "* No breaking schema, configuration, or JSON persistence changes detected.\n\n"
+
+    report += "## Other Findings (Clean Code, Architecture, etc.)\n\n"
+    if other_findings:
+        report += _render_findings(other_findings, start_index=len(zdd_findings) + 1)
+    else:
+        report += "* No further findings.\n\n"
 
     return {"markdown_report": report}
 

@@ -275,10 +275,11 @@
         </dependency>
 
         <!-- MockServer client API -->
+        <!-- Fixes SNYK-JAVA-IONETTY-19005879 (io.netty:netty-handler, Critical) via upgraded transitive mockserver-core -->
         <dependency>
             <groupId>org.mock-server</groupId>
             <artifactId>mockserver-client-java</artifactId>
-            <version>5.15.0</version>
+            <version>${mockserver-client-java.version}</version>
             <scope>test</scope>
         </dependency>
 

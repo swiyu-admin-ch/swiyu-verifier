@@ -87,7 +87,6 @@
                 <groupId>io.micrometer</groupId>
                 <artifactId>micrometer-core</artifactId>
                 <version>1.16.7</version>
-                <scope>compile</scope>
             </dependency>
 
             <dependency>

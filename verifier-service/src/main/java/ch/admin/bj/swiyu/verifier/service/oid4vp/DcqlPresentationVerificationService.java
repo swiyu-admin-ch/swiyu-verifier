@@ -2,10 +2,15 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.dto.management.result.CredentialEvaluationDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import tools.jackson.core.JacksonException;
@@ -46,7 +51,7 @@ public class DcqlPresentationVerificationService {
      * given {@link Management} entity has no DCQL query configured (e.g. a legacy verification request that
      * receives a DCQL-formatted wallet response).
      */
-    public String process(Management entity, VerificationPresentationDCQLRequestDto request) {
+    public VerificationResultData process(Management entity, VerificationPresentationDCQLRequestDto request) {
         var dcqlQuery = entity.getDcqlQuery();
         if (dcqlQuery == null) {
             // Happens when a verification request was created without a DCQL query (legacy format)
@@ -54,12 +59,13 @@ public class DcqlPresentationVerificationService {
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "No DCQL query configured for this verification request");
         }
         var requestedCredentials = dcqlQuery.getCredentials();
-        var vpTokens = request.getVpToken();
+        Map<String, List<String>> vpTokens = request.getVpToken();
         if (vpTokens == null) {
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp_token object in presentation submission");
         }
-        var verifiedResponses = new HashMap<String, List<Map<String, Object>>>();
-        for (var requestedCredential : requestedCredentials) {
+        Map<String, List<Map<String, Object>>> verifiedResponses = new HashMap<>();
+        Map<String, List<CredentialEvaluation>> evaluations = new HashMap<>();
+        for (DcqlCredential requestedCredential : requestedCredentials) {
             if (!vpTokens.containsKey(requestedCredential.getId())) {
                 throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp token for requested credential id " + requestedCredential.getId());
             }
@@ -79,9 +85,10 @@ public class DcqlPresentationVerificationService {
                 throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Vp token list for requested credential id " + requestedCredential.getId() + " must not contain null entries");
             }
 
-            var sdJwts = requestedVpTokens.stream()
+            List<SdJwtVerificationResult> verificationResults = requestedVpTokens.stream()
                     .map(token -> presentationVerifier.verify(token, entity, requestedCredential))
                     .toList();
+            List<SdJwt> sdJwts = verificationResults.stream().map(SdJwtVerificationResult::sdJwt).toList();
 
             sdJwts = dcqlEvaluator.filterByVct(sdJwts, requestedCredential.getMeta());
 
@@ -92,8 +99,15 @@ public class DcqlPresentationVerificationService {
             var sdjwt = sdJwts.getFirst();
             dcqlEvaluator.validateRequestedClaims(sdjwt, requestedCredential.getClaims());
             verifiedResponses.put(requestedCredential.getId(), List.of(sdjwt.getResolvedClaims()));
+            evaluations.put(requestedCredential.getId(), verificationResults.stream()
+                .map(VerificationMapper::toCredentialEvaluation).toList());
         }
-        return writeAsString(verifiedResponses);
+        return VerificationResultData.builder()
+            .vpTokens(vpTokens)
+            .evaluations(evaluations)
+            .verifiedResponses(verifiedResponses)
+            .verifiedResponsesJsonString(writeAsString(verifiedResponses))
+            .build();
     }
 
     private String writeAsString(Object object) {

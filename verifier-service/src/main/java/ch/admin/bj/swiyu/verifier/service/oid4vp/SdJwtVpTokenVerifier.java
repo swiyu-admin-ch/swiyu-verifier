@@ -188,11 +188,11 @@ public class SdJwtVpTokenVerifier {
         }
     }
 
-    protected void verifyStatus(Map<String, Object> vcClaims, JWSHeader header) {
+    protected Optional<StatusVerificationResultDto> verifyStatus(Map<String, Object> vcClaims, JWSHeader header) {
         TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(vcClaims, header);
         if (reference.getStatus() == null) {
             // no Status Reference -> VC has no Status
-            return;
+            return Optional.empty();
         }
         try {
             TokenStatusListTokenDto statusList = statusListCacheService.getTokenStatusListTokenByUri(reference.getReferencedStatusListUri());
@@ -200,14 +200,7 @@ public class SdJwtVpTokenVerifier {
                 throw credentialError(UNRESOLVABLE_STATUS_LIST, "Status List not found or malformed");
             }
             StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(reference, statusList);
-            // TODO EIDOMNI-1090 - Pass through state to business component, removing the if else logic below
-            if(statusListState.status().filter(s -> s > TokenStatusListBit.REVOKED.getBitNumber()).isPresent()) {
-                // Suspended or Custom State
-                throw credentialError(CREDENTIAL_SUSPENDED, "Credential is suspended");
-            } else if (!statusListState.valid()) {
-                // Something wrong with the status list or revoked
-                throw credentialError(CREDENTIAL_REVOKED, "Credential is not valid");
-            }
+            return Optional.of(statusListState);
         } catch (
             IndexOutOfBoundsException | 
             IOException |

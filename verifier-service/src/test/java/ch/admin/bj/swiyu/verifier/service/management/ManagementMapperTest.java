@@ -2,6 +2,9 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
@@ -9,10 +12,13 @@ import ch.admin.bj.swiyu.verifier.dto.management.ConfigurationOverrideDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationStatusDto;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -25,6 +31,7 @@ import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toM
 import static ch.admin.bj.swiyu.verifier.service.management.fixtures.ManagementFixtures.management;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +41,7 @@ class ManagementMapperTest {
     private static final String CLIENT_ID = "client_id";
     private static final String DEEPLINK_SCHEMA = "openid4vp";
     private static final String CLIENT_ID_PREFIX = "decentralized_identifier";
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private ApplicationProperties applicationProperties;
 
@@ -82,7 +90,15 @@ class ManagementMapperTest {
     void toManagementResponseDto_withSuccessfulVerification_returnsCredentialSubjectData() {
         var management = managementWithOverride();
         management.claimForProcessing();
-        management.verificationSucceeded("{\"given_name\":\"Ada\",\"age\":42}");
+        var credentialEvaluation = CredentialEvaluation.builder()
+            .credentialStatus(null)
+            .trustMarkers(IssuerTrustMarker.builder().isTrusted(true).build())
+            .build();
+        management.verificationDone(VerificationResultData.builder()
+            .verifiedResponsesJsonString("{\"given_name\":\"Ada\",\"age\":42}")
+            .evaluations(Map.of("requested_data", List.of(credentialEvaluation)))
+            .vpTokens(Map.of())
+            .build());
 
         var dto = toManagementResponseDto(management, applicationProperties);
 
@@ -103,6 +119,8 @@ class ManagementMapperTest {
                 .containsEntry("age", 42);
         assertThat(dto.verificationUrl()).isEqualTo(expectedVerificationUrl);
         assertThat(dto.verificationDeeplink()).isEqualTo(expectedDeeplink);
+        
+        assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
     }
 
     @Test

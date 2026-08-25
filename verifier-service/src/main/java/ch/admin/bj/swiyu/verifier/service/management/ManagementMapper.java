@@ -2,11 +2,19 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
+import ch.admin.bj.swiyu.verifier.domain.StatusVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.*;
+import ch.admin.bj.swiyu.verifier.dto.management.result.CredentialEvaluationDto;
+import ch.admin.bj.swiyu.verifier.dto.management.result.IssuerTrustMarkerDto;
+import ch.admin.bj.swiyu.verifier.dto.management.result.StatusVerificationResultDto;
+import ch.admin.bj.swiyu.verifier.dto.management.result.TrustMethodDto;
 import ch.admin.bj.swiyu.verifier.dto.metadata.JwkSetDto;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
@@ -19,6 +27,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.nonNull;
 
@@ -36,18 +45,34 @@ public class ManagementMapper {
         String externalUrl = override.externalUrlOrDefault(props.getExternalUrl());
         String clientId = override.verifierDidOrDefaultWithPrefix(props);
         var verificationUrl = String.format("%s/oid4vp/api/request-object/%s", externalUrl, management.getId());
-        return new ManagementResponseDto(
-                management.getId(),
-                management.getRequestNonce(),
-                toVerifcationStatusDto(management.getState()),
-                null,
-                toResponseDataDto(management.getWalletResponse()),
-                verificationUrl,
-                buildVerificationDeeplink(verificationUrl, clientId, props.getDeeplinkSchema())
-        );
+        return ManagementResponseDto.builder()
+            .id(management.getId())
+            .requestNonce(management.getRequestNonce())
+            .state(toVerifcationStatusDto(management.getState()))
+            .walletResponse(toResponseDataDto(management.getWalletResponse()))
+            .verificationUrl(verificationUrl)
+            .verificationDeeplink(buildVerificationDeeplink(verificationUrl, clientId, props.getDeeplinkSchema()))
+            .credentialEvaluation(toCredentialEvaluationDto(management.getCredentialEvaluation()))
+            .build();
+    }
+
+    private static Map<String, List<CredentialEvaluationDto>> toCredentialEvaluationDto(
+            Map<String, List<CredentialEvaluation>> credentialEvaluation) {
+        if(credentialEvaluation == null) {
+            return null;
+        }
+        return credentialEvaluation.entrySet().stream().collect(
+            Collectors.toMap(
+                e -> e.getKey(), 
+                e -> e.getValue().stream()
+                    .map(ManagementMapper::toCredentialEvaluationDto).toList()
+                ));
     }
 
     public static TrustAnchor toTrustAnchor(final TrustAnchorDto trustAnchor) {
+        if (trustAnchor == null) {
+            return null;
+        }
         return new TrustAnchor(
                 trustAnchor.did(),
                 trustAnchor.trustRegistryUri()
@@ -59,6 +84,46 @@ public class ManagementMapper {
             return List.of();
         }
         return trustAnchorDtos.stream().map(ManagementMapper::toTrustAnchor).toList();
+    }
+
+
+    private static CredentialEvaluationDto toCredentialEvaluationDto(CredentialEvaluation credentialEvaluation) {
+        return CredentialEvaluationDto.builder()
+            .trustMarkers(toIssuerTrustMarkerDto(credentialEvaluation.trustMarkers()))
+            .credentialStatus(toStatusVerificaitonResult(credentialEvaluation.credentialStatus()))
+            .build();
+    }
+
+    public static IssuerTrustMarkerDto toIssuerTrustMarkerDto(IssuerTrustMarker issuerTrustMarker) {
+        if (issuerTrustMarker == null) {
+            return null;
+        }
+        return IssuerTrustMarkerDto.builder()
+                .trustMethod(toTrustMethodDto(issuerTrustMarker.trustMethod()))
+                .isTrusted(issuerTrustMarker.isTrusted())
+                .identityTrustMarker(issuerTrustMarker.identityTrustMarker())
+                .compliantActorTrustMarker(issuerTrustMarker.compliantActorTrustMarker())
+                .governedUseCaseTrustMarker(issuerTrustMarker.governedUseCaseTrustMarker())
+                .governedUseCaseAuthorizationTrustMarker(issuerTrustMarker.governedUseCaseAuthorizationTrustMarker())
+                .build();
+    }
+
+    private static TrustMethodDto toTrustMethodDto(TrustMethod trustMethod) {
+        if (trustMethod == null) {
+            return null;
+        }
+        return TrustMethodDto.valueOf(trustMethod.name());
+    }
+
+
+    private static StatusVerificationResultDto toStatusVerificaitonResult(StatusVerificationResult dto) {
+        if(dto == null) {
+            return null;
+        }
+        return StatusVerificationResultDto.builder()
+            .status(dto.status())
+            .valid(dto.valid())
+            .build();
     }
 
     private static String buildVerificationDeeplink(String requestUri, String clientId, String deeplinkSchema) {
@@ -88,10 +153,13 @@ public class ManagementMapper {
             return null;
         }
         var credentialSubjectDataString = source.credentialSubjectData();
-        return new ResponseDataDto(
-                toVerificationErrorResponseCodeDto(source.errorCode()),
-                source.errorDescription(),
-                nonNull(credentialSubjectDataString) ? jsonStringToMap(credentialSubjectDataString) : null);
+        return ResponseDataDto.builder()
+            .errorCode(toVerificationErrorResponseCodeDto(source.errorCode()))
+            .errorDescription(source.errorDescription())
+            .credentialSubjectData(nonNull(credentialSubjectDataString) ? jsonStringToMap(credentialSubjectDataString) : null)
+            .vpToken(source.vpToken())
+            .build();
+        
     }
 
     private static Map<String, Object> jsonStringToMap(String jsonString) {

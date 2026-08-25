@@ -1,10 +1,12 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
@@ -24,6 +26,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,7 +65,8 @@ class DcqlPresentationVerificationServiceTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken)));
 
         var sdJwt = mock(SdJwt.class);
-        when(sdJwtLegacyPresentationVerifier.verify(vpToken, management,requestedCredential)).thenReturn(sdJwt);
+        when(sdJwtLegacyPresentationVerifier.verify(vpToken, management,requestedCredential)).thenReturn(
+            SdJwtVerificationResult.builder().sdJwt(sdJwt).statusVerificationResult(Optional.of(new StatusVerificationResultDto(true, Optional.of(0)))).build());
         when(dcqlEvaluator.filterByVct(anyList(), eq(meta))).thenReturn(List.of(sdJwt));
         // validateRequestedClaims should be called without throwing
         doNothing().when(dcqlEvaluator).validateRequestedClaims(eq(sdJwt), eq(claims));
@@ -75,8 +79,8 @@ class DcqlPresentationVerificationServiceTest {
         when(sdJwt.getResolvedClaims()).thenReturn(claimMap);
 
         // Act
-        var resultJson = dcqlPresentationVerificationService.process(management, request);
-
+        var result = dcqlPresentationVerificationService.process(management, request);
+        var resultJson = result.verifiedResponsesJsonString();
         // Assert
         assertTrue(resultJson.contains("\"" + credentialId + "\""));
         assertTrue(resultJson.contains("\"given_name\":\"Alice\""));
@@ -214,7 +218,8 @@ class DcqlPresentationVerificationServiceTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken)));
 
         var sdJwt = mock(SdJwt.class);
-        when(sdJwtLegacyPresentationVerifier.verify(vpToken, management, requestedCredential)).thenReturn(sdJwt);
+        when(sdJwtLegacyPresentationVerifier.verify(vpToken, management, requestedCredential))
+            .thenReturn(SdJwtVerificationResult.builder().sdJwt(sdJwt).build());
         // No presented SD-JWT matches the requested vct -> empty list
         when(dcqlEvaluator.filterByVct(anyList(), eq(meta))).thenReturn(List.of());
 

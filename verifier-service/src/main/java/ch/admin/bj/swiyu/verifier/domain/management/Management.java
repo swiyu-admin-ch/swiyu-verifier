@@ -2,7 +2,10 @@ package ch.admin.bj.swiyu.verifier.domain.management;
 
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
+import ch.admin.bj.swiyu.verifier.dto.management.result.CredentialEvaluationDto;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +13,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -17,6 +22,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -121,6 +127,15 @@ public class Management {
     private String vqpsQueryHash;
 
     /**
+     * Evaluation for each requested credential, where the key is the id of the requested credential.
+     * There can only be more than 1 entries in the list if in the dcql_query multiple=true is set
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "credential_evaluation", columnDefinition = "jsonb")
+    @Setter
+    private Map<String, List<CredentialEvaluation>> credentialEvaluation;
+
+    /**
      * Guarded set State, preventing illegal transaction
      *
      * @param state the new state to be set
@@ -156,7 +171,7 @@ public class Management {
     public void verificationFailed(VerificationErrorResponseCode errorCode, String errorDescription) {
         ensureClaimedForProcessing();
         this.state = FAILED;
-        this.walletResponse = ResponseData.builder()
+        this.walletResponse = getInitializedWalletResponse().toBuilder()
                 .errorCode(errorCode)
                 .errorDescription(errorDescription)
                 .build();
@@ -166,7 +181,7 @@ public class Management {
     public void verificationFailedDueToClientRejection(String description, VerificationErrorResponseCode walletErrorCode) {
         ensureClaimedForProcessing();
         this.state = FAILED;
-        this.walletResponse = ResponseData.builder()
+        this.walletResponse = getInitializedWalletResponse().toBuilder()
                 .errorCode(walletErrorCode)
                 .errorDescription(description)
                 .build();
@@ -183,13 +198,19 @@ public class Management {
         return System.currentTimeMillis() + (expirationInSeconds * 1000L);
     }
 
-    public void verificationSucceeded(String credentialSubjectData) {
+    public void verificationDone(VerificationResultData verificationResult) {
         ensureClaimedForProcessing();
-        this.state = VerificationStatus.SUCCESS;
-        this.walletResponse = ResponseData.builder()
-                .credentialSubjectData(credentialSubjectData)
-                .build();
+        this.walletResponse = getInitializedWalletResponse().toBuilder()
+        .credentialSubjectData(verificationResult.verifiedResponsesJsonString())
+        .vpToken(verificationResult.vpTokens())
+        .build();
+        this.credentialEvaluation = verificationResult.evaluations();
+        this.state = isValidPresentation() ? VerificationStatus.SUCCESS : VerificationStatus.FAILED;
         this.updateRedirectURIIfNecessary();
+    }
+
+    public void setVpToken(Map<String, List<String>> vpTokens) {
+        this.walletResponse = getInitializedWalletResponse().toBuilder().vpToken(vpTokens).build();
     }
 
     public boolean isExpired() {
@@ -229,6 +250,19 @@ public class Management {
         return oauthState.equals(state);
     }
 
+
+    /**
+     * Validates if the whole received presentation is valid.
+     * @return true if all presented tokens are considered valid.
+     */
+    private boolean isValidPresentation() {
+        if(credentialEvaluation == null) {
+            return false;
+        }
+        return credentialEvaluation.values().stream().flatMap(List::stream)
+            .allMatch(CredentialEvaluation::isValid);
+    }
+
     /**
      * Creates a response code for the redirect_uri and updates the redirect_uri with the response_code query_parameter if redirect_uri was provided initially
      * (does not overwrite existing query parameters)
@@ -247,5 +281,12 @@ public class Management {
         this.redirectURI = UriComponentsBuilder.fromUri(this.redirectURI)
                 .queryParam("response_code", this.responseCode.toString())
                 .build().toUri();
+    }
+    
+    private ResponseData getInitializedWalletResponse() {
+        if (this.walletResponse == null) {
+            this.walletResponse = ResponseData.builder().build();
+        }
+        return this.walletResponse;
     }
 }

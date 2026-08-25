@@ -1,6 +1,10 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+
+import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
 
@@ -11,10 +15,15 @@ import lombok.Builder;
 // Keep this type backward compatible across releases: don't rename/remove fields without a migration
 // path (e.g. @JsonAlias), and keep any new field optional with a default.
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Builder
+@Builder(toBuilder = true)
 public record ResponseData(
+        
         VerificationErrorResponseCode errorCode,
         String errorDescription,
-        String credentialSubjectData
+        String credentialSubjectData,
+        /**
+         * Full VP Token as sent by the Wallet. Decrypted, if it was originally encrypted
+         */
+        Map<String, List<String>> vpToken
 ) {
 }

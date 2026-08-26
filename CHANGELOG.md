@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Changed
+- Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.0 to officially support the new JDK LTS release `(#1019)`
+  - Restricted the Maven annotation processor path to Lombok only (`maven-compiler-plugin` `annotationProcessorPaths`) to fix silent, partial Lombok code generation failures observed under JDK 25 when the full compile classpath was used for annotation processor discovery.
+
 # [4.2.0] - 2026-08-21
 
 ## Changed

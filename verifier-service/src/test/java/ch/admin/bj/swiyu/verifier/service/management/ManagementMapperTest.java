@@ -4,6 +4,8 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
 import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
+import ch.admin.bj.swiyu.verifier.domain.StatusVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
@@ -86,18 +88,33 @@ class ManagementMapperTest {
         assertThat(dto.state()).isEqualTo(VerificationStatusDto.PENDING);
     }
 
+    /**
+     * Create a complete verification result and tests mapping to the DTO and serializing it
+     */
     @Test
-    void toManagementResponseDto_withSuccessfulVerification_returnsCredentialSubjectData() {
+    void toManagementResponseDto_withSuccessfulVerification_returnsVerificationArtefacts() {
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
         var management = managementWithOverride();
         management.claimForProcessing();
         var credentialEvaluation = CredentialEvaluation.builder()
-            .credentialStatus(null)
-            .trustMarkers(IssuerTrustMarker.builder().isTrusted(true).build())
+            .credentialStatus(StatusVerificationResult.builder()
+                .valid(true)
+                .status(0)
+                .build())
+            .trustMarkers(IssuerTrustMarker.builder()
+                .isTrusted(true)
+                .trustMethod(TrustMethod.TRUST_PROTOCOL_2_0)
+                .identityTrustMarker(true)
+                .compliantActorTrustMarker(true)
+                .governedUseCaseTrustMarker(false)
+                .governedUseCaseAuthorizationTrustMarker(false)
+                .build())
             .build();
         management.verificationDone(VerificationResultData.builder()
             .verifiedResponsesJsonString("{\"given_name\":\"Ada\",\"age\":42}")
-            .evaluations(Map.of("requested_data", List.of(credentialEvaluation)))
-            .vpTokens(Map.of())
+            .evaluations(Map.of(dcqlId, List.of(credentialEvaluation)))
+            .vpTokens(Map.of(dcqlId, List.of(vpTokenStandin)))
             .build());
 
         var dto = toManagementResponseDto(management, applicationProperties);
@@ -119,8 +136,37 @@ class ManagementMapperTest {
                 .containsEntry("age", 42);
         assertThat(dto.verificationUrl()).isEqualTo(expectedVerificationUrl);
         assertThat(dto.verificationDeeplink()).isEqualTo(expectedDeeplink);
-        
-        assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
+        assertThat(dto.credentialEvaluation()).hasSize(1);
+        var evaluationDtos = dto.credentialEvaluation().get(dcqlId);
+        assertThat(evaluationDtos).hasSize(1);
+        var evaluationDto = evaluationDtos.getFirst();
+        assertThat(evaluationDto.isValid()).isTrue();
+        var statusDto = evaluationDto.credentialStatus();
+        assertThat(statusDto.valid()).isTrue();
+        assertThat(statusDto.status()).isEqualTo(0);
+        var trustDto = evaluationDto.trustMarkers();
+        assertThat(trustDto.isTrusted()).isTrue();
+        assertThat(trustDto.identityTrustMarker()).isTrue();
+        assertThat(trustDto.compliantActorTrustMarker()).isTrue();
+        assertThat(trustDto.governedUseCaseTrustMarker()).isFalse();
+        assertThat(trustDto.governedUseCaseAuthorizationTrustMarker()).isFalse();
+
+        assertThat(dto.walletResponse().vpToken().get(dcqlId)).hasSize(1).contains(vpTokenStandin);
+        var json = assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
+        assertThat(json).as("Interface defined fields must exist in serialized string").contains(
+            dcqlId,
+            "credential_status",
+            "trust_markers",
+            "trust_method",
+            "TRUST_PROTOCOL_2_0",
+            "is_trusted",
+            "viTM",
+            "caTM",
+            "gucTM",
+            "gucaTM", 
+            "vp_token",
+            vpTokenStandin,
+            "credential_subject_data");
     }
 
     @Test

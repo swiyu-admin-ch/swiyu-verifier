@@ -161,17 +161,15 @@ jobs:
           echo "Signing unhardened image ${IMAGE}@${UNHARDENED_DIGEST}"
           cosign sign --recursive "${IMAGE}@${UNHARDENED_DIGEST}"
 
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@8e119fbb6c251787721d34ba683ed48eba792766 # master
+
       - name: Monitor Snyk for vulnerabilities in code 📦
-        uses: snyk/actions/maven-3-jdk-21@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
+        run: snyk monitor --maven-aggregate-project --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG }} --target-reference=${{ github.ref_name }}
         env:
-          JAVA_HOME: '' # Snyk action sets JAVA_HOME to a path that is not compatible with the setup-java action, so we need to reset it here
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
-        with:
-          # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
-          command: monitor
-          args: --maven-aggregate-project --severity-threshold=high --project-tags:app-name=swiyu-verifier,version=${{ env.IMAGE_VERSION_TAG  }} --target-reference=${{ github.ref_name }}
 
       # Image variants are tracked as distinct Snyk projects so findings don't merge.
       - name: Monitor Snyk for vulnerabilities in hardened image 🐳
@@ -197,12 +195,8 @@ jobs:
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
       - name: Create SBOM
-        uses: snyk/actions/maven-3-jdk-21@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
-        with:
-          command: sbom
-          args: --format=cyclonedx1.6+json --maven-aggregate-project --json-file-output=sbom.json
+        run: snyk sbom --format=cyclonedx1.6+json --maven-aggregate-project --json-file-output=sbom.json
         env:
-          JAVA_HOME: '' # Snyk action sets JAVA_HOME to a path that is not compatible with the setup-java action, so we need to reset it here
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}

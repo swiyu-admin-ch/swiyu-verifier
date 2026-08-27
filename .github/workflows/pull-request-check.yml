@@ -23,29 +23,35 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           languages: java
           config-file: ./.github/codeql/codeql-config.yml
+
       - name: Set up Java
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: 'temurin'
           java-version: '25'
           cache: 'maven'
+
       - name: Cache PGP keys for pgpverify-maven-plugin
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.m2/repository/pgpkeys-cache
           key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
           restore-keys: pgp-keys-
+
       - name: Build & test with Maven (produce JaCoCo)
         run: mvn --batch-mode clean verify -DskipTests=false
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           category: "/language:java"
+
       - name: Upload JaCoCo reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -60,6 +66,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
+
       - name: Add coverage to summary
         run: node .github/scripts/coverage-summary.js
 
@@ -75,17 +82,17 @@ jobs:
         with:
           sarif_file: pmd-report.sarif
 
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@8e119fbb6c251787721d34ba683ed48eba792766 # master
+
       - name: Run Snyk to check for vulnerabilities 🔍
-        uses: snyk/actions/maven-3-jdk-21@8e119fbb6c251787721d34ba683ed48eba792766 # master
+        run: snyk test --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif
         continue-on-error: false
         env:
-          JAVA_HOME: '' # Snyk action sets JAVA_HOME to a path that is not compatible with the setup-java action, so we need to reset it here
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
-        with:
-          # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
-          args: --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif
+
       - name: Upload result as sarif to GitHub Code Scanning 📦
         if: always() # We want to upload the SARIF file even if the Snyk action fails, to have the results in the Code Scanning tab of GitHub
         uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
@@ -99,7 +106,7 @@ jobs:
 
       - name: Build hardened (default) docker image
         id: build-dhi
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # 10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           load: true
@@ -143,12 +150,12 @@ jobs:
 
       - name: Generate OpenAPI spec
         run: mvn -B clean verify -P generate-doc -DskipTests
-#      - name: Ensure spec is committed
-#        run: |
-#          git diff --exit-code -- openapi.yaml || (
-#            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
-#            exit 1
-#          )
+  #      - name: Ensure spec is committed
+  #        run: |
+  #          git diff --exit-code -- openapi.yaml || (
+  #            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
+  #            exit 1
+  #          )
 
   ai-code-review:
     name: AI Code Review

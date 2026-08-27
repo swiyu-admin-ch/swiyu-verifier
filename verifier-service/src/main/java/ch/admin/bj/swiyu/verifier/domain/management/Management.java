@@ -256,10 +256,7 @@ public class Management {
      * @return true if all presented tokens are considered valid.
      */
     private boolean isValidPresentation() {
-        if(credentialEvaluation == null) {
-            return false;
-        }
-        return credentialEvaluation.values().stream().flatMap(List::stream)
+        return Objects.nonNull(credentialEvaluation) && credentialEvaluation.values().stream().flatMap(List::stream)
             .allMatch(CredentialEvaluation::isValid);
     }
 

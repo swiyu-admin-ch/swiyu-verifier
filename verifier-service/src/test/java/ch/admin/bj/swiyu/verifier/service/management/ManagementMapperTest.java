@@ -140,7 +140,6 @@ class ManagementMapperTest {
         var evaluationDtos = dto.credentialEvaluation().get(dcqlId);
         assertThat(evaluationDtos).hasSize(1);
         var evaluationDto = evaluationDtos.getFirst();
-        assertThat(evaluationDto.isValid()).isTrue();
         var statusDto = evaluationDto.credentialStatus();
         assertThat(statusDto.valid()).isTrue();
         assertThat(statusDto.status()).isEqualTo(0);

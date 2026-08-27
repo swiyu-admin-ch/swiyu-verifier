@@ -17,8 +17,6 @@ import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
 import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
-import ch.admin.bj.swiyu.verifier.dto.management.result.IssuerTrustMarkerDto;
-import ch.admin.bj.swiyu.verifier.dto.management.result.TrustMethodDto;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +65,9 @@ public class TrustProtocol2Validator {
     public IssuerTrustMarker isTrusted(String issuerDid, String vct, Management management) {
         // Trust Protocol 2.0 only supports 1 Trust Anchor
         TrustAnchor anchor = management.getTrustAnchors().getFirst();
+        if (management.getTrustAnchors().size() > 1) {
+            log.warn("Trust Protocol 2.0 is being used which only supports 1 Trust Anchor. Using the anchor {}", anchor.did());
+        }
         log.debug("Evaluating Trust for Anchor {}", anchor.did());
         TrustVerificationResult verificationResult = evaluateTrust(issuerDid, vct, anchor);
         TrustMarkers markers = verificationResult.markers();

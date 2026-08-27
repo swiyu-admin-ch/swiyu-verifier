@@ -20,13 +20,5 @@ public record CredentialEvaluationDto(
     StatusVerificationResultDto credentialStatus,
     @JsonProperty("trust_markers")
     IssuerTrustMarkerDto trustMarkers
-){
-    @JsonIgnoreProperties
-    public boolean isValid() {
-        // If no status reference was found counts as valid
-        boolean isValidState = credentialStatus == null || credentialStatus.valid();
-        boolean isTrusted = trustMarkers.isTrusted();
-        return isValidState && isTrusted;
-    }
-}
+){}
 

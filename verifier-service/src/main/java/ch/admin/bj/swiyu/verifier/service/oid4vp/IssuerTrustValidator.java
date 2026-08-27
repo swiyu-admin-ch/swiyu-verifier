@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.tsverifier.statement.TrustMarkers;
 import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
@@ -42,7 +43,7 @@ public class IssuerTrustValidator {
      * @param issuerDid the DID of the issuer to validate
      * @param vct the credential type (vct) to check trust for
      * @param management the management configuration containing accepted issuers and trust anchors
-     * @return 
+     * @return {@link IssuerTrustMarkers} computed from either accepted authorities provided in management or through the trust protocol
      * @throws VerificationException if the issuer is not trusted
      */
     public IssuerTrustMarker validateTrust(String issuerDid, String vct, Management management) {

@@ -164,11 +164,11 @@ public class ManagementService {
      * Marks the verification as succeeded with the provided data.
      *
      * @param managementEntityId    the UUID of the management entity
-     * @param credentialSubjectData the data from the credential subject
+     * @param verificationResultData the data from the credential subject
      * @return the {@link VerificationPresentationResponseDto} containing the response URI
      */
-    public VerificationPresentationResponseDto markVerificationDone(UUID managementEntityId, VerificationResultData credentialSubjectData) {
-        var uri = managementTransactionalService.markVerificationDone(managementEntityId, credentialSubjectData);
+    public VerificationPresentationResponseDto markVerificationDone(UUID managementEntityId, VerificationResultData verificationResultData) {
+        var uri = managementTransactionalService.markVerificationDone(managementEntityId, verificationResultData);
         return uriToVerificationPresentation(uri);
     }
 

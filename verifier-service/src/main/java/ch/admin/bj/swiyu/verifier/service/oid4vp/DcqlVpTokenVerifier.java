@@ -40,7 +40,7 @@ public class DcqlVpTokenVerifier {
 
         // Perform issuer trust validation based on claims
         JWTClaimsSet claims = vpToken.getClaims();
-        IssuerTrustMarker trustMarkers = null;
+        IssuerTrustMarker trustMarkers;
         try {
              trustMarkers = issuerTrustValidator.validateTrust(
                 didKidParser.getDidFromAbsoluteKid(

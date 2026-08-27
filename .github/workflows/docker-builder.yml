@@ -137,7 +137,7 @@ jobs:
           pull: true
           tags: ${{ steps.meta-unhardened.outputs.tags }}
           labels: ${{ steps.meta-unhardened.outputs.labels }}
-          build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
+          build-args: SOURCE_IMAGE=eclipse-temurin:25-jre-ubi10-minimal
           file: Dockerfile
 
       # Install Cosign to sign the published images (see signing step below).

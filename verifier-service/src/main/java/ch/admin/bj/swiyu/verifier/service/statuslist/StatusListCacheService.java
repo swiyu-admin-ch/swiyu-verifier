@@ -81,7 +81,7 @@ public class StatusListCacheService {
             The subclaim of the status list token must match the uri of the status list, otherwise it is not valid and empty optional is returned.
             The empty optional must be caught by the caller.
              */
-            if (!statusList.getSub().equals(uri)) {
+            if (statusList .getSub() == null || !statusList.getSub().equals(uri)) {
                 log.info("Sub claim does not match uri for status list {}", uri);
                 return Optional.empty();
             }

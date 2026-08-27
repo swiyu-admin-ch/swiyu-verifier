@@ -300,35 +300,13 @@
 
     <dependencyManagement>
         <dependencies>
+
+            <!-- Fixes CVE-2026-59284 -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud-dependencies.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
+                <artifactId>spring-cloud-context</artifactId>
+                <version>5.0.3</version>
             </dependency>
-            <!-- fix CVE-2021-0341 - Force newer okhttp3 version -->
-            <dependency>
-                <groupId>com.squareup.okhttp3</groupId>
-                <artifactId>okhttp</artifactId>
-                <version>4.12.0</version>
-            </dependency>
-            <!-- end fix -->
-            <!-- Fixes SNYK-JAVA-IONETTY-19005879 (Critical, Improper Check for Unusual or Exceptional
-                 Conditions) in io.netty:netty-handler, pulled in transitively via
-                 org.mock-server:mockserver-client-java > mockserver-core. Fixed in 4.2.17.Final / 4.1.137.Final.
-                 Importing the netty-bom pins ALL io.netty:* artifacts (including netty-handler) to a
-                 consistent, patched version, overriding whatever version mockserver-core /
-                 spring-boot-starter-webclient would otherwise bring in transitively.
-                 Should be re-evaluated when org.springframework.boot:spring-boot-starter-webclient > 4.0.6. -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-bom</artifactId>
-                <version>4.2.17.Final</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <!-- end fix -->
         </dependencies>
     </dependencyManagement>
 

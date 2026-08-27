@@ -44,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added additional check when retrieving the result. If `redirect_uri` is present but `response_code` is null or does not match, a `VerificationNotFoundException` is thrown. `(#1062)`
 - Added support for the EdDSA signature algorithm via the shared signature library `(#1051)`
 - Added template replacement support for the OpenID client metadata configuration `(#1153)`
+- After completed verificiation the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
+
+## Fixed
+- Check dcql format with vp_token header type. Throws error if the format is not correct. (#1118)
 
 # [4.1.1] - 2026-07-24
 ## Added

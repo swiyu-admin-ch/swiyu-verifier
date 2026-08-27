@@ -1,4 +1,4 @@
-ARG SOURCE_IMAGE=bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:25-jre-ubi10-minimal
+ARG SOURCE_IMAGE=eclipse-temurin:25-jre-ubi10-minimal
 FROM ${SOURCE_IMAGE}
 
 # Root user is required to add CA certs to the system truststore and Java cacerts, and to set permissions on the entrypoint script

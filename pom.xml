@@ -36,6 +36,8 @@
         <javacrumbs.shedlock.version>7.8.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
+        <!-- Fixes SNYK-JAVA-ORGSPRINGFRAMEWORKCLOUD-19268251 (Missing Authorization, High Severity) in spring-cloud-context@5.0.2 -->
+        <spring-cloud-starter-bootstrap.version>5.0.3</spring-cloud-starter-bootstrap.version>
         <openapi-generator-maven-plugin.version>7.24.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <logback.version>1.6.3</logback.version>

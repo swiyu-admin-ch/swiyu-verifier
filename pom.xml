@@ -33,10 +33,10 @@
         </sonar.exclusions>
         <!-- dependency versions -->
         <archunit-junit5.verion>1.5.0</archunit-junit5.verion>
-        <javacrumbs.shedlock.version>7.8.0</javacrumbs.shedlock.version>
+        <javacrumbs.shedlock.version>7.9.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
-        <openapi-generator-maven-plugin.version>7.24.0</openapi-generator-maven-plugin.version>
+        <openapi-generator-maven-plugin.version>7.25.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <logback.version>1.6.3</logback.version>
         <json-path.version>2.10.0</json-path.version>
@@ -44,7 +44,7 @@
         <bcprov-jdk18on.version>1.85.2</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.85</bcpkix-jdk18on.version>
         <postgres.version>42.7.13</postgres.version>
-        <swagger-parser.version>2.1.46</swagger-parser.version>
+        <swagger-parser.version>2.1.47</swagger-parser.version>
         <!-- Fixes SNYK-JAVA-IONETTY-19005879 (Critical, io.netty:netty-handler via mockserver-core) -->
         <mockserver-client-java.version>7.6.0</mockserver-client-java.version>
         <!-- Sonar -->
@@ -75,7 +75,7 @@
              managed version from Spring Boot and cause java.lang.NoClassDefFoundError at runtime. -->
         <jackson.version>2.22.2</jackson.version>
         <jackson-annotations.version>2.22</jackson-annotations.version>
-        <jackson-core.version>2.22.0</jackson-core.version>
+        <jackson-core.version>2.22.2</jackson-core.version>
         <jackson3.version>3.2.2</jackson3.version>
     </properties>
 

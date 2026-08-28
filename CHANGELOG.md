@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Fixed
+
+- Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
+
+# [4.2.0] - 2026-08-21
+
 ## Changed
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`
 - Updated the Docker base images (`Dockerfile` and `Dockerfile.dhi`) to Eclipse Temurin 25 JRE (`eclipse-temurin:25-jre-ubi10-minimal`) so container images now require and ship a Java 25 runtime. `(#1019)`

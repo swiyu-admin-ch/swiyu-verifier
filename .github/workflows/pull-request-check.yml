@@ -83,7 +83,7 @@ jobs:
           sarif_file: pmd-report.sarif
 
       - name: Install Snyk CLI
-        uses: snyk/actions/setup@8e119fbb6c251787721d34ba683ed48eba792766 # master
+        uses: snyk/actions/setup@12140f4059e244892ae643824a95459a102120dd # latest on master
 
       - name: Run Snyk to check for vulnerabilities 🔍
         run: snyk test --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif

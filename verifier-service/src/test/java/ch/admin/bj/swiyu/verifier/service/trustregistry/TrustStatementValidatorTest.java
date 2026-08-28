@@ -41,10 +41,6 @@ public class TrustStatementValidatorTest {
 
     private DidJwtValidator trustStatementDidJwtValidator;
     private TrustRegistryProperties trustRegistryProperties;
-    private StatusListCacheService statusListCacheService;
-    private CacheProperties cacheProperties;
-    private DidResolverFacade keyLoader;
-    private TokenStatusListVerifier statusListVerifier;
     private TokenStatusListTokenDto statusListTokenDto;
 
     private TrustStatementValidator validator;
@@ -52,19 +48,19 @@ public class TrustStatementValidatorTest {
     private String testJwt;
     private long expiry;
     private static final int DEFAULT_VALIDITY_SECONDS = 3000;
-    private static final String ISS = "did:example";
-    private static final String KID = "did:example#key-1";
+    private static final String ISS = "did:webvh:scid:example.com";
+    private static final String KID = ISS + "#key-1";
     private static final String STATUS_LIST_URI = "https://www.example.com/statuslist/1";
 
     @BeforeEach
-    void setUp() throws JOSEException, LoadingPublicKeyOfIssuerFailedException, IOException {
+    void setUp() throws JOSEException, IOException {
         testKey = new ECKeyGenerator(Curve.P_256).algorithm(JWSAlgorithm.ES256).keyID(KID).keyUse(KeyUse.SIGNATURE).generate();
         trustStatementDidJwtValidator = mock(DidJwtValidator.class);
         trustRegistryProperties = mock(TrustRegistryProperties.class);
-        statusListCacheService = mock(StatusListCacheService.class);
-        cacheProperties = mock(CacheProperties.class);
-        keyLoader = mock(DidResolverFacade.class);
-        statusListVerifier = mock(TokenStatusListVerifier.class);
+        StatusListCacheService statusListCacheService = mock(StatusListCacheService.class);
+        CacheProperties cacheProperties = mock(CacheProperties.class);
+        DidResolverFacade keyLoader = mock(DidResolverFacade.class);
+        TokenStatusListVerifier statusListVerifier = mock(TokenStatusListVerifier.class);
         validator = new TrustStatementValidator(
                 trustStatementDidJwtValidator,
                 trustRegistryProperties,
@@ -73,10 +69,12 @@ public class TrustStatementValidatorTest {
                 keyLoader,
                 statusListVerifier);
         when(trustStatementDidJwtValidator.getAndValidateResolutionUrl(anyString())).thenReturn("TEST");
-        when(trustStatementDidJwtValidator.getDidString(anyString())).thenReturn("TEST");
+        when(trustStatementDidJwtValidator.getDidString(anyString())).thenReturn(ISS);
         when(keyLoader.resolveKey(eq(KID))).thenReturn(testKey.toPublicJWK());
         statusListTokenDto = mock(TokenStatusListTokenDto.class);
+        when(statusListTokenDto.getJwsHeader()).thenReturn(new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(KID).build());
         when(statusListCacheService.getTokenStatusListTokenByUri(eq(STATUS_LIST_URI))).thenReturn(statusListTokenDto);
+
         expiry = Instant.now().plusSeconds(DEFAULT_VALIDITY_SECONDS).getEpochSecond();
         when(statusListTokenDto.getExp()).thenReturn(expiry+100); // Adding some seconds here to use by default expiry form token status list 
         when(statusListTokenDto.getTtl()).thenReturn(DEFAULT_VALIDITY_SECONDS);

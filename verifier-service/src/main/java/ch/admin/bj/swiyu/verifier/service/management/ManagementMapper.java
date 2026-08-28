@@ -59,7 +59,7 @@ public class ManagementMapper {
     private static Map<String, List<CredentialEvaluationDto>> toCredentialEvaluationDto(
             Map<String, List<CredentialEvaluation>> credentialEvaluation) {
         if(credentialEvaluation == null) {
-            return null;
+            return Map.of();
         }
         return credentialEvaluation.entrySet().stream().collect(
             Collectors.toMap(

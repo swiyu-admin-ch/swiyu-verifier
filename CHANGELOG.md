@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Fixed
+
+- Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
+
+# [4.2.0] - 2026-08-21
+
 ## Changed
 - Wallet response is now added to the verification management object instead of `client_rejection` as default. `(#1189)`
 - `VERIFICATION_PROOF_TIME_WINDOW_MS` environment variable renamed to `VERIFICATION_PROOF_TIME_WINDOW_SEC` to reflect the correct unit (seconds) `(#1132)`

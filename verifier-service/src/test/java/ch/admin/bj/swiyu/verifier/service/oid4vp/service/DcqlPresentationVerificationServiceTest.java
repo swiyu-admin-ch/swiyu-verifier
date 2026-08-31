@@ -219,7 +219,7 @@ class DcqlPresentationVerificationServiceTest {
 
         var sdJwt = mock(SdJwt.class);
         when(sdJwtLegacyPresentationVerifier.verify(vpToken, management, requestedCredential))
-            .thenReturn(SdJwtVerificationResult.builder().sdJwt(sdJwt).build());
+            .thenReturn(SdJwtVerificationResult.builder().sdJwt(sdJwt).statusVerificationResult(Optional.empty()).build());
         // No presented SD-JWT matches the requested vct -> empty list
         when(dcqlEvaluator.filterByVct(anyList(), eq(meta))).thenReturn(List.of());
 

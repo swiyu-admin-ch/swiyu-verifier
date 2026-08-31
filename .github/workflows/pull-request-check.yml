@@ -2,24 +2,110 @@ name: Pull Request Check
 run-name: ${{ github.repository }} is evaluating pull request
 on: [pull_request]
 
-# Least privilege: this job builds/loads a local image (no push) and uploads SARIF,
-# writes the coverage summary to the job summary, and does not publish packages or create attestations.
 # Cancel superseded runs on the same PR to save CI minutes.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Least privilege: this job builds/loads a local image (no push) and uploads SARIF,
-# writes the coverage summary to the job summary, and does not publish packages or create attestations.
+# Least privilege: these jobs build/load local images (no push) and upload SARIF,
+# write the coverage summary to the job summary, and do not publish packages or
+# create attestations.
 permissions:
   actions: read
   contents: read
   security-events: write
 
 jobs:
-  docker-security-scan:
+  # ==========================================================================
+  # Job: build-and-test
+  # Description: Builds once, runs unit/integration tests + JaCoCo, and
+  #              generates the OpenAPI spec (reusing the already-compiled
+  #              classes instead of a second `clean verify`). This job is the
+  #              only one that produces the runnable JAR, which the docker-*
+  #              jobs download as an artifact instead of rebuilding it
+  #              themselves.
+  # ==========================================================================
+  build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Cache PGP keys for pgpverify-maven-plugin
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.m2/repository/pgpkeys-cache
+          key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
+          restore-keys: pgp-keys-
+
+      - name: Build & test with Maven (produce JaCoCo)
+        run: mvn --batch-mode clean verify -DskipTests=false
+
+      - name: Upload JaCoCo reports
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: jacoco-reports
+          path: |
+            verifier-service/target/site/jacoco/jacoco.xml
+            verifier-service/target/site/jacoco/index.html
+            verifier-application/target/site/jacoco/jacoco.xml
+            verifier-application/target/site/jacoco/index.html
+
+      - name: Setup Node.js (for coverage summary script)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+
+      - name: Add coverage to summary
+        run: node .github/scripts/coverage-summary.js
+
+      # Artifacts are scoped to a single workflow run, so the docker-* jobs can
+      # only ever download the JAR produced by THIS run - never one from an
+      # earlier run or another PR.
+      # "if-no-files-found: error" is important: the default is "warn", which
+      # would let this job succeed without an artifact and make the dependent
+      # docker jobs fail later with a confusing "artifact not found" error.
+      - name: Upload application JAR (for docker build jobs)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verifier-application-jar
+          path: verifier-application/target/*.jar
+          if-no-files-found: error
+          retention-days: 1
+
+      # Kept as the last step (as before) so it can never interfere with the
+      # JaCoCo/coverage artifacts produced by the test run above.
+      # No "clean" here on purpose: reuses the classes/dependencies already
+      # produced above, so this only re-runs the generate-doc bound goals
+      # instead of a full second rebuild (previously `mvn clean verify`).
+      - name: Generate OpenAPI spec
+        run: mvn -B verify -P generate-doc -DskipTests
+      #      - name: Ensure spec is committed
+      #        run: |
+      #          git diff --exit-code -- openapi.yaml || (
+      #            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
+      #            exit 1
+      #          )
+
+  # ==========================================================================
+  # Job: codeql-analysis
+  # Description: Runs in parallel to build-and-test. CodeQL requires
+  #              build-mode "manual" (see codeql-config.yml), so it needs its
+  #              own traced build - but only a plain `compile` (no tests, no
+  #              jacoco) is required for the analysis, which is considerably
+  #              faster than the full `clean verify` used for build-and-test.
+  # ==========================================================================
+  codeql-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -44,31 +130,37 @@ jobs:
           key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
           restore-keys: pgp-keys-
 
-      - name: Build & test with Maven (produce JaCoCo)
-        run: mvn --batch-mode clean verify -DskipTests=false
+      - name: Compile sources for CodeQL tracing
+        # "test-compile" (not just "compile") so that test sources are compiled
+        # and therefore still analysed by CodeQL, exactly as with the previous
+        # `clean verify`. -DskipTests only skips test *execution*, not test
+        # compilation, so no tests are run twice.
+        run: mvn --batch-mode clean test-compile -DskipTests
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           category: "/language:java"
 
-      - name: Upload JaCoCo reports
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: jacoco-reports
-          path: |
-            verifier-service/target/site/jacoco/jacoco.xml
-            verifier-service/target/site/jacoco/index.html
-            verifier-application/target/site/jacoco/jacoco.xml
-            verifier-application/target/site/jacoco/index.html
+  # ==========================================================================
+  # Job: pmd-scan
+  # Description: Independent static analysis, runs in parallel - PMD only
+  #              needs the sources, not a Maven build.
+  # ==========================================================================
+  pmd-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Setup Node.js (for coverage summary script)
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      # PMD needs a JRE to run. Kept at Java 25 so the analysis runs on the same
+      # JDK as before this workflow was split into parallel jobs.
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
-          node-version: 20
-
-      - name: Add coverage to summary
-        run: node .github/scripts/coverage-summary.js
+          distribution: 'temurin'
+          java-version: '25'
 
       - name: Run PMD static analysis
         uses: pmd/pmd-github-action@d9c1f3c5940cbf5923f1354e83fa858b4496ebaa # v2
@@ -81,6 +173,32 @@ jobs:
         uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           sarif_file: pmd-report.sarif
+
+  # ==========================================================================
+  # Job: snyk-maven-scan
+  # Description: Independent dependency vulnerability scan, runs in parallel -
+  #              only needs dependency resolution, not a full build.
+  # ==========================================================================
+  snyk-maven-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Cache PGP keys for pgpverify-maven-plugin
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.m2/repository/pgpkeys-cache
+          key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
+          restore-keys: pgp-keys-
 
       - name: Install Snyk CLI
         uses: snyk/actions/setup@12140f4059e244892ae643824a95459a102120dd # latest on master
@@ -99,10 +217,38 @@ jobs:
         with:
           sarif_file: snyk.sarif
 
-      # Build and scan both image variants on every PR so a regression
-      # in either Dockerfile is caught before merge. The hardened dhi.io image is
-      # the default published variant; the UBI image is published under -unhardened
-      # during the transition period. Both must succeed for the PR to be mergeable.
+  # ==========================================================================
+  # Job: docker-hardened
+  # Description: The hardened dhi.io image is the default published variant.
+  #              Runs in parallel with docker-unhardened - both only need the
+  #              JAR from build-and-test, not each other.
+  # ==========================================================================
+  docker-hardened:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Download application JAR
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: verifier-application-jar
+          path: verifier-application/target/
+
+      # Both Dockerfiles use "COPY verifier-application/target/*.jar /app/app.jar".
+      # That glob must resolve to exactly one file, otherwise the image would
+      # either be built from the wrong JAR or fail with a cryptic COPY error.
+      - name: Verify exactly one application JAR is present
+        run: |
+          set -euo pipefail
+          count=$(find verifier-application/target -maxdepth 1 -name '*.jar' | wc -l)
+          find verifier-application/target -maxdepth 1 -name '*.jar' -printf '%p (%s bytes)\n'
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Expected exactly 1 application JAR, found ${count}."
+            exit 1
+          fi
 
       - name: Build hardened (default) docker image
         id: build-dhi
@@ -126,6 +272,36 @@ jobs:
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
 
+  # ==========================================================================
+  # Job: docker-unhardened
+  # Description: The UBI image, published under -unhardened during the
+  #              transition period. Runs in parallel with docker-hardened.
+  # ==========================================================================
+  docker-unhardened:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Download application JAR
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: verifier-application-jar
+          path: verifier-application/target/
+
+      # See docker-hardened: the Dockerfile COPY glob must match exactly one JAR.
+      - name: Verify exactly one application JAR is present
+        run: |
+          set -euo pipefail
+          count=$(find verifier-application/target -maxdepth 1 -name '*.jar' | wc -l)
+          find verifier-application/target -maxdepth 1 -name '*.jar' -printf '%p (%s bytes)\n'
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Expected exactly 1 application JAR, found ${count}."
+            exit 1
+          fi
+
       - name: Build unhardened docker image
         id: build-unhardened
         uses: docker/build-push-action@v6
@@ -148,15 +324,12 @@ jobs:
           SNYK_API: https://api.eu.snyk.io
           SNYK_ORG: ${{ secrets.SNYK_ORG }}
 
-      - name: Generate OpenAPI spec
-        run: mvn -B clean verify -P generate-doc -DskipTests
-  #      - name: Ensure spec is committed
-  #        run: |
-  #          git diff --exit-code -- openapi.yaml || (
-  #            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
-  #            exit 1
-  #          )
-
+  # ==========================================================================
+  # Job: ai-code-review
+  # Description: Independent, runs in parallel with all other jobs. Generates
+  #              the diff against the PR base branch and posts an AI-assisted
+  #              code review as a job summary and PR comment.
+  # ==========================================================================
   ai-code-review:
     name: AI Code Review
     runs-on: ubuntu-latest

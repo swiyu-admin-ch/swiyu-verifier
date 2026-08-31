@@ -38,3 +38,6 @@ build/
 
 ### Pact ###
 **/pact.log
+
+### Phython ###
+/venv/

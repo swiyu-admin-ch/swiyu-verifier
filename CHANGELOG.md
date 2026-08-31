@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
 
+## Changed
+- Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`
+- Updated the Docker base images (`Dockerfile` and `Dockerfile.dhi`) to Eclipse Temurin 25 JRE (`eclipse-temurin:25-jre-ubi10-minimal`) so container images now require and ship a Java 25 runtime. `(#1019)`
+
 # [4.2.0] - 2026-08-21
 
 ## Changed
@@ -25,11 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Mitigated JWE decompression bomb vulnerability: added a `MAX_DECOMPRESSED_PAYLOAD_LENGTH` defense-in-depth limit that rejects oversized decrypted/decompressed payloads before JSON parsing (#1117)
-
 - Fixed unhandled exceptions in DCQL presentation processing by correctly rejecting invalid or missing vp_token payloads with an invalid_presentation_submission error `(#1120)`
 - Fixed incorrect usage of cache times (incorrect usage of seconds vs milliseconds) in the `StatusListResolverAdapter` additionally fixes expireAfterRead with correct return `(#1227)`
 - Fixed metadata samples to contain correct alsgs for vp-formats and -keybindings. Structure of the metadata is also adjusted. `(#1131)`
 - Fixed `redirect_uri` validation to reject non-absolute URIs and only accept absolute URIs with a `session_nonce` parameter. `(#1249)`
+- Check dcql format with vp_token header type. Throws error if the format is not correct. `(#1118)`
+- Hardened SD-JWT verification, status list resolution and trust statement validation against unexpected runtime errors thrown by underlying libraries `(#1202)`
 
 ## Added
 - Added redirect functionality to the verifier to allow the wallet to redirect the user after verification is completed. `(#1060, #1061)`
@@ -37,9 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added `redirect_uri` with `response_code` to the `VerificationResponseDto` to allow the wallet to redirect the user after verification is completed. `(#1061)`
     - Updated `Management` entity to include `redirect_uri` and `response_code` to allow the wallet to redirect the user after verification is completed. `(#1061)` -> Changes are non-breaking as the new fields are optional and will be null if not set.
     - Added additional check when retrieving the result. If `redirect_uri` is present but `response_code` is null or does not match, a `VerificationNotFoundException` is thrown. `(#1062)`
-
-## Fixed
-- Check dcql format with vp_token header type. Throws error if the format is not correct. (#1118)
+- Added support for the EdDSA signature algorithm via the shared signature library `(#1051)`
+- Added template replacement support for the OpenID client metadata configuration `(#1153)`
 
 # [4.1.1] - 2026-07-24
 ## Added

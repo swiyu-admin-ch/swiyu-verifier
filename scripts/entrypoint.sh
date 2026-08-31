@@ -27,14 +27,28 @@ if ls /certs-app/*.crt >/dev/null 2>&1; then
     done
 fi
 
+# Only set the JVM proxy system properties when the corresponding env vars are
+# actually provided. Passing an *empty* -Dhttp.proxyHost=/-Dhttps.proxyHost= is
+# NOT equivalent to omitting the property: some HTTP clients (e.g. Reactor Netty,
+# used by Spring WebClient) interpret an empty proxyHost as "localhost" and will
+# then try to route every outbound request through a non-existent local proxy on
+# the hardcoded port 8080, breaking any environment (e.g. tests using mockserver)
+# where no proxy is actually configured.
+proxy_java_opts=()
+if [ -n "${HTTP_PROXY}" ]; then
+    proxy_java_opts+=("-Dhttp.proxyHost=${HTTP_PROXY}" "-Dhttp.proxyPort=8080")
+fi
+if [ -n "${HTTPS_PROXY}" ]; then
+    proxy_java_opts+=("-Dhttps.proxyHost=${HTTPS_PROXY}" "-Dhttps.proxyPort=8080")
+fi
+if [ -n "${NO_PROXY}" ]; then
+    proxy_java_opts+=("-Dhttp.nonProxyHosts=${NO_PROXY}")
+fi
+
 java -Duser.timezone=Europe/Zurich \
 -Dspring.config.location=classpath:bootstrap.yml,classpath:application.yml,optional:file:/vault/secrets/database-credentials.yml \
 -Dfile.encoding=UTF-8 \
 -Dspring.profiles.active=${MY_SPRING_PROFILES} \
--Dhttp.proxyHost=${HTTP_PROXY} \
--Dhttp.proxyPort=8080 \
--Dhttps.proxyHost=${HTTPS_PROXY} \
--Dhttps.proxyPort=8080 \
--Dhttp.nonProxyHosts="${NO_PROXY}" \
+"${proxy_java_opts[@]}" \
 ${bootclasspath_java_opt} \
 -jar $1

@@ -192,13 +192,20 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: response_code
+        in: query
+        description: Optional for normal use. Mandatory if `redirect_uri` was used
+        required: false
+        schema:
+          type: string
+          format: uuid
       responses:
         "400":
-          description: Bad Request
+          description: Bad request or mismatching `response_code`
           content:
             '*/*':
               schema:
-                type: object
+                $ref: "#/components/schemas/ApiErrorDto"
         "200":
           description: Verification found
           content:
@@ -444,7 +451,16 @@ components:
           description: |
             The OAuth State is an opaque value used by the client to maintain state between the request and callback.<br>
             If provided in the request object the state string <em>MUST</em> be returned in the response.
-    VerificationPresentationResponseDto: {}
+    VerificationPresentationResponseDto:
+      type: object
+      properties:
+        redirect_uri:
+          type: string
+          format: uri
+          description: "[EXPERIMENTAL] Optional: Only provided if set in the initial\
+            \ request. It is used to route the response back to the business verifier's\
+            \ endpoint."
+          example: https://shop.ch/callback?session_nonce=123&response_code=xyz
     ApiErrorDto:
       type: object
       properties:
@@ -628,11 +644,6 @@ components:
             - degree_name
           - path:
             - graduation_year
-        credential_sets:
-        - options:
-          - - identity_credential_dcql
-          - - university_degree_dcql
-          required: true
       properties:
         credentials:
           type: array
@@ -861,6 +872,12 @@ components:
           description: "Optional transparency metadata for registration at the TMS.\
             \ When present, the verifier registers the DCQL query and injects the\
             \ resulting vqPS into subsequent Authorization Requests."
+        redirect_uri:
+          type: string
+          format: uri
+          description: "[EXPERIMENTAL] Optional absolute URI to redirect the user\
+            \ after the verification process. Must contain a session_nonce parameter."
+          example: https://example.com/redirect?session_nonce=12345
       required:
       - dcql_query
     ResponseModeType:

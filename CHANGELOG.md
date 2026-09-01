@@ -7,14 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
-## Fixed
-
-- Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
+## Added
+- After completed verificiation the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
+P
 
 ## Changed
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`
 - Updated the Docker base images (`Dockerfile` and `Dockerfile.dhi`) to Eclipse Temurin 25 JRE (`eclipse-temurin:25-jre-ubi10-minimal`) so container images now require and ship a Java 25 runtime. `(#1019)`
-- Parallelized the `pull-request-check` CI pipeline: split the single sequential `docker-security-scan` job into independent `build-and-test`, `codeql-analysis`, `pmd-scan`, `snyk-maven-scan`, `docker-hardened` and `docker-unhardened` jobs, and removed a redundant duplicate full Maven build previously used only for OpenAPI spec generation `(#1134)`
+- Verification now throws an Error if a Trust Anchor is provided but no Trust Registry is configured. `(#1090)`
+
+## Fixed
+- Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
 
 # [4.2.0] - 2026-08-21
 
@@ -45,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added additional check when retrieving the result. If `redirect_uri` is present but `response_code` is null or does not match, a `VerificationNotFoundException` is thrown. `(#1062)`
 - Added support for the EdDSA signature algorithm via the shared signature library `(#1051)`
 - Added template replacement support for the OpenID client metadata configuration `(#1153)`
+
+## Fixed
+- Check dcql format with vp_token header type. Throws error if the format is not correct. (#1118)
 
 # [4.1.1] - 2026-07-24
 ## Added

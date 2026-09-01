@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.management;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
@@ -163,11 +164,11 @@ public class ManagementService {
      * Marks the verification as succeeded with the provided data.
      *
      * @param managementEntityId    the UUID of the management entity
-     * @param credentialSubjectData the data from the credential subject
+     * @param verificationResultData the data from the credential subject
      * @return the {@link VerificationPresentationResponseDto} containing the response URI
      */
-    public VerificationPresentationResponseDto markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
-        var uri = managementTransactionalService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
+    public VerificationPresentationResponseDto markVerificationDone(UUID managementEntityId, VerificationResultData verificationResultData) {
+        var uri = managementTransactionalService.markVerificationDone(managementEntityId, verificationResultData);
         return uriToVerificationPresentation(uri);
     }
 
@@ -178,7 +179,7 @@ public class ManagementService {
      * @param e                  the VerificationException containing error details
      */
     public void markVerificationFailed(UUID managementEntityId, VerificationException e) {
-        managementTransactionalService.markVerificationFailed(managementEntityId, e);
+        managementTransactionalService.markVerificationException(managementEntityId, e);
     }
 
     /**
@@ -189,7 +190,7 @@ public class ManagementService {
      * @return the {@link VerificationPresentationResponseDto} without a redirect uri
      */
     public VerificationPresentationResponseDto markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
-        managementTransactionalService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
+        managementTransactionalService.markVerificationRejected(managementEntityId, rejection);
         return uriToVerificationPresentation(null);
     }
 }

@@ -123,7 +123,7 @@ public class DcqlPresentationVerificationService {
 
     /**
      * Get the vpTokens from the received vp tokens that were requested.
-     * @param vpTokens the vpTokens presented by the wallet
+     * @param requestedVpTokens the vpTokens presented by the wallet
      * @param requestedCredential the DCQL defintion for the requested credential
      * @return a list of vpTokens that the verifier requested
      * @throws VerificationException if there is a serious issue with the presented vpTokens, 

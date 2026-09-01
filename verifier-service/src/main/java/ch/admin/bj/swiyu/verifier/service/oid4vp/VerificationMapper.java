@@ -33,13 +33,13 @@ public class VerificationMapper {
             .build();
     }
 
-    private static StatusVerificationResult toStatusVerificationResult (StatusVerificationResultDto libraryDto) {
-        if(libraryDto == null) {
+    private static StatusVerificationResult toStatusVerificationResult (StatusVerificationResultDto dto) {
+        if(dto == null) {
             return null;
         }
         return StatusVerificationResult.builder()
-            .status(libraryDto.status().orElse(null))
-            .valid(libraryDto.valid())
+            .status(dto.status().orElse(null))
+            .valid(dto.valid())
             .build();
     }
 

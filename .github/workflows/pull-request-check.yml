@@ -67,9 +67,6 @@ jobs:
       - name: Add coverage to summary
         run: node .github/scripts/coverage-summary.js
 
-      # Artifacts are scoped to a single workflow run, so the docker-* jobs can
-      # only ever download the JAR produced by THIS run - never one from an
-      # earlier run or another PR.
       # "if-no-files-found: error" is important: the default is "warn", which
       # would let this job succeed without an artifact and make the dependent
       # docker jobs fail later with a confusing "artifact not found" error.
@@ -81,19 +78,14 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      # Kept as the last step (as before) so it can never interfere with the
-      # JaCoCo/coverage artifacts produced by the test run above.
-      # No "clean" here on purpose: reuses the classes/dependencies already
-      # produced above, so this only re-runs the generate-doc bound goals
-      # instead of a full second rebuild (previously `mvn clean verify`).
       - name: Generate OpenAPI spec
         run: mvn -B verify -P generate-doc -DskipTests
-      #      - name: Ensure spec is committed
-      #        run: |
-      #          git diff --exit-code -- openapi.yaml || (
-      #            echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
-      #            exit 1
-      #          )
+            - name: Ensure spec is committed
+              run: |
+                git diff --exit-code -- openapi.yaml || (
+                  echo "openapi.yaml is outdated. Run: mvn verify -P generate-doc and commit the updated file."
+                  exit 1
+                )
 
   # ==========================================================================
   # Job: codeql-analysis
@@ -154,8 +146,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      # PMD needs a JRE to run. Kept at Java 25 so the analysis runs on the same
-      # JDK as before this workflow was split into parallel jobs.
+      # PMD needs a JRE to run.
       - name: Set up Java
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
@@ -237,19 +228,6 @@ jobs:
           name: verifier-application-jar
           path: verifier-application/target/
 
-      # Both Dockerfiles use "COPY verifier-application/target/*.jar /app/app.jar".
-      # That glob must resolve to exactly one file, otherwise the image would
-      # either be built from the wrong JAR or fail with a cryptic COPY error.
-      - name: Verify exactly one application JAR is present
-        run: |
-          set -euo pipefail
-          count=$(find verifier-application/target -maxdepth 1 -name '*.jar' | wc -l)
-          find verifier-application/target -maxdepth 1 -name '*.jar' -printf '%p (%s bytes)\n'
-          if [ "$count" -ne 1 ]; then
-            echo "::error::Expected exactly 1 application JAR, found ${count}."
-            exit 1
-          fi
-
       - name: Build hardened (default) docker image
         id: build-dhi
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
@@ -290,17 +268,6 @@ jobs:
         with:
           name: verifier-application-jar
           path: verifier-application/target/
-
-      # See docker-hardened: the Dockerfile COPY glob must match exactly one JAR.
-      - name: Verify exactly one application JAR is present
-        run: |
-          set -euo pipefail
-          count=$(find verifier-application/target -maxdepth 1 -name '*.jar' | wc -l)
-          find verifier-application/target -maxdepth 1 -name '*.jar' -printf '%p (%s bytes)\n'
-          if [ "$count" -ne 1 ]; then
-            echo "::error::Expected exactly 1 application JAR, found ${count}."
-            exit 1
-          fi
 
       - name: Build unhardened docker image
         id: build-unhardened

@@ -126,8 +126,8 @@ public class RequestObjectService {
         var override = managementEntity.getConfigurationOverride();
 
         try {
-            SignedJWT signedJwt = jwtSigningService.signJwt(createJWTClaimsSet(effectiveConfig.clientId(), requestObject),
-                    override.keyId(), override.keyPin(), effectiveConfig.verificationMethod());
+            JWTClaimsSet claimsSet = createJWTClaimsSet(effectiveConfig.clientId(), requestObject);
+            SignedJWT signedJwt = jwtSigningService.signJwt(claimsSet, override);
             return signedJwt.serialize();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to sign request object", e);

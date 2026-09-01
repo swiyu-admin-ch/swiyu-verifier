@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+### Added
+
+- [Non-breaking if config not changed] Added new configurations for `application.signing-keys` to allow
+  specifying multiple signing keys, to prepare the did:tdw to did:webvh
+  migration. If the config is not changed as it is the list uses the default signing-key and verification-method. With
+  this change multiple keys can be used with the config-override. Default signing is not changed.
+- 
 ## Fixed
 
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)

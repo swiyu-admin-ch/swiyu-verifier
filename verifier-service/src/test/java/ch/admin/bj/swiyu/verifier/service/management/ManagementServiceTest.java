@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
@@ -210,10 +211,11 @@ class ManagementServiceTest {
         var mgmtService = new ManagementService(applicationProperties, transactionalService, null);
         var managementId = UUID.randomUUID();
         var expected = URI.create("https://wallet.example/callback?response_code=abc");
-        when(transactionalService.markVerificationSucceeded(managementId, "credentialData")).thenReturn(expected);
-        var dto = mgmtService.markVerificationSucceeded(managementId, "credentialData");
+        var data = VerificationResultData.builder().build();
+        when(transactionalService.markVerificationDone(managementId, data)).thenReturn(expected);
+        var dto = mgmtService.markVerificationDone(managementId, data);
         assertThat(dto.redirectURI()).isEqualTo(expected);
-        verify(transactionalService).markVerificationSucceeded(managementId, "credentialData");
+        verify(transactionalService).markVerificationDone(managementId, data);
     }
 
     @Test
@@ -224,7 +226,7 @@ class ManagementServiceTest {
         var rejection = new VerificationPresentationRejectionDto(VerificationClientErrorDto.CLIENT_REJECTED, "reason");
         var dto = mgmtService.markVerificationFailedDueToClientRejection(managementId, rejection);
         assertThat(dto.redirectURI()).isNull();
-        verify(transactionalService).markVerificationFailedDueToClientRejection(managementId, rejection);
+        verify(transactionalService).markVerificationRejected(managementId, rejection);
     }
 
     private CreateVerificationManagementDto createRequestDto(ResponseModeTypeDto responseModeTypeDto, DcqlQueryDto dcqlQueryDto) {

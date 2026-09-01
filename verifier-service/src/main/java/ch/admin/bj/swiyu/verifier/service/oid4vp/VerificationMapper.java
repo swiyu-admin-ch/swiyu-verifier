@@ -1,11 +1,15 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
-import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseDto;
-import ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto;
+import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.StatusVerificationResult;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -17,6 +21,26 @@ public class VerificationMapper {
                 toVerificationErrorResponseCode(e.getErrorResponseCode()),
                 toVerificationErrorResponseCode(e.getErrorResponseCode()),
                 e.getErrorDescription());
+    }
+
+    public static CredentialEvaluation toCredentialEvaluation(SdJwtVerificationResult result) {
+        if ( result == null ) {
+            return null;
+        }
+        return CredentialEvaluation.builder()
+            .credentialStatus(toStatusVerificationResult(result.statusVerificationResult().orElse(null)))
+            .trustMarkers(result.trustMarkers())
+            .build();
+    }
+
+    private static StatusVerificationResult toStatusVerificationResult (StatusVerificationResultDto dto) {
+        if(dto == null) {
+            return null;
+        }
+        return StatusVerificationResult.builder()
+            .status(dto.status().orElse(null))
+            .valid(dto.valid())
+            .build();
     }
 
     private static VerificationErrorResponseCodeDto toVerificationErrorResponseCode(

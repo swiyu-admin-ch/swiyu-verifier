@@ -2,6 +2,11 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
+import ch.admin.bj.swiyu.verifier.domain.StatusVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
@@ -9,10 +14,13 @@ import ch.admin.bj.swiyu.verifier.dto.management.ConfigurationOverrideDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationStatusDto;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -25,6 +33,7 @@ import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toM
 import static ch.admin.bj.swiyu.verifier.service.management.fixtures.ManagementFixtures.management;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +43,7 @@ class ManagementMapperTest {
     private static final String CLIENT_ID = "client_id";
     private static final String DEEPLINK_SCHEMA = "openid4vp";
     private static final String CLIENT_ID_PREFIX = "decentralized_identifier";
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private ApplicationProperties applicationProperties;
 
@@ -78,11 +88,34 @@ class ManagementMapperTest {
         assertThat(dto.state()).isEqualTo(VerificationStatusDto.PENDING);
     }
 
+    /**
+     * Create a complete verification result and tests mapping to the DTO and serializing it
+     */
     @Test
-    void toManagementResponseDto_withSuccessfulVerification_returnsCredentialSubjectData() {
+    void toManagementResponseDto_withSuccessfulVerification_returnsVerificationArtefacts() {
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
         var management = managementWithOverride();
         management.claimForProcessing();
-        management.verificationSucceeded("{\"given_name\":\"Ada\",\"age\":42}");
+        var credentialEvaluation = CredentialEvaluation.builder()
+            .credentialStatus(StatusVerificationResult.builder()
+                .valid(true)
+                .status(0)
+                .build())
+            .trustMarkers(IssuerTrustMarker.builder()
+                .isTrusted(true)
+                .trustMethod(TrustMethod.TRUST_PROTOCOL_2_0)
+                .identityTrustMarker(true)
+                .compliantActorTrustMarker(true)
+                .governedUseCaseTrustMarker(false)
+                .governedUseCaseAuthorizationTrustMarker(false)
+                .build())
+            .build();
+        management.verificationDone(VerificationResultData.builder()
+            .verifiedResponsesJsonString("{\"given_name\":\"Ada\",\"age\":42}")
+            .evaluations(Map.of(dcqlId, List.of(credentialEvaluation)))
+            .vpTokens(Map.of(dcqlId, List.of(vpTokenStandin)))
+            .build());
 
         var dto = toManagementResponseDto(management, applicationProperties);
 
@@ -103,6 +136,36 @@ class ManagementMapperTest {
                 .containsEntry("age", 42);
         assertThat(dto.verificationUrl()).isEqualTo(expectedVerificationUrl);
         assertThat(dto.verificationDeeplink()).isEqualTo(expectedDeeplink);
+        assertThat(dto.credentialEvaluation()).hasSize(1);
+        var evaluationDtos = dto.credentialEvaluation().get(dcqlId);
+        assertThat(evaluationDtos).hasSize(1);
+        var evaluationDto = evaluationDtos.getFirst();
+        var statusDto = evaluationDto.credentialStatus();
+        assertThat(statusDto.valid()).isTrue();
+        assertThat(statusDto.status()).isEqualTo(0);
+        var trustDto = evaluationDto.trustMarkers();
+        assertThat(trustDto.isTrusted()).isTrue();
+        assertThat(trustDto.identityTrustMarker()).isTrue();
+        assertThat(trustDto.compliantActorTrustMarker()).isTrue();
+        assertThat(trustDto.governedUseCaseTrustMarker()).isFalse();
+        assertThat(trustDto.governedUseCaseAuthorizationTrustMarker()).isFalse();
+
+        assertThat(dto.walletResponse().vpToken().get(dcqlId)).hasSize(1).contains(vpTokenStandin);
+        var json = assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
+        assertThat(json).as("Interface defined fields must exist in serialized string").contains(
+            dcqlId,
+            "credential_status",
+            "trust_markers",
+            "trust_method",
+            "TRUST_PROTOCOL_2_0",
+            "is_trusted",
+            "viTM",
+            "caTM",
+            "gucTM",
+            "gucaTM", 
+            "vp_token",
+            vpTokenStandin,
+            "credential_subject_data");
     }
 
     @Test

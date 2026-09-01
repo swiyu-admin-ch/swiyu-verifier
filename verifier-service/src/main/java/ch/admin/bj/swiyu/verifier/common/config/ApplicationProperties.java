@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.common.config;
 
 import jakarta.annotation.Nullable;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -76,5 +77,8 @@ public class ApplicationProperties {
 
         return clientIdPrefix + ":" + clientId;
     }
+
+    @Valid
+    private List<KeyOnlySignatureConfiguration> signingKeys;
 
 }

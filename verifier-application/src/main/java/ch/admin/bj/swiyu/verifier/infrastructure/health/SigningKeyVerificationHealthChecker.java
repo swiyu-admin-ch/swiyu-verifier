@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import com.nimbusds.jose.JOSEException;
@@ -14,8 +15,6 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.stereotype.Component;
-
-import java.text.ParseException;
 
 /**
  * Health checker that validates the signing capability of the configured verification method.
@@ -110,7 +109,7 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
      * @return true if signing and verification succeed, false otherwise
      */
     private boolean verifySigningCapability(String verificationMethod)
-            throws IllegalArgumentException, JOSEException, ParseException, DidResolverException {
+            throws IllegalArgumentException, JOSEException, DidResolverException {
 
         if (verificationMethod == null || verificationMethod.isBlank()) {
             return false;
@@ -125,7 +124,7 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
                 .build();
 
         // Sign a JWT using the configured signing key
-        SignedJWT signedJwt = jwtSigningService.signJwt(testClaims, null, null, verificationMethod);
+        SignedJWT signedJwt = jwtSigningService.signJwt(testClaims, ConfigurationOverride.builder().verificationMethod(verificationMethod).build());
 
         // Verify signature using the resolved JWK
         return verifySignature(signedJwt, jwk);
@@ -144,34 +143,5 @@ public class SigningKeyVerificationHealthChecker extends CachedHealthChecker {
         // Create verifier and verify signature
         JWSVerifier verifier = new ECDSAVerifier(jwk.toECKey());
         return signedJwt.verify(verifier);
-    }
-
-    /**
-     * Extracts the base DID from a verification method by removing the fragment part.
-     *
-     * <p>Verification methods may contain a fragment identifier (e.g., "did:example:123#key-1").
-     * This method removes the fragment to get the base DID (e.g., "did:example:123").
-     *
-     * @param verificationMethod The verification method string
-     * @return The base DID without the fragment
-     */
-    private String extractDidFromVerificationMethod(String verificationMethod) {
-        int fragmentIndex = verificationMethod.indexOf('#');
-        return fragmentIndex > 0 ? verificationMethod.substring(0, fragmentIndex) : verificationMethod;
-    }
-
-    /**
-     * Extracts the fragment part (key identifier) from a verification method.
-     *
-     * <p>Verification methods may contain a fragment identifier (e.g., "did:example:123#key-1").
-     * This method extracts the fragment value (e.g., "key-1") to obtain the pure key identifier.
-     * If no fragment is present, the original verification method is returned unchanged.
-     *
-     * @param verificationMethod The verification method string
-     * @return The fragment value without the '#' prefix, or the original string if no fragment is found
-     */
-    private String extractFragmentFromVerificationMethod(String verificationMethod) {
-        int fragmentIndex = verificationMethod.indexOf('#');
-        return fragmentIndex > 0 ? verificationMethod.substring(fragmentIndex + 1) : verificationMethod;
     }
 }

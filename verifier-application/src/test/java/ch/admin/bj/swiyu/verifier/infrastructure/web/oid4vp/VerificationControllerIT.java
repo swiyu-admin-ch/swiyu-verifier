@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
+import ch.admin.bj.swiyu.verifier.common.config.KeyOnlySignatureConfiguration;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
@@ -8,6 +9,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
 import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
+import ch.admin.bj.swiyu.verifier.dto.management.ConfigurationOverrideDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
@@ -19,11 +21,13 @@ import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededEx
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectBuilder;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -261,7 +265,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             int expectedIndex,
             String expectedCountry) throws Exception {
 
-        var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry);
+        var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry, null);
 
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -305,7 +309,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             int disclosureIndexStart,
             int disclosureIndexEnd) throws Exception {
 
-        var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry);
+        var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry, null);
 
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -1263,6 +1267,51 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 
+    @Test
+    void shouldVerifyNestedSDJWTCredentialSD_withOverride_thenSuccess() throws Exception {
+        // GIVEN
+        var verifierDid = "did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000";
+        var verificationMethod = verifierDid + "#myVerificationMethod-xx";
+        var key = createPemForKid(verificationMethod);
+        var createResponseDto = getAddressArrayManagement(0, "CH", new ConfigurationOverrideDto(null, verifierDid, verificationMethod, null, null, null));
+
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSimpleNestedSDJWTMock();
+
+        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER)));
+
+        var fixedSdjwt = String.join(SdJwt.JWT_PART_DELINEATION_CHARACTER, list) + "~";
+        var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), prefix + ":" + verifierDid);
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        var keyOnlySignatureConfiguration = new KeyOnlySignatureConfiguration();
+        keyOnlySignatureConfiguration.setPrivateKey(key);
+        keyOnlySignatureConfiguration.setVerificationMethod(verificationMethod);
+
+        when(applicationProperties.getSigningKeys()).thenReturn(List.of(keyOnlySignatureConfiguration));
+
+        // WHEN / THEN
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
+
+        var mgmtResponse = getManagementObjectById(createResponseDto.id().toString())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
+        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").asArray().get(0).get("addresses").asArray();
+
+        // as all addresses are sent in disclosures, all addresses should be present in the verification result, even if some were not requested
+        assertThat(addresses).hasSize(2);
+    }
+
     private @NonNull ResultActions postVerificationResponse(UUID requestObjectId, String dcqlVpToken, UUID state) throws Exception {
         return mockMvc.perform(post(String.format(responseDataUriFormat, requestObjectId))
                 .contentType(APPLICATION_FORM_URLENCODED_VALUE)
@@ -1289,7 +1338,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         );
     }
 
-    private ManagementResponseDto getAddressArrayManagement(int expectedIndex, String expectedCountry) {
+    private ManagementResponseDto getAddressArrayManagement(int expectedIndex, String expectedCountry, ConfigurationOverrideDto override) {
         var dcqlQuery = """
                 {
                 "credentials": [
@@ -1311,9 +1360,31 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
-                .dcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(dcqlQuery))
-                .build();
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(dcqlQuery));
 
-        return createVerificationRequest(mockMvc, createVerificationManagementDto);
+        if (override != null) {
+            createVerificationManagementDto.configuration_override(override);
+        }
+
+        return createVerificationRequest(mockMvc, createVerificationManagementDto.build());
+    }
+
+
+    public static String createPemForKid(String kid) throws JOSEException {
+        var ecKey = new ECKeyGenerator(Curve.P_256)
+                .keyID(kid)
+                .algorithm(JWSAlgorithm.ES256)
+                .keyUse(KeyUse.SIGNATURE)
+                .generate()
+                .toECPrivateKey();
+
+        return """
+                -----BEGIN PRIVATE KEY-----
+                %s
+                -----END PRIVATE KEY-----
+                """.formatted(
+                Base64.getMimeEncoder(64, new byte[]{'\n'})
+                        .encodeToString(ecKey.getEncoded())
+        );
     }
 }

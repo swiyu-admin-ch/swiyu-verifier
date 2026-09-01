@@ -6,6 +6,7 @@ import java.util.Map;
 import lombok.Builder;
 
 @Builder
+// JSON-PERSISTED (ZDD): referenced from Management, which is serialized to JSON in the "management" table.
 public record VerificationResultData(
     Map<String, List<Map<String, Object>>> verifiedResponses,
     String verifiedResponsesJsonString, 

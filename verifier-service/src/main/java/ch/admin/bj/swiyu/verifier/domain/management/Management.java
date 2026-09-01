@@ -5,7 +5,6 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode
 import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
-import ch.admin.bj.swiyu.verifier.dto.management.result.CredentialEvaluationDto;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

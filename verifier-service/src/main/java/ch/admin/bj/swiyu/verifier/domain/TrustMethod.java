@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.domain;
 
+// JSON-PERSISTED (ZDD): referenced from IssuerTrustMarker, which is serialized to JSON in the "management" table.
 public enum TrustMethod {
     TRUST_PROTOCOL_1_0,
     /**

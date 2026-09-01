@@ -10,8 +10,9 @@ import lombok.Builder;
 
 
 /**
- * CredentialEvaluation
+ * CredentialEvaluation JSON structure for persisting in the management table.
  */
+// JSON-PERSISTED (ZDD): referenced from VerificationResultData, which is serialized to JSON in the "management" table.
 @Schema(name = "CredentialEvaluation")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

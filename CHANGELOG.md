@@ -18,6 +18,7 @@ P
 
 ## Fixed
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
+- Check correctness of the status list header and reset cache accordingly (#1235)
 
 # [4.2.0] - 2026-08-21
 

@@ -69,7 +69,11 @@ public class StatusListCacheService {
         try {
             String statusListJWT = statusListResolver.resolveStatusList(uri);
             SignedJWT tokenStatusListJWT = SignedJWT.parse(statusListJWT);
-            TokenStatusListVerifier.hasValidTokenStatusListTokenHeader(tokenStatusListJWT.getHeader());
+
+            if (!TokenStatusListVerifier.hasValidTokenStatusListTokenHeader(tokenStatusListJWT.getHeader())) {
+                log.info("Status list header is not valid for uri {}", uri);
+                return Optional.empty();
+            }
 
             String kid = didKidParser.extractKidFromHeader(statusListJWT);
             JWK statusListKey = issuerPublicKeyLoader.resolveKey(kid);

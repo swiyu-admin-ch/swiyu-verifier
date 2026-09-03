@@ -20,7 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
@@ -97,7 +99,7 @@ public class TrustStatementValidator {
 
             // Check that the status list kid belongs to the trust statement issuer by comparing the DIDs
             var statusListDid = didKidParser.getDidFromAbsoluteKid(statusList.getJwsHeader().getKeyID());
-            if (!statusListDid.equals(trustStatementDID)) {
+            if (StringUtils.isBlank(statusListDid) || !Objects.equals(statusListDid, trustStatementDID)) {
                 log.warn("Status list kid '{}' does not belong to trust statement issuer '{}'", statusList.getJwsHeader().getKeyID(), trustStatementDID);
                 return new TrustStatementValidationResult(false, TimeUtil.secondsToNanos(cacheProperties.getRequestBackoffSeconds()));
             }

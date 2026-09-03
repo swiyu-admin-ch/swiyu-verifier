@@ -43,6 +43,12 @@
             <version>${generic-java-lib.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-sdjwt-verifier</artifactId>
+            <version>${generic-java-lib.version}</version>
+        </dependency>
+
         <!-- JWT Library -->
         <dependency>
             <groupId>com.nimbusds</groupId>

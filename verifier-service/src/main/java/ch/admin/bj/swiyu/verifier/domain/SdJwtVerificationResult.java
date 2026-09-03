@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.domain;
 
 import java.util.Optional;
 
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import lombok.Builder;
 

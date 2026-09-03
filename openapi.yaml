@@ -192,13 +192,20 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: response_code
+        in: query
+        description: Optional for normal use. Mandatory if `redirect_uri` was used
+        required: false
+        schema:
+          type: string
+          format: uuid
       responses:
         "400":
-          description: Bad Request
+          description: Bad request or mismatching `response_code`
           content:
             '*/*':
               schema:
-                type: object
+                $ref: "#/components/schemas/ApiErrorDto"
         "200":
           description: Verification found
           content:
@@ -444,7 +451,16 @@ components:
           description: |
             The OAuth State is an opaque value used by the client to maintain state between the request and callback.<br>
             If provided in the request object the state string <em>MUST</em> be returned in the response.
-    VerificationPresentationResponseDto: {}
+    VerificationPresentationResponseDto:
+      type: object
+      properties:
+        redirect_uri:
+          type: string
+          format: uri
+          description: "[EXPERIMENTAL] Optional: Only provided if set in the initial\
+            \ request. It is used to route the response back to the business verifier's\
+            \ endpoint."
+          example: https://shop.ch/callback?session_nonce=123&response_code=xyz
     ApiErrorDto:
       type: object
       properties:
@@ -454,6 +470,15 @@ components:
           type: string
         detail:
           type: string
+    CredentialEvaluation:
+      type: object
+      properties:
+        credential_status:
+          $ref: "#/components/schemas/StatusVerificationResult"
+        trust_markers:
+          $ref: "#/components/schemas/IssuerTrustMarker"
+        valid:
+          type: boolean
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -628,11 +653,6 @@ components:
             - degree_name
           - path:
             - graduation_year
-        credential_sets:
-        - options:
-          - - identity_credential_dcql
-          - - university_degree_dcql
-          required: true
       properties:
         credentials:
           type: array
@@ -654,6 +674,27 @@ components:
       - credentials
       x-implementation-status:
         status: not-implemented
+    IssuerTrustMarker:
+      type: object
+      properties:
+        trust_method:
+          $ref: "#/components/schemas/TrustMethod"
+        is_trusted:
+          type: boolean
+          description: Overall result of Trust Mark evaluation
+        viTM:
+          type: boolean
+          description: Verified Identity Trust Marker
+        caTM:
+          type: boolean
+          description: Compliant Actor Trust Marker
+        gucTM:
+          type: boolean
+          description: Governed Use Case Trust Marker - is the VC governed?
+        gucaTM:
+          type: boolean
+          description: Governed Use Case Authorization Trust Marker - Does the Issuer
+            have authorization for the governed use case?
     ManagementResponse:
       type: object
       properties:
@@ -666,6 +707,14 @@ components:
           $ref: "#/components/schemas/VerificationStatus"
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
+        credential_evaluation:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/CredentialEvaluation"
+          description: "Object of Evaluations, where the key is the id of the dcql_query\
+            \ credential"
         wallet_response:
           $ref: "#/components/schemas/ResponseData"
         verification_url:
@@ -682,6 +731,30 @@ components:
         credential_subject_data:
           type: object
           additionalProperties: {}
+          description: "Requested Claims, where the key is the id of the credential\
+            \ request"
+        vp_token:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: "Full presentation as sent by the wallet, if audit feature\
+            \ has been activated"
+    StatusVerificationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        status:
+          type: integer
+          format: int32
+    TrustMethod:
+      type: string
+      enum:
+      - TRUST_PROTOCOL_1_0
+      - TRUST_PROTOCOL_2_0
+      - TRUSTED_AUTHORITY
     VerificationErrorResponseCode:
       type: string
       description: |
@@ -861,6 +934,12 @@ components:
           description: "Optional transparency metadata for registration at the TMS.\
             \ When present, the verifier registers the DCQL query and injects the\
             \ resulting vqPS into subsequent Authorization Requests."
+        redirect_uri:
+          type: string
+          format: uri
+          description: "[EXPERIMENTAL] Optional absolute URI to redirect the user\
+            \ after the verification process. Must contain a session_nonce parameter."
+          example: https://example.com/redirect?session_nonce=12345
       required:
       - dcql_query
     ResponseModeType:

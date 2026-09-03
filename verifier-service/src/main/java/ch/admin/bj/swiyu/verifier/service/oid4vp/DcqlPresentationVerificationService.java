@@ -2,10 +2,15 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.dto.management.result.CredentialEvaluationDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import tools.jackson.core.JacksonException;
@@ -46,54 +51,101 @@ public class DcqlPresentationVerificationService {
      * given {@link Management} entity has no DCQL query configured (e.g. a legacy verification request that
      * receives a DCQL-formatted wallet response).
      */
-    public String process(Management entity, VerificationPresentationDCQLRequestDto request) {
+    public VerificationResultData process(Management entity, VerificationPresentationDCQLRequestDto request) {
         var dcqlQuery = entity.getDcqlQuery();
         if (dcqlQuery == null) {
             // Happens when a verification request was created without a DCQL query (legacy format)
             // but the wallet nevertheless submits its presentation using the DCQL response format.
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "No DCQL query configured for this verification request");
         }
-        var requestedCredentials = dcqlQuery.getCredentials();
-        var vpTokens = request.getVpToken();
+        List<DcqlCredential> requestedCredentials = dcqlQuery.getCredentials();
+        Map<String, List<String>> vpTokens = request.getVpToken();
         if (vpTokens == null) {
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp_token object in presentation submission");
         }
-        var verifiedResponses = new HashMap<String, List<Map<String, Object>>>();
-        for (var requestedCredential : requestedCredentials) {
-            if (!vpTokens.containsKey(requestedCredential.getId())) {
-                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp token for requested credential id " + requestedCredential.getId());
+        Map<String, List<Map<String, Object>>> verifiedResponses = new HashMap<>();
+        Map<String, List<CredentialEvaluation>> evaluations = new HashMap<>();
+        for (DcqlCredential requestedCredential : requestedCredentials) {
+            String credentialRequestId = requestedCredential.getId();
+            if (!vpTokens.containsKey(credentialRequestId)) {
+                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp token for requested credential id " + credentialRequestId);
             }
-            var requestedVpTokens = vpTokens.get(requestedCredential.getId());
-            if (requestedVpTokens == null) {
-                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Vp token entry for requested credential id " + requestedCredential.getId() + " must not be null");
-            }
-            if (!Boolean.TRUE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
-                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Expected only 1 vp token for " + requestedCredential.getId());
-            }
+            List<SdJwtVerificationResult> verificationResults = getVerifiedTokenResults(entity, vpTokens.get(credentialRequestId),
+            requestedCredential);
+            evaluations.put(credentialRequestId, verificationResults.stream()
+                .map(VerificationMapper::toCredentialEvaluation).toList());
 
-            if (requestedVpTokens.size() > applicationProperties.getMaxVcsAccepted()) {
-                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Cannot Accept more than %s vcs received %s".formatted(applicationProperties.getMaxVcsAccepted(), requestedVpTokens.size()));
-            }
-
-            if (requestedVpTokens.stream().anyMatch(Objects::isNull)) {
-                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Vp token list for requested credential id " + requestedCredential.getId() + " must not contain null entries");
-            }
-
-            var sdJwts = requestedVpTokens.stream()
-                    .map(token -> presentationVerifier.verify(token, entity, requestedCredential))
-                    .toList();
-
-            sdJwts = dcqlEvaluator.filterByVct(sdJwts, requestedCredential.getMeta());
-
-            if (sdJwts.isEmpty()) {
-                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "No matching SD-JWT for requested credential id " + requestedCredential.getId());
-            }
-
-            var sdjwt = sdJwts.getFirst();
-            dcqlEvaluator.validateRequestedClaims(sdjwt, requestedCredential.getClaims());
-            verifiedResponses.put(requestedCredential.getId(), List.of(sdjwt.getResolvedClaims()));
+            verifiedResponses.put(credentialRequestId, resolveDCQL(requestedCredential, verificationResults));
         }
-        return writeAsString(verifiedResponses);
+        return VerificationResultData.builder()
+            .vpTokens(vpTokens)
+            .evaluations(evaluations)
+            .verifiedResponses(verifiedResponses)
+            .verifiedResponsesJsonString(writeAsString(verifiedResponses))
+            .build();
+    }
+
+    /**
+     * Resolved the DCQL Query on the verified credentials
+     * @param requestedCredential the DCQL credential request query
+     * @param verificationResults the verified wallet presentations
+     * @return The claims requested in the DCQL Query
+     */
+    private List<Map<String, Object>> resolveDCQL(DcqlCredential requestedCredential, List<SdJwtVerificationResult> verificationResults) {
+        List<SdJwt> sdJwts = verificationResults.stream().map(SdJwtVerificationResult::sdJwt).toList();
+        sdJwts = dcqlEvaluator.filterByVct(sdJwts, requestedCredential.getMeta());
+
+        if (sdJwts.isEmpty()) {
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "No matching SD-JWT for requested credential id " + requestedCredential.getId());
+        }
+
+        SdJwt sdjwt = sdJwts.getFirst(); // TODO EIDOMNI-887: Support for Claim Sets & credential sets
+        dcqlEvaluator.validateRequestedClaims(sdjwt, requestedCredential.getClaims());
+        return List.of(sdjwt.getResolvedClaims());
+    }
+
+    /**
+     * Verifies the presented vpTokens for JWT Validity, SD-JWT Validity, Token Status List Validity and if it is trusted.
+     * @param entity the verification request management entity
+     * @param vpTokens the verifiable presentations of the wallet to be verified
+     * @param requestedCredential the DCQL credential request
+     * @return one {@link SdJwtVerificationResult} per given vpToken
+     */
+    private List<SdJwtVerificationResult> getVerifiedTokenResults(Management entity, List<String> vpTokens,
+            DcqlCredential requestedCredential) {
+        var requestedVpTokens = validatePresentedTokens(vpTokens, requestedCredential);
+
+        List<SdJwtVerificationResult> verificationResults = requestedVpTokens.stream()
+                .map(token -> presentationVerifier.verify(token, entity, requestedCredential))
+                .toList();
+        return verificationResults;
+    }
+
+    /**
+     * Get the vpTokens from the received vp tokens that were requested.
+     * @param requestedVpTokens the vpTokens presented by the wallet
+     * @param requestedCredential the DCQL defintion for the requested credential
+     * @return a list of vpTokens that the verifier requested
+     * @throws VerificationException if there is a serious issue with the presented vpTokens, 
+     *         such as the requested vpToken is not present or too many tokens were sent which 
+     *         would make processing take too long
+     */
+    private List<String> validatePresentedTokens(List<String> requestedVpTokens, DcqlCredential requestedCredential) {
+        if (requestedVpTokens == null) {
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Vp token entry for requested credential id " + requestedCredential.getId() + " must not be null");
+        }
+        if (!Boolean.TRUE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Expected only 1 vp token for " + requestedCredential.getId());
+        }
+
+        if (requestedVpTokens.size() > applicationProperties.getMaxVcsAccepted()) {
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Cannot Accept more than %s vcs received %s".formatted(applicationProperties.getMaxVcsAccepted(), requestedVpTokens.size()));
+        }
+
+        if (requestedVpTokens.stream().anyMatch(Objects::isNull)) {
+            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Vp token list for requested credential id " + requestedCredential.getId() + " must not contain null entries");
+        }
+        return requestedVpTokens;
     }
 
     private String writeAsString(Object object) {

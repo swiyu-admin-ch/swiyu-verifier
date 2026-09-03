@@ -1,9 +1,13 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
+import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
+import ch.admin.bj.swiyu.verifier.dto.management.result.IssuerTrustMarkerDto;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
+import java.util.Optional;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.MALFORMED_CREDENTIAL;
@@ -26,7 +31,7 @@ public class DcqlVpTokenVerifier {
     private final DidKidParser didKidParser = new DidKidParser();
 
 
-    public SdJwt verifyVpTokenForDCQLRequest(SdJwt vpToken, Management management, DcqlCredential dcqlCredential) {
+    public SdJwtVerificationResult verifyVpTokenForDCQLRequest(SdJwt vpToken, Management management, DcqlCredential dcqlCredential) {
         // Validate Basic JWT (header, times, signature)
         sdJwtVpTokenVerifier.verifyVerifiableCredentialJWT(vpToken, management);
 
@@ -35,8 +40,9 @@ public class DcqlVpTokenVerifier {
 
         // Perform issuer trust validation based on claims
         JWTClaimsSet claims = vpToken.getClaims();
+        IssuerTrustMarker trustMarkers;
         try {
-            issuerTrustValidator.validateTrust(
+             trustMarkers = issuerTrustValidator.validateTrust(
                 didKidParser.getDidFromAbsoluteKid(
                     didKidParser.extractKidFromHeader(vpToken.getJwt())),
                     claims.getStringClaim("vct"), management);
@@ -53,12 +59,12 @@ public class DcqlVpTokenVerifier {
             // This occurs if there is a bug in the wallet or during an attack
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
-        sdJwtVpTokenVerifier.verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
+        Optional<StatusVerificationResultDto> statusVerificationResult = sdJwtVpTokenVerifier.verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
 
         // Resolve Disclosures
         sdJwtVpTokenVerifier.validateDisclosures(vpToken, management);
 
-        return vpToken;
+        return new SdJwtVerificationResult(vpToken, trustMarkers, statusVerificationResult);
     }
 
 }

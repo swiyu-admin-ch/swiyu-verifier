@@ -14,12 +14,12 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
         - `verifier-application` – Spring Boot application and web/infrastructure layer
 
 - **Primary Programming Language**
-    - **Java 21** (defined via `java.version` in the parent `pom.xml`)
+    - **Java 25 (LTS)** (defined via `java.version` in the parent `pom.xml`)
     - **Kotlin runtime present** via `kotlin-stdlib` (required by the BBS signature library), but all application code is Java.
 
 - **Main Frameworks**
-    - **Spring Boot 4.0.6** (parent: `spring-boot-starter-parent` `4.0.6`)
-    - **Spring Cloud 2025.1.1** (BOM via `spring-cloud-dependencies`)
+    - **Spring Boot 4.1.1** (parent: `spring-boot-starter-parent` `4.1.1`)
+    - **Spring Cloud 2025.1.2** (BOM via `spring-cloud-dependencies`)
     - **Spring Framework / Spring Ecosystem**, including:
         - Spring Web (`spring-boot-starter-web`)
         - Spring Security (`spring-boot-starter-security`)
@@ -29,6 +29,7 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
         - Spring OAuth2 Resource Server (`spring-boot-starter-oauth2-resource-server`)
         - Spring Cloud Kubernetes Config (`spring-cloud-starter-kubernetes-fabric8-config`, in `verifier-application` only)
         - Spring Cloud Bootstrap (`spring-cloud-starter-bootstrap`, in `verifier-application` only)
+        - **`spring-boot-starter-restclient`** and **`spring-boot-starter-webclient`** (`verifier-application` only): since Spring Boot 4.1, `RestClientAutoConfiguration` (providing the `RestClient.Builder` bean) was split out of `spring-boot-autoconfigure` into its own starter and is no longer pulled in transitively via `spring-boot-starter-web`. Required explicitly because `swiyu-did-resolver-adapter`'s `DidResolverWebClientConfiguration` depends on a `RestClient.Builder` bean. Do not remove.
         - Note: `spring-webflux` is pulled in transitively but the `spring-boot-starter-webflux` starter is **not** used — the web layer is Spring MVC.
 
 - **Persistence & Database**
@@ -59,6 +60,7 @@ Act as an experienced Senior Software Engineer. You write clean, maintainable, p
         - `didresolver`
         - `swiyu-ts-builder` (test scope only, used by `verifier-application` integration tests)
     - **Kotlin runtime** (`kotlin-stdlib`) is required at runtime for the BBS signature library — both modules pull it in.
+    - **Lombok**: must be kept on a JDK-25-compatible release (≥ 1.18.42). In both module `pom.xml`s, the `maven-compiler-plugin`'s `annotationProcessorPaths` is restricted explicitly to the Lombok artifact only (instead of the full compile classpath) — this was required to avoid intermittent AST-transformation failures for a subset of classes when compiling the whole module in one pass under JDK 25. Do not remove this restriction or add other processors to the same path without re-testing a full `mvn clean package`.
 
 - **Testing Frameworks & Test Utilities**
     - **JUnit 5** / Jupiter

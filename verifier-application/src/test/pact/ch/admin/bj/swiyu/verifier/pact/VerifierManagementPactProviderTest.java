@@ -7,6 +7,9 @@ import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.loader.PactFolder;
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -98,14 +102,19 @@ class VerifierManagementPactProviderTest {
 
         if (successful) {
             management.claimForProcessing();
-            management.verificationSucceeded("""
-                    {
-                      "VerifiableCredential": {
-                        "given_name": "John",
-                        "family_name": "Doe"
-                      }
-                    }
-                    """);
+            management.verificationDone(VerificationResultData.builder()
+                    .verifiedResponsesJsonString("""
+                            {
+                              "VerifiableCredential": {
+                                "given_name": "John",
+                                "family_name": "Doe"
+                              }
+                            }
+                            """)
+                    .evaluations(Map.of("VerifiableCredential", List.of(CredentialEvaluation.builder()
+                            .trustMarkers(IssuerTrustMarker.builder().isTrusted(true).build())
+                            .build())))
+                    .build());
             managementRepository.saveAndFlush(management);
         }
 

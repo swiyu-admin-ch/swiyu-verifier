@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 - After completed verificiation the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
-P
 
 ## Changed
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`
@@ -19,6 +18,7 @@ P
 ## Fixed
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
 - Check correctness of the status list header and reset cache accordingly (#1235)
+- - Check if trust statement issuer matches the issuer of the status list `(#1210)`
 
 # [4.2.0] - 2026-08-21
 

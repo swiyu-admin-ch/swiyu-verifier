@@ -20,7 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
@@ -78,17 +80,29 @@ public class TrustStatementValidator {
         }
         try {
             // Get all required parts & verify them
-            String didUrl = trustStatementDidJwtValidator.getAndValidateResolutionUrl(jwtString);
-            String didString = trustStatementDidJwtValidator.getDidString(jwtString);
-            log.debug("Trust statement allowlist check passed - DID: {}, URL: {}", didString, didUrl);
-            String kid = didKidParser.extractKidFromHeader(jwtString);
+            String trustStatementResolutionURL = trustStatementDidJwtValidator.getAndValidateResolutionUrl(jwtString);
+            String trustStatementDID = trustStatementDidJwtValidator.getDidString(jwtString);
+            log.debug("Trust statement allowlist check passed - DID: {}, URL: {}", trustStatementDID, trustStatementResolutionURL);
+
+            String trustStatementKID = didKidParser.extractKidFromHeader(jwtString);
             SignedJWT trustStatementJWT = SignedJWT.parse(jwtString);
-            JWK trustStatementKey = keyLoader.resolveKey(kid);
-            trustStatementDidJwtValidator.validateJwt(jwtString, trustStatementKey);
-            log.debug("Trust statement validation passed - DID: {}, URL: {}", didString, didUrl);
-            TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(trustStatementJWT.getJWTClaimsSet().getClaims(), trustStatementJWT.getHeader());
-            TokenStatusListTokenDto statusList = statusListCacheService.getTokenStatusListTokenByUri(reference.getReferencedStatusListUri());
-            StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(reference, statusList);
+            JWK trustStatementJWK = keyLoader.resolveKey(trustStatementKID);
+            trustStatementDidJwtValidator.validateJwt(jwtString, trustStatementJWK);
+            log.debug("Trust statement validation passed - DID: {}, URL: {}", trustStatementDID, trustStatementResolutionURL);
+
+            // Extract token status list reference from trust statement
+            TokenStatusListReferenceDto statusListReference = TokenStatusListMapper.toTokenStatusListReference(trustStatementJWT.getJWTClaimsSet().getClaims(), trustStatementJWT.getHeader());
+
+            // Get the actual status list with reference info from cache or registry and verify the status list state
+            TokenStatusListTokenDto statusList = statusListCacheService.getTokenStatusListTokenByUri(statusListReference.getReferencedStatusListUri());
+            StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(statusListReference, statusList);
+
+            // Check that the status list kid belongs to the trust statement issuer by comparing the DIDs
+            var statusListDid = didKidParser.getDidFromAbsoluteKid(statusList.getJwsHeader().getKeyID());
+            if (StringUtils.isBlank(statusListDid) || !Objects.equals(statusListDid, trustStatementDID)) {
+                log.warn("Status list kid '{}' does not belong to trust statement issuer '{}'", statusList.getJwsHeader().getKeyID(), trustStatementDID);
+                return new TrustStatementValidationResult(false, TimeUtil.secondsToNanos(cacheProperties.getRequestBackoffSeconds()));
+            }
             
             // Compute TTL in Nanoseconds
             long minimumTimeoutNs = Long.MAX_VALUE;
@@ -99,7 +113,7 @@ public class TrustStatementValidator {
             minimumTimeoutNs = Math.max(0, minimumTimeoutNs - clockSkewBufferNs);
             minimumTimeoutNs = TimeUtil.minWithNullable(minimumTimeoutNs, TimeUtil.secondsToNanos(statusList.getTtl()));
             minimumTimeoutNs = TimeUtil.minWithNullable(minimumTimeoutNs, TimeUtil.secondsToNanos(trustRegistryProperties.getMaxCacheTtlSeconds()));
-            log.debug("Trust statement state validation completed - Validity: {} Cache TTL {} - DID: {}, URL: {}", statusListState.valid(), minimumTimeoutNs, didString, didUrl);
+            log.debug("Trust statement state validation completed - Validity: {} Cache TTL {} - DID: {}, URL: {}", statusListState.valid(), minimumTimeoutNs, trustStatementDID, trustStatementResolutionURL);
 
             // If we reached this point the status list state hold the information whether the trust statement can be used. Either way we should not reprocess it until the timeout is through
             return new TrustStatementValidationResult(statusListState.valid(), minimumTimeoutNs);

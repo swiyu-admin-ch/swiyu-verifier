@@ -1,9 +1,9 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -23,16 +23,14 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationSer
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -97,7 +95,7 @@ class PresentationVerificationUsecaseTest {
         var dcqlQuery = getDcqlQuery(credentialRequestId, false);
         var vpToken = getVpToken();
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(vpToken)));
-        var sdJwt = mockVerifySdJwt(vpToken);
+        var sdJwt = Mockito.mock(SdJwt.class);
         when(managementEntity.getDcqlQuery()).thenReturn(dcqlQuery);
 
         // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
@@ -319,18 +317,6 @@ class PresentationVerificationUsecaseTest {
 
     private String getVpToken() {
         return new SDJWTCredentialMock().createSDJWTMock();
-    }
-
-    private SdJwt mockVerifySdJwt(String vpTokenSdJwt) {
-        var sdJwt = new SdJwt(vpTokenSdJwt);
-        var parsed = assertDoesNotThrow(() -> SignedJWT.parse(sdJwt.getJwt()));
-        var claims = assertDoesNotThrow(parsed::getJWTClaimsSet);
-        var disclosures = sdJwt.getDisclosures();
-        var claimBuilder = new JWTClaimsSet.Builder(claims);
-        disclosures.forEach(disclosure -> claimBuilder.claim(disclosure.getClaimName(), disclosure.getClaimValue()));
-        sdJwt.setClaims(claimBuilder.build());
-        sdJwt.setHeader(parsed.getHeader());
-        return sdJwt;
     }
 
     /**

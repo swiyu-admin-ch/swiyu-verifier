@@ -1,14 +1,18 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwtVcValidator;
+import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtParseException;
+import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtVerificationException;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
-import ch.admin.bj.swiyu.verifier.dto.management.result.IssuerTrustMarkerDto;
-
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +21,6 @@ import org.springframework.stereotype.Service;
 import java.text.ParseException;
 import java.util.Optional;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.MALFORMED_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
@@ -27,44 +30,56 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 public class DcqlVpTokenVerifier {
 
     private final SdJwtVpTokenVerifier sdJwtVpTokenVerifier;
-    private final IssuerTrustValidator issuerTrustValidator; // new dependency for issuer trust
+    private final IssuerTrustValidator issuerTrustValidator;
+    private final DidJwtValidator jwtValidator;
+    private final DidResolverFacade didResolver;
     private final DidKidParser didKidParser = new DidKidParser();
 
+    public SdJwtVerificationResult verifyVpTokenForDCQLRequest(String vpToken, Management management, DcqlCredential dcqlCredential) {
 
-    public SdJwtVerificationResult verifyVpTokenForDCQLRequest(SdJwt vpToken, Management management, DcqlCredential dcqlCredential) {
-        // Validate Basic JWT (header, times, signature)
-        sdJwtVpTokenVerifier.verifyVerifiableCredentialJWT(vpToken, management);
-
-        // checks if the provided format in typ header matches the requested format in the dcql_query.format
-        sdJwtVpTokenVerifier.validateFormat(dcqlCredential, vpToken);
-
-        // Perform issuer trust validation based on claims
-        JWTClaimsSet claims = vpToken.getClaims();
-        IssuerTrustMarker trustMarkers;
         try {
-             trustMarkers = issuerTrustValidator.validateTrust(
-                didKidParser.getDidFromAbsoluteKid(
-                    didKidParser.extractKidFromHeader(vpToken.getJwt())),
-                    claims.getStringClaim("vct"), management);
-        } catch (ParseException e) {
-            log.error("Failed to extract vct claim from JWT token", e);
-            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
+            SdJwtVcValidator validator = new SdJwtVcValidator(jwtValidator);
+
+            SdJwt sdJwt;
+            String headerKid;
+
+            sdJwt = SdJwtParser.parseSdJwt(vpToken);
+
+            // also checks header typ -> typ does not need to match dcqlCredential.format, but it must be a valid SD-JWT type `vc+sd-jwt` or `dc+sd-jwt` for backward compatibility.
+            validator.validateAndSetHeader(sdJwt);
+
+            headerKid = sdJwt.getHeader().getKeyID();
+            var publicKey = didResolver.resolveKey(headerKid);
+
+            validator.validateAndSetJwt(sdJwt, publicKey);
+
+            // require_cryptographic_holder_binding default is true therefore if not set to false it will be treated as true
+            boolean cryptographicHolderBindingRequired = Boolean.TRUE.equals(dcqlCredential.getRequireCryptographicHolderBinding()) || dcqlCredential.getRequireCryptographicHolderBinding() == null;
+            sdJwtVpTokenVerifier.validateKeyBinding(sdJwt, cryptographicHolderBindingRequired, management, validator);
+
+            // Perform issuer trust validation based on claims
+            JWTClaimsSet claims = sdJwt.getClaims();
+            IssuerTrustMarker trustMarkers;
+            try {
+                var issuerDID = didKidParser.getDidFromAbsoluteKid(headerKid);
+                trustMarkers = issuerTrustValidator.validateTrust(issuerDID, claims.getStringClaim("vct"), management);
+            } catch (ParseException e) {
+                log.error("Failed to extract vct claim from JWT token", e);
+                throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
+            }
+
+            Optional<StatusVerificationResultDto> statusVerificationResult = sdJwtVpTokenVerifier.verifyStatus(sdJwt.getClaims().getClaims(), sdJwt.getHeader());
+
+            // Resolve Disclosures
+            validator.processDisclosures(sdJwt);
+
+            return new SdJwtVerificationResult(sdJwt, trustMarkers, statusVerificationResult);
+        } catch (SdJwtParseException e) {
+            log.error("Failed to parse VP token: {}", e.getMessage(), e);
+            throw credentialError(MALFORMED_CREDENTIAL, e.getMessage());
+        } catch (SdJwtVerificationException e) {
+            log.error("Verification failed for VP token: {}", e.getMessage(), e);
+            throw credentialError(MALFORMED_CREDENTIAL, e.getMessage());
         }
-
-        // If Key Binding is present, validate that it is correct
-        if (vpToken.hasKeyBinding()) {
-            sdJwtVpTokenVerifier.validateKeyBinding(vpToken, management);
-        } else if (dcqlCredential.isCryptographicHolderBindingRequired()) {
-            // KeyBinding was requested in DCQL Query, but the Holder did not attach one to the Presentation
-            // This occurs if there is a bug in the wallet or during an attack
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
-        }
-        Optional<StatusVerificationResultDto> statusVerificationResult = sdJwtVpTokenVerifier.verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
-
-        // Resolve Disclosures
-        sdJwtVpTokenVerifier.validateDisclosures(vpToken, management);
-
-        return new SdJwtVerificationResult(vpToken, trustMarkers, statusVerificationResult);
     }
-
 }

@@ -1,0 +1,104 @@
+name: Verify Pact Provider Contracts
+run-name: ${{ github.repository }} is verifying Pact provider contracts
+
+# DISABLED ON PURPOSE.
+#
+# This workflow ships with the generic verifier component so that downstream
+# consumers / integrators can verify the verifier against their own management
+# API contract (IF-100). It is intentionally limited to `workflow_dispatch`:
+# this repository's own pipeline does not run it, and no push / pull_request
+# trigger is enabled. Turn it on (add a trigger, or run it manually) once
+# consumer-driven contract testing is part of the delivery process - expected
+# only in a later PI.
+on:
+  # push:
+  #   branches:
+  #     - '**'
+  # pull_request:
+  workflow_dispatch:
+    inputs:
+      consumer_repository:
+        description: Repository that produces the consumer pacts
+        required: true
+        default: swiyu-admin-ch/swiyu-generic-application-test
+      consumer_ref:
+        description: Git ref (branch / tag / SHA) of the consumer repository
+        required: true
+        default: main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify-pacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout provider (this repository)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout consumer repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: ${{ inputs.consumer_repository }}
+          ref: ${{ inputs.consumer_ref }}
+          path: consumer
+          persist-credentials: false
+          # A PAT is only required if the consumer repository is private.
+
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Cache PGP keys for pgpverify-maven-plugin
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.m2/repository/pgpkeys-cache
+          key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
+          restore-keys: pgp-keys-
+
+      - name: Generate consumer pacts
+        working-directory: consumer
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress \
+            -pl test-wallet-library -am \
+            clean test \
+            -Dtest='*ConsumerPactTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false
+
+      - name: Check the verifier pact is present
+        run: |
+          set -euo pipefail
+          PACT_FILE="${GITHUB_WORKSPACE}/consumer/test-wallet-library/target/pacts/swiyu-business-verifier-reference-swiyu-verifier.json"
+          test -s "$PACT_FILE" || {
+            echo "Consumer pact not found: $PACT_FILE" >&2
+            exit 1
+          }
+
+      - name: Verify provider against consumer pacts
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Ppact-provider \
+            -pl verifier-application -am \
+            test \
+            -Dtest='*PactProviderTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dpactfolder.path="${GITHUB_WORKSPACE}/consumer/test-wallet-library/target/pacts"
+
+      - name: Publish provider verification report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pact-provider-surefire-reports
+          path: verifier-application/target/surefire-reports/
+          if-no-files-found: warn

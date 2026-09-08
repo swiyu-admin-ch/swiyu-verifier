@@ -1,13 +1,16 @@
 name: Verify Pact Provider Contracts
 run-name: ${{ github.repository }} is verifying Pact provider contracts
 
-# Automatic verification is intentionally disabled; manual runs remain available.
+# Temporarily verify only pull requests from the Pact feature branch.
+# Push triggers remain disabled; manual runs remain available.
 # Verify management API contracts (IF-100) already published by business
 # consumers to PactFlow
+on:
   # push:
   #   branches:
   #     - '**'
-  # pull_request:
+  pull_request:
+    types: [opened, reopened, synchronize]
   workflow_dispatch:
     inputs:
       consumer_version_selectors:
@@ -16,10 +19,14 @@ run-name: ${{ github.repository }} is verifying Pact provider contracts
         required: true
         default: '[{"mainBranch":true},{"deployedOrReleased":true}]'
       publish_results:
-        description: Publish verification results to PactFlow for this provider commit
+        description: Publish verification results and run can-i-deploy for this provider commit
         type: boolean
         required: true
         default: true
+      reference_consumer_version:
+        description: 'Reference consumer version for can-i-deploy (empty: latest main branch); align consumer_version_selectors if overridden'
+        type: string
+        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,10 +37,17 @@ permissions:
 
 jobs:
   verify-pacts:
-    # Fork pull requests do not receive the PactFlow secrets.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Filter the PR source branch; fork pull requests do not receive PactFlow secrets.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.head_ref == 'feature/EIDOMNI-1043-add-pact-provider-states' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      PACT_PROVIDER_VERSION: ${{ github.sha }}
+      # The job guard limits PR publication to the same-repository Pact branch.
+      PACT_PUBLISH_RESULTS: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_results }}
 
     steps:
       - name: Checkout provider (this repository)
@@ -72,10 +86,8 @@ jobs:
           PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
           PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
           PACTBROKER_CONSUMERVERSIONSELECTORS_RAWJSON: ${{ inputs.consumer_version_selectors || '[{"mainBranch":true},{"deployedOrReleased":true}]' }}
-          PACT_PROVIDER_VERSION: ${{ github.sha }}
           PACT_PROVIDER_BRANCH: ${{ github.head_ref || github.ref_name }}
           PACT_VERIFIER_BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          PACT_PUBLISH_RESULTS: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_results) }}
         run: |
           ./mvnw --batch-mode --no-transfer-progress \
             -Ppact-provider \
@@ -87,6 +99,29 @@ jobs:
             -Dpact.provider.branch="$PACT_PROVIDER_BRANCH" \
             -Dpact.verifier.buildUrl="$PACT_VERIFIER_BUILD_URL" \
             -Dpact.verifier.publishResults="$PACT_PUBLISH_RESULTS"
+
+      - name: Check reference consumer compatibility (can-i-deploy)
+        if: env.PACT_PUBLISH_RESULTS == 'true'
+        env:
+          PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+          PACT_REFERENCE_CONSUMER_VERSION: ${{ inputs.reference_consumer_version }}
+        run: |
+          set -euo pipefail
+          # This is a pairwise compatibility test, not a deployment gate.
+          # A newer main-branch contract without verification must fail this check.
+          consumer_selector=(--main-branch)
+          if [[ -n "$PACT_REFERENCE_CONSUMER_VERSION" ]]; then
+            consumer_selector=(--version "$PACT_REFERENCE_CONSUMER_VERSION")
+          fi
+          docker run --rm \
+            -e PACT_BROKER_BASE_URL \
+            -e PACT_BROKER_TOKEN \
+            -e PACT_BROKER_ERROR_ON_UNKNOWN_OPTION=true \
+            pactfoundation/pact-cli:1.5.0.5 \
+            pact-broker can-i-deploy \
+            --pacticipant swiyu-verifier --version "$PACT_PROVIDER_VERSION" \
+            --pacticipant swiyu-business-verifier-reference "${consumer_selector[@]}"
 
       - name: Upload provider verification report
         if: always()

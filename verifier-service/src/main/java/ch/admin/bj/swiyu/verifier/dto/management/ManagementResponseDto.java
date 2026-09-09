@@ -25,7 +25,7 @@ public record ManagementResponseDto(
         @JsonProperty("credential_evaluation")
         @Schema(description = "Object of Evaluations, where the key is the id of the dcql_query credential. "
                 + "Only present if `application.additional-audit-information.credential-evaluation-enabled` "
-                + "is set to true (default: false).", nullable = true)
+                + "is set to true (default: false).")
         // Note: This is List<CredentialEvaluation> if multiple=true is used
         Map<String, List<CredentialEvaluationDto>> credentialEvaluation, 
         @JsonProperty("wallet_response")

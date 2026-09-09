@@ -706,9 +706,7 @@ components:
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
         credential_evaluation:
-          type:
-          - object
-          - "null"
+          type: object
           additionalProperties:
             type: array
             items:
@@ -730,17 +728,13 @@ components:
         error_description:
           type: string
         credential_subject_data:
-          type:
-          - object
-          - "null"
+          type: object
           additionalProperties: {}
           description: "Requested Claims, where the key is the id of the credential\
             \ request. Only present if `application.additional-audit-information.credential-subject-data-enabled`\
             \ is set to true (default: false)."
         vp_token:
-          type:
-          - object
-          - "null"
+          type: object
           additionalProperties:
             type: array
             items:

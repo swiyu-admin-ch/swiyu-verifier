@@ -45,14 +45,17 @@ public class ManagementMapper {
         String externalUrl = override.externalUrlOrDefault(props.getExternalUrl());
         String clientId = override.verifierDidOrDefaultWithPrefix(props);
         var verificationUrl = String.format("%s/oid4vp/api/request-object/%s", externalUrl, management.getId());
+        var auditInformation = props.getAdditionalAuditInformation();
         return ManagementResponseDto.builder()
             .id(management.getId())
             .requestNonce(management.getRequestNonce())
             .state(toVerifcationStatusDto(management.getState()))
-            .walletResponse(toResponseDataDto(management.getWalletResponse()))
+            .walletResponse(toResponseDataDto(management.getWalletResponse(), auditInformation))
             .verificationUrl(verificationUrl)
             .verificationDeeplink(buildVerificationDeeplink(verificationUrl, clientId, props.getDeeplinkSchema()))
-            .credentialEvaluation(toCredentialEvaluationDto(management.getCredentialEvaluation()))
+            .credentialEvaluation(auditInformation.isCredentialEvaluationEnabled()
+                    ? toCredentialEvaluationDto(management.getCredentialEvaluation())
+                    : null)
             .build();
     }
 
@@ -148,7 +151,8 @@ public class ManagementMapper {
         };
     }
 
-    private static ResponseDataDto toResponseDataDto(ResponseData source) {
+    private static ResponseDataDto toResponseDataDto(ResponseData source,
+            ApplicationProperties.AdditionalAuditInformationProperties auditInformation) {
         if (source == null) {
             return null;
         }
@@ -156,8 +160,10 @@ public class ManagementMapper {
         return ResponseDataDto.builder()
             .errorCode(toVerificationErrorResponseCodeDto(source.errorCode()))
             .errorDescription(source.errorDescription())
-            .credentialSubjectData(nonNull(credentialSubjectDataString) ? jsonStringToMap(credentialSubjectDataString) : null)
-            .vpToken(source.vpToken())
+            .credentialSubjectData(auditInformation.isCredentialSubjectDataEnabled() && nonNull(credentialSubjectDataString)
+                    ? jsonStringToMap(credentialSubjectDataString)
+                    : null)
+            .vpToken(auditInformation.isVpTokenEnabled() ? source.vpToken() : null)
             .build();
         
     }

@@ -53,6 +53,16 @@ application:
     - "identifier-reg.trust-infra.swiyu.admin.ch"
     - "identifier-reg.trust-infra.swiyu-int.admin.ch"
 
+  # Fine-grained flags controlling which audit-related data is exposed to the business verifier
+  # via the management API. All flags default to false to keep the response minimal (non-breaking).
+  additional-audit-information:
+    # If true, includes the raw vp_token (full presentation as sent by the wallet) in wallet_response.
+    vp-token-enabled: ${ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED:false}
+    # If true, includes credential_subject_data (requested claims) in wallet_response.
+    credential-subject-data-enabled: ${ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED:false}
+    # If true, includes credential_evaluation (per-credential trust and status verification results).
+    credential-evaluation-enabled: ${ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED:false}
+
   # ---- OpenID4VP Part ----
 
   # TTL is set to 900 seconds -> 15 minutes
@@ -137,7 +147,10 @@ management:
         webhook.callback-uri,
         application.hsm.host,
         application.hsm.port,
-        application.template-replacement.client-id
+        application.template-replacement.client-id,
+        application.additional-audit-information.vp-token-enabled,
+        application.additional-audit-information.credential-subject-data-enabled,
+        application.additional-audit-information.credential-evaluation-enabled
   health:
     # Set to false if no static signing key is configured (e.g. dynamic key management via ConfigurationOverride).
     # Env: SIGNING_KEY_VERIFICATION_ENABLED

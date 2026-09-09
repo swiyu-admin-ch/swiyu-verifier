@@ -17,7 +17,8 @@ on:
         description: PactFlow consumer version selectors (JSON array)
         type: string
         required: true
-        default: '[{"mainBranch":true},{"deployedOrReleased":true}]'
+        # Temporary demo: also verify the deliberately incompatible consumer branch.
+        default: '[{"mainBranch":true},{"deployedOrReleased":true},{"consumer":"swiyu-business-verifier-reference","branch":"demo/pact-contract-failing"}]'
       publish_results:
         description: Publish verification results and run can-i-deploy for this provider commit
         type: boolean
@@ -59,7 +60,7 @@ jobs:
         env:
           PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
           PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
-          PACTBROKER_CONSUMERVERSIONSELECTORS_RAWJSON: ${{ inputs.consumer_version_selectors || '[{"mainBranch":true},{"deployedOrReleased":true}]' }}
+          PACTBROKER_CONSUMERVERSIONSELECTORS_RAWJSON: ${{ inputs.consumer_version_selectors || '[{"mainBranch":true},{"deployedOrReleased":true},{"consumer":"swiyu-business-verifier-reference","branch":"demo/pact-contract-failing"}]' }}
         run: |
           set -euo pipefail
           : "${PACT_BROKER_BASE_URL:?PACT_BROKER_BASE_URL secret is required}"
@@ -85,7 +86,7 @@ jobs:
         env:
           PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
           PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
-          PACTBROKER_CONSUMERVERSIONSELECTORS_RAWJSON: ${{ inputs.consumer_version_selectors || '[{"mainBranch":true},{"deployedOrReleased":true}]' }}
+          PACTBROKER_CONSUMERVERSIONSELECTORS_RAWJSON: ${{ inputs.consumer_version_selectors || '[{"mainBranch":true},{"deployedOrReleased":true},{"consumer":"swiyu-business-verifier-reference","branch":"demo/pact-contract-failing"}]' }}
           PACT_PROVIDER_BRANCH: ${{ github.head_ref || github.ref_name }}
           PACT_VERIFIER_BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |

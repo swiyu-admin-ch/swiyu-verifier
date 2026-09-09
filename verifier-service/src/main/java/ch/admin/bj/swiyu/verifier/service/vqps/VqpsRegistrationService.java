@@ -174,7 +174,7 @@ public class VqpsRegistrationService {
      * @param dcqlQueryJson the serialized DCQL query
      * @param verifierDid   the effective verifier DID to be used as the {@code sub} claim, i.e. the
      *                      {@code configuration_override.verifier_did} if present, otherwise the statically
-     *                      configured {@code application.client-id}. Sent without any client-id prefix.
+     *                      configured {@code application.client-id}.
      * @return a fully populated {@link VqpsSubmissionCreateRequest}
      */
     private VqpsSubmissionCreateRequest buildSubmissionRequest(VerificationPurposeDto purpose, Object dcqlQueryJson, String verifierDid) {

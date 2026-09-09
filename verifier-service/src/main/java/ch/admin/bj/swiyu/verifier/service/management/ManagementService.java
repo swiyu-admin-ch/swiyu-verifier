@@ -9,10 +9,12 @@ import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
+import ch.admin.bj.swiyu.verifier.dto.management.ConfigurationOverrideDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.service.vqps.VqpsRegistrationService;
+import jakarta.annotation.Nullable;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
@@ -99,7 +101,8 @@ public class ManagementService {
         if (request.verificationPurpose() != null && vqpsRegistrationService.isPresent()) {
             var purpose = request.verificationPurpose();
             long verificationExpiresAt = Instant.now().getEpochSecond() + applicationProperties.getVerificationTTL();
-            vqpsQueryHash = vqpsRegistrationService.get().getOrRegisterVqps(purpose, request.dcqlQuery(), verificationExpiresAt);
+            String verifierDid = resolveVerifierDid(request.configuration_override());
+            vqpsQueryHash = vqpsRegistrationService.get().getOrRegisterVqps(purpose, request.dcqlQuery(), verificationExpiresAt, verifierDid);
             log.info("vqPS registered/cached for scope={}", purpose.scope());
         }
 
@@ -123,6 +126,23 @@ public class ManagementService {
             createEncryptionKeys(responseSpecificationBuilder);
         }
         return responseSpecificationBuilder;
+    }
+
+    /**
+     * Resolves the effective verifier DID to be used for the {@code sub} claim of a vqPS submission.
+     *
+     * <p>Returns the {@code configuration_override.verifier_did} if present, otherwise falls back to
+     * the statically configured {@code application.client-id}. No client-id prefix is applied, to stay
+     * consistent with the previous behaviour where the raw DID (without prefix) was used as {@code sub}.</p>
+     *
+     * @param configurationOverride the optional per-request configuration override, may be {@code null}
+     * @return the effective verifier DID, without any client-id prefix
+     */
+    private String resolveVerifierDid(@Nullable ConfigurationOverrideDto configurationOverride) {
+        var override = ManagementMapper.toSigningOverride(configurationOverride);
+        return override == null
+                ? applicationProperties.getClientId()
+                : override.verifierDidOrDefault(applicationProperties.getClientId());
     }
 
     private static void createEncryptionKeys(ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder) {

@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmission;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionCreateRequest;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionStatus;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
@@ -70,13 +71,16 @@ public class VqpsRegistrationService {
      *                              i.e. the {@code configuration_override.verifier_did} if present, otherwise
      *                              the statically configured {@code application.client-id}
      * @return the SHA-256 query hash (PK of {@code vqps_cache}) identifying the valid cache entry
-     * @throws IllegalStateException if {@code verifierDid} is blank, if the newly fetched vqPS expires before
-     *                               the verification TTL, or if the TMS submission fails or times out
+     * @throws ConfigurationException if {@code verifierDid} is blank, indicating that neither
+     *                                {@code configuration_override.verifier_did} nor the statically
+     *                                configured {@code application.client-id} resolved to a usable DID
+     * @throws IllegalStateException  if the newly fetched vqPS expires before the verification TTL,
+     *                                or if the TMS submission fails or times out
      */
     public String getOrRegisterVqps(VerificationPurposeDto purpose, Object dcqlQueryJson, long verificationExpiresAt, String verifierDid) {
         String scope = purpose.scope();
         if (StringUtils.isBlank(verifierDid)) {
-            throw new IllegalStateException(
+            throw new ConfigurationException(
                     "No verifier DID available for vqPS submission, scope=" + scope
                             + ". Configure application.client-id or provide configuration_override.verifier_did.");
         }

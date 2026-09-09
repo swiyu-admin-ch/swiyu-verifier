@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmission;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionCreateRequest;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionStatus;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
@@ -103,9 +104,9 @@ class VqpsRegistrationServiceTest {
         assertThat(hash1).isNotEqualTo(hash2);
     }
     @Test
-    void getOrRegisterVqps_withBlankVerifierDid_throwsIllegalStateException() {
+    void getOrRegisterVqps_withBlankVerifierDid_throwsConfigurationException() {
         assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, " "))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(ConfigurationException.class)
                 .hasMessageContaining("No verifier DID available");
         verifyNoInteractions(vqpsSubmissionB2BApi);
     }
@@ -119,6 +120,16 @@ class VqpsRegistrationServiceTest {
         ArgumentCaptor<VqpsSubmissionCreateRequest> requestCaptor = ArgumentCaptor.forClass(VqpsSubmissionCreateRequest.class);
         verify(vqpsSubmissionB2BApi).createVqpsSubmission(requestCaptor.capture());
         assertThat(requestCaptor.getValue().getSub()).isEqualTo(overrideDid);
+    }
+    @Test
+    void getOrRegisterVqps_withoutOverrideDid_sendsDefaultAsSub() {
+        String jwt = buildJwt(Instant.now().plus(30, ChronoUnit.DAYS));
+        when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
+        mockTmsImmediateSuccess(jwt);
+        service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, CLIENT_ID);
+        ArgumentCaptor<VqpsSubmissionCreateRequest> requestCaptor = ArgumentCaptor.forClass(VqpsSubmissionCreateRequest.class);
+        verify(vqpsSubmissionB2BApi).createVqpsSubmission(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getSub()).isEqualTo(CLIENT_ID);
     }
     @Test
     void getOrRegisterVqps_withValidCachedEntry_returnsCachedHashWithoutTmsCall() {

@@ -1,12 +1,15 @@
 package ch.admin.bj.swiyu.verifier.service.dcql;
 
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Service for processing and validating DCQL (Decentralized Credential Query Language) claims and paths.
@@ -18,25 +21,15 @@ import java.util.*;
  */
 @UtilityClass
 public class DcqlUtil {
-    private static List<Object> selectClaim(SdJwt sdJwt, DcqlClaim requestedClaim) {
-        var selected = new DcqlPathSelection(sdJwt.getResolvedClaims());
-        List<Object> requestedPath = requestedClaim.getPath();
-        for (Object path : requestedPath) {
-            switch (path) {
-                case null -> selected = selected.selectAll();
-                case Number number -> selected = selected.selectElement(number.intValue());
-                case String s -> selected = selected.selectElement(s);
-                default ->
-                        throw new IllegalArgumentException("Illegal request path type; was %s".formatted(path.getClass()));
-            }
-        }
-        return selected.selected;
-    }
 
     /**
-     * Validate if the requestedClaims are present in the jwt
-     * Throws Illegal Argument Exception if something is wrong with the presented sd jwt
-     * @throws IllegalArgumentException if not all requested claims are present in the sd jwt's claims
+     * Validates that the provided {@link SdJwt} satisfies the given DCQL requested claims.
+     * <p>
+     * If the SD-JWT does not fulfil the requested claims, that method is expected to throw
+     * an appropriate exception.
+     *
+     * @param sdJwt           the SD-JWT to be validated
+     * @param requestedClaims the DCQL claim definitions that must be satisfied by the SD-JWT
      */
     public static void validateRequestedClaims(SdJwt sdJwt, List<DcqlClaim> requestedClaims) {
         if (CollectionUtils.isEmpty(requestedClaims)) {
@@ -59,6 +52,15 @@ public class DcqlUtil {
         }
     }
 
+    /**
+     * Filters the provided SD-JWT presentations by the configured VCT values of the DCQL credential metadata.
+     * <p>
+     * If no credential metadata or no accepted VCT values are provided, the original list is returned unchanged.
+     *
+     * @param sdJwts the SD-JWT presentations to evaluate
+     * @param credentialMeta the DCQL credential metadata containing the accepted VCT values
+     * @return the SD-JWT presentations whose {@code vct} claim matches one of the accepted VCT values
+     */
     public static List<SdJwt> filterByVct(List<SdJwt> sdJwts, DcqlCredentialMeta credentialMeta) {
         if (credentialMeta == null) {
             return sdJwts;
@@ -69,6 +71,21 @@ public class DcqlUtil {
         }
         // TODO Handle VCT extends according to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#I-D.ietf-oauth-sd-jwt-vc or decide to not support it in swiss profile
         return sdJwts.stream().filter(presentation -> acceptedVcts.contains(presentation.getClaims().getClaims().get("vct"))).toList();
+    }
+
+    private static List<Object> selectClaim(SdJwt sdJwt, DcqlClaim requestedClaim) {
+        var selected = new DcqlPathSelection(sdJwt.getResolvedClaims());
+        List<Object> requestedPath = requestedClaim.getPath();
+        for (Object path : requestedPath) {
+            switch (path) {
+                case null -> selected = selected.selectAll();
+                case Number number -> selected = selected.selectElement(number.intValue());
+                case String s -> selected = selected.selectElement(s);
+                default ->
+                        throw new IllegalArgumentException("Illegal request path type; was %s".formatted(path.getClass()));
+            }
+        }
+        return selected.selected;
     }
 
     /**

@@ -1,20 +1,18 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import java.text.ParseException;
-import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-
-import tools.jackson.core.JacksonException;
-
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.publickey.TrustProtocolv1Resolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+
+import java.text.ParseException;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -78,11 +76,12 @@ public class TrustProtocol1Validator {
 
     private boolean isProvidingTrust(String issuerDid, String vct, TrustAnchor trustAnchor,
                                      String rawTrustStatement, Management management) throws ParseException {
-        var trustStatement = new SdJwt(rawTrustStatement);
-        trustStatement = sdJwtVpTokenVerifier.verifyVpTokenTrustStatement(trustStatement, management);
-        return issuerDid.equals(trustStatement.getClaims().getSubject())
-                && trustAnchor.did().equals(trustStatement.getClaims().getIssuer())
-                && vct.equals(trustStatement.getClaims().getStringClaim("canIssue"));
+        SdJwt sdJwt = sdJwtVpTokenVerifier.verifyVpTokenTrustStatement(rawTrustStatement, management);
+        var claims = sdJwt.getClaims();
+
+        return issuerDid.equals(claims.getSubject())
+                && trustAnchor.did().equals(claims.getIssuer())
+                && vct.equals(claims.getStringClaim("canIssue"));
     }
 
     private List<String> fetchTrustStatementIssuance(String vct, TrustAnchor trustAnchor) {
@@ -95,5 +94,4 @@ public class TrustProtocol1Validator {
             return List.of();
         }
     }
-
 }

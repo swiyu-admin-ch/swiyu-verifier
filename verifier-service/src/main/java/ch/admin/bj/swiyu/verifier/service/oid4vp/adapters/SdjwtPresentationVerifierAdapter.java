@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.adapters;
 
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
@@ -23,7 +23,7 @@ public class SdjwtPresentationVerifierAdapter implements PresentationVerifier {
 
     /**
      * Wraps the given VP token into an {@link SdJwt} value object and delegates the
-     * verification to {@link DcqlVpTokenVerifier#verifyVpTokenForDCQLRequest(SdJwt, Management, DcqlCredential)}.
+     * verification to {@link DcqlVpTokenVerifier#verifyVpTokenForDCQLRequest(String, Management, DcqlCredential)}.
      *
      * @param vpToken   the raw VP token to be verified
      * @param management the management configuration used to control verification rules
@@ -31,7 +31,6 @@ public class SdjwtPresentationVerifierAdapter implements PresentationVerifier {
      */
     @Override
     public SdJwtVerificationResult verify(String vpToken, Management management, DcqlCredential dcqlCredential) {
-        SdJwt sdJwt = new SdJwt(vpToken);
-        return delegate.verifyVpTokenForDCQLRequest(sdJwt, management, dcqlCredential);
+        return delegate.verifyVpTokenForDCQLRequest(vpToken, management, dcqlCredential);
     }
 }

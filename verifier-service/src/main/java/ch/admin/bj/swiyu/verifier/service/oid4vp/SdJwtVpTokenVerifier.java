@@ -1,11 +1,13 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.jwtutil.JwtUtil;
-import ch.admin.bj.swiyu.jwtutil.JwtUtilException;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
-import ch.admin.bj.swiyu.statuslist.TokenStatusListBit;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwtVcValidator;
+import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtParseException;
+import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtVerificationException;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
@@ -13,46 +15,22 @@ import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
-import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
-
-import com.authlete.sd.Disclosure;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
-import com.nimbusds.jwt.proc.BadJWTException;
-import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.time.Instant;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Optional;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.submissionError;
 
 /**
  * Verifies SD-JWT trust statements (which are themselves VP tokens) using the
@@ -64,127 +42,53 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 @RequiredArgsConstructor
 public class SdJwtVpTokenVerifier {
 
-    // We have vc+sd-jwt only for legacy reasons (Expand-Migrate-Contract: removal tracked in a separate Contract-phase ticket).
-    // Spec: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt
-    public static final List<String> SUPPORTED_CREDENTIAL_FORMATS = List.of("vc+sd-jwt", "dc+sd-jwt");
-    public static final List<String> SUPPORTED_JWT_ALGORITHMS = List.of("ES256");
-    public static final List<String> SUPPORTED_SDJWT_ALGORITHMS = List.of("sha-256");
-    public static final String SDJWT_ALG_CLAIM = "_sd_alg";
-
-    private static final int MAX_HOLDER_BINDING_AUDIENCES = 1;
-
     private final DidResolverFacade didResolver;
     private final DidJwtValidator jwtValidator;
     private final StatusListCacheService statusListCacheService;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
     private final TokenStatusListVerifier statusListVerifier;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     @Deprecated(since = "Trust Protocol 2.0")
     private final DidKidParser didKidParser = new DidKidParser();
 
     @Deprecated(since = "Trust Protocol 2.0")
-    public SdJwt verifyVpTokenTrustStatement(SdJwt vpToken, Management management) {
-        // Re-use the shared verification building blocks
-        verifyVerifiableCredentialJWT(vpToken, management);
-        // For Trust Protocol 1.0 the KID and DID must match
-        var didFromKid = didKidParser.getDidFromAbsoluteKid(vpToken.getHeader().getKeyID());
-        if (didFromKid == null || !didFromKid.equals(vpToken.getClaims().getIssuer())) {
-            throw credentialError(CREDENTIAL_INVALID, "Trust Statements 1.0 MUST have correlating and iss claims");
-        }
-        if (vpToken.hasKeyBinding()) {
-            validateKeyBinding(vpToken, management);
-        } else if (canHaveKeyBinding(vpToken.getClaims())) {
-            // If the Trust Statement can have a key binding we currently enforce usage of it
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
-        }
+    public SdJwt verifyVpTokenTrustStatement(String vpToken, Management management) {
 
-        verifyStatus(vpToken.getClaims().getClaims(), vpToken.getHeader());
-        validateDisclosures(vpToken, management);
-
-        return vpToken;
-    }
-
-    /**
-     * Verifies the given jwt according to basic JWT requirements (header, times, signature).
-     *
-     * @param sdJwt to be verified, without resolving selective disclosures. Will be updated to have jws header and jwt claims
-     */
-    protected void verifyVerifiableCredentialJWT(SdJwt sdJwt, Management managementEntity) {
         try {
-            SignedJWT nimbusJwt = SignedJWT.parse(sdJwt.getJwt());
-            var header = nimbusJwt.getHeader();
-            validateHeader(header);
-            var claims = nimbusJwt.getJWTClaimsSet();
-            // Only technical verification here; issuer trust is validated at service layer
-            var publicKey = didResolver.resolveKey(header.getKeyID());
-            log.trace("Loaded issuer public key for id {}", managementEntity.getId());
-            jwtValidator.validateJwt(sdJwt.getJwt(), publicKey);
-            log.trace("Successfully verified signature of id {}", managementEntity.getId());
-            validateJwtTimes(claims);
-            sdJwt.setHeader(header);
-            sdJwt.setClaims(claims);
-        } catch (JwtUtilException | ParseException | JwtValidatorException e) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
-        }
-    }
+            SdJwtVcValidator validator = new SdJwtVcValidator(jwtValidator);
 
-    /**
-     * Update the sdJwts disclosure with validates resolved selective disclosures
-     */
-    protected void validateDisclosures(SdJwt sdJwt, Management managementEntity) {
+            SdJwt sdJwt;
+            String headerKid;
 
-        var claims = sdJwt.getClaims();
-        var disclosures = sdJwt.getDisclosures();
+            sdJwt = SdJwtParser.parseSdJwt(vpToken);
 
-        // contains all claims except list entries (as they are)
-        var disclosedClaimNames = disclosures.stream().map(Disclosure::getClaimName).collect(Collectors.toSet());
+            validator.validateAndSetHeader(sdJwt);
 
-        // SD-JWT VC 3.2.2
-        if (CollectionUtils.containsAny(disclosedClaimNames, Set.of("iss", "nbf", "exp", "cnf", "vct", "status"))) {
-            throw credentialError(MALFORMED_CREDENTIAL, "If present, the following registered JWT claims MUST be included in the SD-JWT and MUST NOT be included in the Disclosures: 'iss', 'nbf', 'exp', 'cnf', 'vct', 'status'");
-        }
+            headerKid = sdJwt.getHeader().getKeyID();
+            var publicKey = didResolver.resolveKey(headerKid);
 
-        // 8.1 / 3.3.3: If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected.
-        if (CollectionUtils.containsAny(disclosedClaimNames, claims.getClaims().keySet())) { // If there is any result of the set intersection
-            throw credentialError(MALFORMED_CREDENTIAL, "Can not resolve disclosures. Existing Claim would be overridden.");
-        }
+            validator.validateAndSetJwt(sdJwt, publicKey);
 
-        JsonNode resolvedClaims = processDisclosures(sdJwt.getClaims(), disclosures, managementEntity.getId());
+            // For Trust Protocol 1.0 the KID and DID must match
+            var didFromKid = didKidParser.getDidFromAbsoluteKid(headerKid);
+            if (didFromKid == null || !didFromKid.equals(sdJwt.getClaims().getIssuer())) {
+                throw credentialError(CREDENTIAL_INVALID, "Trust Statements 1.0 MUST have correlating and iss claims");
+            }
 
-        var prepared = objectMapper.convertValue(resolvedClaims, new TypeReference<Map<String, Object>>(){});
+            validateKeyBinding(sdJwt, canHaveKeyBinding(sdJwt.getClaims()), management, validator);
 
-        log.trace("Successfully verified disclosure digests of id {}", managementEntity.getId());
+            verifyStatus(sdJwt.getClaims().getClaims(), sdJwt.getHeader());
 
-        sdJwt.setResolvedClaims(prepared);
-    }
+            // Resolve Disclosures
+            validator.processDisclosures(sdJwt);
 
-    /**
-     * Validates the Header and returns the used encryption Algorithm
-     *
-     * @param header A header to be validated
-     */
-    protected void validateHeader(JWSHeader header) {
-        if (header.getAlgorithm() == null || !SUPPORTED_JWT_ALGORITHMS.contains(header.getAlgorithm().getName())) {
-            throw credentialError(INVALID_FORMAT, "Invalid Algorithm: alg is not supported must be one of %s, but was %s"
-                    .formatted(SUPPORTED_JWT_ALGORITHMS, header.getAlgorithm().getName()));
-        }
-        if (header.getType() == null || !SUPPORTED_CREDENTIAL_FORMATS.contains(header.getType().getType())) {
-            throw credentialError(INVALID_FORMAT, "Type header must be one of %s".formatted(SUPPORTED_CREDENTIAL_FORMATS));
-        }
-        if (StringUtils.isBlank(header.getKeyID())) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Missing header attribute 'kid' for the issuer's Key Id in the JWT token");
-        }
-    }
-
-    protected void validateJwtTimes(JWTClaimsSet claims) {
-        var exp = claims.getExpirationTime();
-        if (exp != null && new Date().after(exp)) {
-            throw credentialError(JWT_EXPIRED, "Could not verify JWT credential is expired");
-        }
-        var nbf = claims.getNotBeforeTime();
-        if (nbf != null && new Date().before(nbf)) {
-            throw credentialError(JWT_PREMATURE, "Could not verify JWT credential is not yet valid");
+            return sdJwt;
+        } catch (SdJwtParseException e) {
+            log.error("Failed to parse VP token: {}", e.getMessage(), e);
+            throw credentialError(MALFORMED_CREDENTIAL, e.getMessage());
+        } catch (SdJwtVerificationException e) {
+            log.error("Verification failed for VP token: {}", e.getMessage(), e);
+            throw credentialError(MALFORMED_CREDENTIAL, e.getMessage());
         }
     }
 
@@ -196,15 +100,15 @@ public class SdJwtVpTokenVerifier {
         }
         try {
             TokenStatusListTokenDto statusList = statusListCacheService.getTokenStatusListTokenByUri(reference.getReferencedStatusListUri());
-            if(statusList == null) {
+            if (statusList == null) {
                 throw credentialError(UNRESOLVABLE_STATUS_LIST, "Status List not found or malformed");
             }
             StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(reference, statusList);
             return Optional.of(statusListState);
         } catch (
-            IndexOutOfBoundsException | 
-            IOException |
-            JwtValidatorException e) {
+                IndexOutOfBoundsException |
+                IOException |
+                JwtValidatorException e) {
             throw credentialError(e, UNRESOLVABLE_STATUS_LIST, "Status List Token malformed");
         } catch (StatusListMaxSizeExceededException e) {
             throw credentialError(e, UNRESOLVABLE_STATUS_LIST, "Status list size from %s exceeds maximum allowed size".formatted(reference.getReferencedStatusListUri()));
@@ -212,355 +116,53 @@ public class SdJwtVpTokenVerifier {
     }
 
     /**
-     * 
+     * Validate the holder (key) binding for an SD-JWT that represents a Verifiable Presentation (VP) token.
+     *
+     * <p>Validation rules:
+     * <ul>
+     *   <li>If cryptographic holder-binding is not required and the token contains no key binding, return silently.</li>
+     *   <li>If cryptographic holder-binding is required but the token lacks a key binding, throw a
+     *       credential error with code HOLDER_BINDING_MISMATCH.</li>
+     *   <li>Otherwise, validate the holder-binding</li>
+     * </ul>
+     *
+     * @param sdJwt                                the parsed SD-JWT {@link SdJwt} containing the VP token to validate
+     * @param isCryptographicHolderBindingRequired boolean whether cryptographic holder-binding is mandatory
+     * @param management                           the Management {@link Management} provides configuration override and request nonce
+     * @param validator                            the SD-JWT VC validator used to perform the low-level key-binding checks
+     */
+    void validateKeyBinding(SdJwt sdJwt, boolean isCryptographicHolderBindingRequired, Management management, SdJwtVcValidator validator) {
+
+        if (!isCryptographicHolderBindingRequired && !sdJwt.hasKeyBinding()) {
+            return;
+        }
+
+        if (isCryptographicHolderBindingRequired && !sdJwt.hasKeyBinding()) {
+            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
+        }
+
+        var configurationOverride = management.getConfigurationOverride();
+        var expectedAudience = configurationOverride.verifierDidOrDefaultWithPrefix(applicationProperties);
+        var requestNonce = management.getRequestNonce();
+
+        try {
+            validator.validateKeyBinding(sdJwt,
+                    expectedAudience,
+                    requestNonce,
+                    verificationProperties.getAcceptableProofTimeWindowSeconds());
+
+        } catch (SdJwtVerificationException e) {
+            log.error("Failed to validate key binding for VP token: {}", e.getMessage(), e);
+            throw credentialError(e, HOLDER_BINDING_MISMATCH, e.getMessage());
+        }
+    }
+
+    /**
+     *
      * @param claims the claims of a VP Token
      * @return true, if the VP Token is set up to have a key binding
      */
     boolean canHaveKeyBinding(JWTClaimsSet claims) {
         return claims.getClaims().containsKey("cnf");
-    }
-
-    void validateKeyBinding(SdJwt sdJwt, Management management) {
-        JWK keyBinding = getHolderKeyBinding(sdJwt.getClaims().getClaims());
-        // Validate Holder Binding Proof JWT
-        JWTClaimsSet keyBindingClaims = getValidatedHolderKeyProof(sdJwt.getKeyBinding().orElseThrow(), keyBinding,
-                Optional.ofNullable(management.getConfigurationOverride())
-                        .orElse(new ConfigurationOverride(null, null, null, null, null, null)));
-        validateNonce(keyBindingClaims, management.getRequestNonce());
-        validateSDHash(sdJwt, keyBindingClaims);
-    }
-
-    void validateFormat(DcqlCredential dcqlCredential, SdJwt vpToken) {
-        var expectedFormatType = dcqlCredential.getFormat();
-        var actualFormatType = vpToken.getHeader().getType();
-        var actualFormatValue = actualFormatType == null ? null : actualFormatType.getType();
-
-        if (dcqlCredential.expectsSDJWTCredential()) {
-            if (!vpToken.isSDJWTType()) {
-                var error = "Wrong format for %s - expected SD-JWT but received %s".formatted(dcqlCredential.getId(), actualFormatValue);
-                throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, error);
-            }
-            return;
-        }
-
-        if (actualFormatValue == null || !expectedFormatType.equalsIgnoreCase(actualFormatValue)) {
-            var error = "Wrong format for %s - expected %s but received %s".formatted(dcqlCredential.getId(), expectedFormatType, actualFormatValue);
-            throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, error);
-        }
-    }
-
-    private void validateSDHash(SdJwt sdjwt, JWTClaimsSet keyBindingClaims) {
-        // Compute the SD Hash of the VP Token
-        String hash = sdjwt.getPresentationHash();
-        String hashClaim = keyBindingClaims.getClaim("sd_hash").toString();
-        if (!hash.equals(hashClaim)) {
-            throw credentialError(HOLDER_BINDING_MISMATCH,
-                    String.format("Failed to validate key binding. Presented sd_hash '%s' does not match the computed hash '%s'", hashClaim, hash));
-        }
-    }
-
-    @NotNull
-    private JWTClaimsSet getValidatedHolderKeyProof(String keyBindingProof, JWK keyBinding, ConfigurationOverride configurationOverride) {
-        JWTClaimsSet keyBindingClaims;
-        try {
-            SignedJWT keyBindingJWT = SignedJWT.parse(keyBindingProof);
-
-            validateKeyBindingHeader(keyBindingJWT.getHeader());
-            try {
-                JwtUtil.verifyJwt(keyBindingProof, keyBinding);
-            } catch (JwtUtilException e) {
-                throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding provided does not match the one in the credential");
-            }
-            validateKeyBindingClaims(keyBindingJWT);
-            keyBindingClaims = keyBindingJWT.getJWTClaimsSet();
-            validateHolderBindingAudience(keyBindingClaims.getAudience(), configurationOverride);
-        } catch (ParseException e) {
-            throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding could not be parsed");
-        } catch (BadJWTException e) {
-            throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding is not a valid JWT");
-        }
-        return keyBindingClaims;
-    }
-
-    /**
-     * Validates if we as verifier are indeed the audience of the holder binding, or whether it was created for another (eg. man in the middle) service.
-     *
-     * @param audience              the audience as provided in the holder binding JWT
-     * @param configurationOverride possible override values
-     * @throws VerificationException if the audience for the holder binding does not match the expected one
-     */
-    private void validateHolderBindingAudience(List<String> audience,
-                                               ConfigurationOverride configurationOverride) {
-        if (CollectionUtils.isEmpty(audience)) {
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding audience (aud)");
-        }
-
-        /*
-         * https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#section-4.3
-         * The value MUST be a single string that identifies the intended receiver of the Key Binding JWT.
-         */
-        if (audience.size() != MAX_HOLDER_BINDING_AUDIENCES) {
-            throw credentialError(HOLDER_BINDING_MISMATCH,
-                    "Multiple audiences not supported. Expected 1 but was %d: %s".formatted(audience.size(), audience));
-        }
-
-        String aud = audience.getFirst();
-        if (StringUtils.isBlank(aud)) {
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Audience value is blank");
-        }
-
-        String clientId = configurationOverride.verifierDidOrDefaultWithPrefix(applicationProperties);
-
-        // Exact match only
-        if (!clientId.equals(aud)) {
-            throw credentialError(HOLDER_BINDING_MISMATCH,
-                    "Holder Binding audience mismatch. Actual: '%s'. Expected: %s"
-                            .formatted(aud, clientId));
-        }
-    }
-
-    /**
-     * Check they type and format of the key binding jwt
-     */
-    private void validateKeyBindingHeader(JWSHeader keyBindingHeader) {
-        if (keyBindingHeader.getType() == null || !"kb+jwt".equals(keyBindingHeader.getType().toString())) {
-            throw credentialError(HOLDER_BINDING_MISMATCH,
-                    String.format("Type of holder binding typ is expected to be kb+jwt but was %s",
-                            keyBindingHeader.getType()));
-        }
-
-        if (keyBindingHeader.getAlgorithm() == null || !SUPPORTED_JWT_ALGORITHMS.contains(keyBindingHeader.getAlgorithm().getName())) {
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Holder binding algorithm must be in %s".formatted(SUPPORTED_CREDENTIAL_FORMATS));
-        }
-    }
-
-    /**
-     * Check if the jwt has been issued in an acceptable time window
-     */
-    private void validateKeyBindingClaims(SignedJWT keyBindingJWT) throws BadJWTException, ParseException {
-        // See https://connect2id.com/products/nimbus-jose-jwt/examples/validating-jwt-access-tokens#framework
-        new DefaultJWTClaimsVerifier<>(null, Set.of("iat")).verify(keyBindingJWT.getJWTClaimsSet(), null);
-        var proofIssueTime = keyBindingJWT.getJWTClaimsSet().getIssueTime().toInstant();
-        var now = Instant.now();
-        // iat not within acceptable proof time window
-        if (proofIssueTime.isBefore(now.minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()))
-                || proofIssueTime.isAfter(now.plusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds()))) {
-            throw credentialError(HOLDER_BINDING_MISMATCH, String.format("Holder Binding proof was not issued at an acceptable time. Expected %d +/- %d seconds", now.getEpochSecond(), verificationProperties.getAcceptableProofTimeWindowSeconds()));
-        }
-    }
-
-    @NotNull
-    private JWK getHolderKeyBinding(Map<String, Object> payload) {
-        if (!payload.containsKey("cnf")) {
-            throw credentialError(HOLDER_BINDING_MISMATCH, "No cnf claim found. Only supporting JWK holder bindings");
-        }
-        Object keyBindingClaim = payload.get("cnf");
-        if (!(keyBindingClaim instanceof Map)) {
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Holder Binding is not a JWK");
-        }
-
-        // Refactor this as soon as issuer and wallet deliver the correct cnf structure
-        var jwk = ((Map<?, ?>) keyBindingClaim).get("jwk");
-        if (jwk != null) {
-            keyBindingClaim = jwk;
-        }
-
-        JWK keyBinding;
-        try {
-            keyBinding = JWK.parse(JsonUtil.getJsonObject(keyBindingClaim));
-        } catch (ParseException e) {
-            throw credentialError(e, HOLDER_BINDING_MISMATCH, "Holder Binding Key could not be parsed");
-        }
-        return keyBinding;
-    }
-
-    private void validateNonce(JWTClaimsSet keyBindingClaims, String expectedNonce) {
-        var actualNonce = keyBindingClaims.getClaim("nonce");
-        if (!Objects.equals(expectedNonce, actualNonce)) {
-            throw credentialError(MISSING_NONCE,
-                    String.format("Holder Binding lacks correct nonce expected '%s' but was '%s'", expectedNonce,
-                            actualNonce));
-        }
-    }
-
-    /**
-     * Process the Disclosures and embedded digests in the Issuer-signed JWT
-     */
-    protected JsonNode processDisclosures(JWTClaimsSet claimSet, List<Disclosure> disclosures, UUID managementEntityId) {
-
-        var claims = objectMapper.convertValue(claimSet.getClaims(), JsonNode.class);
-
-        // 3.1 - For each Disclosure provided Calculate the digest over the base64url-encoded string
-        // Reject immediately if the same disclosure appears more than once (identical digest)
-        Map<String, Disclosure> digestToDisclosure = disclosures.stream().collect(
-                Collectors.toMap(
-                        Disclosure::digest,
-                        Function.identity(),
-                        (existing, duplicate) -> {
-                            throw credentialError(MALFORMED_CREDENTIAL, "Request contains non-distinct disclosures");
-                        }
-                ));
-
-        log.trace("Prepared {} disclosure digests for id {}", disclosures.size(), managementEntityId);
-
-        List<String> usedDigests = new LinkedList<>();
-
-        JsonNode processed = processNode(claims, digestToDisclosure, usedDigests);
-
-        // 3.5 Remove _sd keys
-        removeSdKeys(processed);
-
-        // 3.6 Check if correct _sd_alg-value Remove _sd_alg
-        if (processed.hasNonNull(SDJWT_ALG_CLAIM) && !SUPPORTED_SDJWT_ALGORITHMS.contains(processed.get(SDJWT_ALG_CLAIM).asString())) {
-            throw credentialError(INVALID_FORMAT, "Unsupported _sd_alg value: %s".formatted(processed.get(SDJWT_ALG_CLAIM).asString()));
-        }
-        ((ObjectNode) processed).remove(SDJWT_ALG_CLAIM);
-
-        // 4. Check duplicate digests
-        if (usedDigests.size() != new HashSet<>(usedDigests).size()) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Duplicate digest detected");
-        }
-
-        // 5. Ensure all disclosures used
-        if (usedDigests.size() != disclosures.size()) {
-            throw credentialError(MALFORMED_CREDENTIAL, "Unused disclosures detected");
-        }
-
-        // 6. Validate claims (exp, nbf, aud)
-        validateJwtTimes(claimSet);
-
-        return processed;
-    }
-
-    private JsonNode processNode(JsonNode node,
-                                 Map<String, Disclosure> digestMap,
-                                 List<String> usedDigests) {
-        if (node.isObject()) {
-            return processObjectNode((ObjectNode) node, digestMap, usedDigests);
-        }
-
-        if (node.isArray()) {
-            return processArrayNode((ArrayNode) node, digestMap, usedDigests);
-        }
-
-        return node;
-    }
-
-    private JsonNode processObjectNode(ObjectNode object,
-                                       Map<String, Disclosure> digestMap,
-                                       List<String> usedDigests) {
-        // if no _sd key present, just recurse into fields
-        if (!object.has("_sd")) {
-            Iterator<String> fields = object.propertyNames().iterator();
-            List<String> names = new ArrayList<>();
-            fields.forEachRemaining(names::add);
-            for (String name : names) {
-                object.set(name, processNode(object.get(name), digestMap, usedDigests));
-            }
-            return object;
-        }
-
-        // object has _sd -> process disclosures first
-        JsonNode sdNode = object.get("_sd");
-        if (!(sdNode instanceof ArrayNode sdArray)) {
-            throw credentialError(MALFORMED_CREDENTIAL, "'_sd' claim must be a JSON array");
-        }
-
-        // snapshot original fields to avoid processing newly added fields
-        List<String> originalFields = new ArrayList<>();
-        object.propertyNames().iterator().forEachRemaining(originalFields::add);
-
-        handleSdArray(object, sdArray, digestMap, usedDigests);
-
-        // iterate only the original fields (skip _sd) and recurse
-        for (String field : originalFields) {
-            if ("_sd".equals(field)) continue;
-            object.set(field, processNode(object.get(field), digestMap, usedDigests));
-        }
-
-        return object;
-    }
-
-    private void handleSdArray(ObjectNode object,
-                               ArrayNode sdArray,
-                               Map<String, Disclosure> digestMap,
-                               List<String> usedDigests) {
-        for (JsonNode digestNode : sdArray) {
-            String digest = digestNode.asString();
-
-            if (!digestMap.containsKey(digest)) continue;
-
-            usedDigests.add(digest);
-            var disclosure = digestMap.get(digest);
-            var claimName = disclosure.getClaimName();
-
-            // 3.2.1 If the contents of the respective Disclosure is not a JSON array of three elements (salt, claim name, claim value), the SD-JWT MUST be rejected.
-            if (claimName == null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found");
-            }
-
-            // 3.2. If the claim name is _sd or ..., the SD-JWT MUST be rejected.
-            if (claimName.equals("_sd") || claimName.equals("...")) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Illegal disclosure found with name _sd or ...");
-            }
-
-            // 3.3.  If the claim name already exists at the level of the _sd key, the SD-JWT MUST be rejected
-            if (object.has(claimName)) {
-                throw credentialError(MALFORMED_CREDENTIAL, "Claim name already exists at the level of the _sd key");
-            }
-
-            var claimValue = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
-            object.set(claimName, processNode(claimValue, digestMap, usedDigests));
-        }
-    }
-
-    private JsonNode processArrayNode(ArrayNode array,
-                                      Map<String, Disclosure> digestMap,
-                                      List<String> usedDigests) {
-        ArrayNode newArray = objectMapper.createArrayNode();
-
-        for (JsonNode element : array) {
-            if (element.isObject() && element.has("...")) {
-                String digest = element.get("...").asString();
-
-                JsonNode value;
-
-                if (digestMap.containsKey(digest)) {
-                    usedDigests.add(digest);
-                    var disclosure = digestMap.get(digest);
-
-                    if (disclosure.getClaimName() != null || disclosure.getClaimValue() == null || disclosure.getSalt() == null) {
-                        throw credentialError(MALFORMED_CREDENTIAL, "Illegal non-array disclosure found");
-                    }
-
-                    value = objectMapper.convertValue(disclosure.getClaimValue(), JsonNode.class);
-                } else {
-                    // if value is not requested, add digest to array otherwise index access won't work
-                    value = objectMapper.convertValue(digest, JsonNode.class);
-                }
-
-
-                newArray.add(processNode(value, digestMap, usedDigests));
-            } else {
-                newArray.add(processNode(element, digestMap, usedDigests));
-            }
-        }
-
-        return newArray;
-    }
-
-    private void removeSdKeys(JsonNode node) {
-        if (node.isObject()) {
-            ObjectNode obj = (ObjectNode) node;
-            obj.remove("_sd");
-
-            for (String string : obj.propertyNames()) {
-                removeSdKeys(obj.get(string));
-            }
-        } else if (node.isArray()) {
-            for (JsonNode n : node) {
-                removeSdKeys(n);
-            }
-        }
     }
 }

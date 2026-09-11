@@ -1,23 +1,22 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
-import ch.admin.bj.swiyu.verifier.dto.management.result.CredentialEvaluationDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.DcqlEvaluator;
+import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +37,6 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 public class DcqlPresentationVerificationService {
 
     private final PresentationVerifier presentationVerifier;
-    private final DcqlEvaluator dcqlEvaluator;
     private final ObjectMapper objectMapper;
     private final ApplicationProperties applicationProperties;
 
@@ -93,14 +91,14 @@ public class DcqlPresentationVerificationService {
      */
     private List<Map<String, Object>> resolveDCQL(DcqlCredential requestedCredential, List<SdJwtVerificationResult> verificationResults) {
         List<SdJwt> sdJwts = verificationResults.stream().map(SdJwtVerificationResult::sdJwt).toList();
-        sdJwts = dcqlEvaluator.filterByVct(sdJwts, requestedCredential.getMeta());
+        sdJwts = DcqlUtil.filterByVct(sdJwts, requestedCredential.getMeta());
 
         if (sdJwts.isEmpty()) {
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "No matching SD-JWT for requested credential id " + requestedCredential.getId());
         }
 
         SdJwt sdjwt = sdJwts.getFirst(); // TODO EIDOMNI-887: Support for Claim Sets & credential sets
-        dcqlEvaluator.validateRequestedClaims(sdjwt, requestedCredential.getClaims());
+        DcqlUtil.validateRequestedClaims(sdjwt, requestedCredential.getClaims());
         return List.of(sdjwt.getResolvedClaims());
     }
 
@@ -115,10 +113,9 @@ public class DcqlPresentationVerificationService {
             DcqlCredential requestedCredential) {
         var requestedVpTokens = validatePresentedTokens(vpTokens, requestedCredential);
 
-        List<SdJwtVerificationResult> verificationResults = requestedVpTokens.stream()
+        return requestedVpTokens.stream()
                 .map(token -> presentationVerifier.verify(token, entity, requestedCredential))
                 .toList();
-        return verificationResults;
     }
 
     /**

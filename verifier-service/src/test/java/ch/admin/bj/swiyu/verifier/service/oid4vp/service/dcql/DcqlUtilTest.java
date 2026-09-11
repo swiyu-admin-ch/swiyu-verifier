@@ -1,15 +1,15 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service.dcql;
 
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.CollectionUtils;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 

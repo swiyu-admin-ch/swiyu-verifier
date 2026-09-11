@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
@@ -277,6 +278,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             int expectedIndex,
             String expectedCountry) throws Exception {
 
+        // credential_subject_data is only included in the management API response when explicitly enabled (EIDOMNI-1321)
+        enableCredentialSubjectDataAuditInformation();
+
         var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry);
 
         // GIVEN
@@ -321,6 +325,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             int disclosureIndexStart,
             int disclosureIndexEnd) throws Exception {
 
+        // credential_subject_data is only included in the management API response when explicitly enabled (EIDOMNI-1321)
+        enableCredentialSubjectDataAuditInformation();
+
         var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry);
 
         // GIVEN
@@ -360,6 +367,17 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
     private HikariPoolMXBean hikariPool() {
         return ((HikariDataSource) dataSource).getHikariPoolMXBean();
+    }
+
+    /**
+     * Enables the {@code credential_subject_data} audit flag for the current test only, overriding the default
+     * (disabled) configuration (see EIDOMNI-1321), so that the requested claims are included in the
+     * management API response and can be asserted against.
+     */
+    private void enableCredentialSubjectDataAuditInformation() {
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        auditInformation.setCredentialSubjectDataEnabled(true);
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
     }
 
     @ParameterizedTest

@@ -54,6 +54,14 @@ class ManagementMapperTest {
         when(applicationProperties.getClientId()).thenReturn(CLIENT_ID);
         when(applicationProperties.getDeeplinkSchema()).thenReturn(DEEPLINK_SCHEMA);
         when(applicationProperties.getClientIdPrefix()).thenReturn(CLIENT_ID_PREFIX);
+        // By default, all audit information flags are enabled for the existing tests below,
+        // which assert the presence of vp_token, credential_subject_data and credential_evaluation.
+        // The dedicated flag-behaviour tests further down override this per scenario.
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        auditInformation.setVpTokenEnabled(true);
+        auditInformation.setCredentialSubjectDataEnabled(true);
+        auditInformation.setCredentialEvaluationEnabled(true);
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
     }
 
     @Test
@@ -95,27 +103,7 @@ class ManagementMapperTest {
     void toManagementResponseDto_withSuccessfulVerification_returnsVerificationArtefacts() {
         String dcqlId = "requested_data";
         String vpTokenStandin = "test_vp_token";
-        var management = managementWithOverride();
-        management.claimForProcessing();
-        var credentialEvaluation = CredentialEvaluation.builder()
-            .credentialStatus(StatusVerificationResult.builder()
-                .valid(true)
-                .status(0)
-                .build())
-            .trustMarkers(IssuerTrustMarker.builder()
-                .isTrusted(true)
-                .trustMethod(TrustMethod.TRUST_PROTOCOL_2_0)
-                .identityTrustMarker(true)
-                .compliantActorTrustMarker(true)
-                .governedUseCaseTrustMarker(false)
-                .governedUseCaseAuthorizationTrustMarker(false)
-                .build())
-            .build();
-        management.verificationDone(VerificationResultData.builder()
-            .verifiedResponsesJsonString("{\"given_name\":\"Ada\",\"age\":42}")
-            .evaluations(Map.of(dcqlId, List.of(credentialEvaluation)))
-            .vpTokens(Map.of(dcqlId, List.of(vpTokenStandin)))
-            .build());
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
 
         var dto = toManagementResponseDto(management, applicationProperties);
 
@@ -166,6 +154,124 @@ class ManagementMapperTest {
             "vp_token",
             vpTokenStandin,
             "credential_subject_data");
+    }
+
+    /**
+     * By default (all additional-audit-information flags disabled, as configured in
+     * {@link #setUpDisabledAuditInformation()}), the audit-sensitive fields vp_token, credential_subject_data
+     * and credential_evaluation must not be present in the response to the business verifier, even though
+     * the underlying verification produced this data.
+     */
+    @Test
+    void toManagementResponseDto_withAllAuditFlagsDisabled_omitsAuditFields() {
+        setUpDisabledAuditInformation();
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.walletResponse()).isNotNull();
+        assertThat(dto.walletResponse().credentialSubjectData()).isNull();
+        assertThat(dto.walletResponse().vpToken()).isNull();
+        assertThat(dto.credentialEvaluation()).isNull();
+        var json = assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
+        assertThat(json).as("Audit fields must be omitted from the serialized response when their flags are disabled")
+                .doesNotContain("vp_token", "credential_subject_data", "credential_evaluation");
+    }
+
+    /**
+     * Only vp_token is enabled; credential_subject_data and credential_evaluation must
+     * remain hidden from the response, proving the flags act independently of each other.
+     */
+    @Test
+    void toManagementResponseDto_withOnlyVpTokenFlagEnabled_returnsOnlyVpToken() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setVpTokenEnabled(true);
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.walletResponse().vpToken().get(dcqlId)).hasSize(1).contains(vpTokenStandin);
+        assertThat(dto.walletResponse().credentialSubjectData()).isNull();
+        assertThat(dto.credentialEvaluation()).isNull();
+    }
+
+    /**
+     * Only credential_subject_data is enabled; vp_token and credential_evaluation must
+     * remain hidden from the response, proving the flags act independently of each other.
+     */
+    @Test
+    void toManagementResponseDto_withOnlyCredentialSubjectDataFlagEnabled_returnsOnlyCredentialSubjectData() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setCredentialSubjectDataEnabled(true);
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.walletResponse().credentialSubjectData())
+                .containsEntry("given_name", "Ada")
+                .containsEntry("age", 42);
+        assertThat(dto.walletResponse().vpToken()).isNull();
+        assertThat(dto.credentialEvaluation()).isNull();
+    }
+
+    /**
+     * Only credential_evaluation is enabled; vp_token and credential_subject_data must
+     * remain hidden from the response, proving the flags act independently of each other.
+     */
+    @Test
+    void toManagementResponseDto_withOnlyCredentialEvaluationFlagEnabled_returnsOnlyCredentialEvaluation() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setCredentialEvaluationEnabled(true);
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.credentialEvaluation()).hasSize(1);
+        assertThat(dto.walletResponse().vpToken()).isNull();
+        assertThat(dto.walletResponse().credentialSubjectData()).isNull();
+    }
+
+    /**
+     * Replaces the stubbed {@link ApplicationProperties.AdditionalAuditInformationProperties} with an
+     * instance having all flags set to {@code false} (the production default), so individual tests can
+     * selectively re-enable single flags.
+     */
+    private void setUpDisabledAuditInformation() {
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
+    }
+
+    private Management managementWithSuccessfulVerification(String dcqlId, String vpTokenStandin) {
+        var management = managementWithOverride();
+        management.claimForProcessing();
+        var credentialEvaluation = CredentialEvaluation.builder()
+            .credentialStatus(StatusVerificationResult.builder()
+                .valid(true)
+                .status(0)
+                .build())
+            .trustMarkers(IssuerTrustMarker.builder()
+                .isTrusted(true)
+                .trustMethod(TrustMethod.TRUST_PROTOCOL_2_0)
+                .identityTrustMarker(true)
+                .compliantActorTrustMarker(true)
+                .governedUseCaseTrustMarker(false)
+                .governedUseCaseAuthorizationTrustMarker(false)
+                .build())
+            .build();
+        management.verificationDone(VerificationResultData.builder()
+            .verifiedResponsesJsonString("{\"given_name\":\"Ada\",\"age\":42}")
+            .evaluations(Map.of(dcqlId, List.of(credentialEvaluation)))
+            .vpTokens(Map.of(dcqlId, List.of(vpTokenStandin)))
+            .build());
+        return management;
     }
 
     @Test

@@ -477,8 +477,6 @@ components:
           $ref: "#/components/schemas/StatusVerificationResult"
         trust_markers:
           $ref: "#/components/schemas/IssuerTrustMarker"
-        valid:
-          type: boolean
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -714,7 +712,8 @@ components:
             items:
               $ref: "#/components/schemas/CredentialEvaluation"
           description: "Object of Evaluations, where the key is the id of the dcql_query\
-            \ credential"
+            \ credential. Only present if `application.additional-audit-information.credential-evaluation-enabled`\
+            \ is set to true (default: false)."
         wallet_response:
           $ref: "#/components/schemas/ResponseData"
         verification_url:
@@ -732,15 +731,16 @@ components:
           type: object
           additionalProperties: {}
           description: "Requested Claims, where the key is the id of the credential\
-            \ request"
+            \ request. Only present if `application.additional-audit-information.credential-subject-data-enabled`\
+            \ is set to true (default: false)."
         vp_token:
           type: object
           additionalProperties:
             type: array
             items:
               type: string
-          description: "Full presentation as sent by the wallet, if audit feature\
-            \ has been activated"
+          description: "Full presentation as sent by the wallet. Only present if `application.additional-audit-information.vp-token-enabled`\
+            \ is set to true (default: false)."
     StatusVerificationResult:
       type: object
       properties:

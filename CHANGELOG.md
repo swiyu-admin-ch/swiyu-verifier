@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
 - Check correctness of the status list header and reset cache accordingly (#1235)
 - - Check if trust statement issuer matches the issuer of the status list `(#1210)`
+- Fixed vqPS registration to use the verifier DID from `configuration_override.verifier_did` `(#1338)`
 
 # [4.2.0] - 2026-08-21
 

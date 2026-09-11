@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<!--
+  DC API Diagnostic Test Page (swiyu-verifier)
+
+  Purpose: verify step by step whether the W3C Digital Credentials API can be used
+  on the current device/browser and whether the swiyu-verifier backend delivers a
+  usable JWT-Secured Authorization Request (JAR).
+
+  This page is intentionally dependency-free (plain HTML/JS, no build step) so it can
+  be served from any static host or tunnel (ngrok / cloudflared) during a POC.
+
+  IMPORTANT: the page must be served over HTTPS (or from localhost). The origin it is
+  served from must be listed in `expected_origins` of the verification request.
+-->
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DC API Diagnose – swiyu-verifier</title>
+    <style>
+        :root {
+            --ok: #1a7f37;
+            --fail: #cf222e;
+            --warn: #9a6700;
+            --border: #d0d7de;
+            --bg-muted: #f6f8fa;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 1rem;
+            line-height: 1.5;
+            color: #1f2328;
+            max-width: 900px;
+            margin-inline: auto;
+        }
+
+        h1 { font-size: 1.4rem; margin-bottom: .25rem; }
+        h2 { font-size: 1.1rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: .3rem; }
+        .subtitle { color: #656d76; margin-top: 0; font-size: .9rem; }
+
+        .check {
+            display: flex;
+            align-items: flex-start;
+            gap: .6rem;
+            padding: .5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .check:last-child { border-bottom: none; }
+        .badge {
+            flex: 0 0 auto;
+            font-weight: 700;
+            font-size: .8rem;
+            padding: .1rem .5rem;
+            border-radius: 999px;
+            border: 1px solid;
+            min-width: 4.5rem;
+            text-align: center;
+        }
+        .badge.ok { color: var(--ok); border-color: var(--ok); }
+        .badge.fail { color: var(--fail); border-color: var(--fail); }
+        .badge.warn { color: var(--warn); border-color: var(--warn); }
+        .badge.pending { color: #656d76; border-color: var(--border); }
+
+        .check-body { flex: 1 1 auto; min-width: 0; }
+        .check-title { font-weight: 600; }
+        .check-detail { font-size: .85rem; color: #656d76; word-break: break-word; }
+
+        label { display: block; font-size: .85rem; font-weight: 600; margin-top: .8rem; }
+        input[type="text"] {
+            width: 100%;
+            padding: .5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .85rem;
+        }
+
+        button {
+            margin-top: 1rem;
+            padding: .6rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #1f883d;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:disabled { background: #8c959f; cursor: not-allowed; }
+        button.secondary { background: var(--bg-muted); color: #1f2328; }
+
+        pre {
+            background: var(--bg-muted);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: .75rem;
+            overflow-x: auto;
+            font-size: .78rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
+        }
+
+        .hint {
+            background: #fff8c5;
+            border: 1px solid #d4a72c;
+            border-radius: 6px;
+            padding: .75rem;
+            font-size: .85rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<h1>DC API Diagnose</h1>
+<p class="subtitle">
+    Prüft schrittweise, ob der Same-Device-Flow über die W3C Digital Credentials API
+    auf diesem Gerät funktioniert.
+</p>
+
+<h2>1. Umgebung</h2>
+<div id="env-checks"></div>
+
+<h2>2. Konfiguration</h2>
+
+<label for="request-url">Request-Object-URL (<code>verification_url</code> aus dem Management-Response)</label>
+<input type="text" id="request-url"
+       placeholder="https://verifier.example.com/oid4vp/api/request-object/00000000-0000-0000-0000-000000000000">
+
+<label for="protocol">Protokoll-Identifier</label>
+<input type="text" id="protocol" value="openid4vp-v1-signed">
+
+<button id="btn-fetch" class="secondary" type="button">A · JAR abrufen und prüfen</button>
+<button id="btn-full" type="button">B · Vollständigen Flow starten</button>
+
+<div class="hint">
+    <strong>Hinweis:</strong> Schritt B muss durch einen Klick ausgelöst werden
+    (<em>transient activation</em>). Ein automatischer Aufruf beim Laden der Seite wird
+    vom Browser blockiert.
+</div>
+
+<h2>3. Ablauf</h2>
+<div id="flow-checks"></div>
+
+<h2>4. Rohdaten</h2>
+<pre id="output">Noch kein Durchlauf gestartet.</pre>
+
+<script>
+    'use strict';
+
+    const PROTOCOL_DEFAULT = 'openid4vp-v1-signed';
+
+    const envContainer = document.getElementById('env-checks');
+    const flowContainer = document.getElementById('flow-checks');
+    const output = document.getElementById('output');
+
+    /**
+     * Renders a single diagnostic row. Returns a handle so the row can be updated later.
+     */
+    function addCheck(container, title) {
+        const row = document.createElement('div');
+        row.className = 'check';
+        row.innerHTML = `
+            <span class="badge pending">…</span>
+            <div class="check-body">
+                <div class="check-title"></div>
+                <div class="check-detail"></div>
+            </div>`;
+        row.querySelector('.check-title').textContent = title;
+        container.appendChild(row);
+
+        return {
+            set(status, detail) {
+                const badge = row.querySelector('.badge');
+                badge.className = 'badge ' + status;
+                badge.textContent = { ok: 'OK', fail: 'FEHLER', warn: 'ACHTUNG', pending: '…' }[status];
+                row.querySelector('.check-detail').textContent = detail || '';
+            }
+        };
+    }
+
+    function log(label, value) {
+        const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+        output.textContent += `\n=== ${label} ===\n${text}\n`;
+    }
+
+    function resetLog() {
+        output.textContent = '';
+        flowContainer.innerHTML = '';
+    }
+
+    /**
+     * Decodes a JWT payload without verifying the signature.
+     * Used for inspection only - never for trust decisions.
+     */
+    function decodeJwtPayload(jwt) {
+        const parts = jwt.split('.');
+        if (parts.length !== 3) {
+            throw new Error('Kein kompaktes JWT (erwartet 3 Segmente, erhalten ' + parts.length + ')');
+        }
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+        return JSON.parse(decodeURIComponent(escape(atob(padded))));
+    }
+
+    // ---------------------------------------------------------------------
+    // Section 1: environment checks (run immediately on load)
+    // ---------------------------------------------------------------------
+
+    function runEnvironmentChecks() {
+        const secure = addCheck(envContainer, 'Secure Context (HTTPS oder localhost)');
+        if (window.isSecureContext) {
+            secure.set('ok', 'Origin: ' + window.location.origin);
+        } else {
+            secure.set('fail', 'Origin ' + window.location.origin +
+                ' ist kein Secure Context. Die DC API ist nicht verfügbar. Tunnel (ngrok/cloudflared) oder localhost verwenden.');
+        }
+
+        const credApi = addCheck(envContainer, 'navigator.credentials verfügbar');
+        if (navigator.credentials && typeof navigator.credentials.get === 'function') {
+            credApi.set('ok');
+        } else {
+            credApi.set('fail', 'Credential Management API fehlt vollständig.');
+        }
+
+        const dcGlobal = addCheck(envContainer, 'DigitalCredential-Interface vorhanden');
+        if (typeof DigitalCredential !== 'undefined') {
+            dcGlobal.set('ok');
+        } else {
+            dcGlobal.set('fail', 'Das globale DigitalCredential-Interface fehlt. ' +
+                'Die DC API wird von diesem Browser nicht unterstützt oder ist hinter einem Flag deaktiviert ' +
+                '(in Chromium zeitweise chrome://flags/#web-identity-digital-credentials).');
+        }
+
+        const protoCheck = addCheck(envContainer, 'Protokoll "' + PROTOCOL_DEFAULT + '" erlaubt');
+        if (typeof DigitalCredential !== 'undefined' &&
+            typeof DigitalCredential.userAgentAllowsProtocol === 'function') {
+            try {
+                const allowed = DigitalCredential.userAgentAllowsProtocol(PROTOCOL_DEFAULT);
+                protoCheck.set(allowed ? 'ok' : 'fail',
+                    allowed ? '' : 'Der User Agent lehnt dieses Protokoll ab.');
+            } catch (e) {
+                protoCheck.set('fail', e.name + ': ' + e.message);
+            }
+        } else {
+            protoCheck.set('warn', 'userAgentAllowsProtocol() nicht verfügbar. ' +
+                'Feature Detection muss über den Aufruf selbst erfolgen.');
+        }
+
+        const platform = addCheck(envContainer, 'Plattform');
+        const ua = navigator.userAgent;
+        const isAndroid = /Android/i.test(ua);
+        const isChromium = /Chrome|Chromium|CriOS/i.test(ua);
+        if (isAndroid && isChromium) {
+            platform.set('ok', ua);
+        } else {
+            platform.set('warn',
+                'Die DC API wird derzeit primär von Chromium auf Android unterstützt. UA: ' + ua);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Section 2: fetch and inspect the JAR
+    // ---------------------------------------------------------------------
+
+    async function fetchRequestObject(url) {
+        const fetchCheck = addCheck(flowContainer, 'JAR abrufen (GET request-object)');
+        let response;
+        try {
+            response = await fetch(url, { method: 'GET' });
+        } catch (e) {
+            fetchCheck.set('fail',
+                'Netzwerk-/CORS-Fehler: ' + e.message +
+                ' — Prüfen, ob die Origin ' + window.location.origin +
+                ' im Verifier per CORS freigegeben ist (WebConfig.addCorsMappings).');
+            throw e;
+        }
+
+        if (!response.ok) {
+            const body = await response.text();
+            fetchCheck.set('fail', 'HTTP ' + response.status + ' – ' + body.slice(0, 300));
+            throw new Error('HTTP ' + response.status);
+        }
+
+        const contentType = response.headers.get('content-type') || '(kein Content-Type)';
+        const jar = (await response.text()).trim();
+        fetchCheck.set('ok', 'HTTP 200, Content-Type: ' + contentType + ', Länge: ' + jar.length);
+        log('JAR (kompakt)', jar);
+
+        inspectRequestObject(jar);
+        return jar;
+    }
+
+    /**
+     * Inspects the decoded JAR payload against the expectations of the DC API flow.
+     */
+    function inspectRequestObject(jar) {
+        const decodeCheck = addCheck(flowContainer, 'JAR dekodieren');
+        let payload;
+        try {
+            payload = decodeJwtPayload(jar);
+            decodeCheck.set('ok');
+            log('JAR Payload (dekodiert, Signatur NICHT geprüft)', payload);
+        } catch (e) {
+            decodeCheck.set('fail', e.message);
+            return;
+        }
+
+        const modeCheck = addCheck(flowContainer, 'response_mode');
+        const mode = payload.response_mode;
+        if (mode === 'dc_api' || mode === 'dc_api.jwt') {
+            modeCheck.set('ok', mode);
+        } else {
+            modeCheck.set('fail', 'Erwartet "dc_api" oder "dc_api.jwt", erhalten: ' + mode +
+                ' — die Verification wurde nicht für den DC-API-Flow angelegt.');
+        }
+
+        const originsCheck = addCheck(flowContainer, 'expected_origins enthält diese Origin');
+        const origins = payload.expected_origins;
+        if (!Array.isArray(origins)) {
+            originsCheck.set('fail', 'Feld fehlt oder ist kein Array. Die Wallet kann die Origin nicht prüfen.');
+        } else if (origins.includes(window.location.origin)) {
+            originsCheck.set('ok', JSON.stringify(origins));
+        } else {
+            originsCheck.set('fail', 'Diese Seite läuft auf ' + window.location.origin +
+                ', erlaubt sind aber: ' + JSON.stringify(origins) +
+                ' — die Wallet wird den Request ablehnen.');
+        }
+
+        const uriCheck = addCheck(flowContainer, 'response_uri weggelassen');
+        if (payload.response_uri === undefined) {
+            uriCheck.set('ok');
+        } else {
+            uriCheck.set('warn', 'response_uri ist gesetzt (' + payload.response_uri +
+                '). Im DC-API-Flow gibt es keine Response-URL.');
+        }
+
+        const expCheck = addCheck(flowContainer, 'Gültigkeit (exp)');
+        if (typeof payload.exp === 'number') {
+            const remaining = Math.round(payload.exp - Date.now() / 1000);
+            expCheck.set(remaining > 0 ? 'ok' : 'fail',
+                remaining > 0 ? 'Noch ' + remaining + ' Sekunden gültig.' : 'Bereits abgelaufen.');
+        } else {
+            expCheck.set('warn', 'Kein exp-Claim gefunden.');
+        }
+
+        const nonceCheck = addCheck(flowContainer, 'nonce vorhanden');
+        nonceCheck.set(payload.nonce ? 'ok' : 'fail',
+            payload.nonce ? '' : 'Ohne nonce ist kein Replay-Schutz möglich.');
+    }
+
+    // ---------------------------------------------------------------------
+    // Section 3: the actual DC API call
+    // ---------------------------------------------------------------------
+
+    async function invokeDigitalCredentialsApi(jar, protocol) {
+        const callCheck = addCheck(flowContainer, 'navigator.credentials.get()');
+        try {
+            const credential = await navigator.credentials.get({
+                digital: {
+                    requests: [{
+                        protocol: protocol,
+                        data: { request: jar }
+                    }]
+                }
+            });
+
+            callCheck.set('ok', 'Promise resolved. Protokoll: ' + (credential.protocol || 'n/a'));
+            log('DigitalCredential', {
+                id: credential.id,
+                type: credential.type,
+                protocol: credential.protocol,
+                data: credential.data
+            });
+            return credential;
+
+        } catch (e) {
+            const hints = {
+                NotAllowedError: 'Der Nutzer hat abgebrochen, es war keine passende Wallet registriert, ' +
+                    'oder es fehlte die transient activation.',
+                NotSupportedError: 'Das Protokoll wird vom User Agent nicht unterstützt.',
+                InvalidStateError: 'Der Request wurde abgelehnt (z. B. Origin-Mismatch oder abgelaufenes JAR).',
+                AbortError: 'Der Aufruf wurde abgebrochen.',
+                SecurityError: 'Kein Secure Context oder Aufruf aus einem Cross-Origin-iframe ohne Permission Policy.'
+            };
+            callCheck.set('fail', e.name + ': ' + e.message +
+                (hints[e.name] ? ' — ' + hints[e.name] : ''));
+            log('Fehler', { name: e.name, message: e.message });
+            throw e;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Wiring
+    // ---------------------------------------------------------------------
+
+    document.getElementById('btn-fetch').addEventListener('click', async () => {
+        resetLog();
+        const url = document.getElementById('request-url').value.trim();
+        if (!url) {
+            log('Abbruch', 'Bitte zuerst die Request-Object-URL eintragen.');
+            return;
+        }
+        try {
+            await fetchRequestObject(url);
+        } catch (e) {
+            // Diagnostics are already rendered; nothing further to do here.
+        }
+    });
+
+    document.getElementById('btn-full').addEventListener('click', async () => {
+        resetLog();
+        const url = document.getElementById('request-url').value.trim();
+        const protocol = document.getElementById('protocol').value.trim() || PROTOCOL_DEFAULT;
+        if (!url) {
+            log('Abbruch', 'Bitte zuerst die Request-Object-URL eintragen.');
+            return;
+        }
+        try {
+            const jar = await fetchRequestObject(url);
+            await invokeDigitalCredentialsApi(jar, protocol);
+            log('Nächster Schritt',
+                'Die Antwort müsste nun per POST an den DC-API-Response-Endpoint gesendet werden. ' +
+                'Dieser Endpoint existiert im Verifier Service noch nicht (siehe offene Fragen).');
+        } catch (e) {
+            // Diagnostics are already rendered.
+        }
+    });
+
+    runEnvironmentChecks();
+</script>
+
+</body>
+</html>

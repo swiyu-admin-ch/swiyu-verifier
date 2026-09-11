@@ -1,0 +1,38 @@
+@startuml dc-api-result-channels
+autonumber
+title DC API: Trennung von Transportkanal und Ergebniskanal
+
+participant "Web-App\n(Browser, nicht vertrauenswürdig)" as fe #LightCoral
+participant "Business Verifier\nBackend" as be #LightGreen
+participant "Verifier Service" as veri
+database "Verifier DB" as db
+
+== Öffentlicher Kanal (/oid4vp/**, permitAll) ==
+
+fe -> veri ++ : POST /oid4vp/api/.../response-data\n(vp_token)
+veri -> db : claimSessionForProcessing()\nPENDING -> IN_PROGRESS
+veri -> veri : Nonce-, Origin- & VC-Validierung
+veri -> db : Ergebnis speichern (SUCCESS / FAILED)
+veri -> db : CallbackEvent anlegen
+
+note over veri #Gold
+  **Antwort ohne Claims.**
+  Nur: { "status": "SUCCESS" }
+  Reicht der Web-App, um die UI
+  weiterzuschalten - mehr braucht sie nicht.
+end note
+veri --> fe -- : HTTP 200 { status }
+
+== Geschützter Kanal (/management/**, OAuth2) ==
+
+veri -[#Green]> be ++ : Webhook Ping\n{ verificationId, timestamp }
+be -[#Green]> veri : GET /management/api/verifications/{id}\n**(authentifiziert)**
+veri --> be -- : Verifizierte Claims
+
+note over be #LightGreen
+  **Hier** fällt die Autorisierungs-
+  entscheidung - auf Basis von Daten
+  aus einem vertrauenswürdigen Kanal.
+end note
+
+@enduml

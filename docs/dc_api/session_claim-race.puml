@@ -1,0 +1,51 @@
+@startuml session-claiming-race
+autonumber
+title Warum der atomare Claim nötig ist (zwei parallele Requests)
+
+participant "Request A" as A #LightGreen
+participant "Request B\n(Replay / Doppelklick)" as B #LightCoral
+participant "ManagementTransactionalService" as svc
+database "Verifier DB\n(state, version)" as db
+participant "Base / Status\nRegistry" as reg
+
+note over db: state = PENDING, version = 1
+
+== Beide claimen gleichzeitig ==
+
+A -> svc ++ : claimSessionForProcessing(id)
+B -> svc ++ : claimSessionForProcessing(id)
+
+svc -> db : findById(id)
+svc -> db : findById(id)
+note over svc
+  **Verteidigung 1:** isProcessStillOpen()
+  Beide sehen PENDING -> beide passieren den Check.
+  Genau hier läge ohne Locking die TOCTOU-Lücke.
+end note
+
+svc -> db : A: UPDATE ... SET state=IN_PROGRESS\n**WHERE version = 1**
+db --> svc : OK (version -> 2)
+svc --> A -- : Management (IN_PROGRESS)
+
+svc -> db : B: UPDATE ... SET state=IN_PROGRESS\n**WHERE version = 1**
+db --> svc : **0 rows** (version ist bereits 2)
+note over svc #LightCoral
+  **Verteidigung 2:** Optimistic Locking greift
+end note
+svc --> B -- : !! ObjectOptimisticLockingFailureException
+
+== Nur A arbeitet weiter ==
+
+A -> reg ++ : DID auflösen / Status prüfen\n<i>(langsam, ausserhalb Transaktion)</i>
+reg --> A -- : Ergebnis
+A -> db : markVerificationDone(...) -> SUCCESS / FAILED
+A -> A : callbackEventProducer.produceEvent(id)
+
+note over B #LightCoral
+  B fasst die DB **nicht** an und feuert
+  **keinen** Callback
+  (Flag isSessionClaimedByThisThread).
+  Kein doppeltes Ergebnis, kein doppelter Webhook.
+end note
+
+@enduml

@@ -1,0 +1,233 @@
+@startuml dc-api-verification-flow-v19
+autonumber
+title **Verifikationsprozess: DC API Same-Device Flow (Saubere Kanaltrennung & Server-to-Server PII)**
+
+actor "End-User\n(Holder)" as user
+
+box "Holder Smartphone / Client (Same-Device)" #LightYellow
+    participant "Business Verifier Web-App\n(Browser Frontend / JS)" as frontend #8EB1AC
+    participant "Browser Engine & DC API\n(User Agent & OS API)" as browser #Gold
+    participant "swiyu-Wallet\n(Mobile OS Handler)" as holder #8493A0
+end box
+
+box "Business Verifier Server Infrastructure" #LightGrey
+    participant "Business Verifier Backend\n(Server / RP App)" as rp_backend #8EB1AC
+end box
+
+box "Generic Verifier (Backend)" #LightBlue
+    participant "Verifier Service\n(Management & Validator)" as veri #8EB1AC
+    database "Verifier DB" as db
+    participant "HSM" as hsm
+end box
+
+participant "Status Registry" as status
+participant "Base Registry" as base
+
+== 1. Verification Request Creation (OAuth2 Server-to-Server) ==
+
+note over frontend, rp_backend #LightYellow
+  **Timing-Hinweis:**
+  Die Session-TTL (`verificationTTL`) startet hier. Der `exp`-Claim des JAR
+  (`requestObjectTTLSeconds`) startet dagegen **erst beim Abruf in Schritt 2** -
+  siehe Variante 2 weiter unten. Die Verification sollte dennoch erst bei der
+  Nutzerinteraktion angelegt werden, damit die Session-TTL nicht im Leerlauf verbrennt.
+end note
+
+frontend -> frontend : User klickt "Mit E-ID ausweisen"\n(transient activation)
+
+group Feature Detection - MUSS vor der Verification-Erstellung erfolgen
+  frontend -> browser : **DigitalCredential.userAgentAllowsProtocol("openid4vp-v1-signed")**
+  browser --> frontend : true / false
+end
+
+note over frontend, rp_backend #FFE0E0
+  Der `response_mode` ist Bestandteil des **signierten** JAR und nachträglich nicht änderbar.
+  Die Feature Detection ist eine reine Browser-API und muss daher der Erstellung vorausgehen.
+  **Kein User-Agent-Sniffing** - spoofbar und veraltet, sobald weitere Plattformen die DC API unterstützen.
+
+  **Downgrade-Risiko:** Der Client bestimmt den Flow und kann die Nichtverfügbarkeit vortäuschen.
+  Ein technisches Enforcement ist prinzipiell nicht möglich - siehe offene Frage "Flow-Auswahl".
+end note
+
+frontend -> rp_backend : Starte Verification (**dc_api**)
+rp_backend -> veri ++ : **POST /management/api/verifications**\n(OAuth2 Authenticated: DCQL Query, response_mode: "dc_api"|"dc_api.jwt", expected_origins)
+
+veri -> veri : Generiere kryptografisch sichere **request_nonce**
+veri -> db ++ : Speichere Transaktions-Eintrag\n(UUID, request_nonce, dcql_query, expected_origins, response_mode, State: PENDING)
+db --> veri -- : Management (PENDING)
+
+veri --> rp_backend -- : Return **ManagementResponseDto** (unverändert)\n{ id, request_nonce, state, **verification_url**, verification_deeplink, ... }
+
+note over rp_backend, veri #LightGreen
+  **Variante 2: Kein JAR im Management-Response.**
+  `ManagementResponseDto` bleibt **unverändert** - keine neuen Felder, keine OpenAPI-Änderung.
+  Der Verifier Service liefert wie bisher nur die `verification_url`:
+  `{externalUrl}/oid4vp/api/request-object/{id}` (ManagementMapper).
+
+  Das JAR wird weiterhin **lazy** erzeugt (`RequestObjectService.assembleRequestObject`) -
+  erst beim Abruf, nicht bei der Erstellung. Damit bleibt auch die HSM-Last unverändert:
+  signiert wird nur, was tatsächlich abgeholt wird.
+end note
+
+rp_backend --> frontend : Liefere **verification_url** & Transaktions-ID an Web-Frontend
+
+== 2. Request Object Abruf & Handover via DC API (In-Browser) ==
+
+frontend -[#Purple]> veri ++ : **GET {verification_url}**\n= /oid4vp/api/request-object/{request_id}\n<i>öffentlich (permitAll), kein Auth erforderlich</i>
+
+group Lazy JAR-Erstellung & Signierung (RFC 9101) - erst JETZT
+  veri -> db ++ : loadAndGuard(request_id)\n<i>PENDING? nicht abgelaufen?</i>
+  db --> veri -- : Management (PENDING)
+  veri -> veri : Konstruiere Request Object Payload\n(nonce, dcql_query, client_id, response_mode, expected_origins)
+  alt HSM konfiguriert
+    veri -> hsm ++ : Signiere Request Object via HSM
+    hsm --> veri -- : Signiertes JWT
+  else Internen Schlüssel nutzen
+    veri -> veri : Signiere Request Object intern
+  end
+end
+
+veri --> frontend -- : **HTTP 200** (Content-Type: `application/oauth-authz-req+jwt`)\nSigniertes JAR als JWT-String
+
+note over frontend, veri #LightGreen
+  **Vorteil für das Timing:** Der `exp`-Claim (`requestObjectTTLSeconds`, Default **600s**)
+  startet erst hier - unmittelbar vor dem Consent, exakt wie im Cross-Device-Flow.
+  Die Wartezeit zwischen Verification-Erstellung und Nutzerinteraktion verbrennt keine JAR-Gültigkeit.
+
+  **Kosten:** ein zusätzlicher HTTP-Roundtrip im Browser (ca. 50-150 ms).
+end note
+
+note over frontend, browser #Gold
+  **DC API In-Browser Handover:**
+  Keine Übergabe per Deeplink oder QR-Code an die Wallet.
+  Die Web-App reicht das abgerufene JAR direkt an die Browser Engine weiter.
+end note
+
+frontend -[#DarkOrange]> browser : **navigator.credentials.get()**\n[Protocol: "openid4vp-v1-signed", Data: { request: JAR }]
+activate browser #Gold
+
+browser -[#DarkOrange]> holder : In-band OS Handoff via DC API\n(übergibt JAR & verifizierte **Browser-Origin**)
+activate holder #8493A0
+
+== 3. Holder Processing, Origin Check & Consent (Wallet) ==
+group Wallet-Validierung & Origin-Prüfung
+  holder -> holder : Entpacke JAR & verifiziere Verifier-Signatur
+  holder -> holder : Wallet Origin Check (Browser-Origin ∈ expected_origins)
+
+  alt Origin-Match, Signatur gültig & JAR nicht abgelaufen
+    holder -> holder : Verarbeitet DCQL-Abfrage und wählt passende Credentials
+    holder -> user : Consent-Prompt (Anzeige der abgefragten Claims)
+
+    alt Benutzer bestätigt Freigabe
+      user -> holder : Zustimmung erteilt
+      holder -> holder : Erstellt & signiert Verifiable Presentation (VP)
+      holder -> holder : Setzt im KB-JWT **aud = "origin:https://behoerde.ch"**
+      holder -[#DarkOrange]--> browser : VP Response Promise resolves mit DigitalCredential
+    else Benutzer bricht ab
+      user -> holder : Abbruch im Credential Chooser
+      holder -[#Red]--> browser : Promise rejects (**NotAllowedError** / AbortError)
+    end
+
+  else Origin-Mismatch, ungültige Signatur oder JAR abgelaufen
+    holder -[#Red]--> browser : Promise rejects (**invalid_request**)
+  end
+end
+deactivate holder
+
+browser -[#DarkOrange]-> frontend : Ergebnis des aufgelösten Promise
+deactivate browser
+
+note over frontend, veri #FFE0E0
+  **Abbruchpfade enden im Client.**
+  Bei `NotAllowedError` / `invalid_request` erreicht den Verifier Service **kein** POST.
+  Die Session verbleibt in `PENDING` und wird erst durch die Expiration bzw. den
+  `ManagementCleanupScheduler` aufgeräumt. Das Frontend sollte den Abbruch an das
+  eigene Backend melden, damit dieses nicht unbegrenzt auf ein Ergebnis wartet.
+end note
+
+== 4. In-Browser Submission (Öffentliche Unauthentifizierte Route /oid4vp/**) ==
+note over frontend, veri #LightSkyBlue
+  **Öffentlicher Endpoint (permitAll):**
+  Frontend schickt VP an unauthentifizierten Endpoint.
+  Backend validiert & antwortet mit **NUR Status (KEINE PII/Personendaten!)**.
+end note
+
+frontend -[#Blue]> veri ++ : **POST /oid4vp/api/dc-api/v1/request-object/{request_id}/response-data**\n(vp_token / JWE)
+
+veri -> db ++ : **claimSessionForProcessing(request_id)**\n(PENDING → IN_PROGRESS, atomar via Optimistic Locking)
+
+alt Session nicht PENDING, abgelaufen oder bereits verarbeitet
+  db --> veri -- : ProcessClosedException / EntityNotFound
+  veri --> frontend : **HTTP 409 Conflict** (bereits verarbeitet)\n**HTTP 404 Not Found** (unbekannt / abgelaufen)
+  note right of veri #FFE0E0
+    Replay-Schutz: Ein zweiter POST mit
+    derselben request_id kann die Session
+    nicht mehr claimen. Es wird nichts
+    geschrieben und kein Callback gefeuert.
+  end note
+
+else Session erfolgreich geclaimt (IN_PROGRESS)
+  db --> veri -- : Management (IN_PROGRESS)
+
+  group Kryptografische Validierung (ausserhalb jeder DB-Transaktion)
+    veri -> veri : 1. Nonce Match (nonce == request_nonce)
+    veri -> veri : 2. KB-JWT Audience Check\n**normalize(aud - "origin:") ∈ normalize(expected_origins)**
+    veri -> base ++ : Get issuer public key (Base Registry)
+    base --> veri -- : Issuer Public Key
+    veri -> status ++ : Get VC status (Status Registry)
+    status --> veri -- : Revocation / Suspension Status
+    veri -> veri : 3. Matching der Claims gegen die DCQL-Query
+  end
+
+  alt Presentation gültig
+    veri -> db ++ : Update verification entry (**IN_PROGRESS → SUCCESS**)
+    db --> veri -- : gespeichert
+    veri --> frontend : **HTTP 200 OK ({ "status": "SUCCESS" })**\n*(KEINE Personendaten / PII im öffentlichen Response)*
+  else Presentation ungültig (Signatur, Status, DCQL-Mismatch)
+    veri -> db ++ : Update verification entry (**IN_PROGRESS → FAILED**)
+    db --> veri -- : gespeichert
+    veri --> frontend : **HTTP 400 ({ "status": "FAILED", "error": ... })**\n*(Fehlercode ohne PII)*
+  end
+
+  veri -> db ++ : **CallbackEvent anlegen** (produceEvent)\n<i>nur wenn webhook.callback-uri konfiguriert</i>
+  db --> veri -- : Event persistiert
+end
+deactivate veri
+
+== 5. Secure PII Retrieval (Server-to-Server OAuth2 Management Channel) ==
+note over frontend, rp_backend #LightGreen
+  **Sicherer PII-Abruf (Server-to-Server):**
+  Das Frontend ist ausschliesslich **Trigger**, niemals **Datenquelle**.
+  Selbst wenn es einen Erfolg vortäuscht, liefert der Management-Kanal
+  den tatsächlichen Zustand (PENDING / FAILED) - der Angriff läuft ins Leere.
+end note
+
+alt Schneller Pfad: Frontend erreichbar
+  frontend -> rp_backend : Notify Verification Complete (Session / Request ID)
+else Fallback: Frontend weggefallen (Tab geschlossen, Netzabbruch, JS-Fehler)
+  veri -[#Green]> rp_backend : **Webhook Ping** { verificationId, timestamp }\n<i>CallbackDispatchScheduler, at-least-once, Retry bis Erfolg</i>
+end
+
+note over rp_backend #LightGreen
+  Beide Pfade münden im selben Abruf.
+  Das BV-Backend muss daher **idempotent** sein -
+  der Webhook kann zusätzlich oder mehrfach eintreffen.
+end note
+
+rp_backend -> veri ++ : **GET /management/api/verifications/{id}**\n(OAuth2 Authenticated / Management Channel)
+veri -> db ++ : Fetch verification entry & verified claims
+db --> veri -- : Management (SUCCESS / FAILED)
+veri --> rp_backend -- : **HTTP 200 OK** (Status + Verified Claims / PII)
+
+rp_backend --> frontend : Login / Status abgeschlossen (Session Cookie / Auth State)
+
+legend right
+  |<#Purple>| **Variante 2:** Frontend holt das JAR selbst via `verification_url` - kein neues DTO-Feld |
+  |<#Gold>| **In-Browser Handover:** Feature Detection & JS-Call `navigator.credentials.get()` |
+  |<#DarkOrange>| **In-Band OS Transport:** Sichere OS-Übergabe an Wallet ohne Deeplinks |
+  |<#Red>| **Abbruchpfade:** Enden im Client, kein POST an den Verifier - Session läuft ab |
+  |<#Blue>| **Öffentlicher Endpoint:** `/oid4vp/**` nimmt VP entgegen und liefert NUR Status (No PII) |
+  |<#LightGreen>| **Server-to-Server PII Channel:** BV-Backend holt PII exklusiv via OAuth2 `/management/**` |
+endlegend
+
+@enduml

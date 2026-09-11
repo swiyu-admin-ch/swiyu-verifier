@@ -1,0 +1,30 @@
+@startuml expiration-guards
+title Expiration-Kontrollpunkte: Cross-Device vs. DC API
+
+state "Cross-Device (heute)" as CD {
+  state "Verification angelegt\nexpiresAt = now + verificationTTL" as CD1
+  state "GET /request-object\n**Guard 1** greift\nJAR exp startet JETZT" as CD2 #LightGreen
+  state "GET /verifications/{id}\n**Guard 2** (Polling, wiederholt)" as CD3 #LightGreen
+  state "POST response-data\n**Guard 3** (Claim)" as CD4 #LightGreen
+  CD1 --> CD2 : Wallet scannt QR
+  CD2 --> CD3 : Business Verifier pollt
+  CD3 --> CD4 : Wallet antwortet
+}
+
+state "DC API Same-Device (neu)" as DC {
+  state "Verification angelegt\nexpiresAt = now + verificationTTL\n**JAR exp startet BEREITS HIER**" as DC1 #Gold
+  state "navigator.credentials.get()\nUser wählt Credential, Consent\n<i>Backend sieht nichts</i>" as DC2 #LightCoral
+  state "POST dc-api/.../response-data\n**Guard 3** = einziger Kontrollpunkt" as DC3 #LightGreen
+  DC1 --> DC2 : kein Backend-Kontakt
+  DC2 --> DC3 : synchroner POST
+}
+
+note bottom of DC2
+  **Blinde Phase.**
+  Guard 1 entfällt (kein GET /request-object).
+  Guard 2 entfällt (kein Polling).
+  Nur der Cleanup-Scheduler (Guard 4)
+  ist hier aktiv - und der *löscht*.
+end note
+
+@enduml

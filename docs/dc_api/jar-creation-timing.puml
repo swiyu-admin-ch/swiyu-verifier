@@ -1,0 +1,37 @@
+@startuml jar-creation-timing
+title Wann entsteht das JAR?
+
+participant "BV Backend" as be
+participant "Verifier Service" as veri
+participant "HSM" as hsm
+
+== Bestand (Cross-Device) ==
+be -> veri : POST /management/api/verifications
+veri --> be : { id, request_nonce, verification_url, verification_deeplink }
+note right #LightGreen
+  **Kein JAR.** Nur ein Link.
+  Keine Signatur, kein HSM-Aufruf.
+end note
+
+... Wallet scannt QR, Minuten später ...
+
+veri <- : GET /oid4vp/api/request-object/{id}
+veri -> hsm : signJwt(...)
+hsm --> veri : signiertes JAR
+note right #LightGreen
+  **exp startet jetzt.**
+  requestObjectTTLSeconds (Default 600s)
+end note
+
+== Diagramm v19 (Annahme) ==
+be -> veri : POST /management/api/verifications
+veri -> hsm : signJwt(...)
+hsm --> veri : signiertes JAR
+veri --> be : { ..., request_object: "eyJ..." }
+note right #FFE0E0
+  **Neues Feld + neuer Zeitpunkt.**
+  HSM-Signatur bei *jeder* Erstellung.
+  exp-Countdown startet hier.
+end note
+
+@enduml

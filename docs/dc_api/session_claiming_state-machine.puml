@@ -1,0 +1,31 @@
+@startuml session-claiming-state-machine
+title Session-Lifecycle im Bestand (Management.state)
+
+[*] --> PENDING : POST /management/api/verifications\n(Verification angelegt)
+
+PENDING --> IN_PROGRESS : **claimForProcessing()**\n<i>exklusiver Anspruch,\nbevor teure Validierung startet</i>
+
+note right of IN_PROGRESS
+  **Das Schutzfenster.**
+  Hier laufen Base-/Status-Registry-Calls
+  ausserhalb jeder DB-Transaktion.
+  Ein zweiter Request kann jetzt
+  NICHT mehr claimen.
+end note
+
+IN_PROGRESS --> SUCCESS : verificationDone()\n<i>Presentation gültig</i>
+IN_PROGRESS --> FAILED : verificationDone()\n<i>Presentation ungültig</i>
+IN_PROGRESS --> FAILED : verificationFailed()\n<i>VerificationException</i>
+IN_PROGRESS --> FAILED : verificationFailedDueToClientRejection()
+
+PENDING --> [*] : abgelaufen\n<i>deleteExpiredManagements()</i>
+
+note bottom of PENDING
+  **isProcessStillOpen()** = state == PENDING && !isExpired()
+  Nur aus diesem Zustand ist ein Claim möglich.
+end note
+
+SUCCESS --> [*]
+FAILED --> [*]
+
+@enduml

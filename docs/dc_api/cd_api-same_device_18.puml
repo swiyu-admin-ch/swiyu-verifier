@@ -1,0 +1,169 @@
+@startuml dc-api-verification-flow-v18
+autonumber
+title **Verifikationsprozess: DC API Same-Device Flow (OpenID4VP 1.0 / SD-JWT VC / DCQL)**
+
+actor "End-User\n(Holder)" as user
+
+box "Holder Smartphone / Client (Same-Device)" #LightYellow
+    participant "Business Verifier Web-App\n(Frontend / JS in Browser)" as business #8EB1AC
+    participant "Browser Engine & DC API\n(User Agent & OS API)" as browser #Gold
+    participant "swiyu-Wallet\n(Mobile OS Handler)" as holder #8493A0
+end box
+
+box "Generic Verifier (Backend)" #LightBlue
+    participant "Verifier Service\n(Management & Validator)" as veri #8EB1AC
+    database "Verifier DB" as db
+    participant "HSM" as hsm
+end box
+
+participant "Status Registry" as status
+participant "Base Registry" as base
+
+== 1. Verification Request Creation (Initiierung, Nonce-Generierung & JAR-Erstellung) ==
+business -> veri ++ : POST /management/api/verifications\n(DCQL Query, **<font color=red>response_mode: "dc_api" | "dc_api.jwt"</font>**, accepted_issuers, **<font color=red>expected_origins</font>**)
+
+veri -> veri : Generiere kryptografisch sichere **request_nonce**\n(Replay Protection Challenge)
+
+veri -> db ++ : Speichere Transaktions-Eintrag\n(UUID, request_nonce, dcql_query, **<font color=red>expected_origins</font>**, response_mode, State: PENDING)
+deactivate db
+
+group Request Object Erstellung & Signierung (JAR nach RFC 9101)
+  veri -> veri : Konstruiere Request Object Payload\n(nonce, dcql_query, client_id, response_mode, **<font color=red>expected_origins</font>: ["https://behoerde.ch"]**)
+  alt HSM konfiguriert
+    veri -> hsm ++ : Signiere Request Object via HSM
+    hsm --> veri -- : Signiertes JWT
+  else Internen Schlüssel nutzen
+    veri -> veri : Signiere Request Object intern
+  end
+end
+
+veri --> business : Return ManagementResponseDto\n(Transaktions-ID, request_nonce & signiertes JAR Object)
+deactivate veri
+
+== 2. Request Handover via DC API (Feature Detection, Call & OS Transport) ==
+note over business, browser #Gold
+  **DC API In-Browser Handover:**
+  Keine Übergabe per Deeplink oder QR-Code an die Wallet.
+  Die Web-App ruft direkt in der Browser Engine die DC API via JavaScript auf.
+end note
+
+group Feature Detection (DC API Support Check)
+  business -> browser : **DigitalCredential.userAgentAllowsProtocol("openid4vp-v1-signed")**\n*(W3C Spec Standard; Chromium/Android Support)*
+  browser --> business : Return true (Protokoll wird unterstützt)
+end
+
+business -[#DarkOrange]> browser : **navigator.credentials.get()**\n[Protocol: "openid4vp-v1-signed", Data: { request: JAR }]
+activate browser #Gold
+
+note over browser #LightGreen
+  **Sicherheits-Vorteil (Browser Origin Extraction):**
+  Die Browser Engine erfasst automatisch die echte Top-Level Origin (z. B. "https://behoerde.ch")
+  und schützt vor QR-Code-Stealing / App-Hijacking.
+end note
+
+browser -[#DarkOrange]> holder : In-band OS Handoff via DC API\n(übergibt JAR & verifizierte **Browser-Origin**)
+activate holder #8493A0
+
+== 3. Holder Processing, Origin Check & Consent (Wallet) ==
+group Wallet-Validierung & Origin-Prüfung
+  holder -> holder : Entpacke JAR & verifiziere Verifier-Signatur
+
+  note over holder #LightCoral
+    **Wallet Origin Check (OpenID4VP 1.0 App. A.2):**
+    Wallet gleicht die vom Browser gelieferte Origin
+    mit den **expected_origins** im signierten JAR ab.
+    (z. B. "https://behoerde.ch" ∈ expected_origins)
+  end note
+
+  alt Origin-Match & Signatur Gültig
+    holder -> holder : Verarbeitet DCQL-Abfrage und wählt passende Credentials
+    holder -> user : Consent-Prompt (Anzeige der abgefragten Claims)
+    user -> holder : Benutzer bestätigt Freigabe
+    holder -> holder : Erstellt & signiert Verifiable Presentation (VP)
+
+    note over holder #LightCoral
+      **Response Origin Binding (OpenID4VP 1.0 App. A.4 / B.3.6):**
+      Wallet setzt im Key Binding JWT (KB-JWT) als Audience:
+      **<font color=red>aud = "origin:https://behoerde.ch"</font>**
+    end note
+  else Origin-Mismatch oder ungültige Signatur
+    holder --> browser : Abbruch mit Fehler (invalid_request)
+  end
+end
+
+holder -[#DarkOrange]--> browser : VP Response Promise resolves mit DigitalCredential
+deactivate holder
+
+browser -[#DarkOrange]-> business : VP Token aus aufgelöstem Promise
+deactivate browser
+
+== 4. Submission & Synchronous Verification (Öffentliche DC API Schnittstelle) ==
+note over business, veri #LightSkyBlue
+  **Synchrone Validierung ohne PII-Leak (permitAll Endpoint):**
+  Die Web-App sendet die VP per HTTP POST an die unauthentifizierte Route /oid4vp/**.
+  Das Backend validiert synchron und liefert NUR den Status (KEINE Personendaten/PII).
+end note
+
+business -[#Blue]> veri ++ : **POST /oid4vp/api/dc-api/v1/request-object/{request_id}/response-data**\n(vp_token / JWE)
+
+veri -> db ++ : Fetch verification request entry (enthält **expected_origins** & request_nonce)
+deactivate db
+
+note over veri #Orange
+  **Session Claiming & Replay Protection (State Transition):**
+  Atomare Überführung PENDING → IN_PROGRESS (optimistic locking).
+  Garantiert Single-Execution und schützt vor Replay/Doppelverarbeitung.
+end note
+
+veri -> db ++ : **claimSessionForProcessing(request_id)**\n(PENDING → IN_PROGRESS, atomar)
+alt Session nicht PENDING / abgelaufen / bereits verarbeitet
+  db --> veri : State Conflict / Invalid State
+  veri --> business : **HTTP 409 Conflict / 404 Not Found** (Abbruch)
+else Session erfolgreich geclaimt
+  db --> veri : Session claimed (IN_PROGRESS)
+  deactivate db
+
+  note over veri #LightCoral
+    **Verifier Cryptographic Origin Enforcement:**
+    Verifier Service prüft:
+    1. Nonce Match (nonce == request_nonce)
+    2. KB-JWT Audience Check: **<font color=red>(aud - "origin:") ∈ expected_origins</font>**
+  end note
+
+  veri -> veri : verify presentation **(Validiert gegen DCQL-Anforderungen)**
+  veri -> base ++ : Get issuer public key (Base Registry)
+  deactivate base
+
+  veri -> status ++ : Get VC status (Status Registry)
+  deactivate status
+
+  veri -> db ++ : Update verification entry (**State: IN_PROGRESS → SUCCESS / FAILED**)
+  deactivate db
+
+  veri --> business : **HTTP 200 OK** ({ "status": "SUCCESS" } - **KEINE PII / Personendaten**)
+end
+deactivate veri
+
+== 5. Secure Claim Retrieval (Authentifizierter Management-Kanal) ==
+note over business, veri #LightGreen
+  **Sicherer PII-Abruf (Authentifizierte Route):**
+  Personenbezogene Daten (verified claims) verlassen den Verifier Service
+  ausschliesslich über den OAuth2-gesicherten /management/** Kanal (Server-to-Server).
+end note
+
+business -> veri ++ : **GET /management/api/verifications/{id}**\n(OAuth2 Authenticated / Management Channel)
+veri -> db ++ : Fetch verification entry & verified claims
+deactivate db
+veri --> business : **HTTP 200 OK** (Verified Claims / Personendaten)
+deactivate veri
+
+legend right
+  |<#Gold>| **In-Browser Handover:** Feature Detection & JS-Call `navigator.credentials.get()` |
+  |<#DarkOrange>| **In-Band OS Transport:** Sichere OS-Übergabe an Wallet ohne Deeplinks |
+  |<#LightCoral>| **Security Binding:** Wallet Origin-Prüfung & Backend KB-JWT Origin-Binding (`aud: origin:https://...` ∈ `expected_origins`) |
+  |<#Orange>| **Replay Protection & State Machine:** Session Claiming (`PENDING → IN_PROGRESS → SUCCESS/FAILED`) |
+  |<#Blue>| **Synchrone Schnittstelle:** Unauthentifizierter Endpoint `/oid4vp/**` liefert NUR Status-Bestätigung (keine PII) |
+  |<#LightGreen>| **Sicherer PII-Kanal:** Personendaten-Abruf rein über OAuth2-gesicherten `/management/**` Endpunkt |
+endlegend
+
+@enduml

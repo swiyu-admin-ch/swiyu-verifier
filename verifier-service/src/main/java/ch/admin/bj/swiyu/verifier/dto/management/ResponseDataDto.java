@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.dto.management;
 
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @Schema(name = "ResponseData")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Builder
 public record ResponseDataDto(
 

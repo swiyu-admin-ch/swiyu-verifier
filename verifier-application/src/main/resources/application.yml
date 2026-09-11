@@ -60,7 +60,7 @@ application:
     vp-token-enabled: ${ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED:false}
     # If true, includes credential_subject_data (requested claims) in wallet_response.
     credential-subject-data-enabled: ${ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED:false}
-    # If true, includes credential_evaluation (per-credential trust and status verification results).
+    # If true, includes credential_evaluation (per-credential trust and status verification results) in management API response.
     credential-evaluation-enabled: ${ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED:false}
 
   # ---- OpenID4VP Part ----

@@ -76,8 +76,7 @@
         <!-- Fixes CVE-2026-59889 and SNYK-JAVA-TOOLSJACKSONCORE-19778371. Spring Boot 4.1.1 manages
              Jackson via two BOMs, jackson-2-bom (com.fasterxml.jackson) and jackson-bom (tools.jackson);
              both must be bumped together so jackson-annotations/jackson-core stay aligned with
-             jackson-databind (>= 2.22 required for e.g. JsonApplyView), otherwise dependency mediation
-             can pick an older managed version and cause java.lang.NoClassDefFoundError at runtime. -->
+             jackson-databind -->
         <jackson-2-bom.version>2.22.2</jackson-2-bom.version>
         <jackson-bom.version>3.2.2</jackson-bom.version>
     </properties>

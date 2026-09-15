@@ -2,9 +2,10 @@ package ch.admin.bj.swiyu.verifier.service.vqps;
 import ch.admin.bj.swiyu.core.trust.client.api.VqpsSubmissionB2BApi;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsPublicationResult;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmission;
+import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionCreateRequest;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionStatus;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
@@ -18,6 +19,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -37,22 +39,18 @@ class VqpsRegistrationServiceTest {
     private static final String CLIENT_ID = "did:example:verifier";
     private static final long FAR_FUTURE_TTL = Instant.now().plus(1, ChronoUnit.DAYS).getEpochSecond();
     private TrustRegistryProperties trustRegistryProperties;
-    private ApplicationProperties applicationProperties;
     private VqpsRepository vqpsRepository;
     private VqpsSubmissionB2BApi vqpsSubmissionB2BApi;
     private VqpsRegistrationService service;
     @BeforeEach
     void setUp() {
         trustRegistryProperties = mock(TrustRegistryProperties.class);
-        applicationProperties = mock(ApplicationProperties.class);
         vqpsRepository = mock(VqpsRepository.class);
         vqpsSubmissionB2BApi = mock(VqpsSubmissionB2BApi.class);
         when(trustRegistryProperties.getVqpsExpiryBufferSeconds()).thenReturn(0L);
-        when(applicationProperties.getClientId()).thenReturn(CLIENT_ID);
         when(vqpsRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         service = new VqpsRegistrationService(
                 trustRegistryProperties,
-                applicationProperties,
                 vqpsRepository,
                 vqpsSubmissionB2BApi,
                 new ObjectMapper()
@@ -65,12 +63,12 @@ class VqpsRegistrationServiceTest {
         String jwt = buildJwt(Instant.now().plus(30, ChronoUnit.DAYS));
         mockTmsImmediateSuccess(jwt);
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
-        String hash1 = service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL);
+        String hash1 = service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL, CLIENT_ID);
         reset(vqpsRepository, vqpsSubmissionB2BApi);
         when(vqpsRepository.findById(hash1)).thenReturn(Optional.of(
                 Vqps.builder().queryHash(hash1).scope(SCOPE).jwt(jwt)
                         .expiresAt(Instant.now().plus(30, ChronoUnit.DAYS).getEpochSecond()).build()));
-        String hash2 = service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL);
+        String hash2 = service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL, CLIENT_ID);
         assertThat(hash1).isEqualTo(hash2);
         verifyNoInteractions(vqpsSubmissionB2BApi);
     }
@@ -82,14 +80,56 @@ class VqpsRegistrationServiceTest {
         mockTmsImmediateSuccess(jwt);
         String hash1 = service.getOrRegisterVqps(VerificationPurposeDto.builder()
                 .scope(SCOPE).purposeName(Map.of("en", "Name A")).purposeDescription(Map.of("en", "D")).build(),
-                dcql, FAR_FUTURE_TTL);
+                dcql, FAR_FUTURE_TTL, CLIENT_ID);
         reset(vqpsRepository, vqpsSubmissionB2BApi);
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
         mockTmsImmediateSuccess(jwt);
         String hash2 = service.getOrRegisterVqps(VerificationPurposeDto.builder()
                 .scope(SCOPE).purposeName(Map.of("en", "Name B")).purposeDescription(Map.of("en", "D")).build(),
-                dcql, FAR_FUTURE_TTL);
+                dcql, FAR_FUTURE_TTL, CLIENT_ID);
         assertThat(hash1).isNotEqualTo(hash2);
+    }
+    @Test
+    void getOrRegisterVqps_differentVerifierDid_producesDifferentHash() {
+        String jwt = buildJwt(Instant.now().plus(30, ChronoUnit.DAYS));
+        var purpose = buildPurpose();
+        var dcql = Map.of("credentials", "test");
+        when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
+        mockTmsImmediateSuccess(jwt);
+        String hash1 = service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL, CLIENT_ID);
+        reset(vqpsRepository, vqpsSubmissionB2BApi);
+        when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
+        mockTmsImmediateSuccess(jwt);
+        String hash2 = service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL, "did:example:other-verifier");
+        assertThat(hash1).isNotEqualTo(hash2);
+    }
+    @Test
+    void getOrRegisterVqps_withBlankVerifierDid_throwsConfigurationException() {
+        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, " "))
+                .isInstanceOf(ConfigurationException.class)
+                .hasMessageContaining("No verifier DID available");
+        verifyNoInteractions(vqpsSubmissionB2BApi);
+    }
+    @Test
+    void getOrRegisterVqps_withOverrideDid_sendsOverrideAsSub() {
+        String jwt = buildJwt(Instant.now().plus(30, ChronoUnit.DAYS));
+        String overrideDid = "did:example:override-verifier";
+        when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
+        mockTmsImmediateSuccess(jwt);
+        service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, overrideDid);
+        ArgumentCaptor<VqpsSubmissionCreateRequest> requestCaptor = ArgumentCaptor.forClass(VqpsSubmissionCreateRequest.class);
+        verify(vqpsSubmissionB2BApi).createVqpsSubmission(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getSub()).isEqualTo(overrideDid);
+    }
+    @Test
+    void getOrRegisterVqps_withoutOverrideDid_sendsDefaultAsSub() {
+        String jwt = buildJwt(Instant.now().plus(30, ChronoUnit.DAYS));
+        when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
+        mockTmsImmediateSuccess(jwt);
+        service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, CLIENT_ID);
+        ArgumentCaptor<VqpsSubmissionCreateRequest> requestCaptor = ArgumentCaptor.forClass(VqpsSubmissionCreateRequest.class);
+        verify(vqpsSubmissionB2BApi).createVqpsSubmission(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getSub()).isEqualTo(CLIENT_ID);
     }
     @Test
     void getOrRegisterVqps_withValidCachedEntry_returnsCachedHashWithoutTmsCall() {
@@ -98,12 +138,12 @@ class VqpsRegistrationServiceTest {
         var dcql = Map.of("credentials", "test");
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
         mockTmsImmediateSuccess(jwt);
-        String hash = service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL);
+        String hash = service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL, CLIENT_ID);
         reset(vqpsRepository, vqpsSubmissionB2BApi);
         when(vqpsRepository.findById(hash)).thenReturn(Optional.of(
                 Vqps.builder().queryHash(hash).scope(SCOPE).jwt(jwt)
                         .expiresAt(Instant.now().plus(30, ChronoUnit.DAYS).getEpochSecond()).build()));
-        assertThat(service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL)).isEqualTo(hash);
+        assertThat(service.getOrRegisterVqps(purpose, dcql, FAR_FUTURE_TTL, CLIENT_ID)).isEqualTo(hash);
         verifyNoInteractions(vqpsSubmissionB2BApi);
     }
     @Test
@@ -111,7 +151,7 @@ class VqpsRegistrationServiceTest {
         String jwt = buildJwt(Instant.now().plus(30, ChronoUnit.DAYS));
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
         mockTmsImmediateSuccess(jwt);
-        String hash = service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL);
+        String hash = service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, CLIENT_ID);
         assertThat(hash).isNotBlank();
         verify(vqpsSubmissionB2BApi).createVqpsSubmission(any());
         verify(vqpsRepository).save(argThat(vqps ->
@@ -125,7 +165,7 @@ class VqpsRegistrationServiceTest {
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
         mockTmsImmediateSuccess(shortLivedJwt);
         long farFutureTtl = Instant.now().plus(60, ChronoUnit.DAYS).getEpochSecond();
-        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), farFutureTtl))
+        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), farFutureTtl, CLIENT_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("expires at")
                 .hasMessageContaining("before the verification TTL");
@@ -138,7 +178,7 @@ class VqpsRegistrationServiceTest {
                 .id(UUID.randomUUID()).status(VqpsSubmissionStatus.ACCEPTED);
         when(vqpsSubmissionB2BApi.createVqpsSubmission(any())).thenReturn(Mono.just(unexpected));
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL))
+        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, CLIENT_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("unexpected status");
     }
@@ -148,7 +188,7 @@ class VqpsRegistrationServiceTest {
                 .id(UUID.randomUUID()).status(VqpsSubmissionStatus.PUBLICATION_FAILED);
         when(vqpsSubmissionB2BApi.createVqpsSubmission(any())).thenReturn(Mono.just(failed));
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL))
+        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, CLIENT_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("publication failed");
     }
@@ -159,7 +199,7 @@ class VqpsRegistrationServiceTest {
                 .publicationResult(new VqpsPublicationResult().jwt("not.a.valid.jwt"));
         when(vqpsSubmissionB2BApi.createVqpsSubmission(any())).thenReturn(Mono.just(succeeded));
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL))
+        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, CLIENT_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Failed to parse vqPS JWT exp claim");
     }
@@ -175,7 +215,7 @@ class VqpsRegistrationServiceTest {
                 .publicationResult(new VqpsPublicationResult().jwt(signedJwt.serialize()));
         when(vqpsSubmissionB2BApi.createVqpsSubmission(any())).thenReturn(Mono.just(succeeded));
         when(vqpsRepository.findById(any())).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL))
+        assertThatThrownBy(() -> service.getOrRegisterVqps(buildPurpose(), Map.of("k", "v"), FAR_FUTURE_TTL, CLIENT_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("no exp claim");
     }

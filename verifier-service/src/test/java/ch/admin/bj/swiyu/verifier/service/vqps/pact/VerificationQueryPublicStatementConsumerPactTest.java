@@ -128,7 +128,7 @@ class VerificationQueryPublicStatementConsumerPactTest {
         final var fixture = buildFixture(mockServer);
 
         final String queryHash = fixture.service()
-                .getOrRegisterVqps(PURPOSE, DCQL_QUERY, VERIFICATION_EXPIRES_AT);
+                .getOrRegisterVqps(PURPOSE, DCQL_QUERY, VERIFICATION_EXPIRES_AT, VERIFIER_DID);
 
         assertThat(queryHash).matches("^[0-9a-f]{64}$");
         final ArgumentCaptor<Vqps> savedVqps = ArgumentCaptor.forClass(Vqps.class);
@@ -145,7 +145,7 @@ class VerificationQueryPublicStatementConsumerPactTest {
         final var fixture = buildFixture(mockServer);
 
         assertThatThrownBy(() -> fixture.service()
-                .getOrRegisterVqps(PURPOSE, DCQL_QUERY, VERIFICATION_EXPIRES_AT))
+                .getOrRegisterVqps(PURPOSE, DCQL_QUERY, VERIFICATION_EXPIRES_AT, VERIFIER_DID))
                 .isInstanceOf(WebClientResponseException.class)
                 .satisfies(exception -> assertThat(((WebClientResponseException) exception).getStatusCode().value())
                         .isEqualTo(422));
@@ -158,7 +158,7 @@ class VerificationQueryPublicStatementConsumerPactTest {
         final var fixture = buildFixture(mockServer);
 
         assertThatThrownBy(() -> fixture.service()
-                .getOrRegisterVqps(PURPOSE, DCQL_QUERY, VERIFICATION_EXPIRES_AT))
+                .getOrRegisterVqps(PURPOSE, DCQL_QUERY, VERIFICATION_EXPIRES_AT, VERIFIER_DID))
                 .isInstanceOf(WebClientResponseException.InternalServerError.class);
         verify(fixture.repository(), never()).save(any(Vqps.class));
     }

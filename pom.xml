@@ -33,21 +33,21 @@
         </sonar.exclusions>
         <!-- dependency versions -->
         <archunit-junit5.verion>1.5.0</archunit-junit5.verion>
-        <javacrumbs.shedlock.version>7.8.0</javacrumbs.shedlock.version>
+        <javacrumbs.shedlock.version>7.10.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
         <!-- Fixes SNYK-JAVA-ORGSPRINGFRAMEWORKCLOUD-19268251 (Missing Authorization, High Severity) in spring-cloud-context@5.0.2 -->
         <spring-cloud-context.version>5.0.3</spring-cloud-context.version>
         <spring-cloud-starter-bootstrap.version>5.0.3</spring-cloud-starter-bootstrap.version>
-        <openapi-generator-maven-plugin.version>7.24.0</openapi-generator-maven-plugin.version>
-        <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
+        <openapi-generator-maven-plugin.version>7.25.0</openapi-generator-maven-plugin.version>
+        <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
         <logback.version>1.6.3</logback.version>
         <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2025.1.2</spring-cloud-dependencies.version>
         <bcprov-jdk18on.version>1.85.2</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.85</bcpkix-jdk18on.version>
         <postgres.version>42.7.13</postgres.version>
-        <swagger-parser.version>2.1.46</swagger-parser.version>
+        <swagger-parser.version>2.1.48</swagger-parser.version>
         <!-- Fixes SNYK-JAVA-IONETTY-19005879 (Critical, io.netty:netty-handler via mockserver-core) -->
         <mockserver-client-java.version>7.6.0</mockserver-client-java.version>
         <!-- Sonar -->
@@ -60,7 +60,7 @@
 
         <editorconfig-maven-plugin.version>0.2.0</editorconfig-maven-plugin.version>
         <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
-        <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
+        <kotlin-stdlib.version>2.4.20</kotlin-stdlib.version>
         <jna.version>5.19.1</jna.version>
         <sd-jwt.version>1.9</sd-jwt.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
@@ -73,13 +73,12 @@
         <logback-core.version>1.6.3</logback-core.version>
         <!-- Fixes SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890 / 17733746 -->
         <tomcat.version>11.0.23</tomcat.version>
-        <!-- Fixes CVE-2026-59889. jackson-annotations/jackson-core must stay aligned with jackson-databind
-             (>= 2.22 required for e.g. JsonApplyView), otherwise dependency mediation can pick an older
-             managed version from Spring Boot and cause java.lang.NoClassDefFoundError at runtime. -->
-        <jackson.version>2.22.2</jackson.version>
-        <jackson-annotations.version>2.22</jackson-annotations.version>
-        <jackson-core.version>2.22.0</jackson-core.version>
-        <jackson3.version>3.2.2</jackson3.version>
+        <!-- Fixes CVE-2026-59889 and SNYK-JAVA-TOOLSJACKSONCORE-19778371. Spring Boot 4.1.1 manages
+             Jackson via two BOMs, jackson-2-bom (com.fasterxml.jackson) and jackson-bom (tools.jackson);
+             both must be bumped together so jackson-annotations/jackson-core stay aligned with
+             jackson-databind -->
+        <jackson-2-bom.version>2.22.2</jackson-2-bom.version>
+        <jackson-bom.version>3.2.2</jackson-bom.version>
     </properties>
 
     <dependencyManagement>

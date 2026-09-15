@@ -278,7 +278,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             int expectedIndex,
             String expectedCountry) throws Exception {
 
-        // credential_subject_data is only included in the management API response when explicitly enabled (EIDOMNI-1321)
+        // credential_subject_data is only included in the management API response when enabled
         enableCredentialSubjectDataAuditInformation();
 
         var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry);

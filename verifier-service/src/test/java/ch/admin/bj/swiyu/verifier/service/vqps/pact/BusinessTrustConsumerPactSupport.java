@@ -3,7 +3,6 @@ package ch.admin.bj.swiyu.verifier.service.vqps.pact;
 import au.com.dius.pact.consumer.MockServer;
 import ch.admin.bj.swiyu.core.trust.client.api.VqpsSubmissionB2BApi;
 import ch.admin.bj.swiyu.core.trust.client.invoker.ApiClient;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
@@ -38,16 +37,12 @@ final class BusinessTrustConsumerPactSupport {
         final TrustRegistryProperties trustRegistryProperties = new TrustRegistryProperties();
         trustRegistryProperties.setVqpsExpiryBufferSeconds(0);
 
-        final ApplicationProperties applicationProperties = new ApplicationProperties();
-        applicationProperties.setClientId(VERIFIER_DID);
-
         final VqpsRepository repository = mock(VqpsRepository.class);
         when(repository.findById(anyString())).thenReturn(Optional.empty());
         when(repository.save(any(Vqps.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         final VqpsRegistrationService service = new VqpsRegistrationService(
                 trustRegistryProperties,
-                applicationProperties,
                 repository,
                 new VqpsSubmissionB2BApi(apiClient),
                 new ObjectMapper());

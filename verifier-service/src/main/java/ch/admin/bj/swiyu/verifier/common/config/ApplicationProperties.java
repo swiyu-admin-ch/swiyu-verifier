@@ -69,12 +69,46 @@ public class ApplicationProperties {
      */
     private List<String> acceptedRegistryHosts;
 
+    /**
+     * Fine-grained flags controlling which audit-related data (e.g. raw vp_token, credential_subject_data,
+     * credential_evaluation) is included in the management API responses sent to the business verifier.
+     * All flags default to {@code false} to keep the API response minimal unless explicitly configured.
+     */
+    @NotNull
+    private AdditionalAuditInformationProperties additionalAuditInformation = new AdditionalAuditInformationProperties();
+
     public String getClientIdWithPrefix() {
         if (StringUtils.isBlank(clientIdPrefix)) {
             return clientId;
         }
 
         return clientIdPrefix + ":" + clientId;
+    }
+
+    /**
+     * Groups the individual opt-in flags for audit information that is otherwise omitted from the
+     * management API response to the business verifier (see EIDOMNI-1321).
+     */
+    @Data
+    public static class AdditionalAuditInformationProperties {
+
+        /**
+         * If {@code true}, the raw {@code vp_token} (full presentation as sent by the wallet) is included
+         * in the {@code wallet_response} of the management API response.
+         */
+        private boolean vpTokenEnabled = false;
+
+        /**
+         * If {@code true}, the {@code credential_subject_data} (requested claims) is included in the
+         * {@code wallet_response} of the management API response.
+         */
+        private boolean credentialSubjectDataEnabled = false;
+
+        /**
+         * If {@code true}, the {@code credential_evaluation} (per-credential trust and status verification
+         * results) is included in the management API response.
+         */
+        private boolean credentialEvaluationEnabled = false;
     }
 
 }

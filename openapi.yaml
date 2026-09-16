@@ -78,7 +78,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                $ref: "#/components/schemas/VerificationPresentationResponseDto"
         "410":
           description: Gone. The verification process for this Request Object is already
             closed
@@ -91,7 +91,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                $ref: "#/components/schemas/VerificationPresentationResponseDto"
         "500":
           description: Internal Server Error
           content:
@@ -99,11 +99,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiErrorDto"
         "503":
-          description: Service Unavailable
+          description: Service temporarily unavailable
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                $ref: "#/components/schemas/VerificationPresentationResponseDto"
   /management/api/verifications:
     post:
       tags:
@@ -173,10 +173,10 @@ paths:
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                type: object
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                type: object
         "404":
           description: Request Object not found
           content:
@@ -191,20 +191,20 @@ paths:
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                type: object
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                type: object
         "406":
           description: Not Acceptable. The requested Accept header does not match
             any of the produced media types
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                type: object
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                type: object
         "410":
           description: Gone. The verification process for this Request Object is already
             closed
@@ -225,14 +225,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiErrorDto"
         "503":
-          description: Service Unavailable
+          description: Service temporarily unavailable
           content:
             application/oauth-authz-req+jwt:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                type: object
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiErrorDto"
+                type: object
   /oid4vp/api/openid-client-metadata.json:
     get:
       tags:

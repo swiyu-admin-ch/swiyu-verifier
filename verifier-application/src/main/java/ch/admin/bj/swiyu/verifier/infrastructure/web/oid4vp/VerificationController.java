@@ -118,8 +118,7 @@ public class VerificationController {
                     ),
                     @ApiResponse(
                             responseCode = "403",
-                            description = "Forbidden",
-                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                            description = "Forbidden"
                     ),
                     @ApiResponse(
                             responseCode = "404",
@@ -128,13 +127,11 @@ public class VerificationController {
                     ),
                     @ApiResponse(
                             responseCode = "405",
-                            description = "Method Not Allowed",
-                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                            description = "Method Not Allowed"
                     ),
                     @ApiResponse(
                             responseCode = "406",
-                            description = "Not Acceptable. The requested Accept header does not match any of the produced media types",
-                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                            description = "Not Acceptable. The requested Accept header does not match any of the produced media types"
                     ),
                     @ApiResponse(
                             responseCode = "410",
@@ -148,8 +145,7 @@ public class VerificationController {
                     ),
                     @ApiResponse(
                             responseCode = "503",
-                            description = "Service Unavailable",
-                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                            description = "Service temporarily unavailable"
                     )
             }
     )
@@ -216,8 +212,7 @@ public class VerificationController {
                     ),
                     @ApiResponse(
                             responseCode = "408",
-                            description = "Request Timeout",
-                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                            description = "Request Timeout"
                     ),
                     @ApiResponse(
                             responseCode = "410",
@@ -226,8 +221,7 @@ public class VerificationController {
                     ),
                     @ApiResponse(
                             responseCode = "415",
-                            description = "Unsupported Media Type. The request body must be application/x-www-form-urlencoded",
-                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                            description = "Unsupported Media Type. The request body must be application/x-www-form-urlencoded"
                     ),
                     @ApiResponse(
                             responseCode = "500",
@@ -236,8 +230,7 @@ public class VerificationController {
                     ),
                     @ApiResponse(
                             responseCode = "503",
-                            description = "Service Unavailable",
-                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                            description = "Service temporarily unavailable"
                     )
             }
     )

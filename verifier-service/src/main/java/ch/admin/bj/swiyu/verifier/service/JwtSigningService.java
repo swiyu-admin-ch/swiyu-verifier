@@ -3,11 +3,11 @@ package ch.admin.bj.swiyu.verifier.service;
 import ch.admin.bj.swiyu.jwssignatureservice.factory.strategy.KeyStrategyException;
 import ch.admin.bj.swiyu.jwtutil.JwtUtil;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.SignatureConfiguration;
+import ch.admin.bj.swiyu.verifier.common.config.SignatureConfigurationWithHsm;
 import ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
 
-import com.nimbusds.jose.JOSEException;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -33,20 +33,21 @@ public class JwtSigningService {
      * If keyId and keyPin are provided, they override the default key settings; otherwise, defaults are used.
      *
      * @param claimsSet the JWT claims to sign
-     * @param keyId optional key ID to override the default; if null, default is used
-     * @param keyPin optional key PIN to override the default; if null, default is used
-     * @param verificationMethod the verification method for the JWS header (e.g., a DID URL)
+     * @param override the configuration override to use for signing {@link ConfigurationOverride}
      * @return the signed JWT object
      * @throws IllegalArgumentException if invalid arguments are provided
      * @throws IllegalStateException if the signer provider cannot be initialized or no signing key is available
-     * @throws JOSEException if the signing operation fails
      */
-    public SignedJWT signJwt(JWTClaimsSet claimsSet, String keyId, String keyPin, String verificationMethod)
-            throws IllegalArgumentException, JOSEException {
+    public SignedJWT signJwt(JWTClaimsSet claimsSet, ConfigurationOverride override)
+            throws IllegalArgumentException {
+
+        if (claimsSet == null) {
+            throw new IllegalArgumentException("JWTClaimsSet cannot be null");
+        }
 
         SignerProvider signerProvider;
         try {
-            signerProvider = createSignerProvider(keyId, keyPin);
+            signerProvider = createSignerProvider(override);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialize signature provider. This is probably because the key could not be loaded.", e);
         }
@@ -58,7 +59,7 @@ public class JwtSigningService {
 
         // Build the JAR header with the required swiss profile version indication.
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                .keyID(verificationMethod)
+                .keyID(override.verificationMethodOrDefault(applicationProperties.getSigningKeyVerificationMethod()))
                 .type(new JOSEObjectType(OAUTH_AUTHZ_REQ_JWT))
                 .customParam(SwissProfileVersions.PROFILE_VERSION_PARAM, SwissProfileVersions.VERIFICATION_PROFILE_VERSION)
                 .build();
@@ -72,14 +73,13 @@ public class JwtSigningService {
      * * <p>If {@code keyId} or {@code keyPin} are provided (not null and not empty),
      * they selectively replace the default values specified in the application properties.</p>
      *
-     * @param keyId  The specific key identifier to use, or {@code null}/empty to fall back to the default.
-     * @param keyPin The specific key PIN to use, or {@code null}/empty to fall back to the default.
+     * @param override The {@link ConfigurationOverride} containing the key ID and key PIN
      * @return A fully configured {@link SignerProvider} ready for JWT signing operations.
      * @throws KeyStrategyException If the underlying signature strategy cannot be initialized.
      */
-    private SignerProvider createSignerProvider(String keyId, String keyPin) throws IllegalArgumentException, KeyStrategyException {
+    private SignerProvider createSignerProvider(ConfigurationOverride override) throws IllegalArgumentException, KeyStrategyException {
         var defaultSignatureConfiguration = toSignatureConfiguration(applicationProperties);
-        return new SignerProvider(jwsSignatureFacade.createSigner(defaultSignatureConfiguration, keyId, keyPin));
+        return new SignerProvider(jwsSignatureFacade.createSigner(defaultSignatureConfiguration, override));
     }
 
     /**
@@ -87,14 +87,15 @@ public class JwtSigningService {
      *
      * @return SignatureConfiguration built from the given application properties
      */
-    private static SignatureConfiguration toSignatureConfiguration(
+    private static SignatureConfigurationWithHsm toSignatureConfiguration(
             ApplicationProperties applicationProperties) {
-        return SignatureConfiguration.builder()
+        return SignatureConfigurationWithHsm.builder()
                 .keyManagementMethod(applicationProperties.getKeyManagementMethod())
                 .privateKey(applicationProperties.getSigningKey())
                 .hsm(applicationProperties.getHsm())
                 .pkcs11Config(applicationProperties.getHsm().getPkcs11Config())
                 .verificationMethod(applicationProperties.getSigningKeyVerificationMethod())
+                .signingKeys(applicationProperties.getSigningKeys())
                 .build();
     }
 }

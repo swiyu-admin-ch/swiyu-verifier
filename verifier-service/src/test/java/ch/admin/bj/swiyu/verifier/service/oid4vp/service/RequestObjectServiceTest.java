@@ -89,10 +89,7 @@ class RequestObjectServiceTest {
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
         when(jwtSigningService.signJwt(
                 org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.eq(keyId)
-        )).thenAnswer(invocation -> {
+                org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
                     .keyID(keyId)
@@ -146,9 +143,7 @@ class RequestObjectServiceTest {
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
         when(jwtSigningService.signJwt(
                 org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.eq("did:override#key1")
+                org.mockito.ArgumentMatchers.any()
         )).thenAnswer(invocation -> {
             var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
@@ -186,10 +181,7 @@ class RequestObjectServiceTest {
         when(signerProvider.getSigner()).thenReturn(jwsSigner);
         when(jwtSigningService.signJwt(
                 org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.eq("did:example:123#key1")
-        )).thenAnswer(invocation -> {
+                org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
                     .keyID("did:example:123#key1")
@@ -223,10 +215,7 @@ class RequestObjectServiceTest {
         JWSSigner jwsSigner = new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
         when(jwtSigningService.signJwt(
                 org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.eq("did:example:123#key1")
-        )).thenAnswer(invocation -> {
+                org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
                     .keyID("did:example:123#key1")

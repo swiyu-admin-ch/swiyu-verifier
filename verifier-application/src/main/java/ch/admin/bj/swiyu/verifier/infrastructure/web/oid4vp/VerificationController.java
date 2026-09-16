@@ -117,10 +117,6 @@ public class VerificationController {
                             }
                     ),
                     @ApiResponse(
-                            responseCode = "403",
-                            description = "Forbidden"
-                    ),
-                    @ApiResponse(
                             responseCode = "404",
                             description = "Request Object not found",
                             content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
@@ -142,10 +138,6 @@ public class VerificationController {
                             responseCode = "500",
                             description = "Internal Server Error",
                             content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "503",
-                            description = "Service temporarily unavailable"
                     )
             }
     )
@@ -227,10 +219,6 @@ public class VerificationController {
                             responseCode = "500",
                             description = "Internal Server Error",
                             content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "503",
-                            description = "Service temporarily unavailable"
                     )
             }
     )

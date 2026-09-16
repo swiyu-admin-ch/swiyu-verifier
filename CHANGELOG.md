@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 - After completed verificiation the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
-- Documented missing HTTP response codes (403, 405, 406, 410, 500, 503 for `GET /oid4vp/api/request-object/{request_id}`; 408, 410, 415, 500, 503 for `POST /oid4vp/api/request-object/{request_id}/response-data`) in `openapi.yaml` `(#1165)`
+- Documented missing HTTP response codes (405, 406, 410, 500 for `GET /oid4vp/api/request-object/{request_id}`; 408, 410, 415, 500 for `POST /oid4vp/api/request-object/{request_id}/response-data`) in `openapi.yaml` `(#1165)`
 
 ## Changed
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`

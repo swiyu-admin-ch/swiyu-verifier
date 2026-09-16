@@ -98,12 +98,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorDto"
-        "503":
-          description: Service temporarily unavailable
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VerificationPresentationResponseDto"
   /management/api/verifications:
     post:
       tags:
@@ -168,15 +162,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RequestObject"
-        "403":
-          description: Forbidden
-          content:
-            application/oauth-authz-req+jwt:
-              schema:
-                type: object
-            application/json:
-              schema:
-                type: object
         "404":
           description: Request Object not found
           content:
@@ -224,15 +209,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorDto"
-        "503":
-          description: Service temporarily unavailable
-          content:
-            application/oauth-authz-req+jwt:
-              schema:
-                type: object
-            application/json:
-              schema:
-                type: object
   /oid4vp/api/openid-client-metadata.json:
     get:
       tags:

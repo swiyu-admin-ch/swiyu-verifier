@@ -70,6 +70,14 @@ public class ApplicationProperties {
      */
     private List<String> acceptedRegistryHosts;
 
+    /**
+     * Fine-grained flags controlling which audit-related data (e.g. raw vp_token, credential_subject_data,
+     * credential_evaluation) is included in the management API responses sent to the business verifier.
+     * All flags default to {@code false} to keep the API response minimal unless explicitly configured.
+     */
+    @NotNull
+    private AdditionalAuditInformationProperties additionalAuditInformation = new AdditionalAuditInformationProperties();
+
     public String getClientIdWithPrefix() {
         if (StringUtils.isBlank(clientIdPrefix)) {
             return clientId;

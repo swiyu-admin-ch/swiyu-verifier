@@ -73,6 +73,37 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/VerificationPresentationResponseDto"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "410":
+          description: Gone. The verification process for this Request Object is already
+            closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "415":
+          description: Unsupported Media Type. The request body must be application/x-www-form-urlencoded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
   /management/api/verifications:
     post:
       tags:
@@ -137,8 +168,64 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RequestObject"
+        "403":
+          description: Forbidden
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
         "404":
           description: Request Object not found
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "406":
+          description: Not Acceptable. The requested Accept header does not match
+            any of the produced media types
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "410":
+          description: Gone. The verification process for this Request Object is already
+            closed
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "500":
+          description: Internal Server Error
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "503":
+          description: Service Unavailable
           content:
             application/oauth-authz-req+jwt:
               schema:

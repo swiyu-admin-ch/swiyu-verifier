@@ -117,8 +117,38 @@ public class VerificationController {
                             }
                     ),
                     @ApiResponse(
+                            responseCode = "403",
+                            description = "Forbidden",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
                             responseCode = "404",
                             description = "Request Object not found",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "405",
+                            description = "Method Not Allowed",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "406",
+                            description = "Not Acceptable. The requested Accept header does not match any of the produced media types",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "410",
+                            description = "Gone. The verification process for this Request Object is already closed",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "Internal Server Error",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "503",
+                            description = "Service Unavailable",
                             content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
                     )
             }
@@ -182,6 +212,31 @@ public class VerificationController {
                     @ApiResponse(
                             responseCode = "400",
                             description = "Bad Request. The request body is not valid",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "408",
+                            description = "Request Timeout",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "410",
+                            description = "Gone. The verification process for this Request Object is already closed",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "415",
+                            description = "Unsupported Media Type. The request body must be application/x-www-form-urlencoded",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "Internal Server Error",
+                            content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "503",
+                            description = "Service Unavailable",
                             content = @Content(schema = @Schema(implementation = ApiErrorDto.class))
                     )
             }

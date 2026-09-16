@@ -78,6 +78,32 @@ public class ApplicationProperties {
         return clientIdPrefix + ":" + clientId;
     }
 
+    /**
+     * Groups the individual opt-in flags for audit information that is otherwise omitted from the
+     * management API response to the business verifier (see EIDOMNI-1321).
+     */
+    @Data
+    public static class AdditionalAuditInformationProperties {
+
+        /**
+         * If {@code true}, the raw {@code vp_token} (full presentation as sent by the wallet) is included
+         * in the {@code wallet_response} of the management API response.
+         */
+        private boolean vpTokenEnabled = false;
+
+        /**
+         * If {@code true}, the {@code credential_subject_data} (requested claims) is included in the
+         * {@code wallet_response} of the management API response.
+         */
+        private boolean credentialSubjectDataEnabled = false;
+
+        /**
+         * If {@code true}, the {@code credential_evaluation} (per-credential trust and status verification
+         * results) is included in the management API response.
+         */
+        private boolean credentialEvaluationEnabled = false;
+    }
+
     @Valid
     private List<KeyOnlySignatureConfiguration> signingKeys;
 

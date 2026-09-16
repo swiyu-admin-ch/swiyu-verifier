@@ -15,9 +15,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.ISSUER_NOT_ACCEPTED;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.UNSUPPORTED_FORMAT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class IssuerTrustValidatorTest {
@@ -49,9 +50,9 @@ class IssuerTrustValidatorTest {
                 .trustAnchors(List.of(anchor))
                 .build();
 
-        assertThatThrownBy(() -> issuerTrustValidator.validateTrust("did:example:unknown", "vct:test", management))
-                .isInstanceOf(VerificationException.class)
-                .matches(ex -> ((VerificationException) ex).getErrorResponseCode() == ISSUER_NOT_ACCEPTED);
+        var ex = (VerificationException) assertThrows(VerificationException.class, 
+            () -> issuerTrustValidator.validateTrust("did:example:unknown", "vct:test", management));
+        assertThat(ex.getErrorResponseCode()).as("The DID format is not known").isEqualTo(UNSUPPORTED_FORMAT);
     }
 
     @Test

@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
@@ -39,8 +40,8 @@ class ManagementTransactionalServiceTest {
         var mockManagement = spy(Management.class);
         when(mockManagement.getState()).thenReturn(VerificationStatus.IN_PROGRESS);
         when(mockRepository.findById(any())).thenReturn(Optional.of(mockManagement));
-        assertDoesNotThrow(() -> managementTransactionalService.markVerificationSucceeded(UUID.randomUUID(), "Some Test Data"));
-        verify(mockManagement, times(1)).verificationSucceeded(any());
+        assertDoesNotThrow(() -> managementTransactionalService.markVerificationDone(UUID.randomUUID(), VerificationResultData.builder().build()));
+        verify(mockManagement, times(1)).verificationDone(any());
     }
 
     @Test
@@ -48,7 +49,7 @@ class ManagementTransactionalServiceTest {
         var mockManagement = spy(Management.class);
         when(mockManagement.getState()).thenReturn(VerificationStatus.IN_PROGRESS);
         when(mockRepository.findById(any())).thenReturn(Optional.of(mockManagement));
-        assertDoesNotThrow(() -> managementTransactionalService.markVerificationFailed(UUID.randomUUID(), mock(VerificationException.class)));
+        assertDoesNotThrow(() -> managementTransactionalService.markVerificationException(UUID.randomUUID(), mock(VerificationException.class)));
         verify(mockManagement, times(1)).verificationFailed(any(), any());
     }
 
@@ -58,7 +59,7 @@ class ManagementTransactionalServiceTest {
         var mockManagement = mock(Management.class);
         when(mockManagement.getState()).thenReturn(status);
         when(mockRepository.findById(any())).thenReturn(Optional.of(mockManagement));
-        assertThrows(ProcessClosedException.class, () -> managementTransactionalService.markVerificationSucceeded(UUID.randomUUID(), "Some Test Data"));
+        assertThrows(ProcessClosedException.class, () -> managementTransactionalService.markVerificationDone(UUID.randomUUID(), VerificationResultData.builder().build()));
     }
 
     @ParameterizedTest
@@ -68,7 +69,7 @@ class ManagementTransactionalServiceTest {
         when(mockManagement.getState()).thenReturn(status);
         when(mockRepository.findById(any())).thenReturn(Optional.of(mockManagement));
 
-        assertThrows(ProcessClosedException.class, () -> managementTransactionalService.markVerificationFailed(UUID.randomUUID(), mock(VerificationException.class)));
+        assertThrows(ProcessClosedException.class, () -> managementTransactionalService.markVerificationException(UUID.randomUUID(), mock(VerificationException.class)));
     }
 
     @Test

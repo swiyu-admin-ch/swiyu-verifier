@@ -2,6 +2,11 @@ package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
+import ch.admin.bj.swiyu.verifier.domain.CredentialEvaluation;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
+import ch.admin.bj.swiyu.verifier.domain.StatusVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
@@ -9,10 +14,13 @@ import ch.admin.bj.swiyu.verifier.dto.management.ConfigurationOverrideDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationStatusDto;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -25,6 +33,7 @@ import static ch.admin.bj.swiyu.verifier.service.management.ManagementMapper.toM
 import static ch.admin.bj.swiyu.verifier.service.management.fixtures.ManagementFixtures.management;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +43,7 @@ class ManagementMapperTest {
     private static final String CLIENT_ID = "client_id";
     private static final String DEEPLINK_SCHEMA = "openid4vp";
     private static final String CLIENT_ID_PREFIX = "decentralized_identifier";
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private ApplicationProperties applicationProperties;
 
@@ -44,6 +54,14 @@ class ManagementMapperTest {
         when(applicationProperties.getClientId()).thenReturn(CLIENT_ID);
         when(applicationProperties.getDeeplinkSchema()).thenReturn(DEEPLINK_SCHEMA);
         when(applicationProperties.getClientIdPrefix()).thenReturn(CLIENT_ID_PREFIX);
+        // By default, all audit information flags are enabled for the existing tests below,
+        // which assert the presence of vp_token, credential_subject_data and credential_evaluation.
+        // The dedicated flag-behaviour tests further down override this per scenario.
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        auditInformation.setVpTokenEnabled(true);
+        auditInformation.setCredentialSubjectDataEnabled(true);
+        auditInformation.setCredentialEvaluationEnabled(true);
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
     }
 
     @Test
@@ -78,11 +96,14 @@ class ManagementMapperTest {
         assertThat(dto.state()).isEqualTo(VerificationStatusDto.PENDING);
     }
 
+    /**
+     * Create a complete verification result and tests mapping to the DTO and serializing it
+     */
     @Test
-    void toManagementResponseDto_withSuccessfulVerification_returnsCredentialSubjectData() {
-        var management = managementWithOverride();
-        management.claimForProcessing();
-        management.verificationSucceeded("{\"given_name\":\"Ada\",\"age\":42}");
+    void toManagementResponseDto_withSuccessfulVerification_returnsVerificationArtefacts() {
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
 
         var dto = toManagementResponseDto(management, applicationProperties);
 
@@ -103,6 +124,154 @@ class ManagementMapperTest {
                 .containsEntry("age", 42);
         assertThat(dto.verificationUrl()).isEqualTo(expectedVerificationUrl);
         assertThat(dto.verificationDeeplink()).isEqualTo(expectedDeeplink);
+        assertThat(dto.credentialEvaluation()).hasSize(1);
+        var evaluationDtos = dto.credentialEvaluation().get(dcqlId);
+        assertThat(evaluationDtos).hasSize(1);
+        var evaluationDto = evaluationDtos.getFirst();
+        var statusDto = evaluationDto.credentialStatus();
+        assertThat(statusDto.valid()).isTrue();
+        assertThat(statusDto.status()).isEqualTo(0);
+        var trustDto = evaluationDto.trustMarkers();
+        assertThat(trustDto.isTrusted()).isTrue();
+        assertThat(trustDto.identityTrustMarker()).isTrue();
+        assertThat(trustDto.compliantActorTrustMarker()).isTrue();
+        assertThat(trustDto.governedUseCaseTrustMarker()).isFalse();
+        assertThat(trustDto.governedUseCaseAuthorizationTrustMarker()).isFalse();
+
+        assertThat(dto.walletResponse().vpToken().get(dcqlId)).hasSize(1).contains(vpTokenStandin);
+        var json = assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
+        assertThat(json).as("Interface defined fields must exist in serialized string").contains(
+            dcqlId,
+            "credential_status",
+            "trust_markers",
+            "trust_method",
+            "TRUST_PROTOCOL_2_0",
+            "is_trusted",
+            "viTM",
+            "caTM",
+            "gucTM",
+            "gucaTM", 
+            "vp_token",
+            vpTokenStandin,
+            "credential_subject_data");
+    }
+
+    /**
+     * By default (all additional-audit-information flags disabled, as configured in
+     * {@link #setUpDisabledAuditInformation()}), the audit-sensitive fields vp_token, credential_subject_data
+     * and credential_evaluation must not be present in the response to the business verifier, even though
+     * the underlying verification produced this data.
+     */
+    @Test
+    void toManagementResponseDto_withAllAuditFlagsDisabled_omitsAuditFields() {
+        setUpDisabledAuditInformation();
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.walletResponse()).isNotNull();
+        assertThat(dto.walletResponse().credentialSubjectData()).isNull();
+        assertThat(dto.walletResponse().vpToken()).isNull();
+        assertThat(dto.credentialEvaluation()).isNull();
+        var json = assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
+        assertThat(json).as("Audit fields must be omitted from the serialized response when their flags are disabled")
+                .doesNotContain("vp_token", "credential_subject_data", "credential_evaluation");
+    }
+
+    /**
+     * Only vp_token is enabled; credential_subject_data and credential_evaluation must
+     * remain hidden from the response, proving the flags act independently of each other.
+     */
+    @Test
+    void toManagementResponseDto_withOnlyVpTokenFlagEnabled_returnsOnlyVpToken() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setVpTokenEnabled(true);
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.walletResponse().vpToken().get(dcqlId)).hasSize(1).contains(vpTokenStandin);
+        assertThat(dto.walletResponse().credentialSubjectData()).isNull();
+        assertThat(dto.credentialEvaluation()).isNull();
+    }
+
+    /**
+     * Only credential_subject_data is enabled; vp_token and credential_evaluation must
+     * remain hidden from the response, proving the flags act independently of each other.
+     */
+    @Test
+    void toManagementResponseDto_withOnlyCredentialSubjectDataFlagEnabled_returnsOnlyCredentialSubjectData() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setCredentialSubjectDataEnabled(true);
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.walletResponse().credentialSubjectData())
+                .containsEntry("given_name", "Ada")
+                .containsEntry("age", 42);
+        assertThat(dto.walletResponse().vpToken()).isNull();
+        assertThat(dto.credentialEvaluation()).isNull();
+    }
+
+    /**
+     * Only credential_evaluation is enabled; vp_token and credential_subject_data must
+     * remain hidden from the response, proving the flags act independently of each other.
+     */
+    @Test
+    void toManagementResponseDto_withOnlyCredentialEvaluationFlagEnabled_returnsOnlyCredentialEvaluation() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setCredentialEvaluationEnabled(true);
+        String dcqlId = "requested_data";
+        String vpTokenStandin = "test_vp_token";
+        var management = managementWithSuccessfulVerification(dcqlId, vpTokenStandin);
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.credentialEvaluation()).hasSize(1);
+        assertThat(dto.walletResponse().vpToken()).isNull();
+        assertThat(dto.walletResponse().credentialSubjectData()).isNull();
+    }
+
+    /**
+     * Replaces the stubbed {@link ApplicationProperties.AdditionalAuditInformationProperties} with an
+     * instance having all flags set to {@code false} (the production default), so individual tests can
+     * selectively re-enable single flags.
+     */
+    private void setUpDisabledAuditInformation() {
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
+    }
+
+    private Management managementWithSuccessfulVerification(String dcqlId, String vpTokenStandin) {
+        var management = managementWithOverride();
+        management.claimForProcessing();
+        var credentialEvaluation = CredentialEvaluation.builder()
+            .credentialStatus(StatusVerificationResult.builder()
+                .valid(true)
+                .status(0)
+                .build())
+            .trustMarkers(IssuerTrustMarker.builder()
+                .isTrusted(true)
+                .trustMethod(TrustMethod.TRUST_PROTOCOL_2_0)
+                .identityTrustMarker(true)
+                .compliantActorTrustMarker(true)
+                .governedUseCaseTrustMarker(false)
+                .governedUseCaseAuthorizationTrustMarker(false)
+                .build())
+            .build();
+        management.verificationDone(VerificationResultData.builder()
+            .verifiedResponsesJsonString("{\"given_name\":\"Ada\",\"age\":42}")
+            .evaluations(Map.of(dcqlId, List.of(credentialEvaluation)))
+            .vpTokens(Map.of(dcqlId, List.of(vpTokenStandin)))
+            .build());
+        return management;
     }
 
     @Test

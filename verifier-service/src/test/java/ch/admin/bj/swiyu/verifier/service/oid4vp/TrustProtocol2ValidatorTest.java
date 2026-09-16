@@ -90,7 +90,7 @@ class TrustProtocol2ValidatorTest {
         when(statementProvider.getAllIssuanceStatementsFor(anyString()))
                 .thenReturn(trustStatements.stream().map(SignedJWT::serialize).toList());
 
-        boolean result = validator.isTrusted(ISSUER_DID, TRUSTED_VCT, management);
-        assertThat(result).as("Issuer should be trusted when markers indicate trust").isTrue();
+        var verificationResult = validator.isTrusted(ISSUER_DID, TRUSTED_VCT, management);
+        assertThat(verificationResult.isTrusted()).as("Issuer should be trusted when markers indicate trust").isTrue();
     }
 }

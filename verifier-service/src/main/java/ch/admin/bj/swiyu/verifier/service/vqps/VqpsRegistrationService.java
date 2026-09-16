@@ -4,8 +4,8 @@ import ch.admin.bj.swiyu.core.trust.client.api.VqpsSubmissionB2BApi;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmission;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionCreateRequest;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionStatus;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
@@ -14,6 +14,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
@@ -47,7 +48,6 @@ public class VqpsRegistrationService {
 
 
     private final TrustRegistryProperties properties;
-    private final ApplicationProperties applicationProperties;
     private final VqpsRepository vqpsRepository;
     private final VqpsSubmissionB2BApi vqpsSubmissionB2BApi;
     private final ObjectMapper objectMapper;
@@ -67,14 +67,25 @@ public class VqpsRegistrationService {
      * @param purpose               the transparency metadata including scope and localized strings
      * @param dcqlQueryJson         the serialized DCQL query object
      * @param verificationExpiresAt the Unix epoch second at which the verification session expires
+     * @param verifierDid           the effective verifier DID to be used as the {@code sub} claim of the vqPS,
+     *                              i.e. the {@code configuration_override.verifier_did} if present, otherwise
+     *                              the statically configured {@code application.client-id}
      * @return the SHA-256 query hash (PK of {@code vqps_cache}) identifying the valid cache entry
-     * @throws IllegalStateException if the newly fetched vqPS expires before the verification TTL,
-     *                               or if the TMS submission fails or times out
+     * @throws ConfigurationException if {@code verifierDid} is blank, indicating that neither
+     *                                {@code configuration_override.verifier_did} nor the statically
+     *                                configured {@code application.client-id} resolved to a usable DID
+     * @throws IllegalStateException  if the newly fetched vqPS expires before the verification TTL,
+     *                                or if the TMS submission fails or times out
      */
-    public String getOrRegisterVqps(VerificationPurposeDto purpose, Object dcqlQueryJson, long verificationExpiresAt) {
+    public String getOrRegisterVqps(VerificationPurposeDto purpose, Object dcqlQueryJson, long verificationExpiresAt, String verifierDid) {
         String scope = purpose.scope();
+        if (StringUtils.isBlank(verifierDid)) {
+            throw new ConfigurationException(
+                    "No verifier DID available for vqPS submission, scope=" + scope
+                            + ". Configure application.client-id or provide configuration_override.verifier_did.");
+        }
         long requiredValidUntil = verificationExpiresAt + properties.getVqpsExpiryBufferSeconds();
-        String currentHash = computeQueryHash(purpose, dcqlQueryJson);
+        String currentHash = computeQueryHash(purpose, dcqlQueryJson, verifierDid);
 
         Optional<Vqps> cached = vqpsRepository.findById(currentHash);
         if (cached.isPresent() && cached.get().getExpiresAt() > requiredValidUntil) {
@@ -83,7 +94,7 @@ public class VqpsRegistrationService {
         }
 
         log.info("No valid vqPS cache entry found for scope={}, submitting to TMS B2B API", scope);
-        String jwt = submitAndAwaitJwt(purpose, dcqlQueryJson);
+        String jwt = submitAndAwaitJwt(purpose, dcqlQueryJson, verifierDid);
         long expiry = extractExpSeconds(jwt);
 
         if (expiry <= requiredValidUntil) {
@@ -111,11 +122,12 @@ public class VqpsRegistrationService {
      *
      * @param purpose       the transparency metadata
      * @param dcqlQueryJson the serialized DCQL query
+     * @param verifierDid   the effective verifier DID to be used as the {@code sub} claim
      * @return the signed vqPS JWT from the publication result
      * @throws IllegalStateException if publication fails or the response is invalid
      */
-    private String submitAndAwaitJwt(VerificationPurposeDto purpose, Object dcqlQueryJson) {
-        VqpsSubmissionCreateRequest request = buildSubmissionRequest(purpose, dcqlQueryJson);
+    private String submitAndAwaitJwt(VerificationPurposeDto purpose, Object dcqlQueryJson, String verifierDid) {
+        VqpsSubmissionCreateRequest request = buildSubmissionRequest(purpose, dcqlQueryJson, verifierDid);
 
         VqpsSubmission submission = vqpsSubmissionB2BApi.createVqpsSubmission(request).block();
         if (submission == null) {
@@ -164,12 +176,15 @@ public class VqpsRegistrationService {
      *
      * @param purpose       the transparency metadata
      * @param dcqlQueryJson the serialized DCQL query
+     * @param verifierDid   the effective verifier DID to be used as the {@code sub} claim, i.e. the
+     *                      {@code configuration_override.verifier_did} if present, otherwise the statically
+     *                      configured {@code application.client-id}.
      * @return a fully populated {@link VqpsSubmissionCreateRequest}
      */
-    private VqpsSubmissionCreateRequest buildSubmissionRequest(VerificationPurposeDto purpose, Object dcqlQueryJson) {
+    private VqpsSubmissionCreateRequest buildSubmissionRequest(VerificationPurposeDto purpose, Object dcqlQueryJson, String verifierDid) {
         return new VqpsSubmissionCreateRequest()
                 .waitForPublication(true)
-                .sub(applicationProperties.getClientId())
+                .sub(verifierDid)
                 .scope(purpose.scope())
                 .purposeName(purpose.purposeName())
                 .purposeDescription(purpose.purposeDescription())
@@ -187,14 +202,20 @@ public class VqpsRegistrationService {
      * <p>If {@code dcqlQueryJson} cannot be serialized, the method falls back to
      * {@link Object#toString()} to avoid a hard failure at cache-check time.</p>
      *
+     * <p>The effective verifier DID ({@code sub}) is included in the hash so that different
+     * verifier DIDs (e.g. via {@code configuration_override.verifier_did}) never share the same
+     * cache entry, which would otherwise leak a foreign vqPS JWT.</p>
+     *
      * @param purpose       the transparency metadata
      * @param dcqlQueryJson the DCQL query object
+     * @param verifierDid   the effective verifier DID used as the {@code sub} claim
      * @return lowercase hex SHA-256 digest of the canonical input
      */
-    private String computeQueryHash(VerificationPurposeDto purpose, Object dcqlQueryJson) {
+    private String computeQueryHash(VerificationPurposeDto purpose, Object dcqlQueryJson, String verifierDid) {
         try {
             // Use a TreeMap-sorted serialization to ensure key order is stable
             String canonical = objectMapper.writeValueAsString(Map.of(
+                    "sub", verifierDid,
                     "dcql", dcqlQueryJson,
                     "purpose_name", new java.util.TreeMap<>(purpose.purposeName()),
                     "purpose_description", new java.util.TreeMap<>(purpose.purposeDescription())

@@ -4,6 +4,8 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
@@ -101,13 +103,17 @@ class PresentationVerificationUsecaseTest {
         // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
         var requestedCredential = dcqlQuery.getCredentials().getFirst();
         when(presentationVerifier.verify(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential)))
-                .thenReturn(sdJwt);
+                .thenReturn(SdJwtVerificationResult.builder().sdJwt(sdJwt).build());
 
-        var expectedVerificationSucceededData = objectMapper.writeValueAsString(Map.of(credentialRequestId, List.of(getSDClaims())));
-        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(expectedVerificationSucceededData);
+        var expectedVerificationData = Map.of(credentialRequestId, List.of(getSDClaims()));
+        var expectedVerificationDataJson = objectMapper.writeValueAsString(expectedVerificationData);
+        var expectedVerificationResult = VerificationResultData.builder()
+            .verifiedResponsesJsonString(expectedVerificationDataJson)
+            .build();
+        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(expectedVerificationResult);
 
         assertDoesNotThrow(() -> presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));
-        verify(managementEntity).verificationSucceeded(expectedVerificationSucceededData);
+        verify(managementEntity).verificationDone(expectedVerificationResult);
         verify(callbackEventProducer).produceEvent(managementId);
     }
 
@@ -120,7 +126,7 @@ class PresentationVerificationUsecaseTest {
 
         verify(managementEntity).verificationFailedDueToClientRejection(request.getErrorDescription(), ManagementMapper.toVerificationErrorResponseCode(request.getError()));
         verify(callbackEventProducer).produceEvent(managementId);
-        verify(managementEntity, never()).verificationSucceeded(any());
+        verify(managementEntity, never()).verificationDone(any());
     }
 
     /**
@@ -135,7 +141,7 @@ class PresentationVerificationUsecaseTest {
                         new VerificationPresentationDCQLRequestDto(Map.of("credId", List.of("token")))));
 
         // When not open anymore, the result should not be able to be changed!
-        verify(managementEntity, never()).verificationSucceeded(any());
+        verify(managementEntity, never()).verificationDone(any());
         verify(managementEntity, never()).verificationFailed(any(), any());
         verify(callbackEventProducer, times(1)).produceEvent(any());
     }
@@ -154,7 +160,7 @@ class PresentationVerificationUsecaseTest {
                         new VerificationPresentationDCQLRequestDto(Map.of("credId", List.of("token")))));
 
         // When expired the verification is closed and NOTHING should be changing.
-        verify(managementEntity, never()).verificationSucceeded(any());
+        verify(managementEntity, never()).verificationDone(any());
         verify(managementEntity, never()).verificationFailed(any(), any());
         verify(callbackEventProducer, times(1)).produceEvent(any());
     }
@@ -170,7 +176,7 @@ class PresentationVerificationUsecaseTest {
 
         verify(managementEntity).verificationFailedDueToClientRejection(rejectionRequest.getErrorDescription(), ManagementMapper.toVerificationErrorResponseCode(rejectionRequest.getError()));
         verify(callbackEventProducer).produceEvent(managementId);
-        verify(managementEntity, never()).verificationSucceeded(any());
+        verify(managementEntity, never()).verificationDone(any());
     }
 
     @Test
@@ -219,13 +225,16 @@ class PresentationVerificationUsecaseTest {
         var credentialRequestId = "replayCredential";
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of("anyToken")));
         var successData = "{\"replayCredential\":[{}]}";
+        var verificationResult = VerificationResultData.builder()
+            .verifiedResponsesJsonString(successData)
+            .build();
 
-        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(successData);
+        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(VerificationResultData.builder().verifiedResponsesJsonString(successData).build());
 
         // First submission — must succeed and fire callback
         assertDoesNotThrow(() ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));
-        verify(managementEntity, times(1)).verificationSucceeded(successData);
+        verify(managementEntity, times(1)).verificationDone(verificationResult);
         verify(callbackEventProducer, times(1)).produceEvent(managementId);
 
         // Simulate DB state after first commit: Hibernate has set state = IN_PROGRESS
@@ -252,8 +261,9 @@ class PresentationVerificationUsecaseTest {
         var credentialRequestId = "raceCredential";
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of("anyToken")));
         var successData = "{\"raceCredential\":[{}]}";
+        var verificationResult = VerificationResultData.builder().verifiedResponsesJsonString(successData).build();
 
-        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(successData);
+        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(VerificationResultData.builder().verifiedResponsesJsonString(successData).build());
 
         // Simulate Hibernate @Version: first commit succeeds, second throws OptimisticLockException
         var callCount = new AtomicInteger(0);
@@ -302,7 +312,7 @@ class PresentationVerificationUsecaseTest {
                 "Exactly one concurrent submission must succeed — before the fix both would succeed");
         assertEquals(1, rejectedCount.get(),
                 "Exactly one concurrent submission must be rejected");
-        verify(managementEntity, times(1)).verificationSucceeded(successData);
+        verify(managementEntity, times(1)).verificationDone(verificationResult);
     }
 
     // --- helper methods ---

@@ -99,11 +99,11 @@ public class PresentationVerificationUsecase {
 
             // 2. Perform the potentially long‑running remote/DCQL verification outside of any DB transaction
             log.debug("Starting DCQL submission verification for {}", managementEntityId);
-            var credentialSubjectData = dcqlPresentationVerificationService.process(managementEntity, request);
+            var credentialVerificationData = dcqlPresentationVerificationService.process(managementEntity, request);
             log.trace("DCQL submission verification completed for {}", managementEntityId);
 
-            // 3a. Persist successful verification result in a dedicated short transaction
-            var responseDto = managementService.markVerificationSucceeded(managementEntityId, credentialSubjectData);
+            // 3a. Persist completed verification result in a dedicated short transaction
+            var responseDto = managementService.markVerificationDone(managementEntityId, credentialVerificationData);
             log.debug("Saved successful DCQL verification result for {}", managementEntityId);
 
             return responseDto;

@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web;
 
 import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseDto;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -150,6 +151,24 @@ public class DefaultExceptionHandler extends ResponseEntityExceptionHandler {
                 .build();
 
         return new ResponseEntity<>(error, error.getStatus());
+    }
+
+    /**
+     * Handles server-side misconfiguration errors (e.g. a verifier DID that could not be resolved
+     * from either the static configuration or a per-request {@code configuration_override}).
+     *
+     * <p>Unlike client input errors, a {@link ConfigurationException} indicates a problem on the
+     * verifier side, so it is mapped to {@code 500 Internal Server Error}. The specific message is
+     * logged at ERROR level to aid operators in diagnosing the misconfiguration, while still being
+     * distinguishable from unexpected/unhandled exceptions in the logs.</p>
+     *
+     * @param ex the configuration exception
+     * @return a {@code 500} response with the exception message as error description
+     */
+    @ExceptionHandler(ConfigurationException.class)
+    public ResponseEntity<Object> handleConfigurationException(ConfigurationException ex) {
+        log.error("Verifier configuration error: {}", ex.getMessage(), ex);
+        return createInternalServerErrorResponse(ex.getMessage());
     }
 
     @ExceptionHandler(VerificationException.class)

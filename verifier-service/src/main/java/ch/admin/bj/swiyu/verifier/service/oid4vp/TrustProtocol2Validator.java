@@ -1,8 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -15,6 +13,8 @@ import ch.admin.bj.swiyu.jwtvalidator.UrlRestriction;
 import ch.admin.bj.swiyu.tsverifier.TrustStatementVerifier;
 import ch.admin.bj.swiyu.tsverifier.statement.TrustMarkers;
 import ch.admin.bj.swiyu.tsverifier.statement.TrustVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
+import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
@@ -62,11 +62,23 @@ public class TrustProtocol2Validator {
      *         {@link TrustMarkers#isTrustedIssuer()} result of {@code true},
      *         otherwise {@code false}
      */
-    public boolean isTrusted(String issuerDid, String vct, Management management) {
-        Map<String, TrustVerificationResult> verificationResults = management.getTrustAnchors().stream()
-                .collect(Collectors.toMap(TrustAnchor::did,
-                        trustAnchor -> evaluateTrust(issuerDid, vct, trustAnchor)));
-        return verificationResults.values().stream().anyMatch(result -> result.markers().isTrustedIssuer());
+    public IssuerTrustMarker isTrusted(String issuerDid, String vct, Management management) {
+        // Trust Protocol 2.0 only supports 1 Trust Anchor
+        TrustAnchor anchor = management.getTrustAnchors().getFirst();
+        if (management.getTrustAnchors().size() > 1) {
+            log.warn("Trust Protocol 2.0 is being used which only supports 1 Trust Anchor. Using the anchor {}", anchor.did());
+        }
+        log.debug("Evaluating Trust for Anchor {}", anchor.did());
+        TrustVerificationResult verificationResult = evaluateTrust(issuerDid, vct, anchor);
+        TrustMarkers markers = verificationResult.markers();
+        return IssuerTrustMarker.builder()
+            .trustMethod(TrustMethod.TRUST_PROTOCOL_2_0)
+            .isTrusted(verificationResult.markers().isTrustedIssuer())
+            .identityTrustMarker(markers.identityTrustMarker())
+            .compliantActorTrustMarker(markers.compliantActorTrustMarker())
+            .governedUseCaseTrustMarker(markers.governedUseCaseTrustMarker())
+            .governedUseCaseAuthorizationTrustMarker(markers.governedUseCaseAuthorizationTrustMarker())
+            .build();
     }
 
     /**

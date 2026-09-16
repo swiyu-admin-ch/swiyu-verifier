@@ -92,7 +92,8 @@ class DcqlVpTokenVerifierTest {
         when(vpToken.hasKeyBinding()).thenReturn(true);
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(explicitlySet ? Boolean.TRUE : null).build();
 
-        SdJwt verifiedToken = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(vpToken, management, dcqlCredential);
+        var verificationResult = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(vpToken, management, dcqlCredential);
+        SdJwt verifiedToken = verificationResult.sdJwt();
 
         assertThat(verifiedToken).isEqualTo(vpToken);
     }
@@ -130,9 +131,9 @@ class DcqlVpTokenVerifierTest {
 
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(Boolean.TRUE).build();
 
-        SdJwt verifiedToken = assertDoesNotThrow(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(vpToken, management, dcqlCredential));
+        var verifiedToken = assertDoesNotThrow(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(vpToken, management, dcqlCredential));
 
-        assertThat(verifiedToken).isEqualTo(vpToken);
+        assertThat(verifiedToken.sdJwt()).isEqualTo(vpToken);
     }
 
     /**

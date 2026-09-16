@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web;
 
 import ch.admin.bj.swiyu.verifier.dto.ApiErrorDto;
+import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -163,5 +164,20 @@ class DefaultExceptionHandlerTest {
         assertEquals(HttpStatus.GONE, response.getStatusCode());
         assertNotNull(body);
         assertEquals(message, body.getErrorDescription());
+    }
+
+    @Test
+    void handleConfigurationException_shouldReturnInternalServerErrorWithMessage(CapturedOutput output) {
+        final String message = "No verifier DID available for vqPS submission, scope=test";
+        final ConfigurationException ex = new ConfigurationException(message);
+
+        final ResponseEntity<Object> response = handler.handleConfigurationException(ex);
+
+        assertThat(response.getBody()).isInstanceOf(ApiErrorDto.class);
+        final ApiErrorDto body = (ApiErrorDto) response.getBody();
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(body);
+        assertEquals(message, body.getErrorDescription());
+        assertThat(output.getAll()).contains("ERROR").contains(message);
     }
 }

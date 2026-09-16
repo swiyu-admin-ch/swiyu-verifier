@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.ports;
 
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 
@@ -9,5 +9,5 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
  */
 @FunctionalInterface
 public interface PresentationVerifier {
-    SdJwt verify(String vpToken, Management management, DcqlCredential dcqlCredential);
+    SdJwtVerificationResult verify(String vpToken, Management management, DcqlCredential dcqlCredential);
 }

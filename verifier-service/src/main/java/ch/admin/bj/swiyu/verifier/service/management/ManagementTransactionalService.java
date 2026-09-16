@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.*;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
@@ -144,7 +145,8 @@ public class ManagementTransactionalService {
     }
 
     /**
-     * Persists a successful verification result in its own short-lived transaction.
+     * Persists a completed verification result in its own short-lived transaction.
+     * The verification itself can be a result other than valid
      *
      * @param managementEntityId    the id of the Management entity to update
      * @param credentialSubjectData the credential subject data to store in the Management entity
@@ -155,9 +157,9 @@ public class ManagementTransactionalService {
             noRollbackFor = VerificationException.class,
             timeout = 10
     )
-    public URI markVerificationSucceeded(UUID managementEntityId, String credentialSubjectData) {
+    public URI markVerificationDone(UUID managementEntityId, VerificationResultData credentialSubjectData) {
         var managementEntity = getInProgressManagementEntity(managementEntityId);
-        managementEntity.verificationSucceeded(credentialSubjectData);
+        managementEntity.verificationDone(credentialSubjectData);
         return managementEntity.getRedirectURI();
     }
 
@@ -169,7 +171,7 @@ public class ManagementTransactionalService {
             noRollbackFor = VerificationException.class,
             timeout = 10
     )
-    public void markVerificationFailed(UUID managementEntityId, VerificationException e) {
+    public void markVerificationException(UUID managementEntityId, VerificationException e) {
         var managementEntity = getInProgressManagementEntity(managementEntityId);
         managementEntity.verificationFailed(e.getErrorResponseCode(), e.getErrorDescription());
     }
@@ -183,7 +185,7 @@ public class ManagementTransactionalService {
             noRollbackFor = VerificationException.class,
             timeout = 10
     )
-    public void markVerificationFailedDueToClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
+    public void markVerificationRejected(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         var managementEntity = getInProgressManagementEntity(managementEntityId);
         log.trace(LOADED_MANAGEMENT_ENTITY_FOR + "{}", managementEntityId);
         managementEntity.verificationFailedDueToClientRejection(rejection.getErrorDescription(), ManagementMapper.toVerificationErrorResponseCode(rejection.getError()));

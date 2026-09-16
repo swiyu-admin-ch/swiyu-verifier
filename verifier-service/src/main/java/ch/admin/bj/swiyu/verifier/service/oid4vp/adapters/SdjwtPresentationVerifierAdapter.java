@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.adapters;
 
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlVpTokenVerifier;
@@ -29,7 +30,7 @@ public class SdjwtPresentationVerifierAdapter implements PresentationVerifier {
      * @return the verified {@link SdJwt} instance
      */
     @Override
-    public SdJwt verify(String vpToken, Management management, DcqlCredential dcqlCredential) {
+    public SdJwtVerificationResult verify(String vpToken, Management management, DcqlCredential dcqlCredential) {
         SdJwt sdJwt = new SdJwt(vpToken);
         return delegate.verifyVpTokenForDCQLRequest(sdJwt, management, dcqlCredential);
     }

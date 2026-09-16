@@ -2,9 +2,11 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.common.config.KeyOnlySignatureConfiguration;
+import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.SdJwt;
+import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
@@ -257,6 +259,21 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         var managementEntity = managementEntityRepository.findById(requestObjectId).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+        var managementVpTokens = managementEntity.getWalletResponse().vpToken();
+        assertThat(managementVpTokens).as("Only a single Credential entry in dcql query was requested").hasSize(1);
+        var presentedVpTokens = managementVpTokens.values().stream().findFirst().get();
+        assertThat(presentedVpTokens).as("Only a sinlge VC was presented").hasSize(1)
+            .as("The vp token saved should be the one presented")
+            .contains(vpToken);
+        var evaluations = managementEntity.getCredentialEvaluation();
+        assertThat(evaluations).as("In DCQL query only has a single credential").hasSize(1);
+        var presentationEvaluation = evaluations.values().stream().findFirst().get();
+        assertThat(presentationEvaluation).as("Only a single VC was presented").hasSize(1);
+        var credentialStatus = presentationEvaluation.getFirst().credentialStatus();
+        assertThat(credentialStatus).as("VC had no status list reference and no credential status was validated").isNull();
+        var trust = presentationEvaluation.getFirst().trustMarkers();
+        assertThat(trust.trustMethod()).as("Issuer was in list of trusted issuers").isEqualTo(TrustMethod.TRUSTED_AUTHORITY);
+        assertThat(trust.isTrusted()).isTrue();
     }
 
     @ParameterizedTest
@@ -264,6 +281,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     void shouldSucceedVerifyingSDJWTCredentialFullVCWithNested_thenSuccess(
             int expectedIndex,
             String expectedCountry) throws Exception {
+
+        // credential_subject_data is only included in the management API response when enabled
+        enableCredentialSubjectDataAuditInformation();
 
         var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry, null);
 
@@ -309,6 +329,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
             int disclosureIndexStart,
             int disclosureIndexEnd) throws Exception {
 
+        // credential_subject_data is only included in the management API response when explicitly enabled (EIDOMNI-1321)
+        enableCredentialSubjectDataAuditInformation();
+
         var createResponseDto = getAddressArrayManagement(expectedIndex, expectedCountry, null);
 
         // GIVEN
@@ -350,6 +373,17 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         return ((HikariDataSource) dataSource).getHikariPoolMXBean();
     }
 
+    /**
+     * Enables the {@code credential_subject_data} audit flag for the current test only, overriding the default
+     * (disabled) configuration (see EIDOMNI-1321), so that the requested claims are included in the
+     * management API response and can be asserted against.
+     */
+    private void enableCredentialSubjectDataAuditInformation() {
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        auditInformation.setCredentialSubjectDataEnabled(true);
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"", "2"})
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess(String input) throws Exception {
@@ -380,10 +414,16 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
+    /**
+     * Test using the Example status list values to ensure that statuses are detected correctly
+     * Index 0: REVOKED (1)
+     * Index 1: SUSPENDED (2)
+     * Index 3: Custom Status (3)
+     */
     @ParameterizedTest
-    @CsvSource(value = {"0:credential_revoked", "1:credential_suspended", "3:credential_suspended"}, delimiter = ':')
-    void shouldSucceedVerifyingSDJWTCredentialWithSD_thenFail(String input, String errorCodeName) throws Exception {
-        Integer index = "".equals(input) ? null : Integer.parseInt(input);
+    @CsvSource(value = {"0:1", "1:2", "3:3"}, delimiter = ':')
+    void shouldSucceedVerifyingSDJWTCredentialWithSD_thenFail(Integer index, Integer tokenStatusListStatusCode) throws Exception {
+        // Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
@@ -395,11 +435,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 );
 
         var sdJWT = emulator.createSDJWTMock(index);
-        var parts = sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER);
-
-        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
-        var newCred = parts[0] + SdJwt.JWT_PART_DELINEATION_CHARACTER + StringUtils.join(sd, SdJwt.JWT_PART_DELINEATION_CHARACTER) + SdJwt.JWT_PART_DELINEATION_CHARACTER;
-        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, clientIdWithPrefix);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response, so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
@@ -408,16 +444,21 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         // WHEN / THEN
         postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
-                .andExpect(status().isBadRequest()).andReturn();
+                .andExpect(status().isOk()).andReturn();
 
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        var errorCode = managementEntity.getWalletResponse().errorCode().getJsonValue();
-        assertThat(errorCode).isEqualTo(errorCodeName);
+        var evaluations = managementEntity.getCredentialEvaluation();
+        assertThat(evaluations).as("In DCQL query only has a single credential").hasSize(1);
+        var presentationEvaluation = evaluations.values().stream().findFirst().get();
+        assertThat(presentationEvaluation).as("Only a single VC was presented").hasSize(1);
+        var credentialStatus = presentationEvaluation.getFirst().credentialStatus();
+        assertThat(credentialStatus.valid()).as("Credential was revoked and should not be valid").isFalse();
+        assertThat(credentialStatus.status()).as("Status should be propagated to business component").isEqualTo(tokenStatusListStatusCode);
     }
 
     @Test
-    void shouldRejectDCQLPresentation_whenCredentialIsRevoked_thenBadRequest() throws Exception {
+    void shouldRejectDCQLPresentation_whenCredentialIsRevoked_thenAccepted_statusFailed() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         // idx=0 has status value 1 (revoked) in SPEC_STATUS_LIST
@@ -440,12 +481,16 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         // WHEN / THEN
         postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error_code").value("credential_revoked"));
-
+                .andExpect(status().isOk());
         var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertThat(managementEntity.getWalletResponse().errorCode().getJsonValue()).isEqualTo("credential_revoked");
+        assertThat(managementEntity.getState()).as("The status was revoked, the suggested status is failed").isEqualTo(VerificationStatus.FAILED);
+        var evaluations = managementEntity.getCredentialEvaluation();
+        assertThat(evaluations).as("DCQL Query only has a single credential").hasSize(1);
+        var presentationEvaluation = evaluations.values().stream().findFirst().get();
+        assertThat(presentationEvaluation).as("Only a single VC was presented").hasSize(1);
+        var credentialStatus = presentationEvaluation.getFirst().credentialStatus();
+        assertThat(credentialStatus.valid()).as("Credential was revoked and should not be valid").isFalse();
+        assertThat(credentialStatus.status()).as("Status should be propagated to business component").isEqualTo(1);
     }
 
     @Test

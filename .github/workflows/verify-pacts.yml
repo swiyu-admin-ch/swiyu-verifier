@@ -1,0 +1,98 @@
+name: Verify Pact Provider Contracts
+run-name: ${{ github.repository }} is verifying Pact provider contracts
+
+# Automatic verification is intentionally disabled; manual runs remain available.
+# Verify management API contracts (IF-100) already published by business
+# consumers to PactFlow
+on:
+  # push:
+  #   branches:
+  #     - '**'
+  # pull_request:
+  #   types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      consumer_version_selectors:
+        description: PactFlow consumer version selectors (JSON array)
+        type: string
+        required: true
+        default: '[{"mainBranch":true},{"deployedOrReleased":true}]'
+      publish_results:
+        description: Publish verification results to PactFlow for this provider commit
+        type: boolean
+        required: true
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify-pacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PACT_PROVIDER_VERSION: ${{ github.sha }}
+      PACT_PUBLISH_RESULTS: ${{ inputs.publish_results }}
+
+    steps:
+      - name: Checkout provider (this repository)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Validate PactFlow configuration
+        env:
+          PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+          PACTBROKER_CONSUMERVERSIONSELECTORS_RAWJSON: ${{ inputs.consumer_version_selectors || '[{"mainBranch":true},{"deployedOrReleased":true}]' }}
+        run: |
+          set -euo pipefail
+          : "${PACT_BROKER_BASE_URL:?PACT_BROKER_BASE_URL secret is required}"
+          : "${PACT_BROKER_TOKEN:?PACT_BROKER_TOKEN secret is required}"
+          jq -e 'type == "array" and length > 0 and all(.[]; type == "object" and length > 0)' \
+            <<< "$PACTBROKER_CONSUMERVERSIONSELECTORS_RAWJSON" > /dev/null
+
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Cache PGP keys for pgpverify-maven-plugin
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.m2/repository/pgpkeys-cache
+          key: pgp-keys-${{ hashFiles('pgp/keys.list') }}
+          restore-keys: pgp-keys-
+
+      - name: Verify provider contracts from PactFlow
+        env:
+          PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+          PACTBROKER_CONSUMERVERSIONSELECTORS_RAWJSON: ${{ inputs.consumer_version_selectors || '[{"mainBranch":true},{"deployedOrReleased":true}]' }}
+          PACT_PROVIDER_BRANCH: ${{ github.head_ref || github.ref_name }}
+          PACT_VERIFIER_BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Ppact-provider \
+            -pl verifier-application -am \
+            test \
+            -Dtest='*PactProviderTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dpact.provider.version="$PACT_PROVIDER_VERSION" \
+            -Dpact.provider.branch="$PACT_PROVIDER_BRANCH" \
+            -Dpact.verifier.buildUrl="$PACT_VERIFIER_BUILD_URL" \
+            -Dpact.verifier.publishResults="$PACT_PUBLISH_RESULTS"
+
+      - name: Upload provider verification report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pact-provider-surefire-reports
+          path: verifier-application/target/surefire-reports/
+          if-no-files-found: warn

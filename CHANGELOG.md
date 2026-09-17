@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Audit information (`vp_token`, `credential_subject_data`, `credential_evaluation`) is now omitted from the management API response by default and must be explicitly enabled via the new `additional-audit-information.*` configuration flags (`ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED`), each defaulting to `false`. `(#1321)`
 
 ## Fixed
+- Fixed uncaught `RuntimeException`s during presentation verification (e.g. DID resolution failures) leaving the verification session stuck in `IN_PROGRESS` instead of being marked `FAILED` `(#1290)`
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
 - Check correctness of the status list header and reset cache accordingly (#1235)
 - - Check if trust statement issuer matches the issuer of the status list `(#1210)`

@@ -93,4 +93,17 @@ public final class VerificationException extends RuntimeException {
                 errorDescription
         );
     }
+
+    /**
+     * Wraps an unexpected exception (not a specific business validation failure) so it can still
+     * be persisted as a FAILED verification result instead of leaving the session stuck IN_PROGRESS.
+     */
+    public static VerificationException serverError(Throwable cause, String errorDescription) {
+        return new VerificationException(
+                cause,
+                VerificationError.SERVER_ERROR,
+                null,
+                errorDescription
+        );
+    }
 }

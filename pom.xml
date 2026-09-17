@@ -33,7 +33,7 @@
         </sonar.exclusions>
         <!-- dependency versions -->
         <archunit-junit5.verion>1.5.0</archunit-junit5.verion>
-        <javacrumbs.shedlock.version>7.10.0</javacrumbs.shedlock.version>
+        <javacrumbs.shedlock.version>7.10.1</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <springdoc-openapi-starter-webmvc-ui.version>3.0.3</springdoc-openapi-starter-webmvc-ui.version>
         <!-- Fixes SNYK-JAVA-ORGSPRINGFRAMEWORKCLOUD-19268251 (Missing Authorization, High Severity) in spring-cloud-context@5.0.2 -->
@@ -68,7 +68,7 @@
         <skip.doc-generate>true</skip.doc-generate>
         <generic-java-lib.version>3.0.0</generic-java-lib.version>
         <pact.version>4.7.5</pact.version>
-        <openapi-generator-maven-plugin.version>7.24.0</openapi-generator-maven-plugin.version>
+        <openapi-generator-maven-plugin.version>7.25.0</openapi-generator-maven-plugin.version>
         <!-- Fixes CVE-2026-13006 -->
         <logback-core.version>1.6.3</logback-core.version>
         <!-- Fixes SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890 / 17733746 -->

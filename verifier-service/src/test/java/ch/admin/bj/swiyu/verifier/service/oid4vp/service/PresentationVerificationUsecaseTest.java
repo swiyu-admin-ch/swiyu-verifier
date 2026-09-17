@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -130,6 +131,26 @@ class PresentationVerificationUsecaseTest {
     }
 
     /**
+     * Reproduces the bug where an unexpected RuntimeException (e.g. a DID resolution failure) thrown
+     * from deep within the verification pipeline left the session stuck IN_PROGRESS forever, because
+     * only VerificationException/ObjectOptimisticLockingFailureException were caught.
+     */
+    @Test
+    void receiveVerificationPresentationDCQL_unexpectedRuntimeException_marksVerificationFailed() {
+        var credentialRequestId = "TestIdRequest";
+        var dcqlQuery = getDcqlQuery(credentialRequestId, false);
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(getVpToken())));
+        when(managementEntity.getDcqlQuery()).thenReturn(dcqlQuery);
+        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenThrow(new DidResolverException("did resolution failed"));
+
+        assertThrows(DidResolverException.class, () ->
+                presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));
+
+        verify(managementEntity).verificationFailed(any(), any());
+        verify(callbackEventProducer).produceEvent(managementId);
+    }
+
+    /**
      * Simulates a session that is already claimed for the DCQL flow.
      */
     @Test
@@ -192,6 +213,24 @@ class PresentationVerificationUsecaseTest {
 
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any(), any());
+    }
+
+    /**
+     * Reproduces the same bug as {@link #receiveVerificationPresentationDCQL_unexpectedRuntimeException_marksVerificationFailed()}
+     * for the client-rejection flow: an unexpected RuntimeException must mark the session FAILED
+     * instead of leaving it stuck IN_PROGRESS.
+     */
+    @Test
+    void receiveVerificationPresentationClientRejection_unexpectedRuntimeException_marksVerificationFailed() {
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
+        doThrow(new IllegalStateException("boom")).when(managementEntity).verificationFailedDueToClientRejection(any(), any());
+
+        assertThrows(IllegalStateException.class, () ->
+                presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+
+        verify(managementEntity).verificationFailed(any(), any());
+        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     @Test

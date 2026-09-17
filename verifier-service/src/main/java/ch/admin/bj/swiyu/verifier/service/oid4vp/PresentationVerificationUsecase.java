@@ -37,6 +37,11 @@ public class PresentationVerificationUsecase {
      *   <li>On {@link VerificationException} while marking the process as failed, the entity is updated
      *       via {@code managementEntity.verificationFailed(...)} and the exception is rethrown unchanged
      *       (v2 error structure).</li>
+     *   <li>If the session is claimed concurrently by another thread ({@link ObjectOptimisticLockingFailureException}),
+     *       the entity is left untouched and a {@link ProcessClosedException} is thrown instead.</li>
+     *   <li>On any other unexpected {@link RuntimeException}, the entity is marked as failed via
+     *       {@code managementEntity.verificationFailed(...)} (wrapping the cause as a {@link VerificationException}
+     *       server error) so the session is never left stuck IN_PROGRESS, and the original exception is rethrown.</li>
      *   <li>In the happy path, the management entity is marked as failed due to client rejection without
      *       throwing an exception to the caller.</li>
      *   <li>In all cases, a callback event is produced to signal completion.</li>
@@ -48,6 +53,9 @@ public class PresentationVerificationUsecase {
      */
     public VerificationPresentationResponseDto receiveVerificationPresentationClientRejection(UUID managementEntityId, VerificationPresentationRejectionDto rejection) {
         log.debug("Processing rejection for request_id: {}", managementEntityId);
+
+        // Flag, to know if WE are allowed to fire the event in the finally block
+        boolean isSessionClaimedByThisThread = true;
 
         try {
             // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
@@ -62,9 +70,25 @@ public class PresentationVerificationUsecase {
 
             //PMD: rethrow since client gets notified of the error (v2 structure)
             throw e; // NOPMD - ExceptionAsFlowControl
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // 2b. Another thread is already working! We don't touch the database, that thread owns the state.
+            isSessionClaimedByThisThread = false;
+            log.warn("Concurrent submission rejected for session {}", managementEntityId);
+            throw new ProcessClosedException();
+        } catch (ProcessClosedException e) {
+            // 2c. Session was already closed (expired/not pending) before we could claim it - not our state to touch
+            throw e; // NOPMD - ExceptionAsFlowControl
+        } catch (RuntimeException e) {
+            // 2d. Any other unexpected error must not leave the session stuck IN_PROGRESS
+            managementService.markVerificationFailed(managementEntityId,
+                    VerificationException.serverError(e, "Unexpected error while processing client rejection: " + e.getMessage()));
+            log.error("Unexpected error while processing client rejection for {}", managementEntityId, e);
+            throw e;
         } finally {
             // 3. Notify Business Verifier that this verification is done (non-transactional)
-            callbackEventProducer.produceEvent(managementEntityId);
+            if (isSessionClaimedByThisThread) {
+                callbackEventProducer.produceEvent(managementEntityId);
+            }
         }
     }
 
@@ -78,6 +102,10 @@ public class PresentationVerificationUsecase {
      *   <li>The exception is then wrapped using {@link VerificationException#submissionErrorV1} to
      *       convert it into the legacy v1 error representation before being rethrown. This ensures
      *       backward-compatible error contracts for DCQL endpoints.</li>
+     *   <li>On any other unexpected {@link RuntimeException}, the entity is marked as failed via
+     *       {@code managementEntity.verificationFailed(...)} (wrapping the cause as a {@link VerificationException}
+     *       server error) so the session is never left stuck IN_PROGRESS, and the original exception is rethrown
+     *       unchanged.</li>
      *   <li>In all cases (success or failure), a callback event is produced via
      *       {@link CallbackEventProducer#produceEvent(java.util.UUID)} to notify the business verifier
      *       that the DCQL verification attempt is finished.</li>
@@ -120,6 +148,15 @@ public class PresentationVerificationUsecase {
             isSessionClaimedByThisThread = false;
             log.warn("Concurrent submission rejected for session {}", managementEntityId);
             throw new ProcessClosedException();
+        } catch (ProcessClosedException e) {
+            // 3d. Session was already closed (expired/not pending) before we could claim it - not our state to touch
+            throw e; // NOPMD - ExceptionAsFlowControl
+        } catch (RuntimeException e) {
+            // 3e. Any other unexpected error must not leave the session stuck IN_PROGRESS
+            managementService.markVerificationFailed(managementEntityId,
+                    VerificationException.serverError(e, "Unexpected error during DCQL presentation verification: " + e.getMessage()));
+            log.error("Unexpected error during DCQL verification for {}", managementEntityId, e);
+            throw e;
         } finally {
             // 4. Notify Business Verifier that this verification is done (non-transactional)
             if (isSessionClaimedByThisThread) {

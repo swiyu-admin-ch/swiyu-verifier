@@ -44,7 +44,7 @@ class DcqlPresentationVerificationServiceTest {
         applicationProperties = mock(ApplicationProperties.class);
 
         when(applicationProperties.getMaxVcsAccepted()).thenReturn(2);
-        dcqlPresentationVerificationService = new DcqlPresentationVerificationService(sdJwtLegacyPresentationVerifier, /* dcqlEvaluator, */ objectMapper, applicationProperties);
+        dcqlPresentationVerificationService = new DcqlPresentationVerificationService(sdJwtLegacyPresentationVerifier, objectMapper, applicationProperties);
     }
 
     @Test

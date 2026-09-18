@@ -76,7 +76,6 @@ class SdJwtVpTokenVerifierTest {
         statusListVerifier = mock(TokenStatusListVerifier.class);
         ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
         VerificationProperties verificationProperties = mock(VerificationProperties.class);
-        IssuerTrustValidator issuerTrustValidator = mock(IssuerTrustValidator.class);
         management = mock(Management.class);
 
         when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
@@ -87,7 +86,6 @@ class SdJwtVpTokenVerifierTest {
         when(management.getTrustAnchors()).thenReturn(List.of());
         when(management.getRequestNonce()).thenReturn(TEST_NONCE);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
-        when(issuerTrustValidator.validateTrust(anyString(), anyString(), eq(management))).thenReturn(new IssuerTrustMarker(TrustMethod.TRUST_PROTOCOL_1_0, false, false, false, false, false));
         when(issuerPublicKeyLoader.resolveKey(DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
 

@@ -54,8 +54,7 @@ public class DcqlVpTokenVerifier {
             validator.validateAndSetJwt(sdJwt, publicKey);
 
             // require_cryptographic_holder_binding default is true therefore if not set to false it will be treated as true
-            boolean cryptographicHolderBindingRequired = Boolean.TRUE.equals(dcqlCredential.getRequireCryptographicHolderBinding()) || dcqlCredential.getRequireCryptographicHolderBinding() == null;
-            sdJwtVpTokenVerifier.validateKeyBinding(sdJwt, cryptographicHolderBindingRequired, management, validator);
+            sdJwtVpTokenVerifier.validateKeyBinding(sdJwt, dcqlCredential.isCryptographicHolderBindingRequired(), management, validator);
 
             // Perform issuer trust validation based on claims
             JWTClaimsSet claims = sdJwt.getClaims();

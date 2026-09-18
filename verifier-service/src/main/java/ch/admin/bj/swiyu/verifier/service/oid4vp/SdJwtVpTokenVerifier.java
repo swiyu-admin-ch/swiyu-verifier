@@ -15,6 +15,7 @@ import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
@@ -141,7 +142,9 @@ public class SdJwtVpTokenVerifier {
             throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
         }
 
-        var configurationOverride = management.getConfigurationOverride();
+        var configurationOverride = Optional.ofNullable(management.getConfigurationOverride())
+                .orElse(new ConfigurationOverride(null, null, null, null, null, null));
+
         var expectedAudience = configurationOverride.verifierDidOrDefaultWithPrefix(applicationProperties);
         var requestNonce = management.getRequestNonce();
 

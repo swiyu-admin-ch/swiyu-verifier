@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtVcValidator;
@@ -22,7 +22,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
@@ -31,18 +30,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class DcqlVpTokenVerifierTest {
 
@@ -58,6 +47,12 @@ class DcqlVpTokenVerifierTest {
     @Mock
     private DidResolverFacade didResolver;
 
+    @Mock
+    private DidKidParser didKidParser;
+
+    @Mock
+    private SdJwtVcValidator sdJwtVcValidator;
+
     @InjectMocks
     private DcqlVpTokenVerifier dcqlVpTokenVerifier;
 
@@ -68,7 +63,7 @@ class DcqlVpTokenVerifierTest {
     private String serializedVpToken;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws SdJwtVerificationException {
         mocks = MockitoAnnotations.openMocks(this);
 
         vpToken = mock(SdJwt.class);
@@ -78,6 +73,8 @@ class DcqlVpTokenVerifierTest {
         sdJwtParserStatic = mockStatic(SdJwtParser.class);
         sdJwtParserStatic.when(() -> SdJwtParser.parseSdJwt(serializedVpToken)).thenReturn(vpToken);
 
+        when(didKidParser.getDidFromAbsoluteKid(anyString())).thenReturn(TEST_ISSUER);
+
         when(vpToken.getJwt()).thenReturn(getDummyJwt());
         when(vpToken.getHeader()).thenReturn(getDummyJwt().getHeader());
         when(vpToken.getClaims()).thenReturn(new JWTClaimsSet.Builder()
@@ -85,6 +82,11 @@ class DcqlVpTokenVerifierTest {
                 .claim("vct", TEST_VCT)
                 .build());
         when(didResolver.resolveKey(anyString())).thenReturn(mock(com.nimbusds.jose.jwk.JWK.class));
+
+        // Configure the mock singleton SdJwtVcValidator
+        doNothing().when(sdJwtVcValidator).validateAndSetHeader(vpToken);
+        doNothing().when(sdJwtVcValidator).validateAndSetJwt(eq(vpToken), any());
+
         doNothing().when(sdJwtVpTokenVerifier).validateKeyBinding(any(), anyBoolean(), eq(management), any());
         when(sdJwtVpTokenVerifier.verifyStatus(anyMap(), any())).thenReturn(Optional.empty());
         when(issuerTrustValidator.validateTrust(anyString(), anyString(), eq(management)))
@@ -106,14 +108,12 @@ class DcqlVpTokenVerifierTest {
         when(vpToken.hasKeyBinding()).thenReturn(true);
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(null).build();
 
-        try (MockedConstruction<SdJwtVcValidator> validatorConstruction = successfulValidatorConstruction()) {
-            var result = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential);
+        var result = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential);
 
-            assertThat(result.sdJwt()).isEqualTo(vpToken);
-            verify(sdJwtVpTokenVerifier).validateKeyBinding(eq(vpToken), eq(true), eq(management), any(SdJwtVcValidator.class));
-            verify(issuerTrustValidator).validateTrust(eq(TEST_ISSUER), eq(TEST_VCT), eq(management));
-            assertThat(validatorConstruction.constructed()).hasSize(1);
-        }
+        assertThat(result.sdJwt()).isEqualTo(vpToken);
+        verify(sdJwtVpTokenVerifier).validateKeyBinding(eq(vpToken), eq(true), eq(management), eq(sdJwtVcValidator));
+        verify(issuerTrustValidator).validateTrust(eq(TEST_ISSUER), eq(TEST_VCT), eq(management));
+        verify(sdJwtVcValidator).validateAndSetHeader(vpToken);
     }
 
     @Test
@@ -121,12 +121,10 @@ class DcqlVpTokenVerifierTest {
         when(vpToken.hasKeyBinding()).thenReturn(false);
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(false).build();
 
-        try (MockedConstruction<SdJwtVcValidator> ignored = successfulValidatorConstruction()) {
-            var result = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential);
+        var result = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential);
 
-            assertThat(result.sdJwt()).isEqualTo(vpToken);
-            verify(sdJwtVpTokenVerifier).validateKeyBinding(eq(vpToken), eq(false), eq(management), any(SdJwtVcValidator.class));
-        }
+        assertThat(result.sdJwt()).isEqualTo(vpToken);
+        verify(sdJwtVpTokenVerifier).validateKeyBinding(eq(vpToken), eq(false), eq(management), eq(sdJwtVcValidator));
     }
 
     @Test
@@ -141,23 +139,14 @@ class DcqlVpTokenVerifierTest {
     }
 
     @Test
-    void verifyVpTokenForDCQLRequest_whenHeaderValidationFails_throwsVerificationException() {
+    void verifyVpTokenForDCQLRequest_whenHeaderValidationFails_throwsVerificationException() throws SdJwtVerificationException {
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(false).build();
 
-        try (MockedConstruction<SdJwtVcValidator> ignored = mockConstruction(SdJwtVcValidator.class,
-                (mock, context) -> doThrow(new SdJwtVerificationException("bad header"))
-                        .when(mock).validateAndSetHeader(vpToken))) {
+        // Configure the singleton validator to throw on header validation
+        doThrow(new SdJwtVerificationException("bad header")).when(sdJwtVcValidator).validateAndSetHeader(vpToken);
 
-            assertThatThrownBy(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential))
-                    .isInstanceOf(VerificationException.class);
-        }
-    }
-
-    private MockedConstruction<SdJwtVcValidator> successfulValidatorConstruction() {
-        return mockConstruction(SdJwtVcValidator.class, (mock, context) -> {
-            doNothing().when(mock).validateAndSetHeader(vpToken);
-            doNothing().when(mock).validateAndSetJwt(eq(vpToken), any());
-        });
+        assertThatThrownBy(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential))
+                .isInstanceOf(VerificationException.class);
     }
 
     private SignedJWT getDummyJwt() {

@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
@@ -31,30 +30,28 @@ public class DcqlVpTokenVerifier {
 
     private final SdJwtVpTokenVerifier sdJwtVpTokenVerifier;
     private final IssuerTrustValidator issuerTrustValidator;
-    private final DidJwtValidator jwtValidator;
     private final DidResolverFacade didResolver;
     private final DidKidParser didKidParser = new DidKidParser();
+    private final SdJwtVcValidator sdJwtVcValidator;
 
     public SdJwtVerificationResult verifyVpTokenForDCQLRequest(String vpToken, Management management, DcqlCredential dcqlCredential) {
 
         try {
-            SdJwtVcValidator validator = new SdJwtVcValidator(jwtValidator);
-
             SdJwt sdJwt;
             String headerKid;
 
             sdJwt = SdJwtParser.parseSdJwt(vpToken);
 
             // also checks header typ -> typ does not need to match dcqlCredential.format, but it must be a valid SD-JWT type `vc+sd-jwt` or `dc+sd-jwt` for backward compatibility.
-            validator.validateAndSetHeader(sdJwt);
+            sdJwtVcValidator.validateAndSetHeader(sdJwt);
 
             headerKid = sdJwt.getHeader().getKeyID();
             var publicKey = didResolver.resolveKey(headerKid);
 
-            validator.validateAndSetJwt(sdJwt, publicKey);
+            sdJwtVcValidator.validateAndSetJwt(sdJwt, publicKey);
 
             // require_cryptographic_holder_binding default is true therefore if not set to false it will be treated as true
-            sdJwtVpTokenVerifier.validateKeyBinding(sdJwt, dcqlCredential.isCryptographicHolderBindingRequired(), management, validator);
+            sdJwtVpTokenVerifier.validateKeyBinding(sdJwt, dcqlCredential.isCryptographicHolderBindingRequired(), management, sdJwtVcValidator);
 
             // Perform issuer trust validation based on claims
             JWTClaimsSet claims = sdJwt.getClaims();
@@ -70,7 +67,7 @@ public class DcqlVpTokenVerifier {
             Optional<StatusVerificationResultDto> statusVerificationResult = sdJwtVpTokenVerifier.verifyStatus(sdJwt.getClaims().getClaims(), sdJwt.getHeader());
 
             // Resolve Disclosures
-            validator.processDisclosures(sdJwt);
+            sdJwtVcValidator.processDisclosures(sdJwt);
 
             return new SdJwtVerificationResult(sdJwt, trustMarkers, statusVerificationResult);
         } catch (SdJwtParseException e) {

@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.dcql;
 
+import ch.admin.bj.swiyu.sdjwtverifier.DisclosureNotProvided;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
@@ -118,7 +119,7 @@ public class DcqlUtil {
             List<Object> newSelection = new LinkedList<>();
             for (Object currentSelected : selected) {
                 if (!(currentSelected instanceof Map)) {
-                    throw new IllegalArgumentException("Illegal claim type for selection %s - found %s instead of Json Object".formatted(key, currentSelected.getClass()));
+                    throw new IllegalArgumentException("Illegal claim type for selection %s - couldn't find JSON Object".formatted(key));
                 }
                 var newElement = ((Map<?, ?>) currentSelected).get(key);
                 if (newElement != null) {
@@ -128,22 +129,52 @@ public class DcqlUtil {
             return new DcqlPathSelection(newSelection);
         }
 
+        private static Object getAndValidateListObject(int index, Object currentSelected) {
+            if (!(currentSelected instanceof List<?> selectedList)) {
+                throw new IllegalArgumentException("Illegal claim type for selection %s - could not find JSON Array".formatted(index));
+            }
+
+            if (index < 0 || index >= selectedList.size()) {
+                throw new IllegalArgumentException("Requested DCQL path could not be found");
+            }
+
+            return selectedList.get(index);
+        }
+
         /**
          * If the component is a non-negative integer, select the element at the respective index in the currently selected array(s).
          * If any of the currently selected element(s) is not an array, abort processing and return an error.
          * If the index does not exist in a selected array, remove that array from the selection.
+         * If the element at the specified index is an instance of {@link DisclosureNotProvided}, it indicates that the disclosure was not provided and therefore not present in the SD-JWT.
          */
-        public DcqlPathSelection selectElement(int index) {
+        private DcqlPathSelection selectElement(int index) {
             List<Object> newSelection = new LinkedList<>();
             for (Object currentSelected : selected) {
-                if (!(currentSelected instanceof List)) {
-                    throw new IllegalArgumentException("Illegal claim type for selection %s - found %s instead of Json Array".formatted(index, currentSelected.getClass()));
+                var selectedListElement = getAndValidateListObject(index, currentSelected);
+
+                // check if DisclosureNotProvided -> element was not provided and therefore not present in the SD-JWT
+                if (isDisclosureNotProvided(selectedListElement)) {
+                    throw new IllegalArgumentException("Requested DCQL path could not be found - Missing claim at index %s".formatted(index));
                 }
-                if (index < ((List<?>) currentSelected).size()) {
-                    newSelection.add(((List<?>) currentSelected).get(index));
-                }
+
+                newSelection.add(selectedListElement);
             }
             return new DcqlPathSelection(newSelection);
+        }
+
+        /**
+         * Detects a DisclosureNotProvided marker. Depending on how the resolved claims were produced
+         * the marker can be an actual DisclosureNotProvided instance or a Map representation (e.g. via Jackson)
+         * where the record is represented by a single "digest" property.
+         */
+        private static boolean isDisclosureNotProvided(Object obj) {
+            if (obj instanceof DisclosureNotProvided) {
+                return true;
+            }
+            if (obj instanceof Map<?, ?> m) {
+                return m.containsKey("digest") && m.get("digest") instanceof String;
+            }
+            return false;
         }
 
         /**

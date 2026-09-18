@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 - After completed verificiation the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
+- Documented missing HTTP response codes (405, 406, 410, 500 for `GET /oid4vp/api/request-object/{request_id}`; 408, 410, 415, 500 for `POST /oid4vp/api/request-object/{request_id}/response-data`) in `openapi.yaml` `(#1165)`
 
 ## Changed
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrates `swiyu-sdjwt-verifier` to replace parts of the verification logic `(#873)`
 
 ## Fixed
+- Fixed uncaught `RuntimeException`s during presentation verification (e.g. DID resolution failures) leaving the verification session stuck in `IN_PROGRESS` instead of being marked `FAILED` `(#1290)`
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
 - Check correctness of the status list header and reset cache accordingly (#1235)
 - - Check if trust statement issuer matches the issuer of the status list `(#1210)`

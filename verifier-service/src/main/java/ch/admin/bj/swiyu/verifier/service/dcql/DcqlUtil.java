@@ -151,7 +151,7 @@ public class DcqlUtil {
             for (Object currentSelected : selected) {
                 var selectedListElement = getAndValidateListObject(index, currentSelected);
 
-                // check if DisclosureNotProvided -> element was not provided and therefore not present in the SD-JWT
+                // check if string and equals digest  -> element was not provided and therefore not present in the SD-JWT
                 if (isMissingDisclosure(selectedListElement, sdJWT)) {
                     throw new IllegalArgumentException("Requested DCQL path could not be found - Missing claim at index %s".formatted(index));
                 }
@@ -162,9 +162,7 @@ public class DcqlUtil {
         }
 
         /**
-         * Detects a DisclosureNotProvided marker. Depending on how the resolved claims were produced
-         * the marker can be an actual DisclosureNotProvided instance or a Map representation (e.g. via Jackson)
-         * where the record is represented by a single "digest" property.
+         * Detects if a disclosure was not provided. Checks if value is an original digest -> marks not provided disclosures
          */
         private static boolean isMissingDisclosure(Object value, SdJwt sdJwt) {
 

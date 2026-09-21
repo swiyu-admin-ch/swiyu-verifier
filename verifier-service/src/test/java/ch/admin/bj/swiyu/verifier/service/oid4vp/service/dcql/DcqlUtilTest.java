@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service.dcql;
 
-import ch.admin.bj.swiyu.sdjwtverifier.DisclosureNotProvided;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
@@ -57,13 +56,14 @@ class DcqlUtilTest {
         // int are cast to long
         exampleData.put("integer_number", 98L);
         exampleData.put("lucky_numbers", List.of(7L, 3.14, 42L));
-        exampleData.put("0_disclosure_not_provided", List.of(new DisclosureNotProvided("0_disclosure_not_provided"), "test"));
+        exampleData.put("disclosure_not_provided", List.of("disclosure_not_provided", "test"));
 
         sdJwt = mock(SdJwt.class);
         var claims = mock(JWTClaimsSet.class);
         when(sdJwt.getClaims()).thenReturn(claims);
         when(claims.getClaims()).thenReturn(exampleData);
         when(sdJwt.getResolvedClaims()).thenReturn(exampleData);
+        when(sdJwt.getDigests()).thenReturn(Set.of("disclosure_not_provided"));
     }
 
 
@@ -251,7 +251,7 @@ class DcqlUtilTest {
     The value can be of any type that is allowed in JSON, including numbers, strings, booleans, arrays, null, and objects.
      */
     @ParameterizedTest
-    @ValueSource(ints = {0,1,2,3,4,5,6})
+    @ValueSource(ints = {0, 1, 2, 3, 4, 5, 6})
     void arraySelection_whenValidArrayElement_thenOk(int index) {
         var paths = new LinkedList<>();
         paths.add("array");
@@ -301,7 +301,7 @@ class DcqlUtilTest {
     void arraySelection_withNullElement_thenThrowIllegalArgumentException() {
         var index = 0;
         var paths = new LinkedList<>();
-        paths.add("0_disclosure_not_provided");
+        paths.add("disclosure_not_provided");
         paths.add(index);
         var requestClaim = new DcqlClaim(null, paths, null);
         var claims = List.of(requestClaim);

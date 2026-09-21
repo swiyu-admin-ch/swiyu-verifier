@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.dcql;
 
-import ch.admin.bj.swiyu.sdjwtverifier.DisclosureNotProvided;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
@@ -80,7 +79,7 @@ public class DcqlUtil {
         for (Object path : requestedPath) {
             switch (path) {
                 case null -> selected = selected.selectAll();
-                case Number number -> selected = selected.selectElement(number.intValue());
+                case Number number -> selected = selected.selectElement(number.intValue(), sdJwt);
                 case String s -> selected = selected.selectElement(s);
                 default ->
                         throw new IllegalArgumentException("Illegal request path type; was %s".formatted(path.getClass()));
@@ -145,15 +144,15 @@ public class DcqlUtil {
          * If the component is a non-negative integer, select the element at the respective index in the currently selected array(s).
          * If any of the currently selected element(s) is not an array, abort processing and return an error.
          * If the index does not exist in a selected array, remove that array from the selection.
-         * If the element at the specified index is an instance of {@link DisclosureNotProvided}, it indicates that the disclosure was not provided and therefore not present in the SD-JWT.
+         * If the element at the specified index is part of the original digest list, it indicates that the disclosure was not provided and therefore not present in the SD-JWT.
          */
-        private DcqlPathSelection selectElement(int index) {
+        private DcqlPathSelection selectElement(int index, SdJwt sdJWT) {
             List<Object> newSelection = new LinkedList<>();
             for (Object currentSelected : selected) {
                 var selectedListElement = getAndValidateListObject(index, currentSelected);
 
                 // check if DisclosureNotProvided -> element was not provided and therefore not present in the SD-JWT
-                if (isDisclosureNotProvided(selectedListElement)) {
+                if (isMissingDisclosure(selectedListElement, sdJWT)) {
                     throw new IllegalArgumentException("Requested DCQL path could not be found - Missing claim at index %s".formatted(index));
                 }
 
@@ -167,13 +166,12 @@ public class DcqlUtil {
          * the marker can be an actual DisclosureNotProvided instance or a Map representation (e.g. via Jackson)
          * where the record is represented by a single "digest" property.
          */
-        private static boolean isDisclosureNotProvided(Object obj) {
-            if (obj instanceof DisclosureNotProvided) {
-                return true;
+        private static boolean isMissingDisclosure(Object value, SdJwt sdJwt) {
+
+            if (value instanceof String stringValue) {
+                return sdJwt.getDigests().contains(stringValue);
             }
-            if (obj instanceof Map<?, ?> m) {
-                return m.containsKey("digest") && m.get("digest") instanceof String;
-            }
+
             return false;
         }
 

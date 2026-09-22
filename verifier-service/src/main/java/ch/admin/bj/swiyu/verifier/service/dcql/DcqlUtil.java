@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.dcql;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.TrustedAuthority;
 import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 
@@ -21,6 +22,8 @@ import java.util.Map;
  */
 @UtilityClass
 public class DcqlUtil {
+
+    public static final String TRUSTED_AUTHORITY_TYPE_DID = "did";
 
     /**
      * Validates that the provided {@link SdJwt} satisfies the given DCQL requested claims.
@@ -161,5 +164,31 @@ public class DcqlUtil {
             // unpack array to selected
             return new DcqlPathSelection(newSelection);
         }
+    }
+
+    /**
+     * Filters the given SD-JWTs according to the trusted authorities
+     * @param sdJwts List of validated SD-JWTs to be filtered
+     * @param trustedAuthorities the DCQL trusted authorities
+     * @return sdJwts which match at least one of the trusted authorities
+     */
+    public static List<SdJwt> filterByTrustedAuthority(List<SdJwt> sdJwts, List<TrustedAuthority> trustedAuthorities) {
+        if (trustedAuthorities == null) {
+            return sdJwts;
+        }
+        List<SdJwt> trustedAuthoritySdJwt = new LinkedList<>();
+        for(TrustedAuthority ta : trustedAuthorities) {
+            if (TRUSTED_AUTHORITY_TYPE_DID.equalsIgnoreCase(ta.getType())) {
+                trustedAuthoritySdJwt.addAll(filterByDidTrustedAuthrity(sdJwts, ta.getValues()));
+            }
+        }
+        return trustedAuthoritySdJwt;
+    }
+
+    private static List<SdJwt> filterByDidTrustedAuthrity(List<SdJwt> sdJwts, List<String> trustedDids) {
+        return sdJwts.stream().filter(sdJwt -> {
+            String issuerDid = sdJwt.getHeader().getKeyID().split("#")[0];
+            return trustedDids.contains(issuerDid);
+        }).toList();
     }
 }

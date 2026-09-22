@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 - After completed verificiation the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
 - Documented missing HTTP response codes (405, 406, 410, 500 for `GET /oid4vp/api/request-object/{request_id}`; 408, 410, 415, 500 for `POST /oid4vp/api/request-object/{request_id}/response-data`) in `openapi.yaml` `(#1165)`
+- Support for DCQL Trusted Authorities which can be provided as part of the wallet. When using `accepted_issuer_dids` to establish 
+  trust to the issuer ensure that the provided DCQL `trusted_authorities` match the DIDs provided there. 
+  If not set in the DCQL query and using `accepted_issuer_dids`, the `trusted_authorities` will be automatically be filled 
+  from `accepted_issuer_dids` to allow wallets to filter possible credentials. `(#1177)`
 
 ## Changed
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`

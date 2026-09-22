@@ -54,7 +54,14 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, DC_SD_JWT_CREDENTIAL_FORMAT, meta, claims, true, false);
+        var requestedCredential = DcqlCredential.builder()
+            .id(credentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(meta)
+            .claims(claims)
+            .requireCryptographicHolderBinding(true)
+            .multiple(false)
+            .build();
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 
@@ -87,7 +94,14 @@ class DcqlPresentationVerificationServiceTest {
         var management = mock(Management.class);
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
-        var requestedCredential = new DcqlCredential(credentialId, DC_SD_JWT_CREDENTIAL_FORMAT, meta, List.of(), true, false);
+        var requestedCredential = DcqlCredential.builder()
+            .id(credentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(meta)
+            .claims(List.of())
+            .requireCryptographicHolderBinding(true)
+            .multiple(false)
+            .build();
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 
@@ -107,7 +121,14 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, DC_SD_JWT_CREDENTIAL_FORMAT, meta, claims, true, multiple);
+                var requestedCredential = DcqlCredential.builder()
+            .id(credentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(meta)
+            .claims(claims)
+            .requireCryptographicHolderBinding(true)
+            .multiple(multiple)
+            .build();
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
         var vpToken = "vp-token-sdjwt";
@@ -124,7 +145,14 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, DC_SD_JWT_CREDENTIAL_FORMAT, meta, claims, true, true);
+        var requestedCredential = DcqlCredential.builder()
+            .id(credentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(meta)
+            .claims(claims)
+            .requireCryptographicHolderBinding(true)
+            .multiple(true)
+            .build();
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
         var vpToken = "vp-token-sdjwt";
@@ -158,7 +186,14 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, false);
+        var requestedCredential = DcqlCredential.builder()
+            .id(credentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(meta)
+            .claims(claims)
+            .requireCryptographicHolderBinding(true)
+            .multiple(false)
+            .build();
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 
@@ -179,7 +214,14 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, false);
+        var requestedCredential = DcqlCredential.builder()
+            .id(credentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(meta)
+            .claims(claims)
+            .requireCryptographicHolderBinding(true)
+            .multiple(false)
+            .build();
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 
@@ -202,7 +244,15 @@ class DcqlPresentationVerificationServiceTest {
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
         var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
-        var requestedCredential = new DcqlCredential(credentialId, "dc+sd-jwt", meta, claims, true, false);
+        var requestedCredential = DcqlCredential.builder()
+            .id(credentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(meta)
+            .claims(claims)
+            .requireCryptographicHolderBinding(true)
+            .multiple(false)
+            .build();
+
         var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 

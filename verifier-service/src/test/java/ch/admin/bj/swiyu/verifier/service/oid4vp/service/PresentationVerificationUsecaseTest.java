@@ -362,15 +362,16 @@ class PresentationVerificationUsecaseTest {
      * Create a dcql query matching the default vp token
      */
     private DcqlQuery getDcqlQuery(String dcqlCredentialId, boolean requireCryptographicHolderBinding) {
-        var requestedCredential = new DcqlCredential(
-                dcqlCredentialId,
-                DC_SD_JWT_CREDENTIAL_FORMAT,
-                new DcqlCredentialMeta(null, List.of(SDJWTCredentialMock.DEFAULT_VCT), null),
-                List.of(
+        var requestedCredential = DcqlCredential.builder()
+            .id(dcqlCredentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(new DcqlCredentialMeta(null, List.of(SDJWTCredentialMock.DEFAULT_VCT), null))
+            .claims(List.of(
                         new DcqlClaim(null, List.of("birthdate"), null),
-                        new DcqlClaim(null, List.of("last_name"), null)),
-                requireCryptographicHolderBinding,
-                false);
+                        new DcqlClaim(null, List.of("last_name"), null)))
+            .requireCryptographicHolderBinding(requireCryptographicHolderBinding)
+            .multiple(false)
+            .build();
         return new DcqlQuery(List.of(requestedCredential), null);
     }
 }

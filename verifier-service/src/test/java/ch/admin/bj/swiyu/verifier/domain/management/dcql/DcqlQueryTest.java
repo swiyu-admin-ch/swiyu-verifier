@@ -17,11 +17,11 @@ public class DcqlQueryTest {
         ).build();
         query.addTrustedAuthorityDids(acceptedDids);
         for(DcqlCredential cred : query.getCredentials()) {
-            if (cred.getId() == "no_authority") {
+            if ("no_authority".equals(cred.getId())) {
                 assertThat(cred.getTrustedAuthorities()).isNotNull().hasSize(1);
                 assertThat(cred.getTrustedAuthorities().getFirst().getValues()).hasSize(2)
                 .as("Whe no authority was specified should use accepted issuers").containsAll(acceptedDids);
-            } else if (cred.getId() == "existing_authority") {
+            } else if ("existing_authority".equals(cred.getId())) {
                 assertThat(cred.getTrustedAuthorities()).isNotNull().hasSize(1);
                 assertThat(cred.getTrustedAuthorities().getFirst().getValues()).hasSize(1)
                 .as("When trusted authority was provided by the business verifier it should not be overridden").containsAll(existingTrustedAuthory.getValues());

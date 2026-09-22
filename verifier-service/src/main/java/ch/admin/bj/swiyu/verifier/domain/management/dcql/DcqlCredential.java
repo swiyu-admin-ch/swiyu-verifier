@@ -1,8 +1,11 @@
 package ch.admin.bj.swiyu.verifier.domain.management.dcql;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -10,8 +13,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * Domain model for DCQL Credential Query.
@@ -69,6 +70,10 @@ public class DcqlCredential {
     @JsonProperty("multiple")
     @Nullable
     private Boolean multiple;
+
+    @JsonProperty("trusted_authorities")
+    @Nullable
+    private List<TrustedAuthority> trustedAuthorities;
     
     @JsonIgnore
     public boolean isCryptographicHolderBindingRequired() {

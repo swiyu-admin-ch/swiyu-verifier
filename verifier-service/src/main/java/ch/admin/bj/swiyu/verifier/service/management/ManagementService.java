@@ -95,6 +95,7 @@ public class ManagementService {
 
         var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
         var trustAnchors = ManagementMapper.toTrustAnchors(request.trustAnchors());
+        dcqlQuery.addTrustedAuthorityDids(request.acceptedIssuerDids());
         var responseSpecificationBuilder = createResponseSpecificationBuilder(request.responseMode());
 
         String vqpsQueryHash = null;

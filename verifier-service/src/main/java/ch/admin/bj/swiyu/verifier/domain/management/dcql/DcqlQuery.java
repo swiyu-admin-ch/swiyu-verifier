@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.domain.management.dcql;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,4 +39,18 @@ public class DcqlQuery {
      */
     @JsonProperty("credential_sets")
     private List<DcqlCredentialSet> credentialSets;
+
+    /**
+     * Adds the acceptedDids as Trusted Authorities of the type did to all credential queries missing
+     * trusted authorities
+     * @param acceptedDids the dids to be added as trusted authorities
+     */
+    public void addTrustedAuthorityDids(List<String> acceptedDids) {
+        if (acceptedDids == null || acceptedDids.isEmpty()) {
+            return;
+        }
+        List<TrustedAuthority> trustedAuthorities = List.of(TrustedAuthority.builder().values(acceptedDids).build());
+        credentials.stream().filter(c -> c.getTrustedAuthorities() == null || c.getTrustedAuthorities().isEmpty())
+            .forEach(c -> c.setTrustedAuthorities(trustedAuthorities));
+    }
 }

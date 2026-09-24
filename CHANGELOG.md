@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verification now throws an Error if a Trust Anchor is provided but no Trust Registry is configured. `(#1090)`
 - Audit information (`vp_token`, `credential_subject_data`, `credential_evaluation`) is now omitted from the management API response by default and must be explicitly enabled via the new `additional-audit-information.*` configuration flags (`ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED`), each defaulting to `false`. `(#1321)`
 - Integrates `swiyu-sdjwt-verifier` to replace parts of the verification logic `(#873)`
+- Replaced placeholder digest with pointer record `DisclosureNotProvided` so missing values can be detected `(#1258)`
 
 ## Fixed
 - Fixed uncaught `RuntimeException`s during presentation verification (e.g. DID resolution failures) leaving the verification session stuck in `IN_PROGRESS` instead of being marked `FAILED` `(#1290)`

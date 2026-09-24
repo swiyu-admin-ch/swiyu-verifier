@@ -79,7 +79,7 @@ public class DcqlUtil {
         for (Object path : requestedPath) {
             switch (path) {
                 case null -> selected = selected.selectAll();
-                case Number number -> selected = selected.selectElement(number.intValue());
+                case Number number -> selected = selected.selectElement(number.intValue(), sdJwt);
                 case String s -> selected = selected.selectElement(s);
                 default ->
                         throw new IllegalArgumentException("Illegal request path type; was %s".formatted(path.getClass()));
@@ -118,7 +118,7 @@ public class DcqlUtil {
             List<Object> newSelection = new LinkedList<>();
             for (Object currentSelected : selected) {
                 if (!(currentSelected instanceof Map)) {
-                    throw new IllegalArgumentException("Illegal claim type for selection %s - found %s instead of Json Object".formatted(key, currentSelected.getClass()));
+                    throw new IllegalArgumentException("Illegal claim type for selection %s - couldn't find JSON Object".formatted(key));
                 }
                 var newElement = ((Map<?, ?>) currentSelected).get(key);
                 if (newElement != null) {
@@ -128,22 +128,49 @@ public class DcqlUtil {
             return new DcqlPathSelection(newSelection);
         }
 
+        private static Object getAndValidateListObject(int index, Object currentSelected) {
+            if (!(currentSelected instanceof List<?> selectedList)) {
+                throw new IllegalArgumentException("Illegal claim type for selection %s - could not find JSON Array".formatted(index));
+            }
+
+            if (index < 0 || index >= selectedList.size()) {
+                throw new IllegalArgumentException("Requested DCQL path could not be found");
+            }
+
+            return selectedList.get(index);
+        }
+
         /**
          * If the component is a non-negative integer, select the element at the respective index in the currently selected array(s).
          * If any of the currently selected element(s) is not an array, abort processing and return an error.
          * If the index does not exist in a selected array, remove that array from the selection.
+         * If the element at the specified index is part of the original digest list, it indicates that the disclosure was not provided and therefore not present in the SD-JWT.
          */
-        public DcqlPathSelection selectElement(int index) {
+        private DcqlPathSelection selectElement(int index, SdJwt sdJWT) {
             List<Object> newSelection = new LinkedList<>();
             for (Object currentSelected : selected) {
-                if (!(currentSelected instanceof List)) {
-                    throw new IllegalArgumentException("Illegal claim type for selection %s - found %s instead of Json Array".formatted(index, currentSelected.getClass()));
+                var selectedListElement = getAndValidateListObject(index, currentSelected);
+
+                // check if string and equals digest  -> element was not provided and therefore not present in the SD-JWT
+                if (isMissingDisclosure(selectedListElement, sdJWT)) {
+                    throw new IllegalArgumentException("Requested DCQL path could not be found - Missing claim at index %s".formatted(index));
                 }
-                if (index < ((List<?>) currentSelected).size()) {
-                    newSelection.add(((List<?>) currentSelected).get(index));
-                }
+
+                newSelection.add(selectedListElement);
             }
             return new DcqlPathSelection(newSelection);
+        }
+
+        /**
+         * Detects if a disclosure was not provided. Checks if value is an original digest -> marks not provided disclosures
+         */
+        private static boolean isMissingDisclosure(Object value, SdJwt sdJwt) {
+
+            if (value instanceof String stringValue) {
+                return sdJwt.getDigests().contains(stringValue);
+            }
+
+            return false;
         }
 
         /**

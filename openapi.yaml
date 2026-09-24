@@ -594,8 +594,10 @@ components:
           description: "A string that specifies the format of the requested Credential.\
             \ Valid Credential Format Identifier values are defined in Appendix B.\
             \ According to OpenID for Verifiable Presentations 1.0, Section 6.1, property\
-            \ 'format'."
+            \ 'format'. These formats are interchangeable at the moment and no strict\
+            \ check is applied"
           minLength: 1
+          pattern: "^[dv]c\\+sd-jwt$"
         meta:
           $ref: "#/components/schemas/DcqlCredentialMetaDto"
           description: "An object defining additional properties requested by the\
@@ -1218,24 +1220,11 @@ components:
             Audience ("aud") JWT claim identifying the intended recipient of this Request Object.
             As the verifier cannot identify the wallet the Static Discovery metadata is used.
             MUST be "https://self-issued.me/v2"
-        profile_version:
-          type: string
-          description: JWT header parameter indicating the Swiss Profile version used
-            to produce this Request Object.
-        encrypted_response_enc_values_supported:
-          type: array
-          description: JWE 'enc' algorithms accepted by the Verifier for an encrypted
-            Authorization Response.
-          items:
-            type: string
         verifier_info:
           type: array
           description: Trust Protocol 2.0 trust statements embedded as JWT objects.
           items:
             $ref: "#/components/schemas/VerifierInfoEntryDto"
-      required:
-      - encrypted_response_enc_values_supported
-      - profile_version
     VerifierInfoEntryDto:
       type: object
       properties:

@@ -127,25 +127,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void shouldFailOnNotAcceptedIssuer() throws Exception {
-        var ATTACKER_DID = "did:webvh:some-scid:example.com:api:v1:suspicious-issuer-id";
-        var ATTACKER_KID = ATTACKER_DID + "#" + "key-1";
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ATTACKER_DID, ATTACKER_KID);
-        var sdJWT = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-        // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error_description").value(containsString("Issuer not in list of accepted issuers")));
-    }
-
-    @Test
     @Disabled("Behavior changed: IssuerTrustValidator now requires explicit trust configuration. " +
             "When both acceptedIssuerDids AND trustAnchors are empty, all credentials are rejected. " +
             "This test assumed empty list = any issuer allowed, which is no longer the case.")

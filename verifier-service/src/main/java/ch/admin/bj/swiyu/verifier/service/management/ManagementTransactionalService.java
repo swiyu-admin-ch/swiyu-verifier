@@ -74,7 +74,6 @@ public class ManagementTransactionalService {
      *
      * @param dcqlQuery                    the parsed DCQL query
      * @param request                      the creation request DTO
-     * @param trustAnchors                 resolved trust anchors
      * @param responseSpecificationBuilder builder for the response specification
      * @param vqpsQueryHash                optional SHA-256 query hash linking this session to a cached vqPS JWT (PK of {@code vqps_cache})
      * @param redirectURI                  optional redirect URI for the response
@@ -82,7 +81,6 @@ public class ManagementTransactionalService {
     @Transactional
     public Management saveNewManagement(DcqlQuery dcqlQuery,
                                         CreateVerificationManagementDto request,
-                                        List<TrustAnchor> trustAnchors,
                                         ResponseSpecification.ResponseSpecificationBuilder responseSpecificationBuilder,
                                         String vqpsQueryHash,
                                         URI redirectURI) {
@@ -92,7 +90,6 @@ public class ManagementTransactionalService {
                 .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
                 .responseSpecification(responseSpecificationBuilder.build())
                 .acceptedIssuerDids(request.acceptedIssuerDids())
-                .trustAnchors(trustAnchors)
                 .configurationOverride(ManagementMapper.toSigningOverride(request.configuration_override()))
                 .vqpsQueryHash(vqpsQueryHash)
                 .redirectURI(redirectURI)

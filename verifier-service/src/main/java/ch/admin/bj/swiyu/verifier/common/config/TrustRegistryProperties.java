@@ -22,6 +22,11 @@ import java.time.Duration;
 public class TrustRegistryProperties {
 
     /**
+     * Trust Anchor - The DID trusted to issue Trust Statements
+     */
+    private String trustIssuerDid;
+
+    /**
      * Base URL of the Trust Registry (TMS) API.
      * When absent, the TP2.0 integration is disabled.
      */

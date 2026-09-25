@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import java.util.List;
 
+import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,7 @@ public class TrustProtocol2Validator {
     private final TrustStatementCacheService statementProvider;
     @Qualifier("trustStatementValidator")
     private final DidKidParser didKidParser = new DidKidParser();
+    private final TrustRegistryProperties trustRegistryProperties;
 
     /**
      * Determines whether the given {@code issuerDid} can be considered trusted
@@ -56,20 +58,13 @@ public class TrustProtocol2Validator {
      * @param issuerDid  the DID of the issuer whose trust is being evaluated
      * @param vct        the Verifiable Credential Type that the issuer wants to
      *                   issue (e.g. {@code "urn:ch.admin.fedpol.eid"})
-     * @param management the management configuration that contains the list of
-     *                   {@link TrustAnchor}s to be used for verification
      * @return {@code true} if at least one trust anchor yields a
      *         {@link TrustMarkers#isTrustedIssuer()} result of {@code true},
      *         otherwise {@code false}
      */
-    public IssuerTrustMarker isTrusted(String issuerDid, String vct, Management management) {
-        // Trust Protocol 2.0 only supports 1 Trust Anchor
-        TrustAnchor anchor = management.getTrustAnchors().getFirst();
-        if (management.getTrustAnchors().size() > 1) {
-            log.warn("Trust Protocol 2.0 is being used which only supports 1 Trust Anchor. Using the anchor {}", anchor.did());
-        }
-        log.debug("Evaluating Trust for Anchor {}", anchor.did());
-        TrustVerificationResult verificationResult = evaluateTrust(issuerDid, vct, anchor);
+    public IssuerTrustMarker isTrusted(String issuerDid, String vct) {
+        log.debug("Evaluating Trust for Anchor {}", trustRegistryProperties.getTrustIssuerDid());
+        TrustVerificationResult verificationResult = evaluateTrust(issuerDid, vct);
         TrustMarkers markers = verificationResult.markers();
         return IssuerTrustMarker.builder()
             .trustMethod(TrustMethod.TRUST_PROTOCOL_2_0)
@@ -105,10 +100,10 @@ public class TrustProtocol2Validator {
      *
      * @return the verification result containing {@link TrustMarkers}
      */
-    private TrustVerificationResult evaluateTrust(String issuerDid, String vct, TrustAnchor trustAnchor) {
+    private TrustVerificationResult evaluateTrust(String issuerDid, String vct) {
         List<String> statementJwts = statementProvider.getAllIssuanceStatementsFor(issuerDid);
         TrustStatementVerifier tsVerifier = new TrustStatementVerifier(statementJwts, didKidParser);
-        TrustVerificationResult result = tsVerifier.verifyIssuanceStatements(trustAnchor.did(), issuerDid, vct);
+        TrustVerificationResult result = tsVerifier.verifyIssuanceStatements(trustRegistryProperties.getTrustIssuerDid(), issuerDid, vct);
         TrustMarkers markers = result.markers();
         log.debug("Validated Trust Marks for {} with result: identity {}, compliant actor {}, vct {} is governed use case {}, governed use case authorization {}",
             issuerDid, markers.identityTrustMarker(), 

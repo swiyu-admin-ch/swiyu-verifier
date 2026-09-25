@@ -94,7 +94,6 @@ public class ManagementService {
         CreateVerificationManagementValidator.validate(request);
 
         var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
-        var trustAnchors = ManagementMapper.toTrustAnchors(request.trustAnchors());
         var responseSpecificationBuilder = createResponseSpecificationBuilder(request.responseMode());
 
         String vqpsQueryHash = null;
@@ -109,7 +108,6 @@ public class ManagementService {
         var management = managementTransactionalService.saveNewManagement(
                 dcqlQuery,
                 request,
-                trustAnchors,
                 responseSpecificationBuilder,
                 vqpsQueryHash,
                 request.redirectURI()

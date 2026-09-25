@@ -72,23 +72,6 @@ public class ManagementMapper {
                 ));
     }
 
-    public static TrustAnchor toTrustAnchor(final TrustAnchorDto trustAnchor) {
-        if (trustAnchor == null) {
-            return null;
-        }
-        return new TrustAnchor(
-                trustAnchor.did(),
-                trustAnchor.trustRegistryUri()
-        );
-    }
-
-    public static List<TrustAnchor> toTrustAnchors(List<TrustAnchorDto> trustAnchorDtos) {
-        if (trustAnchorDtos == null) {
-            return List.of();
-        }
-        return trustAnchorDtos.stream().map(ManagementMapper::toTrustAnchor).toList();
-    }
-
 
     private static CredentialEvaluationDto toCredentialEvaluationDto(CredentialEvaluation credentialEvaluation) {
         return CredentialEvaluationDto.builder()

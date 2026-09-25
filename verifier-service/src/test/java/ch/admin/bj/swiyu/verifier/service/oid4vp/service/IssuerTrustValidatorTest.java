@@ -20,6 +20,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorRespo
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class IssuerTrustValidatorTest {
@@ -48,6 +49,7 @@ class IssuerTrustValidatorTest {
 
     @Test
     void validateTrust_throwsWhenIssuerNotAccepted() {
+        when(trustRegistryProperties.getTrustIssuerDid()).thenReturn("did:webvh:scid:trust-issuer");
         Management management = Management.builder()
                 .acceptedIssuerDids(List.of())
                 .build();

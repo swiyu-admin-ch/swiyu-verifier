@@ -35,9 +35,8 @@ public class IssuerTrustValidator {
      * <p>
      * Trust is established if:
      * <ul>
-     *   <li>Both accepted issuer DIDs and trust anchors are empty (all issuers allowed), or</li>
      *   <li>The issuer DID is in the list of accepted issuer DIDs, or</li>
-     *   <li>The issuer is directly or indirectly trusted via a trust anchor and a valid trust statement.</li>
+     *   <li>The issuer is trusted through trust statements signed by the trust anchor.</li>
      * </ul>
      * If none of these conditions are met, a {@link VerificationException} is thrown.
      *
@@ -78,7 +77,7 @@ public class IssuerTrustValidator {
     }
 
     private boolean hasTrustProtocolAnchor() {
-        return StringUtils.isEmpty(trustRegistryProperties.getTrustIssuerDid());
+        return StringUtils.isNotEmpty(trustRegistryProperties.getTrustIssuerDid());
     }
 
 

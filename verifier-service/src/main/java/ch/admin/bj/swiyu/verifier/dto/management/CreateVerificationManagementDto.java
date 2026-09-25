@@ -22,7 +22,7 @@ public record CreateVerificationManagementDto(
         @Schema(description = """
                 List of dids from issuers whose credentials are accepted for this verification.
                 Will be evaluated before trust anchor.
-                If not specified and no trust anchor specified no presentations are trusted.
+                If not specified and trust anchor specified in environment variables no presentations are trusted.
                 """, example = """
                 ["did:example:12345"]
                 """)

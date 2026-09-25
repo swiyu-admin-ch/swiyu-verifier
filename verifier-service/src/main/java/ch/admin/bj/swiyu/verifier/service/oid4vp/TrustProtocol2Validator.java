@@ -35,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>
  * The result of the verification is a {@link TrustVerificationResult}
  * containing the evaluated {@link TrustMarkers}. The public method
- * {@link #isTrusted(String, String, Management)} returns {@code true} when the
+ * {@link #isTrusted(String, String)} returns {@code true} when the
  * issuer's trust markers indicate a trusted issuer (i.e. when
  * {@link TrustMarkers#isTrustedIssuer()} evaluates to {@code true}).
  */
@@ -93,7 +93,7 @@ public class TrustProtocol2Validator {
      * the statements.
      * </li>
      * <li>Calls {@link TrustStatementVerifier#verifyIssuanceStatements(String,
-     * String, String, JWKSet, List)} which returns a
+     * String, String)} which returns a
      * {@link TrustVerificationResult}.
      * </li>
      * </ol>

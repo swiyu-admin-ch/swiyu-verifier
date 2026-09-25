@@ -201,6 +201,7 @@ swiyu:
     # Optional: Trust Registry sidechannel API for fetching Trust Statements (idTS, piaTS).
     # If not set, trust statement caching is disabled.
     trust-registry:
+      trust-issuer-did: "${SWIYU_TRUST_ISSUER_DID:}"
       api-url: "${SWIYU_TRUST_REGISTRY_API_URL:}"
       max-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
       clock-skew-buffer-seconds: ${SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS:60}

@@ -2,7 +2,6 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.management;
 
 import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
-import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
@@ -47,65 +46,6 @@ class VerifierManagementControllerIT {
     private final List<String> issuerDIDs = List.of(UUID.randomUUID().toString());
 
 
-    @Test
-    void testCreateOffer_withEmptyAcceptedIssuerDidsAndEmptyTrustAnchors_thenThrowBadRequest()throws Exception {
-
-        var request = CreateVerificationManagementDto.builder()
-                .dcqlQuery(getDcqlQueryForListDto())
-                .trustAnchors(List.of())
-                .acceptedIssuerDids(List.of())
-                .build();
-
-        mvc.perform(post(BASE_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error_description").value(
-                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
-                ))
-                .andReturn();
-    }
-
-    @Test
-    void testCreateOffer_withAcceptedIssuerDidsNullValuesAndEmptyTrustAnchors_thenThrowBadRequest()throws Exception {
-        final List<String> issuerDids = new ArrayList<>();
-        issuerDids.add(null);
-
-        var request = CreateVerificationManagementDto.builder()
-                .dcqlQuery(getDcqlQueryForListDto())
-                .trustAnchors(null)
-                .acceptedIssuerDids(issuerDids)
-                .build();
-
-        mvc.perform(post(BASE_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error_description").value(
-                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
-                ))
-                .andReturn();
-    }
-
-    @Test
-    void testCreateOffer_withNullAcceptedIssuerDidsAndNullTrustAnchors_thenThrowBadRequest()throws Exception {
-
-        var request = CreateVerificationManagementDto.builder()
-                .dcqlQuery(getDcqlQueryForListDto())
-                .trustAnchors(null)
-                .acceptedIssuerDids(null)
-                .build();
-
-        mvc.perform(post(BASE_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error_description").value(
-                        containsString("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
-                ))
-                .andReturn();
-    }
-
     /**
      * Test to check if not supported fields are validated
      */
@@ -133,7 +73,6 @@ class VerifierManagementControllerIT {
 
         var request = CreateVerificationManagementDto.builder()
                 .dcqlQuery(dqclQuery)
-                .trustAnchors(null)
                 .acceptedIssuerDids(List.of(UUID.randomUUID().toString()))
                 .build();
 
@@ -150,23 +89,6 @@ class VerifierManagementControllerIT {
                 .andExpect(jsonPath("$.error_description").value(
                         containsString("trustedAuthorities: The trusted_authorities field is not yet supported")
                 ))
-                .andReturn();
-    }
-
-    @Test
-    void testCreateOffer_withOnlyTrustAnchors_thenSuccess()throws Exception {
-        TrustAnchorDto trustAnchorDto = new TrustAnchorDto("did:example:12345", null);
-
-        var request = CreateVerificationManagementDto.builder()
-                .dcqlQuery(getDcqlQueryForListDto())
-                .trustAnchors(List.of(trustAnchorDto))
-                .acceptedIssuerDids(null)
-                .build();
-
-        mvc.perform(post(BASE_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
                 .andReturn();
     }
 

@@ -12,7 +12,6 @@ import ch.admin.bj.swiyu.verifier.dto.VerificationClientErrorDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ConfigurationOverrideDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.dto.management.TrustAnchorDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationStatusDto;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -315,35 +314,6 @@ class ManagementMapperTest {
         assertThatThrownBy(() -> toManagementResponseDto(management, applicationProperties))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Invalid string cannot be converted to map");
-    }
-
-    @Test
-    void toTrustAnchor_withDto_returnsDomainObject() {
-        var dto = new TrustAnchorDto("did:example:123", "https://registry.example");
-
-        var result = ManagementMapper.toTrustAnchor(dto);
-
-        assertThat(result).isEqualTo(new TrustAnchor(dto.did(), dto.trustRegistryUri()));
-    }
-
-    @Test
-    void toTrustAnchors_withNullInput_returnsEmptyList() {
-        assertThat(ManagementMapper.toTrustAnchors(null)).isEmpty();
-    }
-
-    @Test
-    void toTrustAnchors_withDtos_returnsMappedList() {
-        var trustAnchors = List.of(
-                new TrustAnchorDto("did:example:123", "https://registry-one.example"),
-                new TrustAnchorDto("did:example:456", "https://registry-two.example")
-        );
-
-        var result = ManagementMapper.toTrustAnchors(trustAnchors);
-
-        assertThat(result).containsExactly(
-                new TrustAnchor("did:example:123", "https://registry-one.example"),
-                new TrustAnchor("did:example:456", "https://registry-two.example")
-        );
     }
 
     @Test

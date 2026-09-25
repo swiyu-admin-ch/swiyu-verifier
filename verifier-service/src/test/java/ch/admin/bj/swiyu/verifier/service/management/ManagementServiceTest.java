@@ -232,7 +232,6 @@ class ManagementServiceTest {
     private CreateVerificationManagementDto createRequestDto(ResponseModeTypeDto responseModeTypeDto, DcqlQueryDto dcqlQueryDto) {
         return new CreateVerificationManagementDto(
                 List.of("did:example:123"),
-                null,
                 false,
                 responseModeTypeDto,
                 null,

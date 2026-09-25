@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [NEXT]
 
 ## Added
-- After completed verificiation the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
+- After completed verification the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
 - Documented missing HTTP response codes (405, 406, 410, 500 for `GET /oid4vp/api/request-object/{request_id}`; 408, 410, 415, 500 for `POST /oid4vp/api/request-object/{request_id}/response-data`) in `openapi.yaml` `(#1165)`
 
 ## Changed
@@ -17,13 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verification now throws an Error if a Trust Anchor is provided but no Trust Registry is configured. `(#1090)`
 - Audit information (`vp_token`, `credential_subject_data`, `credential_evaluation`) is now omitted from the management API response by default and must be explicitly enabled via the new `additional-audit-information.*` configuration flags (`ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED`), each defaulting to `false`. `(#1321)`
 - Integrates `swiyu-sdjwt-verifier` to replace parts of the verification logic `(#873)`
+- Moved declaration of Trust Anchor from CreateVerifiationRequest to application properties set with environment variable `SWIYU_TRUST_ISSUER_DID` and limited it to one as Trust Protocol `(#1319)`
+- Allow creation of Verifications without source of trust if trust verification will be done later `(#1319)`
 
 ## Fixed
 - Fixed uncaught `RuntimeException`s during presentation verification (e.g. DID resolution failures) leaving the verification session stuck in `IN_PROGRESS` instead of being marked `FAILED` `(#1290)`
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
-- Check correctness of the status list header and reset cache accordingly (#1235)
+- Check correctness of the status list header and reset cache accordingly `(#1235)`
 - - Check if trust statement issuer matches the issuer of the status list `(#1210)`
 - Fixed vqPS registration to use the verifier DID from `configuration_override.verifier_did` `(#1338)`
+
+## Removed
+
+- Trust Protocol 1.0 and associated logic has been removed `(#1319)`
 
 # [4.2.0] - 2026-08-21
 

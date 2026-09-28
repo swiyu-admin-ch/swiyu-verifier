@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 public class DcqlQueryTest {
     @Test
-    void testAddTrustedAuthorityDids() {
+    void addTrustedAuthorityDids_whenNoCustomAuthorities_addAcceptedDids() {
         var acceptedDids = List.of("did:webvh:scid:example", "did:webvh:scid:example2");
         var existingTrustedAuthory = TrustedAuthority.builder().values(List.of("did:webvh:scid:existing")).build();
         var query = DcqlQuery.builder().credentials(List.of(

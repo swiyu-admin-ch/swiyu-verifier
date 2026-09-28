@@ -23,8 +23,6 @@ import java.util.Map;
 @UtilityClass
 public class DcqlUtil {
 
-    public static final String TRUSTED_AUTHORITY_TYPE_DID = "did";
-
     /**
      * Validates that the provided {@link SdJwt} satisfies the given DCQL requested claims.
      * <p>
@@ -178,7 +176,7 @@ public class DcqlUtil {
         }
         List<SdJwt> trustedAuthoritySdJwt = new LinkedList<>();
         for(TrustedAuthority ta : trustedAuthorities) {
-            if (TRUSTED_AUTHORITY_TYPE_DID.equalsIgnoreCase(ta.getType())) {
+            if (TrustedAuthority.TRUSTED_AUTHORITY_TYPE_DID.equalsIgnoreCase(ta.getType())) {
                 trustedAuthoritySdJwt.addAll(filterByDidTrustedAuthrity(sdJwts, ta.getValues()));
             }
         }

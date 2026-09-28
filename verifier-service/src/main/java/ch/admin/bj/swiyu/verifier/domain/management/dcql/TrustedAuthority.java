@@ -5,7 +5,6 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,9 +23,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TrustedAuthority {
+    public static final String TRUSTED_AUTHORITY_TYPE_DID = "did";
     @JsonProperty("type")
     @Builder.Default
-    private String type = DcqlUtil.TRUSTED_AUTHORITY_TYPE_DID;
+    private String type = TRUSTED_AUTHORITY_TYPE_DID;
 
     @JsonProperty("values")
     @NotEmpty 

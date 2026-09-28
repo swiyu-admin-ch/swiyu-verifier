@@ -46,7 +46,7 @@ public class DcqlQuery {
      * @param acceptedDids the dids to be added as trusted authorities
      */
     public void addTrustedAuthorityDids(List<String> acceptedDids) {
-        if (acceptedDids == null || acceptedDids.isEmpty()) {
+        if (acceptedDids == null || acceptedDids.isEmpty() || credentials == null) {
             return;
         }
         List<TrustedAuthority> trustedAuthorities = List.of(TrustedAuthority.builder().values(acceptedDids).build());

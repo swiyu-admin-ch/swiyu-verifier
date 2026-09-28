@@ -400,7 +400,7 @@ public abstract class BaseVerificationControllerTest {
         var keys = JWKsNode.get("keys").asArray();
         var jwkString = objectMapper.writeValueAsString(keys.get(0));
         var jwk = JWK.parse(jwkString);
-        var encryptionMethod = EncryptionMethod.parse(requestObjectNode.get("encrypted_response_enc_values_supported").asArray().get(0).asString());
+        var encryptionMethod = EncryptionMethod.parse(metadata.get("encrypted_response_enc_values_supported").asArray().get(0).asString());
 
         var claims = new JWTClaimsSet.Builder();
         fields.forEach(claims::claim);

@@ -201,8 +201,9 @@ swiyu:
     # Optional: Trust Registry sidechannel API for fetching Trust Statements (idTS, piaTS).
     # If not set, trust statement caching is disabled.
     trust-registry:
-      trust-issuer-did: "${SWIYU_TRUST_ISSUER_DID:}"
-      api-url: "${SWIYU_TRUST_REGISTRY_API_URL:}"
+      # Using default for swiyu sandbox https://swiyu-admin-ch.github.io/specifications/swiss-profile-trust/#environment-specific-details
+      trust-issuer-did: "${SWIYU_TRUST_ISSUER_DID:did:webvh:QmdVPcfEJgvQAJKEjaTWAhskT1kc59KZQiXNenqHBB7iH5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:4c131dc4-ced1-454b-bbd4-9401c7512e37}"
+      api-url: "${SWIYU_TRUST_REGISTRY_API_URL:https://trust-reg.trust-infra.swiyu-int.admin.ch}"
       max-cache-size: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE:1000}
       clock-skew-buffer-seconds: ${SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS:60}
       max-cache-ttl-seconds: ${SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS:0}

@@ -306,6 +306,13 @@
     <dependencyManagement>
         <dependencies>
 
+            <!-- Fixes CVE-2026-100656 -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http</artifactId>
+                <version>4.2.18.Final</version>
+            </dependency>
+
             <!-- Fixes CVE-2026-59284 -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>

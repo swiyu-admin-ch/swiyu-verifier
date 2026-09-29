@@ -89,6 +89,13 @@
                 <artifactId>netty-codec-http</artifactId>
                 <version>4.2.18.Final</version>
             </dependency>
+            <!-- Fixes CVE-2026-100664 -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http3</artifactId>
+                <version>4.2.18.Final</version>
+            </dependency>
+
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-jws-signature-service</artifactId>

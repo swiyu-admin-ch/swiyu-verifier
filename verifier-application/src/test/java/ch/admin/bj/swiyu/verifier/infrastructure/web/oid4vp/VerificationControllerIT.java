@@ -317,6 +317,40 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         assertThat(addresses.get(expectedIndex).get("country").asString()).isEqualTo(expectedCountry);
     }
 
+    @Test
+    void verifySDJWTCredential_withMissingListElement_thenFail() throws Exception {
+
+        var notPresentIndex = 0;
+        var createResponseDto = getManagementByAddressArrayIndex(notPresentIndex);
+
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSimpleNestedSDJWTMock();
+
+        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)));
+
+        int[] removeIdx = {3,2,1};
+        for (int idx : removeIdx) {
+            if (idx < list.size()) {
+                list.remove(idx);
+            }
+        }
+
+        var fixedSDJWT = String.join(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER, list) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
+        var vpToken = emulator.addKeyBindingProof(fixedSDJWT, createResponseDto.requestNonce(), clientIdWithPrefix);
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value("Requested DCQL path could not be found - Missing claim at index %s".formatted(notPresentIndex)))
+            .andReturn();
+    }
+
     @ParameterizedTest
     @MethodSource("dcqlQueryProvider")
     void shouldSucceedVerifyingSDJWTCredentialFullVCWithNestedOnlyWithNecessaryDisclosures_thenSuccess(
@@ -1350,6 +1384,34 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                   ]
                 }
                 """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex, expectedCountry);
+
+        var createVerificationManagementDto = CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
+                .jwtSecuredAuthorizationRequest(true)
+                .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(dcqlQuery))
+                .build();
+
+        return createVerificationRequest(mockMvc, createVerificationManagementDto);
+    }
+
+    private ManagementResponseDto getManagementByAddressArrayIndex(int expectedIndex) {
+        var dcqlQuery = """
+                {
+                "credentials": [
+                    {
+                      "id": "%s",
+                      "format": "%s",
+                      "meta": {
+                        "vct_values": [ "%s" ]
+                      },
+                      "claims": [
+                          {"path": ["addresses", %s]}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex);
 
         var createVerificationManagementDto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))

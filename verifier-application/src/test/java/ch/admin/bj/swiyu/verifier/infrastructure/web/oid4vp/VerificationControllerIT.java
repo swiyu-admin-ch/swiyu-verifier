@@ -55,6 +55,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions.PROFILE_VERSION_PARAM;
+import static ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions.VERIFICATION_PROFILE_VERSION;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 import static ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto.INVALID_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
@@ -176,6 +178,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
                     assertThat(responseJwt.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
                     assertThat(responseJwt.getHeader().getKeyID()).isEqualTo(applicationProperties.getSigningKeyVerificationMethod());
+                    assertThat(responseJwt.getHeader().getCustomParam(PROFILE_VERSION_PARAM))
+                            .as("Signed Request Object JOSE header must identify the Swiss verification profile")
+                            .isEqualTo(VERIFICATION_PROFILE_VERSION);
                     assertThat(responseJwt.verify(new ECDSAVerifier(ECKey.parse(PUBLIC_KEY)))).isTrue();
 
                     // checking claims

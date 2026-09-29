@@ -134,7 +134,7 @@ public class DcqlUtil {
             }
 
             if (index < 0 || index >= selectedList.size()) {
-                throw new IllegalArgumentException("Requested DCQL path could not be found");
+                // throw new IllegalArgumentException("Requested DCQL path could not be found");
             }
 
             return selectedList.get(index);
@@ -149,14 +149,21 @@ public class DcqlUtil {
         private DcqlPathSelection selectElement(int index, SdJwt sdJWT) {
             List<Object> newSelection = new LinkedList<>();
             for (Object currentSelected : selected) {
-                var selectedListElement = getAndValidateListObject(index, currentSelected);
 
-                // check if string and equals digest  -> element was not provided and therefore not present in the SD-JWT
-                if (isMissingDisclosure(selectedListElement, sdJWT)) {
-                    throw new IllegalArgumentException("Requested DCQL path could not be found - Missing claim at index %s".formatted(index));
+                if (!(currentSelected instanceof List<?> selectedList)) {
+                    throw new IllegalArgumentException("Illegal claim type for selection %s - could not find JSON Array".formatted(index));
                 }
 
-                newSelection.add(selectedListElement);
+                if (index >= 0 && index < selectedList.size()) {
+                    var selectedListElement = selectedList.get(index);
+
+                    // check if string and equals digest  -> element was not provided and therefore not present in the SD-JWT
+                    if (isMissingDisclosure(selectedListElement, sdJWT)) {
+                        throw new IllegalArgumentException("Requested DCQL path could not be found - Missing claim at index %s".formatted(index));
+                    }
+
+                    newSelection.add(selectedListElement);
+                }
             }
             return new DcqlPathSelection(newSelection);
         }

@@ -49,7 +49,15 @@ class DcqlUtilTest {
                   "array": ["string", 2, 3.4, true, null, {}, {"test": "test"}],
                   "nationalities": ["British", "Betelgeusian"],
                   "boolean_value": true,
-                  "float_number": 55.5
+                  "float_number": 55.5,
+                  "foo": [
+                      {
+                          "data": [0,1,2,3]
+                      },
+                      {
+                          "data": [0,1]
+                      }
+                  ]
                 }
                 """, Map.class);
 
@@ -364,6 +372,28 @@ class DcqlUtilTest {
         numberList.add(null);
         var requestClaim = new DcqlClaim(null, numberList, List.of(3.14));
         assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void validateRequestedClaim_withDifferentArraySizes_doesNotThrow() {
+        var numberList = new ArrayList<>();
+        numberList.add("foo");
+        numberList.add(null);
+        numberList.add("data");
+        numberList.add(2);
+        var requestClaim = new DcqlClaim(null, numberList, null);
+        assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void validateRequestedClaim_withDifferentArraySizes_withIndexOutOfBound_throws() {
+        var numberList = new ArrayList<>();
+        numberList.add("foo");
+        numberList.add(1);
+        numberList.add("data");
+        numberList.add(2);
+        var requestClaim = new DcqlClaim(null, numberList, null);
+        assertThrows(IllegalArgumentException.class, () -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
     }
 
     private DcqlClaim createSimpleDCQLClaim(Object... claimPath) {

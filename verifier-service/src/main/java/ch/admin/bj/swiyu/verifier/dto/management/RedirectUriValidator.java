@@ -17,7 +17,7 @@ public class RedirectUriValidator
             return true;
         }
 
-        if (!uri.isAbsolute()) {
+        if (!uri.isAbsolute() || uri.getFragment() != null) {
             return false;
         }
 

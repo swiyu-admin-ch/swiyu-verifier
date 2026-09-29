@@ -95,6 +95,12 @@
                 <artifactId>netty-codec-http3</artifactId>
                 <version>4.2.18.Final</version>
             </dependency>
+            <!-- Fixes CVE-2026-100665 -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-classes-quic</artifactId>
+                <version>4.2.18.Final</version>
+            </dependency>
 
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>

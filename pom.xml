@@ -77,12 +77,18 @@
              Jackson via two BOMs, jackson-2-bom (com.fasterxml.jackson) and jackson-bom (tools.jackson);
              both must be bumped together so jackson-annotations/jackson-core stay aligned with
              jackson-databind -->
-        <jackson-2-bom.version>2.22.2</jackson-2-bom.version>
-        <jackson-bom.version>3.2.2</jackson-bom.version>
+        <jackson-2-bom.version>2.22.3</jackson-2-bom.version>
+        <jackson-bom.version>3.2.3</jackson-bom.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Fixes CVE-2026-100656 -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http</artifactId>
+                <version>4.2.18.Final</version>
+            </dependency>
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-jws-signature-service</artifactId>

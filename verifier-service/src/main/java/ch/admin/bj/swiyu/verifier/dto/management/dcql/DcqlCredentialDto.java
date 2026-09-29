@@ -33,10 +33,11 @@ public record DcqlCredentialDto(
 
         @Schema(description = "A string that specifies the format of the requested Credential. " +
                 "Valid Credential Format Identifier values are defined in Appendix B. " +
-                "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'format'.",
+                "According to OpenID for Verifiable Presentations 1.0, Section 6.1, property 'format'. These formats are interchangeable at the moment and no strict check is applied",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("format")
         @NotEmpty(message = "format must not be empty")
+        @Pattern(regexp = "^[dv]c\\+sd-jwt$", message = "Only vc+sd-jwt or dc+sd-jwt is supported")
         String format, // REQUIRED
 
         @Hidden

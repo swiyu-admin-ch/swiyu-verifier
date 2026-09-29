@@ -1,9 +1,10 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.domain.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
@@ -23,16 +24,14 @@ import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationSer
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -97,7 +96,7 @@ class PresentationVerificationUsecaseTest {
         var dcqlQuery = getDcqlQuery(credentialRequestId, false);
         var vpToken = getVpToken();
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(vpToken)));
-        var sdJwt = mockVerifySdJwt(vpToken);
+        var sdJwt = Mockito.mock(SdJwt.class);
         when(managementEntity.getDcqlQuery()).thenReturn(dcqlQuery);
 
         // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
@@ -127,6 +126,26 @@ class PresentationVerificationUsecaseTest {
         verify(managementEntity).verificationFailedDueToClientRejection(request.getErrorDescription(), ManagementMapper.toVerificationErrorResponseCode(request.getError()));
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationDone(any());
+    }
+
+    /**
+     * Reproduces the bug where an unexpected RuntimeException (e.g. a DID resolution failure) thrown
+     * from deep within the verification pipeline left the session stuck IN_PROGRESS forever, because
+     * only VerificationException/ObjectOptimisticLockingFailureException were caught.
+     */
+    @Test
+    void receiveVerificationPresentationDCQL_unexpectedRuntimeException_marksVerificationFailed() {
+        var credentialRequestId = "TestIdRequest";
+        var dcqlQuery = getDcqlQuery(credentialRequestId, false);
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(getVpToken())));
+        when(managementEntity.getDcqlQuery()).thenReturn(dcqlQuery);
+        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenThrow(new DidResolverException("did resolution failed"));
+
+        assertThrows(DidResolverException.class, () ->
+                presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));
+
+        verify(managementEntity).verificationFailed(any(), any());
+        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     /**
@@ -192,6 +211,24 @@ class PresentationVerificationUsecaseTest {
 
         verify(callbackEventProducer).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any(), any());
+    }
+
+    /**
+     * Reproduces the same bug as {@link #receiveVerificationPresentationDCQL_unexpectedRuntimeException_marksVerificationFailed()}
+     * for the client-rejection flow: an unexpected RuntimeException must mark the session FAILED
+     * instead of leaving it stuck IN_PROGRESS.
+     */
+    @Test
+    void receiveVerificationPresentationClientRejection_unexpectedRuntimeException_marksVerificationFailed() {
+        VerificationPresentationRejectionDto rejectionRequest = mock(VerificationPresentationRejectionDto.class);
+        when(rejectionRequest.getErrorDescription()).thenReturn("User cancelled");
+        doThrow(new IllegalStateException("boom")).when(managementEntity).verificationFailedDueToClientRejection(any(), any());
+
+        assertThrows(IllegalStateException.class, () ->
+                presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
+
+        verify(managementEntity).verificationFailed(any(), any());
+        verify(callbackEventProducer).produceEvent(managementId);
     }
 
     @Test
@@ -319,18 +356,6 @@ class PresentationVerificationUsecaseTest {
 
     private String getVpToken() {
         return new SDJWTCredentialMock().createSDJWTMock();
-    }
-
-    private SdJwt mockVerifySdJwt(String vpTokenSdJwt) {
-        var sdJwt = new SdJwt(vpTokenSdJwt);
-        var parsed = assertDoesNotThrow(() -> SignedJWT.parse(sdJwt.getJwt()));
-        var claims = assertDoesNotThrow(parsed::getJWTClaimsSet);
-        var disclosures = sdJwt.getDisclosures();
-        var claimBuilder = new JWTClaimsSet.Builder(claims);
-        disclosures.forEach(disclosure -> claimBuilder.claim(disclosure.getClaimName(), disclosure.getClaimValue()));
-        sdJwt.setClaims(claimBuilder.build());
-        sdJwt.setHeader(parsed.getHeader());
-        return sdJwt;
     }
 
     /**

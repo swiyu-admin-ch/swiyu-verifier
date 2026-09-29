@@ -128,18 +128,6 @@ public class DcqlUtil {
             return new DcqlPathSelection(newSelection);
         }
 
-        private static Object getAndValidateListObject(int index, Object currentSelected) {
-            if (!(currentSelected instanceof List<?> selectedList)) {
-                throw new IllegalArgumentException("Illegal claim type for selection %s - could not find JSON Array".formatted(index));
-            }
-
-            if (index < 0 || index >= selectedList.size()) {
-                // throw new IllegalArgumentException("Requested DCQL path could not be found");
-            }
-
-            return selectedList.get(index);
-        }
-
         /**
          * If the component is a non-negative integer, select the element at the respective index in the currently selected array(s).
          * If any of the currently selected element(s) is not an array, abort processing and return an error.

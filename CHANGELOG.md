@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - - Check if trust statement issuer matches the issuer of the status list `(#1210)`
 - Fixed vqPS registration to use the verifier DID from `configuration_override.verifier_did` `(#1338)`
 
+## Removed
+
+- Removed deprecated application properties `caching.jwk-cache-ttl` and `caching.trust-cache-ttl`
+
 # [4.2.0] - 2026-08-21
 
 ## Changed

@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - - Check if trust statement issuer matches the issuer of the status list `(#1210)`
 - Fixed vqPS registration to use the verifier DID from `configuration_override.verifier_did` `(#1338)`
 - Prevent redirectUris with fragment `(#EIDOMNI-1352)`
+- Calls to closed verifications no longer create a webhook callback `(#EIDOMNI-1386)` 
 
 # [4.2.0] - 2026-08-21
 

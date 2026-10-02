@@ -87,8 +87,7 @@ public record DcqlCredentialDto(
         Boolean requireCryptographicHolderBinding, // OPTIONAL
 
         @Hidden
-        @Null(message = "The trusted_authorities field is not yet supported")
-        @Schema(description = "[NOT IMPLEMENTED] An optional non-empty array of Trusted Authorities Query objects. Some aspects of trusted authorities processing are not implemented in this release.")
+        @Schema(description = "An optional non-empty array of Trusted Authorities Query objects. Some aspects of trusted authorities processing are not implemented in this release.")
         @JsonProperty("trusted_authorities")
-        List<DcqlTrustedAuthoritiesDto> trustedAuthorities // OPTIONAL (not yet supported)
+        List<DcqlTrustedAuthoritiesDto> trustedAuthorities // OPTIONAL
 ) { }

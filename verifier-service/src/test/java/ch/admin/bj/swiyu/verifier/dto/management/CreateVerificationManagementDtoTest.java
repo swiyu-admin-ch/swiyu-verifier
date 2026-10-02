@@ -54,67 +54,6 @@ class CreateVerificationManagementDtoTest {
     }
 
     @Test
-    void validate_withMissingAcceptedIssuerDidsAndTrustAnchors_shouldFail() {
-        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
-                .dcqlQuery(createValidDcqlQuery())
-                .build();
-
-        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
-
-        assertThat(violations).singleElement().satisfies(violation -> {
-            assertThat(violation.getPropertyPath().toString()).isEmpty();
-            assertThat(violation.getMessage()).isEqualTo("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.");
-        });
-    }
-
-    @Test
-    void validate_withEmptyAcceptedIssuerDids_shouldFail() {
-        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
-                .acceptedIssuerDids(List.of())
-                .dcqlQuery(createValidDcqlQuery())
-                .build();
-
-        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
-
-        assertThat(violations).singleElement().satisfies(violation ->
-                assertThat(violation.getMessage()).isEqualTo("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
-        );
-    }
-
-    @Test
-    void validate_withNullElementInAcceptedIssuerDids_shouldFail() {
-        List<String> acceptedIssuerDids = new ArrayList<>();
-        acceptedIssuerDids.add("did:example:12345");
-        acceptedIssuerDids.add(null);
-
-        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
-                .acceptedIssuerDids(acceptedIssuerDids)
-                .dcqlQuery(createValidDcqlQuery())
-                .build();
-
-        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
-
-        assertThat(violations).singleElement().satisfies(violation ->
-                assertThat(violation.getMessage()).isEqualTo("Either acceptedIssuerDids or trustAnchors must be set and cannot be empty.")
-        );
-    }
-
-    @Test
-    void validate_withInvalidTrustAnchor_shouldCascadeViolation() {
-        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
-                .trustAnchors(List.of(new TrustAnchorDto("did:example:12345", "http://trust.example")))
-                .dcqlQuery(createValidDcqlQuery())
-                .build();
-
-        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
-
-        assertThat(violations).singleElement().satisfies(violation -> {
-            assertThat(violation.getPropertyPath().toString()).isEqualTo("trustAnchors[0].trustRegistryUri");
-            assertThat(violation.getMessage()).isEqualTo("Trust Registry URL must utilize https");
-        });
-    }
-
-    @Test
     void validate_withNullDcqlQuery_shouldFail() {
         CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of("did:example:12345"))

@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
+import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ConfigurationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
@@ -7,6 +8,7 @@ import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 
@@ -25,17 +27,16 @@ import java.util.Optional;
 @Slf4j
 public class IssuerTrustValidator {
 
-    private final TrustProtocol1Validator trustProtocol1Validator;
     private final Optional<TrustProtocol2Validator> trustProtocol2Validator;
+    private final TrustRegistryProperties trustRegistryProperties;
 
     /**
      * Validates whether the given issuer is trusted according to the provided management configuration.
      * <p>
      * Trust is established if:
      * <ul>
-     *   <li>Both accepted issuer DIDs and trust anchors are empty (all issuers allowed), or</li>
      *   <li>The issuer DID is in the list of accepted issuer DIDs, or</li>
-     *   <li>The issuer is directly or indirectly trusted via a trust anchor and a valid trust statement.</li>
+     *   <li>The issuer is trusted through trust statements signed by the trust anchor.</li>
      * </ul>
      * If none of these conditions are met, a {@link VerificationException} is thrown.
      *
@@ -49,8 +50,8 @@ public class IssuerTrustValidator {
         if (isAcceptedIssuer(issuerDid, management)) {
             return IssuerTrustMarker.builder().isTrusted(true).trustMethod(TrustMethod.TRUSTED_AUTHORITY).build();
         }
-        if (hasTrustProtocolAnchors(management)) {
-            return evaluateTrustProtocol(issuerDid, vct, management);
+        if (hasTrustProtocolAnchor()) {
+            return evaluateTrustProtocol(issuerDid, vct);
         }
         
         throw credentialError(ISSUER_NOT_ACCEPTED, "Issuer not in list of accepted issuers or connected to trust anchor");
@@ -63,31 +64,20 @@ public class IssuerTrustValidator {
      * @return {@code true} If one of the configured trust anchors provided trust establishing statements about the issuer.
      *         {@code false} If no trust anchors are defined, no trust protocol for the did method is supported or no valid trust statements have been found.
      */
-    private IssuerTrustMarker evaluateTrustProtocol(String issuerDid, String vct, Management management) {
-        var trustAnchors = management.getTrustAnchors();
+    private IssuerTrustMarker evaluateTrustProtocol(String issuerDid, String vct) {
 
-        if (issuerDid.startsWith("did:tdw")) {
-            // Trust Protocol 1.0
-            log.trace("Validate Trust with Trust Protocol 1.0 for issuer {} with vct {}", issuerDid, vct);
-            return IssuerTrustMarker.builder()
-                .isTrusted(trustProtocol1Validator.hasMatchingTrustProtocol1Statement(issuerDid, vct, trustAnchors, management))
-                .trustMethod(TrustMethod.TRUST_PROTOCOL_1_0)
-                .build();
-        }
         if (issuerDid.startsWith("did:webvh")) {
             log.trace("Validate Trust with Trust Protocol 2.0 for issuer {} with vct {}", issuerDid, vct);
             // Trust Protocol 2.0
             return trustProtocol2Validator
-                .map(sv -> sv.isTrusted(issuerDid, vct, management))
+                .map(sv -> sv.isTrusted(issuerDid, vct))
                 .orElseThrow(() -> new ConfigurationException("No Trust Registry is configured while trust anchors are defined"));
         }
         throw credentialError(UNSUPPORTED_FORMAT, String.format("DID Format %s is not supported", issuerDid));
     }
 
-    private boolean hasTrustProtocolAnchors(Management management) {
-        var trustAnchors = management.getTrustAnchors();
-        boolean trustAnchorsEmpty = trustAnchors == null || trustAnchors.isEmpty();
-        return !trustAnchorsEmpty;
+    private boolean hasTrustProtocolAnchor() {
+        return StringUtils.isNotEmpty(trustRegistryProperties.getTrustIssuerDid());
     }
 
 

@@ -3,7 +3,10 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp.service.dcql;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.TrustedAuthority;
 import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
+
+import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -375,6 +379,24 @@ class DcqlUtilTest {
     }
 
     @Test
+    void filterByTrustedAuthority_thenSuccess() {
+        var trustedKid = "did:webvh:scid:trusted#key-1";
+        var untrustedKid = "did:webvh:scid:untrusted#key-1";
+        var trustedAuthorities = List.of("did:webvh:scid:example","did:webvh:scid:trusted");
+
+        var filteredSdJwts = DcqlUtil.filterByTrustedAuthority(List.of(
+            createMockSdJwtWithKid(trustedKid),
+            createMockSdJwtWithKid(untrustedKid)
+        ), List.of(TrustedAuthority.builder().values(trustedAuthorities).build()));
+
+        var filteredKids = filteredSdJwts.stream().map(sdjwt -> sdjwt.getHeader().getKeyID());
+        assertThat(filteredKids)
+            .as("Only one of the two entries were trusted").hasSize(1)
+            .as("The not trusted KID should not be present after filtering").doesNotContain(untrustedKid)
+            .as("The Trusted DID should be present").containsExactly(trustedKid);
+    }
+
+    @Test
     void validateRequestedClaim_withDifferentArraySizes_doesNotThrow() {
         var numberList = new ArrayList<>();
         numberList.add("foo");
@@ -398,5 +420,13 @@ class DcqlUtilTest {
 
     private DcqlClaim createSimpleDCQLClaim(Object... claimPath) {
         return new DcqlClaim(null, Arrays.stream(claimPath).toList(), null);
+    }
+
+    private SdJwt createMockSdJwtWithKid(String kid) {
+        var sdJwt = mock(SdJwt.class);
+        var header = mock(JWSHeader.class);
+        when(header.getKeyID()).thenReturn(kid);
+        when(sdJwt.getHeader()).thenReturn(header);
+        return sdJwt;
     }
 }

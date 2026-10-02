@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrates `swiyu-sdjwt-verifier` to replace parts of the verification logic `(#873)`
 - Moved declaration of Trust Anchor from CreateVerifiationRequest to application properties set with environment variable `SWIYU_TRUST_ISSUER_DID` and limited it to one as Trust Protocol `(#1319)`
 - Allow creation of Verifications without source of trust if trust verification will be done later `(#1319)`
+- Replaced placeholder digest with pointer record `DisclosureNotProvided` so missing values can be detected `(#1258)`
 
 ## Fixed
 - Fixed uncaught `RuntimeException`s during presentation verification (e.g. DID resolution failures) leaving the verification session stuck in `IN_PROGRESS` instead of being marked `FAILED` `(#1290)`
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Check correctness of the status list header and reset cache accordingly `(#1235)`
 - - Check if trust statement issuer matches the issuer of the status list `(#1210)`
 - Fixed vqPS registration to use the verifier DID from `configuration_override.verifier_did` `(#1338)`
+- Prevent redirectUris with fragment `(#EIDOMNI-1352)`
 
 ## Removed
 

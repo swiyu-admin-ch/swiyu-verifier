@@ -81,10 +81,6 @@ public class Management {
     @Column(name = "accepted_issuer_dids")
     private List<String> acceptedIssuerDids;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "trust_anchors")
-    private List<TrustAnchor> trustAnchors;
-
     /**
      * The OAuth State is an opaque value used by the client to maintain state between the request and callback.<br>
      * It must be ensured that the value is a cryptographically strong pseudo-random number with at least 128 bits of entropy

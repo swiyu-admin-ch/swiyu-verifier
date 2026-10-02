@@ -10,6 +10,8 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.util.CollectionUtils;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
@@ -23,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 class DcqlUtilTest {
     private SdJwt sdJwt;
+
     @BeforeEach
     void setUp() throws JacksonException {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -47,21 +50,32 @@ class DcqlUtilTest {
                       "university": "University of Betelgeuse"
                     }
                   ],
+                  "array": ["string", 2, 3.4, true, null, {}, {"test": "test"}],
                   "nationalities": ["British", "Betelgeusian"],
                   "boolean_value": true,
-                  "float_number": 55.5
+                  "float_number": 55.5,
+                  "foo": [
+                      {
+                          "data": [0,1,2,3]
+                      },
+                      {
+                          "data": [0,1]
+                      }
+                  ]
                 }
                 """, Map.class);
 
         // int are cast to long
         exampleData.put("integer_number", 98L);
         exampleData.put("lucky_numbers", List.of(7L, 3.14, 42L));
+        exampleData.put("disclosure_not_provided", List.of("disclosure_not_provided", "test"));
 
         sdJwt = mock(SdJwt.class);
         var claims = mock(JWTClaimsSet.class);
         when(sdJwt.getClaims()).thenReturn(claims);
         when(claims.getClaims()).thenReturn(exampleData);
         when(sdJwt.getResolvedClaims()).thenReturn(exampleData);
+        when(sdJwt.getDigests()).thenReturn(Set.of("disclosure_not_provided"));
     }
 
 
@@ -206,7 +220,7 @@ class DcqlUtilTest {
 
     @Test
     void integerSelection_whenValueMismatch_thenIllegalArgumentException() {
-        var requestClaim = new DcqlClaim(null, List.of("integer_number"), List.of(0.98, 9.8,98.1,99,100));
+        var requestClaim = new DcqlClaim(null, List.of("integer_number"), List.of(0.98, 9.8, 98.1, 99, 100));
         var claims = List.of(requestClaim);
         assertThrows(IllegalArgumentException.class, () -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
     }
@@ -243,6 +257,69 @@ class DcqlUtilTest {
         var requestClaim = new DcqlClaim(null, paths, List.of("Bachelor of Science", "Master of Arts"));
         var claims = List.of(requestClaim);
         assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
+    }
+
+    /*
+    The value can be of any type that is allowed in JSON, including numbers, strings, booleans, arrays, null, and objects.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3, 4, 5, 6})
+    void arraySelection_whenValidArrayElement_thenOk(int index) {
+        var paths = new LinkedList<>();
+        paths.add("array");
+        paths.add(index);
+        var requestClaim = new DcqlClaim(null, paths, null);
+        var claims = List.of(requestClaim);
+        assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
+    }
+
+    @Test
+    void arraySelection_whenListAccessWithoutList_thenThrowIllegalArgumentException() {
+        var index = 1;
+        var paths = new LinkedList<>();
+        paths.add("address");
+        paths.add(index);
+        var requestClaim = new DcqlClaim(null, paths, null);
+        var claims = List.of(requestClaim);
+        var exp = assertThrows(IllegalArgumentException.class, () -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
+        assertTrue(exp.getMessage().startsWith("Illegal claim type for selection " + index));
+    }
+
+    @Test
+    void arraySelection_whenIndexOutOfBound_thenThrowIllegalArgumentException() {
+        var index = 99;
+        var paths = new LinkedList<>();
+        paths.add("degrees");
+        paths.add(index);
+        var requestClaim = new DcqlClaim(null, paths, null);
+        var claims = List.of(requestClaim);
+        var exp = assertThrows(IllegalArgumentException.class, () -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
+        assertEquals("Requested DCQL path could not be found", exp.getMessage());
+    }
+
+    @Test
+    void arraySelection_whenNegativeIndex_thenThrowIllegalArgumentException() {
+        var index = -1;
+        var paths = new LinkedList<>();
+        paths.add("degrees");
+        paths.add(index);
+        var requestClaim = new DcqlClaim(null, paths, null);
+        var claims = List.of(requestClaim);
+        var exp = assertThrows(IllegalArgumentException.class, () -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
+        assertEquals("Requested DCQL path could not be found", exp.getMessage());
+    }
+
+    @Test
+    void arraySelection_withNullElement_thenThrowIllegalArgumentException() {
+        var index = 0;
+        var paths = new LinkedList<>();
+        paths.add("disclosure_not_provided");
+        paths.add(index);
+        var requestClaim = new DcqlClaim(null, paths, null);
+        var claims = List.of(requestClaim);
+
+        var exp = assertThrows(IllegalArgumentException.class, () -> DcqlUtil.validateRequestedClaims(sdJwt, claims));
+        assertEquals("Requested DCQL path could not be found - Missing claim at index 0", exp.getMessage());
     }
 
     @Test
@@ -301,22 +378,44 @@ class DcqlUtilTest {
         assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
     }
 
-    @Test 
+    @Test
     void filterByTrustedAuthority_thenSuccess() {
         var trustedKid = "did:webvh:scid:trusted#key-1";
         var untrustedKid = "did:webvh:scid:untrusted#key-1";
         var trustedAuthorities = List.of("did:webvh:scid:example","did:webvh:scid:trusted");
-        
+
         var filteredSdJwts = DcqlUtil.filterByTrustedAuthority(List.of(
             createMockSdJwtWithKid(trustedKid),
             createMockSdJwtWithKid(untrustedKid)
         ), List.of(TrustedAuthority.builder().values(trustedAuthorities).build()));
-        
+
         var filteredKids = filteredSdJwts.stream().map(sdjwt -> sdjwt.getHeader().getKeyID());
         assertThat(filteredKids)
             .as("Only one of the two entries were trusted").hasSize(1)
             .as("The not trusted KID should not be present after filtering").doesNotContain(untrustedKid)
             .as("The Trusted DID should be present").containsExactly(trustedKid);
+    }
+
+    @Test
+    void validateRequestedClaim_withDifferentArraySizes_doesNotThrow() {
+        var numberList = new ArrayList<>();
+        numberList.add("foo");
+        numberList.add(null);
+        numberList.add("data");
+        numberList.add(2);
+        var requestClaim = new DcqlClaim(null, numberList, null);
+        assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
+    }
+
+    @Test
+    void validateRequestedClaim_withDifferentArraySizes_withIndexOutOfBound_throws() {
+        var numberList = new ArrayList<>();
+        numberList.add("foo");
+        numberList.add(1);
+        numberList.add("data");
+        numberList.add(2);
+        var requestClaim = new DcqlClaim(null, numberList, null);
+        assertThrows(IllegalArgumentException.class, () -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
     }
 
     private DcqlClaim createSimpleDCQLClaim(Object... claimPath) {

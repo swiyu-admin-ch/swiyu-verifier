@@ -65,7 +65,6 @@ class CreateVerificationManagementValidatorTest {
     private CreateVerificationManagementDto createRequest(DcqlQueryDto dcqlQuery) {
         return new CreateVerificationManagementDto(
                 null, // acceptedIssuerDids
-                null,
                 null, // jwtSecuredAuthorizationRequest
                 null, // responseMode
                 null, // configuration_override

@@ -28,7 +28,7 @@ public class ApiFixtures {
     }
 
     public static CreateVerificationManagementDto createVerificationManagementWithoutResponseMode(List<String> acceptedIssuerDids, DcqlQueryDto dcqlQueryDto) {
-        return new CreateVerificationManagementDto(acceptedIssuerDids, null, false, null, null, dcqlQueryDto, null, null);
+        return new CreateVerificationManagementDto(acceptedIssuerDids, false, null, null, dcqlQueryDto, null, null);
     }
 
     @NotNull

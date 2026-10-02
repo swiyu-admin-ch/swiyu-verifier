@@ -70,6 +70,7 @@ class ManagementServiceTest {
                 service.createVerificationManagement(requestDto);
 
                 managementMapper.verify(() -> ManagementMapper.toManagementResponseDto(management, applicationProperties), times(1));
+                verify(dcqlQuery, times(1)).addTrustedAuthorityDids(any());
             }
         }
         verify(repository).save(any(Management.class));
@@ -232,7 +233,6 @@ class ManagementServiceTest {
     private CreateVerificationManagementDto createRequestDto(ResponseModeTypeDto responseModeTypeDto, DcqlQueryDto dcqlQueryDto) {
         return new CreateVerificationManagementDto(
                 List.of("did:example:123"),
-                null,
                 false,
                 responseModeTypeDto,
                 null,

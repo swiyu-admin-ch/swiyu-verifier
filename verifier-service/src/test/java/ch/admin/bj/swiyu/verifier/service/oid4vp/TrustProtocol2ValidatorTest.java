@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.List;
 
+import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,9 +47,10 @@ class TrustProtocol2ValidatorTest {
     @Mock
     private DidResolverFacade keyLoader;
 
+    @Mock
+    private TrustRegistryProperties trustRegistryProperties;
+
     private TrustProtocol2Validator validator;
-    private Management management;
-    private TrustAnchor anchor;
     private ECKey mockKey;
     private static final String TRUST_ROOT = "did:webvh:testscid:anchor1";
     private static final String TRUST_ROOT_KID = TRUST_ROOT + "#key-1";
@@ -60,14 +62,13 @@ class TrustProtocol2ValidatorTest {
      */
     private List<SignedJWT> trustStatements;
 
+
+
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        validator = new TrustProtocol2Validator(statementProvider);
-        anchor = new TrustAnchor(TRUST_ROOT, "https://www.example.com");
-        management = Management.builder()
-                .trustAnchors(List.of(anchor))
-                .build();
+        validator = new TrustProtocol2Validator(statementProvider, trustRegistryProperties);
+        when(trustRegistryProperties.getTrustIssuerDid()).thenReturn(TRUST_ROOT);
         mockKey = new ECKeyGenerator(Curve.P_256).keyID(TRUST_ROOT_KID).generate();
         trustStatementGenerator = new TestTrustStatementGenerator(mockKey);
 
@@ -90,7 +91,7 @@ class TrustProtocol2ValidatorTest {
         when(statementProvider.getAllIssuanceStatementsFor(anyString()))
                 .thenReturn(trustStatements.stream().map(SignedJWT::serialize).toList());
 
-        var verificationResult = validator.isTrusted(ISSUER_DID, TRUSTED_VCT, management);
+        var verificationResult = validator.isTrusted(ISSUER_DID, TRUSTED_VCT);
         assertThat(verificationResult.isTrusted()).as("Issuer should be trusted when markers indicate trust").isTrue();
     }
 }

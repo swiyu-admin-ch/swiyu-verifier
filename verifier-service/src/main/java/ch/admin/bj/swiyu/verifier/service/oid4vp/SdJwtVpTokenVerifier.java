@@ -4,9 +4,7 @@ import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
-import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtVcValidator;
-import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtParseException;
 import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtVerificationException;
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
@@ -49,49 +47,6 @@ public class SdJwtVpTokenVerifier {
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;
     private final TokenStatusListVerifier statusListVerifier;
-    @Deprecated(since = "Trust Protocol 2.0")
-    private final DidKidParser didKidParser = new DidKidParser();
-
-    @Deprecated(since = "Trust Protocol 2.0")
-    public SdJwt verifyVpTokenTrustStatement(String vpToken, Management management) {
-
-        try {
-            SdJwtVcValidator validator = new SdJwtVcValidator(jwtValidator);
-
-            SdJwt sdJwt;
-            String headerKid;
-
-            sdJwt = SdJwtParser.parseSdJwt(vpToken);
-
-            validator.validateAndSetHeader(sdJwt);
-
-            headerKid = sdJwt.getHeader().getKeyID();
-            var publicKey = didResolver.resolveKey(headerKid);
-
-            validator.validateAndSetJwt(sdJwt, publicKey);
-
-            // For Trust Protocol 1.0 the KID and DID must match
-            var didFromKid = didKidParser.getDidFromAbsoluteKid(headerKid);
-            if (didFromKid == null || !didFromKid.equals(sdJwt.getClaims().getIssuer())) {
-                throw credentialError(CREDENTIAL_INVALID, "Trust Statements 1.0 MUST have correlating and iss claims");
-            }
-
-            validateKeyBinding(sdJwt, canHaveKeyBinding(sdJwt.getClaims()), management, validator);
-
-            verifyStatus(sdJwt.getClaims().getClaims(), sdJwt.getHeader());
-
-            // Resolve Disclosures
-            validator.processDisclosures(sdJwt);
-
-            return sdJwt;
-        } catch (SdJwtParseException e) {
-            log.error("Failed to parse VP token: {}", e.getMessage(), e);
-            throw credentialError(MALFORMED_CREDENTIAL, e.getMessage());
-        } catch (SdJwtVerificationException e) {
-            log.error("Verification failed for VP token: {}", e.getMessage(), e);
-            throw credentialError(MALFORMED_CREDENTIAL, e.getMessage());
-        }
-    }
 
     protected Optional<StatusVerificationResultDto> verifyStatus(Map<String, Object> vcClaims, JWSHeader header) {
         TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(vcClaims, header);

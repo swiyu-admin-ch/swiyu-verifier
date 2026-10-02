@@ -173,44 +173,6 @@ public class DcqlCredentialDtoTest {
                 "The claim_sets field is not yet supported");
     }
 
-    @Test
-    void whenValidate_shouldRejectTrustedAuthoritiesWhenPresent() {
-
-        var trustedAuthorities = List.of(new DcqlTrustedAuthoritiesDto("string", List.of("test")));
-
-        DcqlCredentialDto dto = new DcqlCredentialDto(
-                "credential_1",
-                "vc+sd-jwt",
-                false,
-                getValidMeta(),
-                getValidClaims(),
-                null,
-                true,
-                trustedAuthorities
-        );
-
-        assertViolation(dto, "trustedAuthorities",
-                "The trusted_authorities field is not yet supported");
-    }
-
-    @Test
-    void whenValidate_shouldRejectTrustedAuthoritiesWhenEmptyList() {
-
-        DcqlCredentialDto dto = new DcqlCredentialDto(
-                "credential_1",
-                "vc+sd-jwt",
-                false,
-                getValidMeta(),
-                getValidClaims(),
-                null,
-                true,
-                List.of()
-        );
-
-        assertViolation(dto, "trustedAuthorities",
-                "The trusted_authorities field is not yet supported");
-    }
-
 
     private void assertViolation(DcqlCredentialDto dto,
                                  String property,

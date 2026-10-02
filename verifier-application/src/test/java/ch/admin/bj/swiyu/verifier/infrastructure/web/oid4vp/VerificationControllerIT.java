@@ -1343,9 +1343,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSimpleNestedSDJWTMock();
 
-        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwt.JWT_PART_DELINEATION_CHARACTER)));
+        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)));
 
-        var fixedSdjwt = String.join(SdJwt.JWT_PART_DELINEATION_CHARACTER, list) + "~";
+        var fixedSdjwt = String.join(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER, list) + "~";
         var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), prefix + ":" + verifierDid);
 
         // mock did resolver response so we get a valid public key for the issuer

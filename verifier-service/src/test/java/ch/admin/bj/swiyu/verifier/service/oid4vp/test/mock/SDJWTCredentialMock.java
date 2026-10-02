@@ -237,27 +237,6 @@ public class SDJWTCredentialMock {
     }
 
     /**
-     * Create default Trust Statement for the VC the emulator creates
-     * TODO Add link to trust protocol v1.0 once it is published
-     */
-    public String createTrustStatementIssuanceV1(String trustStatementIssuerDid, String trustStatementIssuerKeyId, String trustedIssuer) throws JOSEException {
-        // While being an SD-JWT VC the TrustStatementIssuanceV1 has only ALWAYS disclosed claims
-        var claims = new JWTClaimsSet.Builder()
-                .issuer(trustStatementIssuerDid)
-                .subject(trustedIssuer)
-                .claim("vct", "TrustStatementIssuanceV1")
-                .claim("canIssue", DEFAULT_VCT)
-                .build();
-        var headers = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                .keyID(trustStatementIssuerKeyId)
-                .type(new JOSEObjectType(VC_SD_JWT_CREDENTIAL_FORMAT))
-                .build();
-        SignedJWT jwt = new SignedJWT(headers, claims);
-        jwt.sign(new ECDSASigner(key));
-        return jwt.serialize()+"~";
-    }
-
-    /**
      * Adds a key binding proof the SD-JWT.
      *
      * @param sdjwt a string {jwt}~{disclosure-1}~...{disclosure-n}~

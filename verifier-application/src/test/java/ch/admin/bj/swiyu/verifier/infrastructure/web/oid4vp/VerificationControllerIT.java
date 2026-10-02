@@ -59,6 +59,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions.PROFILE_VERSION_PARAM;
+import static ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions.VERIFICATION_PROFILE_VERSION;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 import static ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto.INVALID_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
@@ -131,25 +133,6 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void shouldFailOnNotAcceptedIssuer() throws Exception {
-        var ATTACKER_DID = "did:webvh:some-scid:example.com:api:v1:suspicious-issuer-id";
-        var ATTACKER_KID = ATTACKER_DID + "#" + "key-1";
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ATTACKER_DID, ATTACKER_KID);
-        var sdJWT = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-        // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error_description").value(containsString("Issuer not in list of accepted issuers")));
-    }
-
-    @Test
     @Disabled("Behavior changed: IssuerTrustValidator now requires explicit trust configuration. " +
             "When both acceptedIssuerDids AND trustAnchors are empty, all credentials are rejected. " +
             "This test assumed empty list = any issuer allowed, which is no longer the case.")
@@ -180,6 +163,9 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                     var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
                     assertThat(responseJwt.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
                     assertThat(responseJwt.getHeader().getKeyID()).isEqualTo(applicationProperties.getSigningKeyVerificationMethod());
+                    assertThat(responseJwt.getHeader().getCustomParam(PROFILE_VERSION_PARAM))
+                            .as("Signed Request Object JOSE header must identify the Swiss verification profile")
+                            .isEqualTo(VERIFICATION_PROFILE_VERSION);
                     assertThat(responseJwt.verify(new ECDSAVerifier(ECKey.parse(PUBLIC_KEY)))).isTrue();
 
                     // checking claims
@@ -319,6 +305,40 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
 
         assertThat(addresses.get(expectedIndex)).isNotNull();
         assertThat(addresses.get(expectedIndex).get("country").asString()).isEqualTo(expectedCountry);
+    }
+
+    @Test
+    void verifySDJWTCredential_withMissingListElement_thenFail() throws Exception {
+
+        var notPresentIndex = 0;
+        var createResponseDto = getManagementByAddressArrayIndex(notPresentIndex);
+
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSimpleNestedSDJWTMock();
+
+        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)));
+
+        int[] removeIdx = {3,2,1};
+        for (int idx : removeIdx) {
+            if (idx < list.size()) {
+                list.remove(idx);
+            }
+        }
+
+        var fixedSDJWT = String.join(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER, list) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
+        var vpToken = emulator.addKeyBindingProof(fixedSDJWT, createResponseDto.requestNonce(), clientIdWithPrefix);
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value("Requested DCQL path could not be found - Missing claim at index %s".formatted(notPresentIndex)))
+            .andReturn();
     }
 
     @ParameterizedTest
@@ -1430,5 +1450,33 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 Base64.getMimeEncoder(64, new byte[]{'\n'})
                         .encodeToString(ecKey.getEncoded())
         );
+    }
+
+    private ManagementResponseDto getManagementByAddressArrayIndex(int expectedIndex) {
+        var dcqlQuery = """
+                {
+                "credentials": [
+                    {
+                      "id": "%s",
+                      "format": "%s",
+                      "meta": {
+                        "vct_values": [ "%s" ]
+                      },
+                      "claims": [
+                          {"path": ["addresses", %s]}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex);
+
+        var createVerificationManagementDto = CreateVerificationManagementDto.builder()
+                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
+                .jwtSecuredAuthorizationRequest(true)
+                .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(dcqlQuery))
+                .build();
+
+        return createVerificationRequest(mockMvc, createVerificationManagementDto);
     }
 }

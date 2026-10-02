@@ -50,4 +50,10 @@ class RedirectUriValidatorTest {
         URI uri = URI.create("https://example.com/callback?session_nonce=");
         assertFalse(validator.isValid(uri, null));
     }
+
+    @Test
+    void isValid_containsFragment_returnsFalse() {
+        URI uri = URI.create("https://example.com/callback?session_nonce=abc1232#someFragment");
+        assertFalse(validator.isValid(uri, null));
+    }
 }

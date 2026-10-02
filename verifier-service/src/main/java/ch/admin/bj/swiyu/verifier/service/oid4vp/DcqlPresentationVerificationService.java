@@ -92,7 +92,7 @@ public class DcqlPresentationVerificationService {
     private List<Map<String, Object>> resolveDCQL(DcqlCredential requestedCredential, List<SdJwtVerificationResult> verificationResults) {
         List<SdJwt> sdJwts = verificationResults.stream().map(SdJwtVerificationResult::sdJwt).toList();
         sdJwts = DcqlUtil.filterByVct(sdJwts, requestedCredential.getMeta());
-
+        sdJwts = DcqlUtil.filterByTrustedAuthority(sdJwts, requestedCredential.getTrustedAuthorities());
         if (sdJwts.isEmpty()) {
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "No matching SD-JWT for requested credential id " + requestedCredential.getId());
         }

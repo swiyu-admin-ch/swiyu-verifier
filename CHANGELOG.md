@@ -13,12 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   specifying multiple signing keys, to prepare the did:tdw to did:webvh
   migration. If the config is not changed as it is the list uses the default signing-key and verification-method. With
   this change multiple keys can be used with the config-override. Default signing is not changed.
-- 
-## Fixed
-
-- Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
-- After completed verificiation the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
 - Documented missing HTTP response codes (405, 406, 410, 500 for `GET /oid4vp/api/request-object/{request_id}`; 408, 410, 415, 500 for `POST /oid4vp/api/request-object/{request_id}/response-data`) in `openapi.yaml` `(#1165)`
+- Support for DCQL Trusted Authorities which can be provided as part of the wallet. When using `accepted_issuer_dids` to establish 
+  trust to the issuer ensure that the provided DCQL `trusted_authorities` match the DIDs provided there. 
+  If not set in the DCQL query and using `accepted_issuer_dids`, the `trusted_authorities` will be automatically be filled 
+  from `accepted_issuer_dids` to allow wallets to filter possible credentials. `(#1177)`
 
 ## Changed
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`
@@ -26,13 +25,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verification now throws an Error if a Trust Anchor is provided but no Trust Registry is configured. `(#1090)`
 - Audit information (`vp_token`, `credential_subject_data`, `credential_evaluation`) is now omitted from the management API response by default and must be explicitly enabled via the new `additional-audit-information.*` configuration flags (`ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED`), each defaulting to `false`. `(#1321)`
 - Integrates `swiyu-sdjwt-verifier` to replace parts of the verification logic `(#873)`
+- Moved declaration of Trust Anchor from CreateVerifiationRequest to application properties set with environment variable `SWIYU_TRUST_ISSUER_DID` and limited it to one as Trust Protocol `(#1319)`
+- Allow creation of Verifications without source of trust if trust verification will be done later `(#1319)`
+- Replaced placeholder digest with pointer record `DisclosureNotProvided` so missing values can be detected `(#1258)`
 
 ## Fixed
 - Fixed uncaught `RuntimeException`s during presentation verification (e.g. DID resolution failures) leaving the verification session stuck in `IN_PROGRESS` instead of being marked `FAILED` `(#1290)`
 - Check if `sub` claim matches the status list-uri in the cache to fail fast in addition to the check in the verification process (#1207)
-- Check correctness of the status list header and reset cache accordingly (#1235)
+- Check correctness of the status list header and reset cache accordingly `(#1235)`
 - - Check if trust statement issuer matches the issuer of the status list `(#1210)`
 - Fixed vqPS registration to use the verifier DID from `configuration_override.verifier_did` `(#1338)`
+- Prevent redirectUris with fragment `(#EIDOMNI-1352)`
+- Calls to closed verifications no longer create a webhook callback `(#EIDOMNI-1386)` 
+
+## Removed
+
+- Trust Protocol 1.0 and associated logic has been removed `(#1319)`
+- Removed deprecated application properties `caching.jwk-cache-ttl` and `caching.trust-cache-ttl`
 
 # [4.2.0] - 2026-08-21
 

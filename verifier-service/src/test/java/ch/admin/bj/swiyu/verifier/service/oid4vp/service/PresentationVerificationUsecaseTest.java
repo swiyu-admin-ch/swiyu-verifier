@@ -162,7 +162,8 @@ class PresentationVerificationUsecaseTest {
         // When not open anymore, the result should not be able to be changed!
         verify(managementEntity, never()).verificationDone(any());
         verify(managementEntity, never()).verificationFailed(any(), any());
-        verify(callbackEventProducer, times(1)).produceEvent(any());
+        // When process is not open anymore, NO callback should be triggered to prevent DoS attacks
+        verify(callbackEventProducer, times(0)).produceEvent(any());
     }
 
     /**
@@ -181,7 +182,8 @@ class PresentationVerificationUsecaseTest {
         // When expired the verification is closed and NOTHING should be changing.
         verify(managementEntity, never()).verificationDone(any());
         verify(managementEntity, never()).verificationFailed(any(), any());
-        verify(callbackEventProducer, times(1)).produceEvent(any());
+        // When process is not open anymore, NO callback should be triggered to prevent DoS attacks
+        verify(callbackEventProducer, times(0)).produceEvent(any());
     }
 
     @ParameterizedTest
@@ -280,6 +282,7 @@ class PresentationVerificationUsecaseTest {
         // Second submission (replay) — must be rejected, no DB write, no callback
         assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));// still only 1
+        verify(callbackEventProducer, times(1)).produceEvent(managementId); // Still only 1, no additional callbacks have been sent.
     }
 
     /**
@@ -362,15 +365,16 @@ class PresentationVerificationUsecaseTest {
      * Create a dcql query matching the default vp token
      */
     private DcqlQuery getDcqlQuery(String dcqlCredentialId, boolean requireCryptographicHolderBinding) {
-        var requestedCredential = new DcqlCredential(
-                dcqlCredentialId,
-                DC_SD_JWT_CREDENTIAL_FORMAT,
-                new DcqlCredentialMeta(null, List.of(SDJWTCredentialMock.DEFAULT_VCT), null),
-                List.of(
+        var requestedCredential = DcqlCredential.builder()
+            .id(dcqlCredentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(new DcqlCredentialMeta(null, List.of(SDJWTCredentialMock.DEFAULT_VCT), null))
+            .claims(List.of(
                         new DcqlClaim(null, List.of("birthdate"), null),
-                        new DcqlClaim(null, List.of("last_name"), null)),
-                requireCryptographicHolderBinding,
-                false);
+                        new DcqlClaim(null, List.of("last_name"), null)))
+            .requireCryptographicHolderBinding(requireCryptographicHolderBinding)
+            .multiple(false)
+            .build();
         return new DcqlQuery(List.of(requestedCredential), null);
     }
 }

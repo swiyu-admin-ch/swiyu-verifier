@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.dcql;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.TrustedAuthority;
 import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 
@@ -79,7 +80,7 @@ public class DcqlUtil {
         for (Object path : requestedPath) {
             switch (path) {
                 case null -> selected = selected.selectAll();
-                case Number number -> selected = selected.selectElement(number.intValue());
+                case Number number -> selected = selected.selectElement(number.intValue(), sdJwt);
                 case String s -> selected = selected.selectElement(s);
                 default ->
                         throw new IllegalArgumentException("Illegal request path type; was %s".formatted(path.getClass()));
@@ -118,7 +119,7 @@ public class DcqlUtil {
             List<Object> newSelection = new LinkedList<>();
             for (Object currentSelected : selected) {
                 if (!(currentSelected instanceof Map)) {
-                    throw new IllegalArgumentException("Illegal claim type for selection %s - found %s instead of Json Object".formatted(key, currentSelected.getClass()));
+                    throw new IllegalArgumentException("Illegal claim type for selection %s - couldn't find JSON Object".formatted(key));
                 }
                 var newElement = ((Map<?, ?>) currentSelected).get(key);
                 if (newElement != null) {
@@ -132,18 +133,40 @@ public class DcqlUtil {
          * If the component is a non-negative integer, select the element at the respective index in the currently selected array(s).
          * If any of the currently selected element(s) is not an array, abort processing and return an error.
          * If the index does not exist in a selected array, remove that array from the selection.
+         * If the element at the specified index is part of the original digest list, it indicates that the disclosure was not provided and therefore not present in the SD-JWT.
          */
-        public DcqlPathSelection selectElement(int index) {
+        private DcqlPathSelection selectElement(int index, SdJwt sdJWT) {
             List<Object> newSelection = new LinkedList<>();
             for (Object currentSelected : selected) {
-                if (!(currentSelected instanceof List)) {
-                    throw new IllegalArgumentException("Illegal claim type for selection %s - found %s instead of Json Array".formatted(index, currentSelected.getClass()));
+
+                if (!(currentSelected instanceof List<?> selectedList)) {
+                    throw new IllegalArgumentException("Illegal claim type for selection %s - could not find JSON Array".formatted(index));
                 }
-                if (index < ((List<?>) currentSelected).size()) {
-                    newSelection.add(((List<?>) currentSelected).get(index));
+
+                if (index >= 0 && index < selectedList.size()) {
+                    var selectedListElement = selectedList.get(index);
+
+                    // check if string and equals digest  -> element was not provided and therefore not present in the SD-JWT
+                    if (isMissingDisclosure(selectedListElement, sdJWT)) {
+                        throw new IllegalArgumentException("Requested DCQL path could not be found - Missing claim at index %s".formatted(index));
+                    }
+
+                    newSelection.add(selectedListElement);
                 }
             }
             return new DcqlPathSelection(newSelection);
+        }
+
+        /**
+         * Detects if a disclosure was not provided. Checks if value is an original digest -> marks not provided disclosures
+         */
+        private static boolean isMissingDisclosure(Object value, SdJwt sdJwt) {
+
+            if (value instanceof String stringValue) {
+                return sdJwt.getDigests().contains(stringValue);
+            }
+
+            return false;
         }
 
         /**
@@ -161,5 +184,31 @@ public class DcqlUtil {
             // unpack array to selected
             return new DcqlPathSelection(newSelection);
         }
+    }
+
+    /**
+     * Filters the given SD-JWTs according to the trusted authorities
+     * @param sdJwts List of validated SD-JWTs to be filtered
+     * @param trustedAuthorities the DCQL trusted authorities
+     * @return sdJwts which match at least one of the trusted authorities
+     */
+    public static List<SdJwt> filterByTrustedAuthority(List<SdJwt> sdJwts, List<TrustedAuthority> trustedAuthorities) {
+        if (trustedAuthorities == null) {
+            return sdJwts;
+        }
+        List<SdJwt> trustedAuthoritySdJwt = new LinkedList<>();
+        for(TrustedAuthority ta : trustedAuthorities) {
+            if (TrustedAuthority.TRUSTED_AUTHORITY_TYPE_DID.equalsIgnoreCase(ta.getType())) {
+                trustedAuthoritySdJwt.addAll(filterByDidTrustedAuthrity(sdJwts, ta.getValues()));
+            }
+        }
+        return trustedAuthoritySdJwt;
+    }
+
+    private static List<SdJwt> filterByDidTrustedAuthrity(List<SdJwt> sdJwts, List<String> trustedDids) {
+        return sdJwts.stream().filter(sdJwt -> {
+            String issuerDid = sdJwt.getHeader().getKeyID().split("#")[0];
+            return trustedDids.contains(issuerDid);
+        }).toList();
     }
 }

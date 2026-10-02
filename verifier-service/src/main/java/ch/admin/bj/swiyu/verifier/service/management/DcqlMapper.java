@@ -62,6 +62,9 @@ public class DcqlMapper {
 
     private static DcqlCredentialDto toDcqlCredentialDto(DcqlCredential credential) {
         List<DcqlClaim> claims = credential.getClaims();
+        List<TrustedAuthority> authorities = credential.getTrustedAuthorities();
+        List<DcqlTrustedAuthoritiesDto> authoritiesDtos = authorities == null ? null
+                : authorities.stream().map(DcqlMapper::toTrustedAuthorityDto).toList();
         return new DcqlCredentialDto(
                 credential.getId(),
                 credential.getFormat(),
@@ -70,7 +73,8 @@ public class DcqlMapper {
                 CollectionUtils.isEmpty(claims) ? null : claims.stream().map(DcqlMapper::toDcqlClaimDto).toList(),
                 null,
                 credential.getRequireCryptographicHolderBinding(),
-                null);
+                authoritiesDtos
+                );
     }
 
     private static DcqlClaimDto toDcqlClaimDto(DcqlClaim dcqlClaim) {
@@ -93,6 +97,9 @@ public class DcqlMapper {
      * @return the converted domain object
      */
     private static DcqlCredential toDcqlCredential(DcqlCredentialDto dto) {
+        List<DcqlTrustedAuthoritiesDto> authoritiesDtos = dto.trustedAuthorities();
+        List<TrustedAuthority> authorities = authoritiesDtos == null ? null
+                : authoritiesDtos.stream().map(DcqlMapper::toTrustedAuthority).toList();
         return DcqlCredential.builder()
                 .id(dto.id())
                 .format(dto.format())
@@ -103,6 +110,7 @@ public class DcqlMapper {
                         .toList()
                         : null)
                 .requireCryptographicHolderBinding(dto.requireCryptographicHolderBinding())
+                .trustedAuthorities(authorities)
                 .multiple(dto.multiple())
                 .build();
     }
@@ -174,5 +182,18 @@ public class DcqlMapper {
      */
     private static List<String> ensureNonNullList(List<String> list) {
         return list != null ? list : List.of();
+    }
+
+
+    private static DcqlTrustedAuthoritiesDto toTrustedAuthorityDto(TrustedAuthority trustedAuthority) {
+        return new DcqlTrustedAuthoritiesDto(trustedAuthority.getType(), trustedAuthority.getValues());
+    }
+
+
+    private static TrustedAuthority toTrustedAuthority(DcqlTrustedAuthoritiesDto dto) {
+        return TrustedAuthority.builder()
+            .type(dto.type())
+            .values(dto.values())
+            .build();
     }
 }

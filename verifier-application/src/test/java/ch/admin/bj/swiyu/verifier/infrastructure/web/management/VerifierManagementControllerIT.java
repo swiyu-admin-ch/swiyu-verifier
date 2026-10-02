@@ -86,9 +86,6 @@ class VerifierManagementControllerIT {
                 .andExpect(jsonPath("$.error_description").value(
                         containsString("'multiple' is not supported and must be false or omitted")
                 ))
-                .andExpect(jsonPath("$.error_description").value(
-                        containsString("trustedAuthorities: The trusted_authorities field is not yet supported")
-                ))
                 .andReturn();
     }
 

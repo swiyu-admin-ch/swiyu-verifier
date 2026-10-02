@@ -94,6 +94,7 @@ public class ManagementService {
         CreateVerificationManagementValidator.validate(request);
 
         var dcqlQuery = DcqlMapper.toDcqlQuery(request.dcqlQuery());
+        dcqlQuery.addTrustedAuthorityDids(request.acceptedIssuerDids());
         var responseSpecificationBuilder = createResponseSpecificationBuilder(request.responseMode());
 
         String vqpsQueryHash = null;

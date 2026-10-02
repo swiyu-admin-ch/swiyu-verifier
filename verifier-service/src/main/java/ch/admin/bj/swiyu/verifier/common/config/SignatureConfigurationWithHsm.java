@@ -1,16 +1,21 @@
 package ch.admin.bj.swiyu.verifier.common.config;
 
+import ch.admin.bj.swiyu.verifier.SignatureConfiguration;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.List;
 
 /**
  * Information to sign the Request Object
  */
 @Data
 @Builder
-public class SignatureConfiguration {
+public class SignatureConfigurationWithHsm implements SignatureConfiguration {
     /**
      * Method of signing key management
      */
@@ -39,4 +44,22 @@ public class SignatureConfiguration {
      */
     @NotEmpty
     private String verificationMethod;
+
+    @Valid
+    private List<KeyOnlySignatureConfiguration> signingKeys;
+
+    @Override
+    public boolean supportsHSM() {
+        return hsm != null && StringUtils.isNotEmpty(pkcs11Config);
+    }
+
+    @Override
+    public boolean supportsSigningKeys() {
+        return signingKeys != null && !signingKeys.isEmpty();
+    }
+
+    @Override
+    public List<KeyOnlySignatureConfiguration> getSigningKeys() {
+        return this.signingKeys;
+    }
 }

@@ -42,6 +42,10 @@ application:
     proxy-user: "${HSM_PROXY_USER:}"
     proxy-password: "${HSM_PROXY_PASSWORD:}"
 
+  signing-keys:
+    - verification-method: "${SIGNING_KEY_MANAGEMENT_METHOD:}"
+      private-key: "${secret.signing_key:${SIGNING_KEY:}}"
+
   template-replacement: # Hash Map of Values replaced in the templating
     client-id: "${VERIFIER_DID:}" # the client id of the verifier, used for templating in the metadata
 

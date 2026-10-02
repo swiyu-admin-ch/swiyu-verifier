@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.verifier.infrastructure.health;
 import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.util.SignerProvider;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import com.nimbusds.jose.JOSEException;
@@ -88,9 +89,7 @@ class SigningKeyVerificationHealthCheckerTest {
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn(TEST_VERIFICATION_METHOD);
         when(jwtSigningService.signJwt(
                 org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.anyString()
+                org.mockito.ArgumentMatchers.any(ConfigurationOverride.class)
         )).thenAnswer(invocation -> {
             var claimsSet = invocation.getArgument(0, JWTClaimsSet.class);
             JWSHeader header = new JWSHeader.Builder(com.nimbusds.jose.JWSAlgorithm.ES256)
@@ -104,7 +103,7 @@ class SigningKeyVerificationHealthCheckerTest {
     }
 
     @Test
-    void performCheck_shouldReturnUp_whenAllChecksPass() throws Exception {
+    void performCheck_shouldReturnUp_whenAllChecksPass() {
         // Given
         jwk = testKey.toPublicJWK();
         when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
@@ -195,7 +194,7 @@ class SigningKeyVerificationHealthCheckerTest {
 
 
     @Test
-    void performCheck_shouldReturnDown_whenJwkParsingFails() throws Exception {
+    void performCheck_shouldReturnDown_whenJwkParsingFails() {
         // Given
         JWK jwk1  = mock(JWK.class);
         when(jwk1.getKeyType()).thenReturn(KeyType.parse("teest?"));
@@ -216,7 +215,7 @@ class SigningKeyVerificationHealthCheckerTest {
     }
 
     @Test
-    void performCheck_shouldExtractDidFromVerificationMethodWithFragment() throws Exception {
+    void performCheck_shouldExtractDidFromVerificationMethodWithFragment() {
         // Given
         jwk = testKey.toECKey();
         String verificationMethodWithFragment = "did:example:123#key-1";
@@ -237,7 +236,7 @@ class SigningKeyVerificationHealthCheckerTest {
     }
 
     @Test
-    void performCheck_shouldHandleVerificationMethodWithoutFragment() throws Exception {
+    void performCheck_shouldHandleVerificationMethodWithoutFragment() {
         // Given
         jwk = testKey.toECKey();
         String didWithoutFragment = "did:example:123";
@@ -283,7 +282,7 @@ class SigningKeyVerificationHealthCheckerTest {
     }
 
     @Test
-    void performCheck_shouldVerifyJwtPayloadIsCorrect() throws Exception {
+    void performCheck_shouldVerifyJwtPayloadIsCorrect() {
         // This test verifies that the JWT creation includes the expected claims
         jwk = testKey.toECKey();
         when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
@@ -301,7 +300,7 @@ class SigningKeyVerificationHealthCheckerTest {
     }
 
     @Test
-    void performCheck_shouldCallDidResolverOnlyOnce() throws Exception {
+    void performCheck_shouldCallDidResolverOnlyOnce() {
         // Given
         jwk = testKey.toECKey();
         when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);

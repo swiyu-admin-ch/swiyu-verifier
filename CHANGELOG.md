@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Added
 - After completed verification the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
+- [Non-breaking if config not changed] Added new configurations for `application.signing-keys` to allow
+  specifying multiple signing keys, to prepare the did:tdw to did:webvh
+  migration. If the config is not changed as it is the list uses the default signing-key and verification-method. With
+  this change multiple keys can be used with the config-override. Default signing is not changed.
 - Documented missing HTTP response codes (405, 406, 410, 500 for `GET /oid4vp/api/request-object/{request_id}`; 408, 410, 415, 500 for `POST /oid4vp/api/request-object/{request_id}/response-data`) in `openapi.yaml` `(#1165)`
 - Support for DCQL Trusted Authorities which can be provided as part of the wallet. When using `accepted_issuer_dids` to establish 
   trust to the issuer ensure that the provided DCQL `trusted_authorities` match the DIDs provided there. 

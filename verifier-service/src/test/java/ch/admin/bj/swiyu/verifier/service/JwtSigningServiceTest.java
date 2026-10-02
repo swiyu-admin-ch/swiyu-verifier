@@ -1,8 +1,10 @@
 package ch.admin.bj.swiyu.verifier.service;
 
+import ch.admin.bj.swiyu.verifier.SignatureConfiguration;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.HSMProperties;
-import ch.admin.bj.swiyu.verifier.common.config.SignatureConfiguration;
+import ch.admin.bj.swiyu.verifier.common.config.SignatureConfigurationWithHsm;
+import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
@@ -31,7 +33,7 @@ class JwtSigningServiceTest {
 
         final ECKey signingKey = new ECKeyGenerator(Curve.P_256).generate();
         final JwsSignatureFacade jwsSignatureFacade = mock(JwsSignatureFacade.class);
-        when(jwsSignatureFacade.createSigner(any(SignatureConfiguration.class), isNull(), isNull()))
+        when(jwsSignatureFacade.createSigner(any(SignatureConfigurationWithHsm.class), any()))
                 .thenReturn(new ECDSASigner(signingKey));
 
         final JwtSigningService jwtSigningService = new JwtSigningService(
@@ -43,7 +45,7 @@ class JwtSigningServiceTest {
                 .build();
 
         // When
-        final var signedJwt = jwtSigningService.signJwt(claims, null, null, VERIFICATION_METHOD);
+        final var signedJwt = jwtSigningService.signJwt(claims, ConfigurationOverride.builder().build());
 
         // Then
         assertThat(signedJwt.getHeader().getCustomParam(PROFILE_VERSION_PARAM))

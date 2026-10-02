@@ -73,91 +73,12 @@ class SdJwtVpTokenVerifierTest {
         when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
         when(management.getId()).thenReturn(UUID.randomUUID());
         when(management.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(management.getTrustAnchors()).thenReturn(List.of());
         when(management.getRequestNonce()).thenReturn(TEST_NONCE);
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
         when(issuerPublicKeyLoader.resolveKey(DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
 
         verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, didJwtValidator, statusListResolver, applicationProperties, verificationProperties, statusListVerifier);
-    }
-
-    @Deprecated(since = "Trust Protocol 2.0")
-    @Test
-    void verifyVpToken_Legacy_whenTrustAnchorCanIssue_thenSucceeds() throws JOSEException, JacksonException, NoSuchAlgorithmException, ParseException {
-        // Arrange: VC issued by third party, not directly trusted via acceptedIssuerDids
-        var vcIssuerDid = "did:webvh:scid:third";
-        var vcIssuerKid = vcIssuerDid + "#key-1";
-        when(issuerPublicKeyLoader.resolveKey(vcIssuerKid))
-                .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
-
-        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
-        var sdjwt = emulator.createSDJWTMock();
-        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, prefix + ":" + clientId);
-
-        // Trust Statement: separate trust anchor vouches that vcIssuerDid canIssue DEFAULT_VCT
-        var trustRegistryUrl = "https://trust-registry.example.com";
-        var trustIssuerDid = "did:webvh:scid:trust";
-        var trustIssuerKid = trustIssuerDid + "#key-1";
-        when(issuerPublicKeyLoader.resolveKey(trustIssuerKid))
-                .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
-
-        // Important: subject of trust statement must match vcIssuerDid so that isProvidingTrust() returns true
-        var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, vcIssuerDid);
-        when(management.getTrustAnchors())
-                .thenReturn(List.of(new TrustAnchor(trustIssuerDid, trustRegistryUrl)));
-        when(issuerPublicKeyLoader.resolveTrustStatement(trustRegistryUrl, SDJWTCredentialMock.DEFAULT_VCT))
-                .thenReturn(trustStatement);
-
-        // Act
-        SdJwt verified = verifier.verifyVpTokenTrustStatement(vpTokenString, management);
-
-        // Assert
-        // TODO: It should verify that the trust evaluation logic correctly accepted the credential based on the trust
-        //  statement, for example by asserting specific claims or verifying that no exception was thrown due to trust issues.
-        assertThat(verified.getClaims()).isNotNull();
-        assertThat(verified.getHeader()).isNotNull();
-    }
-
-    /**
-     * Test where the issuer tries to provide his own trust statement
-     */
-    @Deprecated(since = "Trust Protocol 2.0")
-    @Test
-    void verifyVpToken_Legacy_whenTrustIssuerMismatch_thenFailure() throws Exception {
-        var vcIssuerDid = "did:webvh:scid:issuer";
-        var vcIssuerKid = vcIssuerDid + "#key-1";
-
-        var emulator = new SDJWTCredentialMock(vcIssuerDid, vcIssuerKid);
-
-        // Trust Statement: separate trust anchor vouches that vcIssuerDid canIssue DEFAULT_VCT
-        var trustIssuerDid = "did:webvh:scid:trust";
-        // The Trust Statement is not a real trust statement, but signed by the malicious issuer
-        var trustIssuerKid = vcIssuerDid + "#key-1";
-
-        // Important: subject of trust statement must match vcIssuerDid so that isProvidingTrust() returns true
-        var trustStatement = emulator.createTrustStatementIssuanceV1(trustIssuerDid, trustIssuerKid, vcIssuerDid);
-
-        // Act
-        assertThrows(VerificationException.class, () ->  verifier.verifyVpTokenTrustStatement(trustStatement, management));
-    }
-
-    @Test
-    void validateKeyBinding_whenAudienceMismatch_thenHolderBindingMismatch() throws JOSEException, NoSuchAlgorithmException, ParseException {
-        // Arrange: valid SD-JWT with key binding, but audience is not our clientId
-        var emulator = new SDJWTCredentialMock(DEFAULT_ISSUER_ID, DEFAULT_KID_HEADER_VALUE);
-        var sdjwt = emulator.createSDJWTMock();
-
-        when(issuerPublicKeyLoader.resolveKey(DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
-
-        // Audience intentionally mismatched
-        var wrongAudience = "did:example:someone-else";
-        var vpTokenString = emulator.addKeyBindingProof(sdjwt, TEST_NONCE, wrongAudience);
-
-        // Act & Assert
-        VerificationException ex = assertThrows(VerificationException.class, () -> verifier.verifyVpTokenTrustStatement(vpTokenString, management));
-        assertEquals(HOLDER_BINDING_MISMATCH, ex.getErrorResponseCode());
     }
 
     @Test

@@ -48,8 +48,9 @@
         <bcpkix-jdk18on.version>1.85</bcpkix-jdk18on.version>
         <postgres.version>42.7.13</postgres.version>
         <swagger-parser.version>2.1.48</swagger-parser.version>
-        <!-- Fixes SNYK-JAVA-IONETTY-19005879 (Critical, io.netty:netty-handler via mockserver-core) -->
         <mockserver-client-java.version>7.6.0</mockserver-client-java.version>
+        <!-- Fixes various SNYK-JAVA-IONETTY errors -->
+        <netty.version>4.2.18.Final</netty.version>
         <!-- Sonar -->
         <sonar.cpd.exclusions>
             **/*Dto.java,**/domain/*

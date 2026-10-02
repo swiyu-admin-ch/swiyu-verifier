@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp.service;
 
+import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
@@ -19,6 +20,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorRespo
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class IssuerTrustValidatorTest {
@@ -28,6 +30,9 @@ class IssuerTrustValidatorTest {
 
     @Mock
     SdJwtVpTokenVerifier sdJwtVpTokenVerifier;
+
+    @Mock
+    TrustRegistryProperties trustRegistryProperties;
 
     @InjectMocks
     IssuerTrustValidator issuerTrustValidator;
@@ -43,31 +48,14 @@ class IssuerTrustValidatorTest {
     }
 
     @Test
-    void validateTrust_throwsWhenIssuerNotAcceptedAndNoTrustAnchors() {
-        TrustAnchor anchor = new TrustAnchor("did:example:anchor", "https://registry.example/");
+    void validateTrust_throwsWhenIssuerNotAccepted() {
+        when(trustRegistryProperties.getTrustIssuerDid()).thenReturn("did:webvh:scid:trust-issuer");
         Management management = Management.builder()
                 .acceptedIssuerDids(List.of())
-                .trustAnchors(List.of(anchor))
                 .build();
 
-        var ex = (VerificationException) assertThrows(VerificationException.class, 
+        var ex = assertThrows(VerificationException.class,
             () -> issuerTrustValidator.validateTrust("did:example:unknown", "vct:test", management));
         assertThat(ex.getErrorResponseCode()).as("The DID format is not known").isEqualTo(UNSUPPORTED_FORMAT);
-    }
-
-    @Test
-    void validateTrust_allowsIssuerWhenTrustedViaTrustAnchorAndTrustStatement() {
-        String vct = "vct:test";
-        String issuerDid = "did:example:issuer-2";
-        TrustAnchor anchor = new TrustAnchor(issuerDid, "https://registry.example/");
-        List<String> didTrustAnchors = List.of(anchor.did());
-
-        Management management = Management.builder()
-                .acceptedIssuerDids(didTrustAnchors)
-                .trustAnchors(List.of(anchor))
-                .build();
-
-        assertThatCode(() -> issuerTrustValidator.validateTrust(issuerDid, vct, management))
-                .doesNotThrowAnyException();
     }
 }

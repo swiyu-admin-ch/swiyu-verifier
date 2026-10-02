@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed vqPS registration to use the verifier DID from `configuration_override.verifier_did` `(#1338)`
 - Prevent redirectUris with fragment `(#EIDOMNI-1352)`
 
+## Removed
+
+- Removed deprecated application properties `caching.jwk-cache-ttl` and `caching.trust-cache-ttl`
+
 # [4.2.0] - 2026-08-21
 
 ## Changed

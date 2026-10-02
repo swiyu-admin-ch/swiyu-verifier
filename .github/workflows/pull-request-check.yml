@@ -105,7 +105,7 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           languages: java
           config-file: ./.github/codeql/codeql-config.yml
@@ -132,7 +132,7 @@ jobs:
         run: mvn --batch-mode clean test-compile -DskipTests
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           category: "/language:java"
 
@@ -163,7 +163,7 @@ jobs:
           cache: true
 
       - name: Upload PMD SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           sarif_file: pmd-report.sarif
 
@@ -194,7 +194,7 @@ jobs:
           restore-keys: pgp-keys-
 
       - name: Install Snyk CLI
-        uses: snyk/actions/setup@12140f4059e244892ae643824a95459a102120dd # latest on master
+        uses: snyk/actions/setup@b075801f26076be9bb50521154cafab73f44da0c # latest on master
 
       - name: Run Snyk to check for vulnerabilities 🔍
         run: snyk test --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload result as sarif to GitHub Code Scanning 📦
         if: always() # We want to upload the SARIF file even if the Snyk action fails, to have the results in the Code Scanning tab of GitHub
-        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           sarif_file: snyk.sarif
 

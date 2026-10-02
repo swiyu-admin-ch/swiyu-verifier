@@ -119,12 +119,12 @@ public class PresentationVerificationUsecase {
         log.debug("Processing DCQL presentation for request_id: {}", managementEntityId);
 
         // Flag, to know if WE are allowed to fire the event in the finally block
-        boolean isSessionClaimedByThisThread = true;
+        boolean isSessionClaimedByThisThread = false;
 
         try {
             // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
             Management managementEntity = managementService.claimSessionForProcessing(managementEntityId);
-
+            isSessionClaimedByThisThread = true;
             // 2. Perform the potentially long‑running remote/DCQL verification outside of any DB transaction
             log.debug("Starting DCQL submission verification for {}", managementEntityId);
             var credentialVerificationData = dcqlPresentationVerificationService.process(managementEntity, request);

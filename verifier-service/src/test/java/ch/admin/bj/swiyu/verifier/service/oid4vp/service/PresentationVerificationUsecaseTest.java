@@ -21,8 +21,8 @@ import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementTransactionalService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlPresentationVerificationService;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlVpTokenVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationVerificationUsecase;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class PresentationVerificationUsecaseTest {
     private CallbackEventProducer callbackEventProducer;
     private Management managementEntity;
     private UUID managementId;
-    private PresentationVerifier presentationVerifier;
+    private DcqlVpTokenVerifier presentationVerifier;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
     private ObjectMapper objectMapper;
 
@@ -68,7 +68,7 @@ class PresentationVerificationUsecaseTest {
 
         objectMapper = new ObjectMapper();
         callbackEventProducer = mock(CallbackEventProducer.class);
-        presentationVerifier = mock(PresentationVerifier.class);
+        presentationVerifier = mock(DcqlVpTokenVerifier.class);
         dcqlPresentationVerificationService = mock(DcqlPresentationVerificationService.class);
 
         presentationVerificationUsecase = new PresentationVerificationUsecase(
@@ -101,7 +101,7 @@ class PresentationVerificationUsecaseTest {
 
         // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
         var requestedCredential = dcqlQuery.getCredentials().getFirst();
-        when(presentationVerifier.verify(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential)))
+        when(presentationVerifier.verifyVpTokenForDCQLRequest(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential)))
                 .thenReturn(SdJwtVerificationResult.builder().sdJwt(sdJwt).build());
 
         var expectedVerificationData = Map.of(credentialRequestId, List.of(getSDClaims()));

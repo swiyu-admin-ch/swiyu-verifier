@@ -272,7 +272,8 @@ public class Management {
         this.responseCode = UUID.randomUUID();
         this.redirectURI = UriComponentsBuilder.fromUri(this.redirectURI)
                 .queryParam("response_code", this.responseCode.toString())
-                .build().toUri();
+                .build(true)
+                .toUri();
     }
     
     private ResponseData getInitializedWalletResponse() {

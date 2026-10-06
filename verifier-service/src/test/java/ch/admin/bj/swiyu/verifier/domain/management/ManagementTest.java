@@ -1,7 +1,10 @@
 package ch.admin.bj.swiyu.verifier.domain.management;
 
+import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -82,5 +85,28 @@ class ManagementTest {
         String state = "differentState";
         boolean result = management.matchesOauthState(state);
         assertThat(result).as("Expected state and provided state should not match").isFalse();
+    }
+
+    /**
+     * Test case where redirect URI already contains percent-encoded query parameter content.
+     * Expected result: existing query parameter encoding is preserved and only response_code is appended.
+     */
+    @Test
+    public void testVerificationDone_withPreEncodedRedirectUri_preservesEncoding() {
+        Management management = Management.builder()
+                .state(VerificationStatus.IN_PROGRESS)
+                .redirectURI(URI.create("https://wallet.example/callback?session_nonce=sessionNonce%23details"))
+                .build();
+
+        management.verificationDone(VerificationResultData.builder()
+                .verifiedResponsesJsonString("{}")
+                .evaluations(Map.of())
+                .vpTokens(Map.of())
+                .build());
+
+        String uri = management.getRedirectURI().toASCIIString();
+        assertThat(uri).contains("session_nonce=sessionNonce%23details");
+        assertThat(uri).doesNotContain("%2523");
+        assertThat(uri).contains("response_code=");
     }
 }

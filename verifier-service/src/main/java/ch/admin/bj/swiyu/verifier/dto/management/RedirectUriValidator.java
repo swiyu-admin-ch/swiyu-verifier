@@ -30,6 +30,10 @@ public class RedirectUriValidator
                 .build()
                 .getQueryParams();
 
+        if (queryParts.containsKey("response_code")) {
+            return false;
+        }
+
         return queryParts.containsKey("session_nonce") && (queryParts.getFirst("session_nonce") != null && !queryParts.getFirst("session_nonce").isBlank());
     }
 }

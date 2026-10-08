@@ -79,7 +79,7 @@ class DcqlPresentationVerificationServiceTest {
         when(sdJwt.getResolvedClaims()).thenReturn(claimMap);
 
         // Act
-        var result = dcqlPresentationVerificationService.process(management, request);
+        var result = dcqlPresentationVerificationService.processVerificationPresentation(management, request);
         var resultJson = result.verifiedResponsesJsonString();
         // Assert
         assertTrue(resultJson.contains("\"" + credentialId + "\""));
@@ -107,7 +107,7 @@ class DcqlPresentationVerificationServiceTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of()); // missing token for cred-1
 
         // Act + Assert
-        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
         assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
     }
 
@@ -133,7 +133,7 @@ class DcqlPresentationVerificationServiceTest {
         var vpToken = "vp-token-sdjwt";
         // Create Presentation with 2 credentials being presented
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken, vpToken)));
-        var exp = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        var exp = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
         assertEquals("Expected only 1 vp token for cred-1", exp.getErrorDescription());
     }
 
@@ -161,7 +161,7 @@ class DcqlPresentationVerificationServiceTest {
             vpTokens.add(vpToken);
         }
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, vpTokens));
-        var exp = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        var exp = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
         assertEquals("Cannot Accept more than 2 vcs received 3", exp.getErrorDescription());
     }
 
@@ -173,7 +173,7 @@ class DcqlPresentationVerificationServiceTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of());
 
         // Act + Assert
-        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
         assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
         assertEquals("No DCQL query configured for this verification request", ex.getErrorDescription());
     }
@@ -201,7 +201,7 @@ class DcqlPresentationVerificationServiceTest {
         var request = new VerificationPresentationDCQLRequestDto(vpTokenMap);
 
         // Act + Assert
-        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
         assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
         assertEquals("Vp token entry for requested credential id " + credentialId + " must not be null", ex.getErrorDescription());
     }
@@ -229,7 +229,7 @@ class DcqlPresentationVerificationServiceTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, vpTokens));
 
         // Act + Assert
-        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
         assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
         assertEquals("Vp token list for requested credential id " + credentialId + " must not contain null entries", ex.getErrorDescription());
     }
@@ -270,7 +270,7 @@ class DcqlPresentationVerificationServiceTest {
         // No presented SD-JWT matches the requested vct -> empty list
 
         // Act + Assert
-        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.process(management, request));
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
         assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
         assertEquals("No matching SD-JWT for requested credential id " + credentialId, ex.getErrorDescription());
     }

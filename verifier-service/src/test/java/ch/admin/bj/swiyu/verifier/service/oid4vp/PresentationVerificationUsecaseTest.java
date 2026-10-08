@@ -107,7 +107,7 @@ class PresentationVerificationUsecaseTest {
         var expectedVerificationResult = VerificationResultData.builder()
             .verifiedResponsesJsonString(expectedVerificationDataJson)
             .build();
-        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(expectedVerificationResult);
+        when(dcqlPresentationVerificationService.processVerificationPresentation(managementEntity, request)).thenReturn(expectedVerificationResult);
 
         assertDoesNotThrow(() -> presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));
         verify(managementEntity).verificationDone(expectedVerificationResult);
@@ -137,7 +137,7 @@ class PresentationVerificationUsecaseTest {
         var dcqlQuery = getDcqlQuery(credentialRequestId, false);
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialRequestId, List.of(getVpToken())));
         when(managementEntity.getDcqlQuery()).thenReturn(dcqlQuery);
-        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenThrow(new DidResolverException("did resolution failed"));
+        when(dcqlPresentationVerificationService.processVerificationPresentation(managementEntity, request)).thenThrow(new DidResolverException("did resolution failed"));
 
         assertThrows(DidResolverException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationDCQL(managementId, request));
@@ -160,7 +160,7 @@ class PresentationVerificationUsecaseTest {
         // When not open anymore, the result should not be able to be changed!
         verify(managementEntity, never()).verificationDone(any());
         verify(managementEntity, never()).verificationFailed(any(), any());
-        // When process is not open anymore, NO callback should be triggered to prevent DoS attacks
+        // When processVerificationPresentation is not open anymore, NO callback should be triggered to prevent DoS attacks
         verify(callbackEventProducer, times(0)).produceEvent(any());
     }
 
@@ -180,7 +180,7 @@ class PresentationVerificationUsecaseTest {
         // When expired the verification is closed and NOTHING should be changing.
         verify(managementEntity, never()).verificationDone(any());
         verify(managementEntity, never()).verificationFailed(any(), any());
-        // When process is not open anymore, NO callback should be triggered to prevent DoS attacks
+        // When processVerificationPresentation is not open anymore, NO callback should be triggered to prevent DoS attacks
         verify(callbackEventProducer, times(0)).produceEvent(any());
     }
 
@@ -266,7 +266,7 @@ class PresentationVerificationUsecaseTest {
             .verifiedResponsesJsonString(successData)
             .build();
 
-        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(VerificationResultData.builder().verifiedResponsesJsonString(successData).build());
+        when(dcqlPresentationVerificationService.processVerificationPresentation(managementEntity, request)).thenReturn(VerificationResultData.builder().verifiedResponsesJsonString(successData).build());
 
         // First submission — must succeed and fire callback
         assertDoesNotThrow(() ->
@@ -301,7 +301,7 @@ class PresentationVerificationUsecaseTest {
         var successData = "{\"raceCredential\":[{}]}";
         var verificationResult = VerificationResultData.builder().verifiedResponsesJsonString(successData).build();
 
-        when(dcqlPresentationVerificationService.process(managementEntity, request)).thenReturn(VerificationResultData.builder().verifiedResponsesJsonString(successData).build());
+        when(dcqlPresentationVerificationService.processVerificationPresentation(managementEntity, request)).thenReturn(VerificationResultData.builder().verifiedResponsesJsonString(successData).build());
 
         // Simulate Hibernate @Version: first commit succeeds, second throws OptimisticLockException
         var callCount = new AtomicInteger(0);

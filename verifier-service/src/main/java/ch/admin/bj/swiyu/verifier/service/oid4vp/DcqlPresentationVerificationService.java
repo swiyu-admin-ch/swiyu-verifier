@@ -41,7 +41,7 @@ public class DcqlPresentationVerificationService {
     private final ApplicationProperties applicationProperties;
 
     /**
-     * Processes the DCQL presentation request and returns the validated claims per credential as JSON.
+     * Processes the Verification presentation using DCQL and returns the validated claims per credential as JSON.
      * <p>
      * Throws a {@link VerificationException} with {@link VerificationErrorResponseCode#INVALID_PRESENTATION_SUBMISSION}
      * if required VP tokens are missing, {@code null}, contain {@code null} entries, do not match the DCQL
@@ -49,7 +49,7 @@ public class DcqlPresentationVerificationService {
      * given {@link Management} entity has no DCQL query configured (e.g. a legacy verification request that
      * receives a DCQL-formatted wallet response).
      */
-    public VerificationResultData process(Management entity, VerificationPresentationDCQLRequestDto request) {
+    public VerificationResultData processVerificationPresentation(Management entity, VerificationPresentationDCQLRequestDto request) {
         var dcqlQuery = entity.getDcqlQuery();
         if (dcqlQuery == null) {
             // Happens when a verification request was created without a DCQL query (legacy format)
@@ -121,7 +121,7 @@ public class DcqlPresentationVerificationService {
     /**
      * Get the vpTokens from the received vp tokens that were requested.
      * @param requestedVpTokens the vpTokens presented by the wallet
-     * @param requestedCredential the DCQL defintion for the requested credential
+     * @param requestedCredential the DCQL definition for the requested credential
      * @return a list of vpTokens that the verifier requested
      * @throws VerificationException if there is a serious issue with the presented vpTokens, 
      *         such as the requested vpToken is not present or too many tokens were sent which 

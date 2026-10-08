@@ -70,7 +70,7 @@ config=StructureConfiguration;
     "showPackageLevels": 5,
     "showDetailedClassStructure": false
   },
-  "rootClass": "ch.admin.bj.swiyu.verifier.service.oid4vp.DcqlVpTokenVerifier",
+  "rootClass": "ch.admin.bj.swiyu.verifier.service.sdjwt.DcqlVpTokenVerifier",
   "extensionCallbackMethod": "Verification Controller \u0026 PresentationVerificationUsecase" // qualified.class.name#methodName - signature: public static String method(String)
 }
 diagram meta data end '/

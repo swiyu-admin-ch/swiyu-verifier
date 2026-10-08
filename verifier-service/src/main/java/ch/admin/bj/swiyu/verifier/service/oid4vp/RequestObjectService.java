@@ -9,7 +9,7 @@ import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.service.JwtSigningService;
 import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
-import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementInjectionService;
+import ch.admin.bj.swiyu.verifier.service.trust.TrustStatementInjectionService;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;

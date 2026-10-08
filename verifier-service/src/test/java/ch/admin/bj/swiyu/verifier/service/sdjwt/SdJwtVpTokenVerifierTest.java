@@ -1,190 +1,174 @@
 package ch.admin.bj.swiyu.verifier.service.sdjwt;
 
-import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtVcValidator;
+import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtParseException;
 import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtVerificationException;
-import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
-import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
-import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
+import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListVerificationService;
+import ch.admin.bj.swiyu.verifier.service.trust.IssuerTrustValidator;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.MockitoAnnotations;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.Optional;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH;
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_KID_HEADER_VALUE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for {@link SdJwtVpTokenVerifier} focusing on trust evaluation and holder binding audience checks.
- */
 class SdJwtVpTokenVerifierTest {
 
-    private static final String TEST_NONCE = "test-nonce";
+    private static final String TEST_ISSUER = "did:webvh:sid:example.com";
+    private static final String TEST_VCT = "test-vct";
 
-    private DidResolverFacade issuerPublicKeyLoader;
-    private StatusListCacheService statusListResolver;
-    private TokenStatusListVerifier statusListVerifier;
+    @Mock
+    private StatusListVerificationService statusListVerificationService;
+
+    @Mock
+    private IssuerTrustValidator issuerTrustValidator;
+
+    @Mock
+    private DidResolverFacade didResolver;
+
+    @Mock
+    private DidKidParser didKidParser;
+
+    @Mock
+    private SdJwtVcValidator sdJwtVcValidator;
+
+    @Mock
+    private HolderKeyBindingVerificationService holderKeyBindingVerificationService;
+
+    @InjectMocks
+    private SdJwtVpTokenVerifier sdJwtVpTokenVerifier;
+
+    private AutoCloseable mocks;
+    private MockedStatic<SdJwtParser> sdJwtParserStatic;
+    private SdJwt vpToken;
     private Management management;
-
-    private SdJwtVpTokenVerifier verifier;
-    private final String prefix = "prefix";
-    private final String clientId = "did:example:verifier";
+    private String serializedVpToken;
 
     @BeforeEach
-    void setUp() {
-        issuerPublicKeyLoader = mock(DidResolverFacade.class);
-        statusListResolver = mock(StatusListCacheService.class);
-        DidJwtValidator didJwtValidator = mock(DidJwtValidator.class);
-        statusListVerifier = mock(TokenStatusListVerifier.class);
-        ApplicationProperties applicationProperties = mock(ApplicationProperties.class);
-        VerificationProperties verificationProperties = mock(VerificationProperties.class);
+    void setUp() throws SdJwtVerificationException {
+        mocks = MockitoAnnotations.openMocks(this);
+
+        vpToken = mock(SdJwt.class);
         management = mock(Management.class);
+        serializedVpToken = getDummyJwt().serialize();
 
-        when(verificationProperties.getAcceptableProofTimeWindowSeconds()).thenReturn(120);
-        when(applicationProperties.getClientId()).thenReturn(clientId);
-        when(applicationProperties.getClientIdPrefix()).thenReturn(prefix);
-        when(management.getId()).thenReturn(UUID.randomUUID());
-        when(management.getAcceptedIssuerDids()).thenReturn(List.of(DEFAULT_ISSUER_ID));
-        when(management.getRequestNonce()).thenReturn(TEST_NONCE);
-        when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
-        when(issuerPublicKeyLoader.resolveKey(DEFAULT_KID_HEADER_VALUE))
-                .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
+        sdJwtParserStatic = mockStatic(SdJwtParser.class);
+        sdJwtParserStatic.when(() -> SdJwtParser.parseSdJwt(serializedVpToken)).thenReturn(vpToken);
 
-        verifier = new SdJwtVpTokenVerifier(statusListResolver, applicationProperties, verificationProperties, statusListVerifier);
+        when(didKidParser.getDidFromAbsoluteKid(anyString())).thenReturn(TEST_ISSUER);
+
+        when(vpToken.getJwt()).thenReturn(getDummyJwt());
+        when(vpToken.getHeader()).thenReturn(getDummyJwt().getHeader());
+        when(vpToken.getClaims()).thenReturn(new JWTClaimsSet.Builder()
+                .issuer("did:webvh:ignored.example.com")
+                .claim("vct", TEST_VCT)
+                .build());
+        when(didResolver.resolveKey(anyString())).thenReturn(mock(com.nimbusds.jose.jwk.JWK.class));
+
+        // Configure the mock singleton SdJwtVcValidator
+        doNothing().when(sdJwtVcValidator).validateAndSetHeader(vpToken);
+        doNothing().when(sdJwtVcValidator).validateAndSetJwt(eq(vpToken), any());
+
+        doNothing().when(holderKeyBindingVerificationService).validateKeyBinding(any(), anyBoolean(), eq(management), any());
+        when(statusListVerificationService.verifyStatus(anyMap(), any())).thenReturn(Optional.empty());
+        when(issuerTrustValidator.validateTrust(anyString(), anyString(), eq(management)))
+                .thenReturn(IssuerTrustMarker.builder().isTrusted(true).build());
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (sdJwtParserStatic != null) {
+            sdJwtParserStatic.close();
+        }
+        if (mocks != null) {
+            mocks.close();
+        }
     }
 
     @Test
-    void validateKeyBinding_whenHolderBindingNotRequiredAndMissing_thenSkipsValidator() throws SdJwtVerificationException {
-        SdJwt sdJwt = mock(SdJwt.class);
-        SdJwtVcValidator validator = mock(SdJwtVcValidator.class);
+    void verifyVpTokenForDCQLRequest_withDefaultHolderBindingRequirement_passesTrueToKeyBindingValidation() throws Exception {
+        when(vpToken.hasKeyBinding()).thenReturn(true);
+        var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(null).build();
 
-        when(sdJwt.hasKeyBinding()).thenReturn(false);
+        var result = sdJwtVpTokenVerifier.verifySdJwtVpToken(serializedVpToken, management, dcqlCredential.isCryptographicHolderBindingRequired());
 
-        verifier.validateKeyBinding(sdJwt, false, management, validator);
-
-        verify(validator, never()).validateKeyBinding(sdJwt, prefix + ":" + clientId, TEST_NONCE, 120);
+        assertThat(result.sdJwt()).isEqualTo(vpToken);
+        verify(holderKeyBindingVerificationService).validateKeyBinding(eq(vpToken), eq(true), eq(management), eq(sdJwtVcValidator));
+        verify(issuerTrustValidator).validateTrust(eq(TEST_ISSUER), eq(TEST_VCT), eq(management));
+        verify(sdJwtVcValidator).validateAndSetHeader(vpToken);
     }
 
     @Test
-    void validateKeyBinding_whenHolderBindingRequiredAndMissing_thenThrowsHolderBindingMismatch() {
-        SdJwt sdJwt = mock(SdJwt.class);
-        SdJwtVcValidator validator = mock(SdJwtVcValidator.class);
+    void verifyVpTokenForDCQLRequest_withExplicitlyDisabledHolderBinding_passesFalseToKeyBindingValidation() {
+        when(vpToken.hasKeyBinding()).thenReturn(false);
+        var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(false).build();
 
-        when(sdJwt.hasKeyBinding()).thenReturn(false);
+        var result = sdJwtVpTokenVerifier.verifySdJwtVpToken(serializedVpToken, management, dcqlCredential.isCryptographicHolderBindingRequired());
 
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> verifier.validateKeyBinding(sdJwt, true, management, validator));
-
-        assertEquals(HOLDER_BINDING_MISMATCH, ex.getErrorResponseCode());
+        assertThat(result.sdJwt()).isEqualTo(vpToken);
+        verify(holderKeyBindingVerificationService).validateKeyBinding(eq(vpToken), eq(false), eq(management), eq(sdJwtVcValidator));
     }
 
     @Test
-    void validateKeyBinding_whenHolderBindingPresent_thenDelegatesWithExpectedAudienceAndNonce() throws SdJwtVerificationException {
-        SdJwt sdJwt = mock(SdJwt.class);
-        SdJwtVcValidator validator = mock(SdJwtVcValidator.class);
+    void verifyVpTokenForDCQLRequest_whenSdJwtParsingFails_throwsVerificationException() {
+        sdJwtParserStatic.when(() -> SdJwtParser.parseSdJwt(serializedVpToken))
+                .thenThrow(new SdJwtParseException("parse failure"));
 
-        when(sdJwt.hasKeyBinding()).thenReturn(true);
+        var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(false).build();
 
-        verifier.validateKeyBinding(sdJwt, true, management, validator);
-
-        verify(validator).validateKeyBinding(sdJwt, prefix + ":" + clientId, TEST_NONCE, 120);
+        assertThatThrownBy(() -> sdJwtVpTokenVerifier.verifySdJwtVpToken(serializedVpToken, management, dcqlCredential.isCryptographicHolderBindingRequired()))
+                .isInstanceOf(VerificationException.class);
     }
 
     @Test
-    void validateKeyBinding_whenValidatorRejectsProof_thenThrowsHolderBindingMismatch() throws SdJwtVerificationException {
-        SdJwt sdJwt = mock(SdJwt.class);
-        SdJwtVcValidator validator = mock(SdJwtVcValidator.class);
+    void verifyVpTokenForDCQLRequest_whenHeaderValidationFails_throwsVerificationException() throws SdJwtVerificationException {
+        var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(false).build();
 
-        when(sdJwt.hasKeyBinding()).thenReturn(true);
-        doThrow(new SdJwtVerificationException("invalid proof"))
-                .when(validator)
-                .validateKeyBinding(sdJwt, prefix + ":" + clientId, TEST_NONCE, 120);
+        // Configure the singleton validator to throw on header validation
+        doThrow(new SdJwtVerificationException("bad header")).when(sdJwtVcValidator).validateAndSetHeader(vpToken);
 
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> verifier.validateKeyBinding(sdJwt, true, management, validator));
-
-        assertEquals(HOLDER_BINDING_MISMATCH, ex.getErrorResponseCode());
+        assertThatThrownBy(() -> sdJwtVpTokenVerifier.verifySdJwtVpToken(serializedVpToken, management, dcqlCredential.isCryptographicHolderBindingRequired()))
+                .isInstanceOf(VerificationException.class);
     }
 
-    @Test
-    void canHaveKeyBinding_whenCnfClaimPresent_thenReturnsTrue() {
-        JWTClaimsSet claims = new JWTClaimsSet.Builder().claim("cnf", Map.of("kid", "test")).build();
-
-        assertTrue(verifier.canHaveKeyBinding(claims));
-    }
-
-    @Test
-    void canHaveKeyBinding_whenCnfClaimMissing_thenReturnsFalse() {
-        JWTClaimsSet claims = new JWTClaimsSet.Builder().issuer(DEFAULT_ISSUER_ID).build();
-
-        assertFalse(verifier.canHaveKeyBinding(claims));
-    }
-
-    @Test
-    void verifyStatus_whenNoStatusClaimPresent_thenReturnsEmpty() {
-        Map<String, Object> claims = new HashMap<>();
-
-        assertThat(verifier.verifyStatus(claims, new JWSHeader.Builder(JWSAlgorithm.ES256).build())).isEmpty();
-    }
-
-    @Test
-    void verifyStatus_whenStatusListExists_thenReturnsVerificationResult() throws Exception {
-        Map<String, Object> claims = Map.of(
-                "status", Map.of(
-                        "status_list", Map.of(
-                                "idx", 1,
-                                "uri", "https://example.com/status/1"
-                        )
-                )
+    private SignedJWT getDummyJwt() {
+        var key = assertDoesNotThrow(() -> new ECKeyGenerator(Curve.P_256)
+                .keyID("key-1")
+                .algorithm(JWSAlgorithm.ES256)
+                .generate());
+        var jwt = new SignedJWT(
+                new com.nimbusds.jose.JWSHeader.Builder(JWSAlgorithm.ES256)
+                        .keyID(TEST_ISSUER + "#" + key.getKeyID())
+                        .build(),
+                new JWTClaimsSet.Builder()
+                        .jwtID("1234")
+                        .issuer("did:webvh:other.example.com")
+                        .build()
         );
-        TokenStatusListTokenDto statusListToken = mock(TokenStatusListTokenDto.class);
-        StatusVerificationResultDto verificationResult = mock(StatusVerificationResultDto.class);
-
-        when(statusListResolver.getTokenStatusListTokenByUri("https://example.com/status/1")).thenReturn(statusListToken);
-        when(statusListVerifier.verifyStatus(any(), eq(statusListToken))).thenReturn(verificationResult);
-
-        assertThat(verifier.verifyStatus(claims, new JWSHeader.Builder(JWSAlgorithm.ES256).build()))
-                .contains(verificationResult);
-    }
-
-    @Test
-    void verifyStatus_whenStatusListCannotBeResolved_thenThrowsUnresolvableStatusList() {
-        Map<String, Object> claims = Map.of(
-                "status", Map.of(
-                        "status_list", Map.of(
-                                "idx", 1,
-                                "uri", "https://example.com/status/1"
-                        )
-                )
-        );
-
-        when(statusListResolver.getTokenStatusListTokenByUri("https://example.com/status/1")).thenReturn(null);
-
-        VerificationException ex = assertThrows(VerificationException.class,
-                () -> verifier.verifyStatus(claims, new JWSHeader.Builder(JWSAlgorithm.ES256).build()));
-
-        assertEquals(UNRESOLVABLE_STATUS_LIST, ex.getErrorResponseCode());
+        assertDoesNotThrow(() -> jwt.sign(new ECDSASigner(key)));
+        return jwt;
     }
 }

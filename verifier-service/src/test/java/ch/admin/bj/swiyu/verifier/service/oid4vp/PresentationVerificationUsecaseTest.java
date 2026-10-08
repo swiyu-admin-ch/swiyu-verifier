@@ -20,7 +20,7 @@ import ch.admin.bj.swiyu.verifier.service.callback.CallbackEventProducer;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementMapper;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementTransactionalService;
-import ch.admin.bj.swiyu.verifier.service.sdjwt.DcqlVpTokenVerifier;
+import ch.admin.bj.swiyu.verifier.service.sdjwt.SdJwtVpTokenVerifier;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class PresentationVerificationUsecaseTest {
     private CallbackEventProducer callbackEventProducer;
     private Management managementEntity;
     private UUID managementId;
-    private DcqlVpTokenVerifier presentationVerifier;
+    private SdJwtVpTokenVerifier presentationVerifier;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
     private ObjectMapper objectMapper;
 
@@ -66,7 +66,7 @@ class PresentationVerificationUsecaseTest {
 
         objectMapper = new ObjectMapper();
         callbackEventProducer = mock(CallbackEventProducer.class);
-        presentationVerifier = mock(DcqlVpTokenVerifier.class);
+        presentationVerifier = mock(SdJwtVpTokenVerifier.class);
         dcqlPresentationVerificationService = mock(DcqlPresentationVerificationService.class);
 
         presentationVerificationUsecase = new PresentationVerificationUsecase(
@@ -99,7 +99,7 @@ class PresentationVerificationUsecaseTest {
 
         // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
         var requestedCredential = dcqlQuery.getCredentials().getFirst();
-        when(presentationVerifier.verifyVpTokenForDCQLRequest(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential.isCryptographicHolderBindingRequired())))
+        when(presentationVerifier.verifySdJwtVpToken(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential.isCryptographicHolderBindingRequired())))
                 .thenReturn(SdJwtVerificationResult.builder().sdJwt(sdJwt).build());
 
         var expectedVerificationData = Map.of(credentialRequestId, List.of(getSDClaims()));

@@ -11,7 +11,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
-import ch.admin.bj.swiyu.verifier.service.sdjwt.DcqlVpTokenVerifier;
+import ch.admin.bj.swiyu.verifier.service.sdjwt.SdJwtVpTokenVerifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -36,7 +36,7 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 @RequiredArgsConstructor
 public class DcqlPresentationVerificationService {
 
-    private final DcqlVpTokenVerifier presentationVerifier;
+    private final SdJwtVpTokenVerifier presentationVerifier;
     private final ObjectMapper objectMapper;
     private final ApplicationProperties applicationProperties;
 
@@ -114,7 +114,7 @@ public class DcqlPresentationVerificationService {
         var requestedVpTokens = validatePresentedTokens(vpTokens, requestedCredential);
 
         return requestedVpTokens.stream()
-                .map(token -> presentationVerifier.verifyVpTokenForDCQLRequest(token, entity, requestedCredential.isCryptographicHolderBindingRequired()))
+                .map(token -> presentationVerifier.verifySdJwtVpToken(token, entity, requestedCredential.isCryptographicHolderBindingRequired()))
                 .toList();
     }
 

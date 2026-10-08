@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.verifier.service.trust;
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.service.sdjwt.SdJwtVpTokenVerifier;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListVerificationService;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,7 @@ class IssuerTrustValidatorTest {
     DidResolverFacade issuerPublicKeyLoader;
 
     @Mock
-    SdJwtVpTokenVerifier sdJwtVpTokenVerifier;
+    StatusListVerificationService statusListVerificationService;
 
     @Mock
     TrustRegistryProperties trustRegistryProperties;

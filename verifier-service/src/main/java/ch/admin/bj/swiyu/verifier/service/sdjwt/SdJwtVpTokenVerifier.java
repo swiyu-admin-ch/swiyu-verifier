@@ -1,120 +1,83 @@
 package ch.admin.bj.swiyu.verifier.service.sdjwt;
 
-import ch.admin.bj.swiyu.jwtvalidator.JwtValidatorException;
+import ch.admin.bj.swiyu.jwtvalidator.DidKidParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
+import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtVcValidator;
+import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtParseException;
 import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtVerificationException;
-import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
-import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
-import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
-import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
-import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
-import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
+import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
+import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
-import com.nimbusds.jose.JWSHeader;
+import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListVerificationService;
+import ch.admin.bj.swiyu.verifier.service.trust.IssuerTrustValidator;
+import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.Map;
+import java.text.ParseException;
 import java.util.Optional;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.MALFORMED_CREDENTIAL;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
-/**
- * Verifies SD-JWT trust statements (which are themselves VP tokens) using the
- * same core verification logic as regular VP tokens, but with trust-specific
- * semantics.
- */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class SdJwtVpTokenVerifier {
-    private final StatusListCacheService statusListCacheService;
-    private final ApplicationProperties applicationProperties;
-    private final VerificationProperties verificationProperties;
-    private final TokenStatusListVerifier statusListVerifier;
 
-    protected Optional<StatusVerificationResultDto> verifyStatus(Map<String, Object> vcClaims, JWSHeader header) {
-        TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(vcClaims, header);
-        if (reference.getStatus() == null) {
-            // no Status Reference -> VC has no Status
-            return Optional.empty();
-        }
+    private final StatusListVerificationService statusListVerificationService;
+    private final HolderKeyBindingVerificationService holderKeyBindingVerificationService;
+    private final IssuerTrustValidator issuerTrustValidator;
+    private final DidResolverFacade didResolver;
+    private final DidKidParser didKidParser = new DidKidParser();
+    private final SdJwtVcValidator sdJwtVcValidator;
+
+    public SdJwtVerificationResult verifySdJwtVpToken(String vpToken, Management management, boolean holderBindingRequired) {
+
         try {
-            TokenStatusListTokenDto statusList = statusListCacheService.getTokenStatusListTokenByUri(reference.getReferencedStatusListUri());
-            if (statusList == null) {
-                throw credentialError(UNRESOLVABLE_STATUS_LIST, "Status List not found or malformed");
+            SdJwt sdJwt;
+            String headerKid;
+
+            sdJwt = SdJwtParser.parseSdJwt(vpToken);
+
+            // also checks header typ -> typ does not need to match dcqlCredential.format, but it must be a valid SD-JWT type `vc+sd-jwt` or `dc+sd-jwt` for backward compatibility.
+            sdJwtVcValidator.validateAndSetHeader(sdJwt);
+
+            headerKid = sdJwt.getHeader().getKeyID();
+            var publicKey = didResolver.resolveKey(headerKid);
+
+            sdJwtVcValidator.validateAndSetJwt(sdJwt, publicKey);
+
+            // require_cryptographic_holder_binding default is true therefore if not set to false it will be treated as true
+            holderKeyBindingVerificationService.validateKeyBinding(sdJwt, holderBindingRequired, management, sdJwtVcValidator);
+
+            // Perform issuer trust validation based on claims
+            JWTClaimsSet claims = sdJwt.getClaims();
+            IssuerTrustMarker trustMarkers;
+            try {
+                var issuerDID = didKidParser.getDidFromAbsoluteKid(headerKid);
+                trustMarkers = issuerTrustValidator.validateTrust(issuerDID, claims.getStringClaim("vct"), management);
+            } catch (ParseException e) {
+                log.error("Failed to extract vct claim from JWT token", e);
+                throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
             }
-            StatusVerificationResultDto statusListState = statusListVerifier.verifyStatus(reference, statusList);
-            return Optional.of(statusListState);
-        } catch (
-                IndexOutOfBoundsException |
-                IOException |
-                JwtValidatorException e) {
-            throw credentialError(e, UNRESOLVABLE_STATUS_LIST, "Status List Token malformed");
-        } catch (StatusListMaxSizeExceededException e) {
-            throw credentialError(e, UNRESOLVABLE_STATUS_LIST, "Status list size from %s exceeds maximum allowed size".formatted(reference.getReferencedStatusListUri()));
-        }
-    }
 
-    /**
-     * Validate the holder (key) binding for an SD-JWT that represents a Verifiable Presentation (VP) token.
-     *
-     * <p>Validation rules:
-     * <ul>
-     *   <li>If cryptographic holder-binding is not required and the token contains no key binding, return silently.</li>
-     *   <li>If cryptographic holder-binding is required but the token lacks a key binding, throw a
-     *       credential error with code HOLDER_BINDING_MISMATCH.</li>
-     *   <li>Otherwise, validate the holder-binding</li>
-     * </ul>
-     *
-     * @param sdJwt                                the parsed SD-JWT {@link SdJwt} containing the VP token to validate
-     * @param isCryptographicHolderBindingRequired boolean whether cryptographic holder-binding is mandatory
-     * @param management                           the Management {@link Management} provides configuration override and request nonce
-     * @param validator                            the SD-JWT VC validator used to perform the low-level key-binding checks
-     */
-    void validateKeyBinding(SdJwt sdJwt, boolean isCryptographicHolderBindingRequired, Management management, SdJwtVcValidator validator) {
+            Optional<StatusVerificationResultDto> statusVerificationResult = statusListVerificationService.verifyStatus(sdJwt.getClaims().getClaims(), sdJwt.getHeader());
 
-        if (!isCryptographicHolderBindingRequired && !sdJwt.hasKeyBinding()) {
-            return;
-        }
+            // Resolve Disclosures
+            sdJwtVcValidator.processDisclosures(sdJwt);
 
-        if (isCryptographicHolderBindingRequired && !sdJwt.hasKeyBinding()) {
-            throw credentialError(HOLDER_BINDING_MISMATCH, "Missing Holder Key Binding Proof");
-        }
-
-        var configurationOverride = Optional.ofNullable(management.getConfigurationOverride())
-                .orElse(new ConfigurationOverride(null, null, null, null, null, null));
-
-        var expectedAudience = configurationOverride.verifierDidOrDefaultWithPrefix(applicationProperties);
-        var requestNonce = management.getRequestNonce();
-
-        try {
-            validator.validateKeyBinding(sdJwt,
-                    expectedAudience,
-                    requestNonce,
-                    verificationProperties.getAcceptableProofTimeWindowSeconds());
-
+            return new SdJwtVerificationResult(sdJwt, trustMarkers, statusVerificationResult);
+        } catch (SdJwtParseException e) {
+            log.error("Failed to parse VP token: {}", e.getMessage(), e);
+            throw credentialError(MALFORMED_CREDENTIAL, e.getMessage());
         } catch (SdJwtVerificationException e) {
-            log.error("Failed to validate key binding for VP token: {}", e.getMessage(), e);
-            throw credentialError(e, HOLDER_BINDING_MISMATCH, e.getMessage());
+            log.error("Verification failed for VP token: {}", e.getMessage(), e);
+            throw credentialError(MALFORMED_CREDENTIAL, e.getMessage());
         }
-    }
-
-    /**
-     *
-     * @param claims the claims of a VP Token
-     * @return true, if the VP Token is set up to have a key binding
-     */
-    boolean canHaveKeyBinding(JWTClaimsSet claims) {
-        return claims.getClaims().containsKey("cnf");
     }
 }

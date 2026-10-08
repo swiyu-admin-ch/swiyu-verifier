@@ -12,7 +12,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
-import ch.admin.bj.swiyu.verifier.service.sdjwt.DcqlVpTokenVerifier;
+import ch.admin.bj.swiyu.verifier.service.sdjwt.SdJwtVpTokenVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,13 +32,13 @@ import static org.mockito.Mockito.*;
 
 class DcqlPresentationVerificationServiceTest {
 
-    private DcqlVpTokenVerifier sdJwtLegacyPresentationVerifier;
+    private SdJwtVpTokenVerifier sdJwtLegacyPresentationVerifier;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
     private ApplicationProperties applicationProperties;
 
     @BeforeEach
     void setUp() {
-        sdJwtLegacyPresentationVerifier = mock(DcqlVpTokenVerifier.class);
+        sdJwtLegacyPresentationVerifier = mock(SdJwtVpTokenVerifier.class);
         ObjectMapper objectMapper = new ObjectMapper();
         applicationProperties = mock(ApplicationProperties.class);
 
@@ -68,7 +68,7 @@ class DcqlPresentationVerificationServiceTest {
         var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken)));
 
         var sdJwt = mock(SdJwt.class);
-        when(sdJwtLegacyPresentationVerifier.verifyVpTokenForDCQLRequest(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired()) ).thenReturn(
+        when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired()) ).thenReturn(
             SdJwtVerificationResult.builder().sdJwt(sdJwt).statusVerificationResult(Optional.of(new StatusVerificationResultDto(true, Optional.of(0)))).build());
 
         Map<String, Object> claimMap = Map.of("given_name", "Alice", "vct", "vct:test");
@@ -84,7 +84,7 @@ class DcqlPresentationVerificationServiceTest {
         // Assert
         assertTrue(resultJson.contains("\"" + credentialId + "\""));
         assertTrue(resultJson.contains("\"given_name\":\"Alice\""));
-        verify(sdJwtLegacyPresentationVerifier).verifyVpTokenForDCQLRequest(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired());
+        verify(sdJwtLegacyPresentationVerifier).verifySdJwtVpToken(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired());
     }
 
     @Test
@@ -265,7 +265,7 @@ class DcqlPresentationVerificationServiceTest {
         when(claimsSet.getClaims()).thenReturn(claimsMap);
         when(claimsMap.get("vct")).thenReturn(List.of());
 
-        when(sdJwtLegacyPresentationVerifier.verifyVpTokenForDCQLRequest(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired()))
+        when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired()))
             .thenReturn(SdJwtVerificationResult.builder().sdJwt(sdJwt).statusVerificationResult(Optional.empty()).build());
         // No presented SD-JWT matches the requested vct -> empty list
 

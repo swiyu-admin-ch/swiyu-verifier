@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import com.nimbusds.jose.JWSHeader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,14 @@ public class StatusListVerificationService {
     private final StatusListCacheService statusListCacheService;
     private final TokenStatusListVerifier statusListVerifier;
 
+    /**
+     * If the provided claims contain a token status list reference, resovles the reference to a Token Status List
+     * and validates the state of the VC
+     * @param vcClaims the claims of a VC, containing the optional token status list reference
+     * @param header JWS Header of the VC
+     * @return Optionally the Status Verification result or empty if no token status list reference was found in the claims
+     * @throws VerificationException if the token status list is malformed / exceeding size limitations
+     */
     public Optional<StatusVerificationResultDto> verifyStatus(Map<String, Object> vcClaims, JWSHeader header) {
         TokenStatusListReferenceDto reference = TokenStatusListMapper.toTokenStatusListReference(vcClaims, header);
         if (reference.getStatus() == null) {

@@ -101,7 +101,7 @@ class PresentationVerificationUsecaseTest {
 
         // Stub SdjwtPresentationVerifier to return our prepared SdJwt when called from DcqlPresentationVerificationService
         var requestedCredential = dcqlQuery.getCredentials().getFirst();
-        when(presentationVerifier.verifyVpTokenForDCQLRequest(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential)))
+        when(presentationVerifier.verifyVpTokenForDCQLRequest(Mockito.eq(vpToken), Mockito.eq(managementEntity), Mockito.eq(requestedCredential.isCryptographicHolderBindingRequired())))
                 .thenReturn(SdJwtVerificationResult.builder().sdJwt(sdJwt).build());
 
         var expectedVerificationData = Map.of(credentialRequestId, List.of(getSDClaims()));

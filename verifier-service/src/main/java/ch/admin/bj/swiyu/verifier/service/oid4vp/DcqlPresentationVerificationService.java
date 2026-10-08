@@ -113,7 +113,7 @@ public class DcqlPresentationVerificationService {
         var requestedVpTokens = validatePresentedTokens(vpTokens, requestedCredential);
 
         return requestedVpTokens.stream()
-                .map(token -> presentationVerifier.verifyVpTokenForDCQLRequest(token, entity, requestedCredential))
+                .map(token -> presentationVerifier.verifyVpTokenForDCQLRequest(token, entity, requestedCredential.isCryptographicHolderBindingRequired()))
                 .toList();
     }
 

@@ -78,7 +78,7 @@ class SdJwtVpTokenVerifierTest {
         when(issuerPublicKeyLoader.resolveKey(DEFAULT_KID_HEADER_VALUE))
                 .thenReturn(KeyFixtures.issuerKey().toPublicJWK());
 
-        verifier = new SdJwtVpTokenVerifier(issuerPublicKeyLoader, didJwtValidator, statusListResolver, applicationProperties, verificationProperties, statusListVerifier);
+        verifier = new SdJwtVpTokenVerifier(statusListResolver, applicationProperties, verificationProperties, statusListVerifier);
     }
 
     @Test

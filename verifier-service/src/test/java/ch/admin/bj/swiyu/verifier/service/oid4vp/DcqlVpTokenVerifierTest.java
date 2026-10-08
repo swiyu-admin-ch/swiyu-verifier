@@ -108,7 +108,7 @@ class DcqlVpTokenVerifierTest {
         when(vpToken.hasKeyBinding()).thenReturn(true);
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(null).build();
 
-        var result = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential);
+        var result = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential.isCryptographicHolderBindingRequired());
 
         assertThat(result.sdJwt()).isEqualTo(vpToken);
         verify(sdJwtVpTokenVerifier).validateKeyBinding(eq(vpToken), eq(true), eq(management), eq(sdJwtVcValidator));
@@ -121,7 +121,7 @@ class DcqlVpTokenVerifierTest {
         when(vpToken.hasKeyBinding()).thenReturn(false);
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(false).build();
 
-        var result = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential);
+        var result = dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential.isCryptographicHolderBindingRequired());
 
         assertThat(result.sdJwt()).isEqualTo(vpToken);
         verify(sdJwtVpTokenVerifier).validateKeyBinding(eq(vpToken), eq(false), eq(management), eq(sdJwtVcValidator));
@@ -134,7 +134,7 @@ class DcqlVpTokenVerifierTest {
 
         var dcqlCredential = DcqlCredential.builder().requireCryptographicHolderBinding(false).build();
 
-        assertThatThrownBy(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential))
+        assertThatThrownBy(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential.isCryptographicHolderBindingRequired()))
                 .isInstanceOf(VerificationException.class);
     }
 
@@ -145,7 +145,7 @@ class DcqlVpTokenVerifierTest {
         // Configure the singleton validator to throw on header validation
         doThrow(new SdJwtVerificationException("bad header")).when(sdJwtVcValidator).validateAndSetHeader(vpToken);
 
-        assertThatThrownBy(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential))
+        assertThatThrownBy(() -> dcqlVpTokenVerifier.verifyVpTokenForDCQLRequest(serializedVpToken, management, dcqlCredential.isCryptographicHolderBindingRequired()))
                 .isInstanceOf(VerificationException.class);
     }
 

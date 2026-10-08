@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
 import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +33,7 @@ public class DcqlVpTokenVerifier {
     private final DidKidParser didKidParser = new DidKidParser();
     private final SdJwtVcValidator sdJwtVcValidator;
 
-    public SdJwtVerificationResult verifyVpTokenForDCQLRequest(String vpToken, Management management, DcqlCredential dcqlCredential) {
+    public SdJwtVerificationResult verifyVpTokenForDCQLRequest(String vpToken, Management management, boolean holderBindingRequired) {
 
         try {
             SdJwt sdJwt;
@@ -51,7 +50,7 @@ public class DcqlVpTokenVerifier {
             sdJwtVcValidator.validateAndSetJwt(sdJwt, publicKey);
 
             // require_cryptographic_holder_binding default is true therefore if not set to false it will be treated as true
-            sdJwtVpTokenVerifier.validateKeyBinding(sdJwt, dcqlCredential.isCryptographicHolderBindingRequired(), management, sdJwtVcValidator);
+            sdJwtVpTokenVerifier.validateKeyBinding(sdJwt, holderBindingRequired, management, sdJwtVcValidator);
 
             // Perform issuer trust validation based on claims
             JWTClaimsSet claims = sdJwt.getClaims();

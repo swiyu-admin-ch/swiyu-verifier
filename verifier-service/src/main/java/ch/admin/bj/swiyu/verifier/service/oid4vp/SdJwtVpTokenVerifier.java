@@ -15,7 +15,6 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import com.nimbusds.jose.JWSHeader;
@@ -40,9 +39,6 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 @Slf4j
 @RequiredArgsConstructor
 public class SdJwtVpTokenVerifier {
-
-    private final DidResolverFacade didResolver;
-    private final DidJwtValidator jwtValidator;
     private final StatusListCacheService statusListCacheService;
     private final ApplicationProperties applicationProperties;
     private final VerificationProperties verificationProperties;

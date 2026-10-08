@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListMapper;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListReferenceDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import com.nimbusds.jose.JWSHeader;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
-import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.*;
+import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.credentialError;
 
 /**

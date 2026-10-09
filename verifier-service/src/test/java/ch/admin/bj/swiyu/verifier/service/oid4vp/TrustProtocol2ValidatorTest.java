@@ -8,6 +8,7 @@ import java.util.List;
 
 import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
 import ch.admin.bj.swiyu.verifier.service.publickey.LoadingPublicKeyOfIssuerFailedException;
+import ch.admin.bj.swiyu.verifier.service.trust.TrustProtocol2Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -18,12 +19,10 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.SignedJWT;
 
-import ch.admin.bj.swiyu.verifier.domain.management.Management;
-import ch.admin.bj.swiyu.verifier.domain.management.TrustAnchor;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
-import ch.admin.bj.swiyu.verifier.service.trustregistry.TestTrustStatementGenerator;
-import ch.admin.bj.swiyu.verifier.service.trustregistry.TrustStatementCacheService;
+import ch.admin.bj.swiyu.verifier.service.trust.TestTrustStatementGenerator;
+import ch.admin.bj.swiyu.verifier.service.trust.TrustStatementCacheService;
 import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 
 /**

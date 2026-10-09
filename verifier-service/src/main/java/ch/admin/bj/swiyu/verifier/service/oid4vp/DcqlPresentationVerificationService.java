@@ -11,7 +11,7 @@ import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
 import ch.admin.bj.swiyu.verifier.service.dcql.DcqlUtil;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.ports.PresentationVerifier;
+import ch.admin.bj.swiyu.verifier.service.sdjwt.SdJwtVpTokenVerifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -36,12 +36,12 @@ import static ch.admin.bj.swiyu.verifier.common.exception.VerificationException.
 @RequiredArgsConstructor
 public class DcqlPresentationVerificationService {
 
-    private final PresentationVerifier presentationVerifier;
+    private final SdJwtVpTokenVerifier presentationVerifier;
     private final ObjectMapper objectMapper;
     private final ApplicationProperties applicationProperties;
 
     /**
-     * Processes the DCQL presentation request and returns the validated claims per credential as JSON.
+     * Processes the Verification presentation using DCQL and returns the validated claims per credential as JSON.
      * <p>
      * Throws a {@link VerificationException} with {@link VerificationErrorResponseCode#INVALID_PRESENTATION_SUBMISSION}
      * if required VP tokens are missing, {@code null}, contain {@code null} entries, do not match the DCQL
@@ -49,7 +49,7 @@ public class DcqlPresentationVerificationService {
      * given {@link Management} entity has no DCQL query configured (e.g. a legacy verification request that
      * receives a DCQL-formatted wallet response).
      */
-    public VerificationResultData process(Management entity, VerificationPresentationDCQLRequestDto request) {
+    public VerificationResultData processVerificationPresentation(Management entity, VerificationPresentationDCQLRequestDto request) {
         var dcqlQuery = entity.getDcqlQuery();
         if (dcqlQuery == null) {
             // Happens when a verification request was created without a DCQL query (legacy format)
@@ -114,14 +114,14 @@ public class DcqlPresentationVerificationService {
         var requestedVpTokens = validatePresentedTokens(vpTokens, requestedCredential);
 
         return requestedVpTokens.stream()
-                .map(token -> presentationVerifier.verify(token, entity, requestedCredential))
+                .map(token -> presentationVerifier.verifySdJwtVpToken(token, entity, requestedCredential.isCryptographicHolderBindingRequired()))
                 .toList();
     }
 
     /**
      * Get the vpTokens from the received vp tokens that were requested.
      * @param requestedVpTokens the vpTokens presented by the wallet
-     * @param requestedCredential the DCQL defintion for the requested credential
+     * @param requestedCredential the DCQL definition for the requested credential
      * @return a list of vpTokens that the verifier requested
      * @throws VerificationException if there is a serious issue with the presented vpTokens, 
      *         such as the requested vpToken is not present or too many tokens were sent which 

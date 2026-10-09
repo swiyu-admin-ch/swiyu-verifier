@@ -56,23 +56,4 @@ public class TrustRegistryConfig {
     public TrustProtocol20Api trustProtocol20Api(ApiClient trustRegistryApiClient) {
         return new TrustProtocol20Api(trustRegistryApiClient);
     }
-
-    /**
-     * Creates a {@link DidJwtValidator} restricted to the configured Trust Registry host.
-     *
-     * <p>The allowlist is derived from the {@code swiyu.trust-registry.api-url} property,
-     * ensuring that trust statement JWTs are only accepted when their {@code kid} resolves
-     * to the same host as the configured TMS endpoint.</p>
-     * It is used with {@code @Qualifier("trustStatementValidator")}
-     *
-     * @return the {@link DidJwtValidator} bean named {@code trustStatementDidJwtValidator}
-     * @throws IllegalArgumentException if the configured {@code api-url} is malformed
-     */
-    @Bean
-    @Qualifier("trustStatementValidator")
-    public DidJwtValidator trustStatementDidJwtValidator() {
-        Set<String> hosts = Set.of(properties.getApiUrl());
-        log.info("Configuring trust statement JWT validator with allowed host: {}", hosts);
-        return new DidJwtValidator(new UrlRestriction(hosts));
-    }
 }

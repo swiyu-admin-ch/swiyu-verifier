@@ -46,7 +46,6 @@ import lombok.extern.slf4j.Slf4j;
 public class TrustProtocol2Validator {
 
     private final TrustStatementCacheService statementProvider;
-    @Qualifier("trustStatementValidator")
     private final DidKidParser didKidParser = new DidKidParser();
     private final TrustRegistryProperties trustRegistryProperties;
 

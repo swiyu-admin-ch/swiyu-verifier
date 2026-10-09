@@ -52,7 +52,6 @@ import com.nimbusds.jwt.SignedJWT;
 @ConditionalOnExpression("'${swiyu.trust-registry.api-url:}'.length() > 0")
 public class TrustStatementValidator {
 
-    @Qualifier("trustStatementValidator")
     private final DidJwtValidator trustStatementDidJwtValidator;
     private final TrustRegistryProperties trustRegistryProperties;
     private final CacheProperties cacheProperties;

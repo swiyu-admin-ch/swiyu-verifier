@@ -188,7 +188,7 @@ class JweDecryptionServiceTest {
         // JweUtilException is wrapped by JweDecryptionService into a generic VerificationException.
         assertThat(exception.getErrorDescription()).isEqualTo("Response cannot be decrypted.");
         assertThat(exception).hasRootCauseMessage(
-                "Decrypted payload exceeds the maximum allowed decompressed size of %d characters"
+                "Decompressed plain text exceeds the maximum allowed length of %d bytes"
                         .formatted(claims.length() - 1));
     }
 

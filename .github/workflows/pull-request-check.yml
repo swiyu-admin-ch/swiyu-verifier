@@ -194,7 +194,7 @@ jobs:
           restore-keys: pgp-keys-
 
       - name: Install Snyk CLI
-        uses: snyk/actions/setup@b075801f26076be9bb50521154cafab73f44da0c # latest on master
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # latest on master
 
       - name: Run Snyk to check for vulnerabilities 🔍
         run: snyk test --maven-aggregate-project --severity-threshold=high --sarif-file-output=snyk.sarif

@@ -70,7 +70,8 @@ class CreateVerificationManagementValidatorTest {
                 null, // configuration_override
                 dcqlQuery,
                 null, // verificationPurpose
-                null // redirectUri
+                null, // redirectUri
+                null // noncePrefix
         );
     }
 

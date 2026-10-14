@@ -2,6 +2,9 @@ package ch.admin.bj.swiyu.verifier.domain.management;
 
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.net.URI;
 import java.util.Map;
@@ -36,6 +39,42 @@ class ManagementTest {
         Management secondManagement = Management.builder().build();
 
         assertThat(firstManagement.getRequestNonce()).isNotEqualTo(secondManagement.getRequestNonce());
+    }
+
+    /**
+     * Test case where a request nonce is created with a prefix.
+     * Expected result: the nonce is the prefix followed by '#' and a random UUID version 4.
+     */
+    @Test
+    public void testCreateRequestNonce_withPrefix() {
+        String requestNonce = Management.createRequestNonce("my-prefix");
+
+        assertThat(requestNonce).startsWith("my-prefix#");
+        UUID randomPart = UUID.fromString(requestNonce.substring("my-prefix#".length()));
+        assertThat(randomPart.version()).isEqualTo(4);
+    }
+
+    /**
+     * Test case where a request nonce is created without a prefix (null or blank).
+     * Expected result: the nonce is only a random UUID version 4 without separator.
+     */
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\t"})
+    public void testCreateRequestNonce_withoutPrefix(String noncePrefix) {
+        String requestNonce = Management.createRequestNonce(noncePrefix);
+
+        assertThat(requestNonce).doesNotContain("#");
+        assertThat(UUID.fromString(requestNonce).toString()).isEqualTo(requestNonce);
+    }
+
+    /**
+     * Test case where two request nonces are created with the same prefix.
+     * Expected result: the random part differs.
+     */
+    @Test
+    public void testCreateRequestNonce_withPrefix_isFresh() {
+        assertThat(Management.createRequestNonce("prefix")).isNotEqualTo(Management.createRequestNonce("prefix"));
     }
 
     /**

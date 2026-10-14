@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   trust to the issuer ensure that the provided DCQL `trusted_authorities` match the DIDs provided there. 
   If not set in the DCQL query and using `accepted_issuer_dids`, the `trusted_authorities` will be automatically be filled 
   from `accepted_issuer_dids` to allow wallets to filter possible credentials. `(#1177)`
+- Optional `nonce_prefix` in the create verification request. If provided, the request nonce is built as `<nonce_prefix>#<random uuid>`, otherwise it remains a plain random uuid.
 
 ## Changed
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1 to officially support the new JDK LTS release `(#1019)`

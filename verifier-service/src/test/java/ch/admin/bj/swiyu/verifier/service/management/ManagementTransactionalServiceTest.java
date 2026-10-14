@@ -7,7 +7,9 @@ import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
+import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
+import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -139,5 +141,28 @@ class ManagementTransactionalServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> managementTransactionalService.findAndHandleExpiration(id, providedResponseCode));
+    }
+
+    @Test
+    void saveNewManagement_withNoncePrefix_prefixesRequestNonce() {
+        when(mockRepository.save(any(Management.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        var request = CreateVerificationManagementDto.builder().noncePrefix("my-prefix").build();
+
+        var result = managementTransactionalService.saveNewManagement(
+                null, request, ResponseSpecification.builder(), null, null);
+
+        assertThat(result.getRequestNonce()).startsWith("my-prefix#");
+        assertThat(UUID.fromString(result.getRequestNonce().substring("my-prefix#".length())).version()).isEqualTo(4);
+    }
+
+    @Test
+    void saveNewManagement_withoutNoncePrefix_usesPlainUuidAsRequestNonce() {
+        when(mockRepository.save(any(Management.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        var request = CreateVerificationManagementDto.builder().build();
+
+        var result = managementTransactionalService.saveNewManagement(
+                null, request, ResponseSpecification.builder(), null, null);
+
+        assertThat(UUID.fromString(result.getRequestNonce()).toString()).isEqualTo(result.getRequestNonce());
     }
 }

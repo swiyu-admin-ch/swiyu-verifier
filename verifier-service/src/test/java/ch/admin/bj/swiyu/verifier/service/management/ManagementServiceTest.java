@@ -238,6 +238,7 @@ class ManagementServiceTest {
                 null,
                 dcqlQueryDto,
                 null,
+                null,
                 null
         );
     }

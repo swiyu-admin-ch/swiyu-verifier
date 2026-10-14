@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.net.URI;
@@ -69,6 +71,14 @@ public record CreateVerificationManagementDto(
         @Schema(description = "[EXPERIMENTAL] Optional absolute URI to redirect the user after the verification process. Must contain a session_nonce parameter.",
                 example = "https://example.com/redirect?session_nonce=12345")
         @JsonProperty("redirect_uri")
-        URI redirectURI
+        URI redirectURI,
+
+        @Size(max = 128)
+        @Pattern(regexp = "^[^#\\s]+$", message = "must not be blank and must not contain '#' or whitespace")
+        @Schema(description = "Optional prefix for the request nonce. If provided, the nonce of the request object " +
+                "will be built as `<nonce_prefix>#<random uuid>`, otherwise only a random uuid is used.",
+                example = "my-prefix")
+        @JsonProperty("nonce_prefix")
+        String noncePrefix
 ) {
 }

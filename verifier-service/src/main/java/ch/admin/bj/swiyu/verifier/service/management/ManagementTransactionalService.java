@@ -86,6 +86,7 @@ public class ManagementTransactionalService {
                                         URI redirectURI) {
         return repository.save(Management.builder()
                 .expirationInSeconds(applicationProperties.getVerificationTTL())
+                .requestNonce(Management.createRequestNonce(request.noncePrefix()))
                 .dcqlQuery(dcqlQuery)
                 .jwtSecuredAuthorizationRequest(requireNonNullElse(request.jwtSecuredAuthorizationRequest(), true))
                 .responseSpecification(responseSpecificationBuilder.build())

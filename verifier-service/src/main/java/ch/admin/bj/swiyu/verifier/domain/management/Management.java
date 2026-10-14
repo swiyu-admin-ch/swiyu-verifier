@@ -39,6 +39,8 @@ import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.FA
 @EntityListeners(AuditingEntityListener.class)
 public class Management {
 
+    public static final String NONCE_PREFIX_SEPARATOR = "#";
+
     @Embedded
     @Valid
     private final AuditMetadata auditMetadata = new AuditMetadata();
@@ -57,7 +59,7 @@ public class Management {
     private Long version;
 
     @Builder.Default
-    private String requestNonce = UUID.randomUUID().toString();
+    private String requestNonce = createRequestNonce(null);
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -141,6 +143,20 @@ public class Management {
         } else {
             throw new IllegalStateException("State may not be changed through setter");
         }
+    }
+
+    /**
+     * Creates a fresh request nonce.
+     *
+     * @param noncePrefix optional prefix; if not blank the nonce is {@code <noncePrefix>#<random uuid>}
+     * @return the request nonce, consisting only of a random uuid if no prefix was provided
+     */
+    public static String createRequestNonce(String noncePrefix) {
+        var randomPart = UUID.randomUUID().toString();
+        if (noncePrefix == null || noncePrefix.isBlank()) {
+            return randomPart;
+        }
+        return noncePrefix + NONCE_PREFIX_SEPARATOR + randomPart;
     }
 
     public boolean isVerificationPending() {

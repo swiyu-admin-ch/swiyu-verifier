@@ -9,6 +9,8 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -195,5 +197,44 @@ class CreateVerificationManagementDtoTest {
             assertThat(violation.getPropertyPath().toString()).isEqualTo("redirectURI");
             assertThat(violation.getMessage()).isEqualTo("must be an absolute URI and contain a session_nonce parameter");
         });
+    }
+
+    @Test
+    void validate_withNoncePrefix_shouldSucceed() {
+        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
+                .dcqlQuery(createValidDcqlQuery())
+                .noncePrefix("my-prefix")
+                .build();
+
+        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
+
+        assertThat(violations).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "with#hash", "with space"})
+    void validate_withInvalidNoncePrefix_shouldFail(String noncePrefix) {
+        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
+                .dcqlQuery(createValidDcqlQuery())
+                .noncePrefix(noncePrefix)
+                .build();
+
+        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
+
+        assertThat(violations).singleElement()
+                .satisfies(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("noncePrefix"));
+    }
+
+    @Test
+    void validate_withTooLongNoncePrefix_shouldFail() {
+        CreateVerificationManagementDto dto = CreateVerificationManagementDto.builder()
+                .dcqlQuery(createValidDcqlQuery())
+                .noncePrefix("a".repeat(129))
+                .build();
+
+        Set<ConstraintViolation<CreateVerificationManagementDto>> violations = validator.validate(dto);
+
+        assertThat(violations).singleElement()
+                .satisfies(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("noncePrefix"));
     }
 }

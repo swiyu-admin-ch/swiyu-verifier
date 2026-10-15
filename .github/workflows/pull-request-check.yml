@@ -246,7 +246,7 @@ jobs:
         with:
           # report only vulnerabilities with level high or critical, as we want to avoid noise in the PR checks
           image: pull_request_check:latest
-          args: --file=Dockerfile.dhi --severity-threshold=high --exclude-base-image-vulns
+          args: --file=Dockerfile.dhi --policy-path=.snyk --severity-threshold=high --exclude-base-image-vulns
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io
@@ -287,7 +287,7 @@ jobs:
         continue-on-error: false
         with:
           image: pull_request_check:unhardened
-          args: --file=Dockerfile --severity-threshold=high --exclude-base-image-vulns
+          args: --file=Dockerfile --policy-path=.snyk --severity-threshold=high --exclude-base-image-vulns
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           SNYK_API: https://api.eu.snyk.io

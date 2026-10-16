@@ -1,0 +1,10 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  SNYK-JAVA-ORGGLASSFISHJAXB-20883142:
+    - '*':
+        reason: No user controlled xml parsing on our side
+        expires: 2026-10-22T00:00:00.000Z
+        created: 2026-10-15T13:18:18.066Z
+patch: {}

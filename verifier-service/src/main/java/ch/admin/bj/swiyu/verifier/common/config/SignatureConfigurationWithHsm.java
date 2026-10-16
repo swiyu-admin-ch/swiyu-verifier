@@ -50,7 +50,7 @@ public class SignatureConfigurationWithHsm implements SignatureConfiguration {
 
     @Override
     public boolean supportsHSM() {
-        return hsm != null && StringUtils.isNotEmpty(pkcs11Config);
+        return hsm != null || StringUtils.isNotEmpty(pkcs11Config);
     }
 
     @Override

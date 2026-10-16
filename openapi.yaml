@@ -958,23 +958,11 @@ components:
           description: |
             List of dids from issuers whose credentials are accepted for this verification.
             Will be evaluated before trust anchor.
-            If not specified and no trust anchor specified all dids are trusted.
+            If not specified and trust anchor specified in environment variables no presentations are trusted.
           example:
           - did:example:12345
           items:
             type: string
-        trust_anchors:
-          type:
-          - array
-          - "null"
-          description: |
-            List of trust anchor dids from the trust registry.
-            This is an alternative to specifying accepted issuer dids,
-            if these dids have a trust statement.
-            All dids trusted by the trust anchor are accepted.
-            If not specified, trust statements will not be used for this verification.
-          items:
-            $ref: "#/components/schemas/TrustAnchor"
         jwt_secured_authorization_request:
           type: boolean
           description: Toggle whether the request-object is available as plain object
@@ -1013,25 +1001,6 @@ components:
       enum:
       - direct_post
       - direct_post.jwt
-    TrustAnchor:
-      type: object
-      properties:
-        did:
-          type: string
-          example: did:example:12345
-          minLength: 1
-        trust_registry_uri:
-          type: string
-          description: |
-            URI of the trust registry to be used for finding the trust anchor.
-            For the example value the trust anchor would be searched at
-            https://trust-reg.trust-infra.swiyu-int.admin.ch/api/v1/truststatements/{trust_anchor_did}
-          example: https://trust-reg.trust-infra.swiyu-int.admin.ch
-          minLength: 1
-          pattern: ^https://.*
-      required:
-      - did
-      - trust_registry_uri
     VerificationPurpose:
       type: object
       properties:

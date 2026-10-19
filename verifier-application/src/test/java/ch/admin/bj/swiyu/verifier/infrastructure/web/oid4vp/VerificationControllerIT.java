@@ -50,6 +50,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -298,7 +300,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").get("addresses.%d.country".formatted(expectedIndex)).asArray();
+        var addresses = walletResponse.get("credential_subject_data").get(DEFAULT_DCQL_CREDENTIAL_ID).get("addresses.%d.country".formatted(expectedIndex)).asArray();
 
         // as all addresses are sent in disclosures, all addresses should be present in the verification result, even if some were not requested
         assertThat(addresses).hasSize(1);
@@ -380,10 +382,63 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").get("addresses.%d.country".formatted(expectedIndex)).asArray();
+        var addresses = walletResponse.get("credential_subject_data").get(DEFAULT_DCQL_CREDENTIAL_ID).get("addresses.%d.country".formatted(expectedIndex)).asArray();
 
         assertThat(addresses).as("Only requested index should be provided").hasSize(1);
         assertThat(addresses.get(0).asString()).isEqualTo(expectedCountry);
+    }
+
+    @Test
+    void shouldReturnMultipleClaimsWhenRequestedWithNull_thenSuccess() throws Exception {
+        // credential_subject_data is only included in the management API response when explicitly enabled (EIDOMNI-1321)
+        enableCredentialSubjectDataAuditInformation();
+
+        var createResponseDto = createVerificationRequest("""
+                {
+                "credentials": [
+                    {
+                      "id": "%s",
+                      "format": "%s",
+                      "meta": {
+                        "vct_values": [ "%s" ]
+                      },
+                      "claims": [
+                          {"path": ["addresses", null, "country"]}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT), null);
+
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSimpleNestedSDJWTMock();
+
+        // hand over the entire sdJwt
+
+        var vpToken = emulator.addKeyBindingProof(sdJWT, createResponseDto.requestNonce(), clientIdWithPrefix);
+
+        // mock did resolver response so we get a valid public key for the issuer
+        mockDidResolverResponse(emulator);
+
+        // WHEN / THEN
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
+
+        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+                .andExpect(status().isOk());
+
+        var mgmtResponse = getManagementObjectById(createResponseDto.id().toString())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
+        var presentedValues = walletResponse.get("credential_subject_data").get(DEFAULT_DCQL_CREDENTIAL_ID);
+        assertThat(presentedValues).as("Only one claim was requested in the dcql query").hasSize(1);
+        var addresses = presentedValues.get("addresses.null.country").asArray();
+
+        assertThat(addresses).as("Both options are returned").hasSize(2);
+        assertThat(addresses.valueStream().map(JsonNode::asString)).containsExactly("CH", "GB");
     }
 
     private HikariPoolMXBean hikariPool() {
@@ -1417,6 +1472,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 }
                 """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex, expectedCountry);
 
+        return createVerificationRequest(dcqlQuery, override);
+    }
+
+    private ManagementResponseDto createVerificationRequest(String dcqlQuery, ConfigurationOverrideDto override) {
         var createVerificationManagementDto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)

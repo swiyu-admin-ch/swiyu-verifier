@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -53,7 +54,7 @@ class DcqlPresentationVerificationServiceTest {
         var management = mock(Management.class);
         var credentialId = "cred-1";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
-        var claims = List.of(new DcqlClaim(null, List.of("given_name"), null));
+        var claims = List.of(new DcqlClaim("given_name", List.of("given_name"), null));
         var requestedCredential = DcqlCredential.builder()
             .id(credentialId)
             .format(DC_SD_JWT_CREDENTIAL_FORMAT)
@@ -84,7 +85,7 @@ class DcqlPresentationVerificationServiceTest {
         var resultJson = result.verifiedResponsesJsonString();
         // Assert
         assertTrue(resultJson.contains("\"" + credentialId + "\""));
-        assertTrue(resultJson.contains("\"given_name\":\"Alice\""));
+        assertThat(resultJson).contains("\"given_name\":[\"Alice\"]");
         verify(sdJwtLegacyPresentationVerifier).verify(vpToken, management, requestedCredential);
     }
 

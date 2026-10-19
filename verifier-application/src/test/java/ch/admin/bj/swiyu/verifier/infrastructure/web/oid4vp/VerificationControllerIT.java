@@ -298,13 +298,13 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").asArray().get(0).get("addresses").asArray();
+        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").get("addresses.%d.country".formatted(expectedIndex)).asArray();
 
         // as all addresses are sent in disclosures, all addresses should be present in the verification result, even if some were not requested
-        assertThat(addresses).hasSize(2);
+        assertThat(addresses).hasSize(1);
 
-        assertThat(addresses.get(expectedIndex)).isNotNull();
-        assertThat(addresses.get(expectedIndex).get("country").asString()).isEqualTo(expectedCountry);
+        assertThat(addresses).as("Only requested index should be provided").hasSize(1);
+        assertThat(addresses.get(0).asString()).isEqualTo(expectedCountry);
     }
 
     @Test
@@ -380,13 +380,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").asArray().get(0).get("addresses").asArray();
+        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").get("addresses.%d.country".formatted(expectedIndex)).asArray();
 
-        // as all addresses are sent in disclosures, all addresses should be present in the verification result, even if some were not requested
-        assertThat(addresses).hasSize(2);
-
-        assertThat(addresses.get(expectedIndex)).isNotNull();
-        assertThat(addresses.get(expectedIndex).get("country").asString()).isEqualTo(expectedCountry);
+        assertThat(addresses).as("Only requested index should be provided").hasSize(1);
+        assertThat(addresses.get(0).asString()).isEqualTo(expectedCountry);
     }
 
     private HikariPoolMXBean hikariPool() {
@@ -1370,10 +1367,10 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").asArray().get(0).get("addresses").asArray();
+        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").get("addresses.0.country").asArray();
 
-        // as all addresses are sent in disclosures, all addresses should be present in the verification result, even if some were not requested
-        assertThat(addresses).hasSize(2);
+        // Only selected index should be returned
+        assertThat(addresses).hasSize(1);
     }
 
     private @NonNull ResultActions postVerificationResponse(UUID requestObjectId, String dcqlVpToken, UUID state) throws Exception {

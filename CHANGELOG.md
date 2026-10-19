@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+## Changed
+- Values returned are not only requested values `(#1201)`
+
 # [5.0.1] - 2026-10-15
 
 - Fix hsm key selection with override `(#1404)`

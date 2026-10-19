@@ -7,10 +7,8 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.TrustedAuthority;
 import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service for processing and validating DCQL (Decentralized Credential Query Language) claims and paths.
@@ -32,25 +30,43 @@ public class DcqlUtil {
      * @param sdJwt           the SD-JWT to be validated
      * @param requestedClaims the DCQL claim definitions that must be satisfied by the SD-JWT
      */
-    public static void validateRequestedClaims(SdJwt sdJwt, List<DcqlClaim> requestedClaims) {
+    public static Map<String, Object> validateRequestedClaims(SdJwt sdJwt, List<DcqlClaim> requestedClaims) {
         if (CollectionUtils.isEmpty(requestedClaims)) {
-            return;
+            return Map.of();
         }
         // Collect all presented claims
-        for (DcqlClaim requestedClaim : requestedClaims) {
-            var claims = selectClaim(sdJwt, requestedClaim);
+        return requestedClaims.stream().collect(Collectors.toMap(DcqlUtil::buildResultAddress, rc -> resolveDcqlClaim(sdJwt, rc)));
+    }
 
-            List<Object> sanitizedRequestValues = requestedClaim.getValues();
-
-            if (sanitizedRequestValues != null) {
-                // if int cast to long
-                sanitizedRequestValues = sanitizedRequestValues.stream().map(value -> value instanceof Integer number ? number.longValue() : value).toList();
-            }
-
-            if (sanitizedRequestValues != null && Collections.disjoint(claims, sanitizedRequestValues)) {
-                throw new IllegalArgumentException("Not all requested claim values are satisfied");
-            }
+    /**
+     * Builds an address for returning the claim. If set the id is used. Else the claim path is used.
+     * eg. the dcql path ["addresses", null, "zip"] results in "addresses.null.zip"
+     *
+     * @param claim the claim to create the address for.
+     * @return claim id if present. Else concatenated path
+     */
+    private static String buildResultAddress(DcqlClaim claim) {
+        if (claim.getId()!=null) {
+            return claim.getId();
         }
+        return claim.getPath().stream().map(p -> p == null ? "null":p.toString()).collect(Collectors.joining("."));
+    }
+
+    private static List<Object> resolveDcqlClaim(SdJwt sdJwt, DcqlClaim requestedClaim) {
+        var claims = selectClaim(sdJwt, requestedClaim);
+
+        List<Object> sanitizedRequestValues = requestedClaim.getValues();
+
+        if (sanitizedRequestValues != null) {
+            // if int cast to long
+            sanitizedRequestValues = sanitizedRequestValues.stream().map(value -> value instanceof Integer number ? number.longValue() : value).toList();
+        }
+
+        if (sanitizedRequestValues != null && Collections.disjoint(claims, sanitizedRequestValues)) {
+            throw new IllegalArgumentException("Not all requested claim values are satisfied");
+        }
+
+        return claims;
     }
 
     /**

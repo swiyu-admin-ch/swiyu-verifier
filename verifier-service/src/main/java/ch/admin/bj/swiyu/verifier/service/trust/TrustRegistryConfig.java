@@ -1,0 +1,58 @@
+package ch.admin.bj.swiyu.verifier.service.trust;
+
+import ch.admin.bj.swiyu.core.trust.client.api.TrustProtocol20Api;
+import ch.admin.bj.swiyu.core.trust.client.invoker.ApiClient;
+import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
+import ch.admin.bj.swiyu.jwtvalidator.UrlRestriction;
+import ch.admin.bj.swiyu.verifier.common.config.TrustRegistryProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.Set;
+
+/**
+ * Spring configuration for the Trust Registry sidechannel API client and JWT validator.
+ *
+ * <p>Only active when {@code swiyu.trust-registry.api-url} is configured.</p>
+ */
+@Slf4j
+@Configuration
+@RequiredArgsConstructor
+@ConditionalOnExpression("'${swiyu.trust-registry.api-url:}'.length() > 0")
+public class TrustRegistryConfig {
+
+    private final TrustRegistryProperties properties;
+    
+    private final WebClient webClient;
+
+    /**
+     * Creates the WebClient-backed {@link ApiClient} for the Trust Registry sidechannel,
+     * using the configured Trust Registry base URL.
+     *
+     * @return configured {@link ApiClient}
+     */
+    @Bean
+    public ApiClient trustRegistryApiClient() {
+        ApiClient client = new ApiClient(webClient);
+        client.setBasePath(properties.getApiUrl());
+        log.info("Initializing Trust Registry sidechannel API client for {}", properties.getApiUrl());
+        return client;
+    }
+
+    /**
+     * Exposes the generated {@link TrustProtocol20Api} as a Spring bean.
+     *
+     * @param trustRegistryApiClient the configured API client
+     * @return the Trust Protocol 2.0 API facade
+     */
+    @Bean
+    public TrustProtocol20Api trustProtocol20Api(ApiClient trustRegistryApiClient) {
+        return new TrustProtocol20Api(trustRegistryApiClient);
+    }
+}

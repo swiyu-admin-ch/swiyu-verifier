@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # [NEXT]
 
 ## Changed
-- Values returned are not only requested values `(#1201)`
+- In response for verification only requested values are returned instead of all received claims. `(#1201)`
 
 # [5.0.1] - 2026-10-15
 

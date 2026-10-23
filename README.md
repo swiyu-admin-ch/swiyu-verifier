@@ -163,7 +163,7 @@ The response provided by the generic verifier will look as follows.
 {
     "state": "SUCCESS",
     "wallet_response": {
-        "credential_subject_data": {
+        "dcql_response": {
             "my_hitchhiker_request": {
                 "name": ["Arthur Dent"],
                 "address.street_address": ["42 Market Street"],

@@ -300,7 +300,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var addresses = walletResponse.get("credential_subject_data").get(DEFAULT_DCQL_CREDENTIAL_ID).get("addresses.%d.country".formatted(expectedIndex)).asArray();
+        var addresses = walletResponse.get("dcql_response").get(DEFAULT_DCQL_CREDENTIAL_ID).get("addresses.%d.country".formatted(expectedIndex)).asArray();
 
         // as all addresses are sent in disclosures, all addresses should be present in the verification result, even if some were not requested
         assertThat(addresses).hasSize(1);
@@ -382,7 +382,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var addresses = walletResponse.get("credential_subject_data").get(DEFAULT_DCQL_CREDENTIAL_ID).get("addresses.%d.country".formatted(expectedIndex)).asArray();
+        var addresses = walletResponse.get("dcql_response").get(DEFAULT_DCQL_CREDENTIAL_ID).get("addresses.%d.country".formatted(expectedIndex)).asArray();
 
         assertThat(addresses).as("Only requested index should be provided").hasSize(1);
         assertThat(addresses.get(0).asString()).isEqualTo(expectedCountry);
@@ -433,7 +433,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var presentedValues = walletResponse.get("credential_subject_data").get(DEFAULT_DCQL_CREDENTIAL_ID);
+        var presentedValues = walletResponse.get("dcql_response").get(DEFAULT_DCQL_CREDENTIAL_ID);
         assertThat(presentedValues).as("Only one claim was requested in the dcql query").hasSize(1);
         var addresses = presentedValues.get("addresses.null.country").asArray();
 
@@ -1422,7 +1422,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
                 .getContentAsString();
 
         JsonNode walletResponse = objectMapper.readTree(mgmtResponse).get("wallet_response");
-        var addresses = walletResponse.get("credential_subject_data").get("defaultTestDcqlCredentialId").get("addresses.0.country").asArray();
+        var addresses = walletResponse.get("dcql_response").get("defaultTestDcqlCredentialId").get("addresses.0.country").asArray();
 
         // Only selected index should be returned
         assertThat(addresses).hasSize(1);

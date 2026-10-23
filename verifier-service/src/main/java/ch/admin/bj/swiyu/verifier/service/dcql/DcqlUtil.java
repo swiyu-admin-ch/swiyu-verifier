@@ -30,7 +30,7 @@ public class DcqlUtil {
      * @param sdJwt           the SD-JWT to be validated
      * @param requestedClaims the DCQL claim definitions that must be satisfied by the SD-JWT
      */
-    public static Map<String, Object> validateRequestedClaims(SdJwt sdJwt, List<DcqlClaim> requestedClaims) {
+    public static Map<String, List<Object>> validateRequestedClaims(SdJwt sdJwt, List<DcqlClaim> requestedClaims) {
         if (CollectionUtils.isEmpty(requestedClaims)) {
             return Map.of();
         }

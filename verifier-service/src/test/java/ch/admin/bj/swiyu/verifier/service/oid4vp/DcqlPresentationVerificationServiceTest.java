@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -51,11 +51,12 @@ class DcqlPresentationVerificationServiceTest {
     void process_happyPath_returnsJsonWithClaims() {
         // Arrange
         var management = mock(Management.class);
-        var credentialId = "cred-1";
+        var DCQL_QUERY_ID = "cred-1";
+        var REQUESTED_CLAIM = "given_name";
         var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
-        var claims = List.of(new DcqlClaim("given_name", List.of("given_name"), null));
+        var claims = List.of(new DcqlClaim(REQUESTED_CLAIM, List.of(REQUESTED_CLAIM), null));
         var requestedCredential = DcqlCredential.builder()
-            .id(credentialId)
+            .id(DCQL_QUERY_ID)
             .format(DC_SD_JWT_CREDENTIAL_FORMAT)
             .meta(meta)
             .claims(claims)
@@ -66,13 +67,13 @@ class DcqlPresentationVerificationServiceTest {
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 
         var vpToken = "vp-token-sdjwt";
-        var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken)));
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(DCQL_QUERY_ID, List.of(vpToken)));
 
         var sdJwt = mock(SdJwt.class);
         when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired()) ).thenReturn(
             SdJwtVerificationResult.builder().sdJwt(sdJwt).statusVerificationResult(Optional.of(new StatusVerificationResultDto(true, Optional.of(0)))).build());
 
-        Map<String, Object> claimMap = Map.of("given_name", "Alice", "vct", "vct:test");
+        Map<String, Object> claimMap = Map.of(REQUESTED_CLAIM, "Alice", "vct", "vct:test");
         // simulate extraction of claims from SdJwt via mocked JWTClaimsSet
         JWTClaimsSet claimsObj = mock(JWTClaimsSet.class);
         when(claimsObj.getClaims()).thenReturn(claimMap);
@@ -82,12 +83,24 @@ class DcqlPresentationVerificationServiceTest {
         // Act
         var result = dcqlPresentationVerificationService.processVerificationPresentation(management, request);
         var resultJson = result.verifiedResponsesJsonString();
+        var dcqlResult = result.dcqlResponse();
         // Assert
 
-        assertThat(resultJson)
-                .as("Id of dcql query should be present").contains("\"" + credentialId + "\"")
-                .as("Value should be present with path name").contains("\"given_name\":[\"Alice\"]");
+        assertThat(dcqlResult)
+                .hasSize(1)
+                .containsKey(DCQL_QUERY_ID);
+        var dcqlCredentialResult = dcqlResult.get(DCQL_QUERY_ID);
+        assertThat(dcqlCredentialResult).as("Only name was requested")
+                .hasSize(1)
+                .containsKey(REQUESTED_CLAIM)
+                .containsValue(List.of("Alice"));
+
         verify(sdJwtLegacyPresentationVerifier).verifySdJwtVpToken(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired());
+
+        // Deprecated
+        assertThat(resultJson)
+                .as("Id of dcql query should be present").contains("\"" + DCQL_QUERY_ID + "\"")
+                .as("Value should be present with path name").contains("\"given_name\":\"Alice\"");
     }
 
     @Test

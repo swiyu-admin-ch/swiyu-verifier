@@ -35,7 +35,12 @@ public class DcqlUtil {
             return Map.of();
         }
         // Collect all presented claims
-        return requestedClaims.stream().collect(Collectors.toMap(DcqlUtil::buildResultAddress, rc -> resolveDcqlClaim(sdJwt, rc)));
+        // Duplicate keys are grouped together
+        return requestedClaims.stream().collect(
+                Collectors.groupingBy(
+                        DcqlUtil::buildResultAddress,
+                        Collectors.flatMapping(rc -> resolveDcqlClaim(sdJwt, rc).stream(),
+                                Collectors.toList())));
     }
 
     /**

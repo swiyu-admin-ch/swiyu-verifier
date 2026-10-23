@@ -209,7 +209,7 @@ class PresentationVerificationUsecaseTest {
         assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
 
-        verify(callbackEventProducer).produceEvent(managementId);
+        verify(callbackEventProducer, never()).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any(), any());
     }
 
@@ -242,7 +242,7 @@ class PresentationVerificationUsecaseTest {
         assertThrows(ProcessClosedException.class, () ->
                 presentationVerificationUsecase.receiveVerificationPresentationClientRejection(managementId, rejectionRequest));
 
-        verify(callbackEventProducer).produceEvent(managementId);
+        verify(callbackEventProducer, never()).produceEvent(managementId);
         verify(managementEntity, never()).verificationFailedDueToClientRejection(any(), any());
     }
 

@@ -24,6 +24,7 @@ public record ResponseData(
         /**
          * Full VP Token as sent by the Wallet. Decrypted, if it was originally encrypted
          */
-        Map<String, List<String>> vpToken
+        Map<String, List<String>> vpToken,
+        Map<String, Map<String, List<Object>>> dcqlResponseData
 ) {
 }

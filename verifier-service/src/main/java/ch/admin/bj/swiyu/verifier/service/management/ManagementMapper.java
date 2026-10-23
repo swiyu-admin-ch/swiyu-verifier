@@ -146,6 +146,7 @@ public class ManagementMapper {
             .credentialSubjectData(auditInformation.isCredentialSubjectDataEnabled() && nonNull(credentialSubjectDataString)
                     ? jsonStringToMap(credentialSubjectDataString)
                     : null)
+            .dcqlResponse(source.dcqlResponseData())
             .vpToken(auditInformation.isVpTokenEnabled() ? source.vpToken() : null)
             .build();
         

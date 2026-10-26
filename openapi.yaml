@@ -7,7 +7,7 @@ servers:
   description: Generated server url
 tags:
 - name: Verifier Management API
-  description: This API allows the creation of a verfication process and retrieval
+  description: This API allows the creation of a verification process and retrieval
     of its status.It is used by the business verifier to manage verifications. (IF-100)
 - name: Verfifier OID4VP API
   description: "Handles OpenID for Verifiable Presentations (OID4VP) endpoints, enabling\

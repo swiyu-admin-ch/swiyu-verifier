@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -73,7 +73,7 @@
         <!-- Fixes CVE-2026-13006 -->
         <logback-core.version>1.6.5</logback-core.version>
         <!-- Fixes various SNYK-JAVA-ORGAPACHETOMCATEMBED -->
-        <tomcat.version>11.0.26</tomcat.version>
+        <tomcat.version>11.0.27</tomcat.version>
         <!-- Fixes CVE-2026-59889 and SNYK-JAVA-TOOLSJACKSONCORE-19778371. Spring Boot 4.1.1 manages
              Jackson via two BOMs, jackson-2-bom (com.fasterxml.jackson) and jackson-bom (tools.jackson);
              both must be bumped together so jackson-annotations/jackson-core stay aligned with

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -39,7 +39,7 @@
         <!-- Fixes SNYK-JAVA-ORGSPRINGFRAMEWORKCLOUD-19268251 (Missing Authorization, High Severity) in spring-cloud-context@5.0.2 -->
         <spring-cloud-context.version>5.0.3</spring-cloud-context.version>
         <spring-cloud-starter-bootstrap.version>5.0.3</spring-cloud-starter-bootstrap.version>
-        <openapi-generator-maven-plugin.version>7.25.0</openapi-generator-maven-plugin.version>
+        <openapi-generator-maven-plugin.version>7.26.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
         <logback.version>1.6.5</logback.version>
         <json-path.version>2.10.0</json-path.version>
@@ -61,7 +61,7 @@
 
         <editorconfig-maven-plugin.version>0.2.0</editorconfig-maven-plugin.version>
         <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
-        <kotlin-stdlib.version>2.4.20</kotlin-stdlib.version>
+        <kotlin-stdlib.version>2.4.21</kotlin-stdlib.version>
         <jna.version>5.19.1</jna.version>
         <sd-jwt.version>1.9</sd-jwt.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
@@ -73,7 +73,7 @@
         <!-- Fixes CVE-2026-13006 -->
         <logback-core.version>1.6.5</logback-core.version>
         <!-- Fixes various SNYK-JAVA-ORGAPACHETOMCATEMBED -->
-        <tomcat.version>11.0.26</tomcat.version>
+        <tomcat.version>11.0.27</tomcat.version>
         <!-- Fixes CVE-2026-59889 and SNYK-JAVA-TOOLSJACKSONCORE-19778371. Spring Boot 4.1.1 manages
              Jackson via two BOMs, jackson-2-bom (com.fasterxml.jackson) and jackson-bom (tools.jackson);
              both must be bumped together so jackson-annotations/jackson-core stay aligned with

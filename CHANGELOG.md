@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [NEXT]
 
+# [5.0.1] - 2026-10-15
+
+- Fix hsm key selection with override `(#1404)`
+
+# [5.0.0] - 2026-10-12
+
 ## Added
 - After completed verification the received VP tokens and verification results are now returned for audit and additional business logic purpose `(#908)` & `(#1090)`
 - [Non-breaking if config not changed] Added new configurations for `application.signing-keys` to allow

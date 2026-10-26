@@ -55,11 +55,12 @@ public class PresentationVerificationUsecase {
         log.debug("Processing rejection for request_id: {}", managementEntityId);
 
         // Flag, to know if WE are allowed to fire the event in the finally block
-        boolean isSessionClaimedByThisThread = true;
+        boolean isSessionClaimedByThisThread = false;
 
         try {
             // 1. Atomically claim the session: PENDING → IN_PROGRESS (TOCTOU-safe)
             managementService.claimSessionForProcessing(managementEntityId);
+            isSessionClaimedByThisThread = true;
             // 2. Mark as failed due to client rejection in its own short-lived transaction
             return managementService.markVerificationFailedDueToClientRejection(managementEntityId, rejection);
         } catch (VerificationException e) {
@@ -127,7 +128,7 @@ public class PresentationVerificationUsecase {
             isSessionClaimedByThisThread = true;
             // 2. Perform the potentially long‑running remote/DCQL verification outside of any DB transaction
             log.debug("Starting DCQL submission verification for {}", managementEntityId);
-            var credentialVerificationData = dcqlPresentationVerificationService.process(managementEntity, request);
+            var credentialVerificationData = dcqlPresentationVerificationService.processVerificationPresentation(managementEntity, request);
             log.trace("DCQL submission verification completed for {}", managementEntityId);
 
             // 3a. Persist completed verification result in a dedicated short transaction

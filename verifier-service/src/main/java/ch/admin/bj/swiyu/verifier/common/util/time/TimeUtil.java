@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.verifier.common.util.time;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -53,52 +53,94 @@ public class TimeUtil {
     }
 
     /**
-     * Calculates nanoseconds until expiry from epoch millis.
+     * Calculates nanoseconds until expiry from epoch nanos, based on the system clock.
      * @param expirationTimeNs Epoch in nanoseconds (nullable).
      * @return Nanoseconds until expiry, or null.
      */
     public static Long nanosUntilExpiry(@Nullable Long expirationTimeNs) {
-        if (expirationTimeNs == null) {
-            return null;
-        }
-        return Math.max(0, expirationTimeNs - millisToNanos(Instant.now().toEpochMilli()));
+        return nanosUntilExpiry(expirationTimeNs, Clock.systemUTC());
     }
 
     /**
-     * Calculates nanoseconds until expiry from Instant.
-     * @param expirationTime Instant (nullable).
+     * Calculates nanoseconds until expiry from epoch nanos.
+     * @param expirationTimeNs Epoch in nanoseconds (nullable).
+     * @param clock            Clock providing the current time.
+     * @return Nanoseconds until expiry (never negative), or null.
+     */
+    public static Long nanosUntilExpiry(@Nullable Long expirationTimeNs, Clock clock) {
+        if (expirationTimeNs == null) {
+            return null;
+        }
+        return Math.max(0, expirationTimeNs - millisToNanos(clock.millis()));
+    }
+
+    /**
+     * Calculates nanoseconds until expiry from a Date, based on the system clock.
+     * @param expirationTime Date (nullable).
      * @return Nanoseconds until expiry, or null.
      */
     public static Long nanosUntilExpiry(@Nullable Date expirationTime) {
+        return nanosUntilExpiry(expirationTime, Clock.systemUTC());
+    }
+
+    /**
+     * Calculates nanoseconds until expiry from a Date.
+     * @param expirationTime Date (nullable).
+     * @param clock          Clock providing the current time.
+     * @return Nanoseconds until expiry (never negative), or null.
+     */
+    public static Long nanosUntilExpiry(@Nullable Date expirationTime, Clock clock) {
         if (expirationTime == null) {
             return null;
         }
-        return nanosUntilExpiry(millisToNanos(expirationTime.getTime()));
+        return nanosUntilExpiry(millisToNanos(expirationTime.getTime()), clock);
+    }
+
+    /**
+     * Returns the minimum of accumulator and time until expiry, based on the system clock.
+     * @param accumulatorNs    Time in nanoseconds.
+     * @param expirationTimeNs Epoch nanoseconds (nullable).
+     * @return Minimum of accumulator or time until expiry.
+     */
+    public static long minNanosUntilExpiry(long accumulatorNs, @Nullable Long expirationTimeNs) {
+        return minNanosUntilExpiry(accumulatorNs, expirationTimeNs, Clock.systemUTC());
     }
 
     /**
      * Returns the minimum of accumulator and time until expiry.
      * @param accumulatorNs    Time in nanoseconds.
      * @param expirationTimeNs Epoch nanoseconds (nullable).
+     * @param clock            Clock providing the current time.
      * @return Minimum of accumulator or time until expiry.
      */
-    public static long minNanosUntilExpiry(long accumulatorNs, @Nullable Long expirationTimeNs) {
+    public static long minNanosUntilExpiry(long accumulatorNs, @Nullable Long expirationTimeNs, Clock clock) {
         if (expirationTimeNs == null) {
             return accumulatorNs;
         }
-        return minWithNullable(accumulatorNs, nanosUntilExpiry(expirationTimeNs));
+        return minWithNullable(accumulatorNs, nanosUntilExpiry(expirationTimeNs, clock));
+    }
+
+    /**
+     * Returns the minimum of accumulator and time until expiry, based on the system clock.
+     * @param accumulator    Time in nanoseconds.
+     * @param expirationTime Date (nullable).
+     * @return Minimum of accumulator or time until expiry.
+     */
+    public static long minNanosUntilExpiry(long accumulator, @Nullable Date expirationTime) {
+        return minNanosUntilExpiry(accumulator, expirationTime, Clock.systemUTC());
     }
 
     /**
      * Returns the minimum of accumulator and time until expiry.
      * @param accumulator    Time in nanoseconds.
-     * @param expirationTime Instant (nullable).
+     * @param expirationTime Date (nullable).
+     * @param clock          Clock providing the current time.
      * @return Minimum of accumulator or time until expiry.
      */
-    public static long minNanosUntilExpiry(long accumulator, @Nullable Date expirationTime) {
+    public static long minNanosUntilExpiry(long accumulator, @Nullable Date expirationTime, Clock clock) {
         if (expirationTime == null) {
             return accumulator;
         }
-        return minWithNullable(accumulator, nanosUntilExpiry(expirationTime));
+        return minWithNullable(accumulator, nanosUntilExpiry(expirationTime, clock));
     }
 }

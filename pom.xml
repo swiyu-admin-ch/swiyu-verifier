@@ -63,7 +63,7 @@
         <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
         <kotlin-stdlib.version>2.4.21</kotlin-stdlib.version>
         <jna.version>5.19.1</jna.version>
-        <sd-jwt.version>1.9</sd-jwt.version>
+        <sd-jwt.version>1.10</sd-jwt.version>
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
@@ -88,19 +88,19 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-codec-http</artifactId>
-                <version>4.2.18.Final</version>
+                <version>4.2.19.Final</version>
             </dependency>
             <!-- Fixes CVE-2026-100664 -->
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-codec-http3</artifactId>
-                <version>4.2.18.Final</version>
+                <version>4.2.19.Final</version>
             </dependency>
             <!-- Fixes CVE-2026-100665 -->
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-codec-classes-quic</artifactId>
-                <version>4.2.18.Final</version>
+                <version>4.2.19.Final</version>
             </dependency>
 
             <dependency>

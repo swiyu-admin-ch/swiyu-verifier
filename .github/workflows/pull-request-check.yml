@@ -105,7 +105,7 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           languages: java
           config-file: ./.github/codeql/codeql-config.yml
@@ -132,7 +132,7 @@ jobs:
         run: mvn --batch-mode clean test-compile -DskipTests
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           category: "/language:java"
 
@@ -163,7 +163,7 @@ jobs:
           cache: true
 
       - name: Upload PMD SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           sarif_file: pmd-report.sarif
 
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload result as sarif to GitHub Code Scanning 📦
         if: always() # We want to upload the SARIF file even if the Snyk action fails, to have the results in the Code Scanning tab of GitHub
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         with:
           sarif_file: snyk.sarif
 
@@ -320,14 +320,12 @@ jobs:
           python-version: '3.12'
 
       - name: Install Python Dependencies
-        run: pip install langgraph langchain-openai pydantic
+        run: pip install langgraph langchain-anthropic pydantic
 
       - name: Run AI Review Agent
         env:
-          ADESSO_API_KEY: ${{ secrets.ADESSO_API_KEY }}
-          # These variables can be defined directly here
-          ADESSO_BASE_URL: "https://adesso-ai-hub.3asabc.de/v1"
-          LLM_MODEL_NAME: "claude-sonnet-5*"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LLM_MODEL_NAME: "claude-sonnet-5-5"
           # Tells the script which branch the PR targets (e.g. origin/main)
           GIT_DIFF_TARGET: "origin/${{ github.base_ref }}...HEAD"
         run: |

@@ -110,7 +110,7 @@ To see more details and examples of the verification process please consult the 
 6. **Status Update**: Business Verifier receives status and requested data via polling or webhooks
 
 #### DCQL data response
-The Generic Verifier will by default provide in the `ManagementResponse` object only the values requested in the DCQL query.
+By default, the Generic Verifier only provides the values requested in the DCQL query in the `ManagementResponse` object.
 <details>
   <summary>Example Verification</summary>
 

@@ -6,7 +6,7 @@ import httpx
 from langchain_core.messages import SystemMessage
 from typing import List, TypedDict
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, START, END
 
@@ -112,17 +112,13 @@ def _run_local() -> bool:
     return os.environ.get("RUN_LOCAL", "false").lower() == "true"
 
 
-def _build_llm() -> ChatOpenAI:
+def _build_llm() -> ChatAnthropic:
     """Creates the configured chat model, failing early on missing configuration."""
-    adesso_api_key = os.environ.get("ADESSO_API_KEY")
-    adesso_base_url = os.environ.get("ADESSO_BASE_URL")
-    # LLM_MODEL_NAME is the generic name; QWEN_MODEL_NAME is kept as a fallback
-    # for backwards compatibility since the model behind this proxy is
-    # interchangeable (e.g. Qwen, Gemma, ...).
-    llm_model_name = os.environ.get("LLM_MODEL_NAME", os.environ.get("QWEN_MODEL_NAME", "qwen"))
+    anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+    llm_model_name = os.environ.get("LLM_MODEL_NAME", "claude-sonnet-5-5")
 
-    if not adesso_api_key or not adesso_base_url:
-        raise ValueError("ERROR: Please set ADESSO_API_KEY and ADESSO_BASE_URL as environment variables!")
+    if not anthropic_api_key:
+        raise ValueError("ERROR: Please set ANTHROPIC_API_KEY as an environment variable!")
 
     # A single request now covers the whole diff (see SPLIT_DIFF_BY_FILE), so the
     # JSON response has to fit far more findings than the old per-file default.
@@ -133,8 +129,7 @@ def _build_llm() -> ChatOpenAI:
 
     llm_kwargs = dict(
         model=llm_model_name,
-        api_key=adesso_api_key,
-        base_url=adesso_base_url,
+        api_key=anthropic_api_key,
         max_tokens=int(os.environ.get("LLM_MAX_TOKENS", default_max_tokens)), # Must be high enough for the full JSON; truncated output cannot be parsed
         timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "300")), # Fail fast instead of hanging
         max_retries=int(os.environ.get("LLM_MAX_RETRIES", "3")), # Retry transient errors (e.g. 504) with backoff
@@ -144,13 +139,9 @@ def _build_llm() -> ChatOpenAI:
         # self-signed cert; the CI runner talks to the API directly and
         # doesn't need this.
         llm_kwargs["http_client"] = httpx.Client(verify=False)
-    # Claude models behind the adesso AI Hub proxy (routed via Vertex AI) reject
-    # the 'temperature' param outright ("temperature is deprecated for this
-    # model"), so it must only be sent for models that still accept it.
-    if "claude" not in llm_model_name.lower():
-        llm_kwargs["temperature"] = 0
+    # 'temperature' is intentionally not set: newer Claude models reject it.
+    return ChatAnthropic(**llm_kwargs)
 
-    return ChatOpenAI(**llm_kwargs)
 
 
 SYSTEM_PROMPT = """You are a strict but constructive Senior Java/Spring Boot code reviewer for the swiyu-verifier project.
@@ -237,7 +228,7 @@ SYSTEM_PROMPT = """You are a strict but constructive Senior Java/Spring Boot cod
 
 
 def analyze_diff_node(state: ReviewState) -> ReviewState:
-    """Node 1: Analyzes the code against the swiyu/adesso guidelines.
+    """Node 1: Analyzes the code against the swiyu guidelines.
 
     By default the whole diff is reviewed in a single request, which large-
     context models like Claude Sonnet handle fine. Set SPLIT_DIFF_BY_FILE=true
@@ -247,13 +238,12 @@ def analyze_diff_node(state: ReviewState) -> ReviewState:
     resilient, since a single failing/timing-out file no longer aborts the
     whole review.
     """
-    print("-> Analyzing git diff with the configured LLM (adesso AI Hub)...")
+    print("-> Analyzing git diff with the configured LLM (Anthropic)...")
 
     llm = _build_llm()
 
-    # Enforce structured output
-    #structured_llm = llm.with_structured_output(ReviewResult)
-    structured_llm = llm.with_structured_output(ReviewResult, method="json_mode")
+    # Enforce structured output (tool calling under the hood)
+    structured_llm = llm.with_structured_output(ReviewResult)
 
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=SYSTEM_PROMPT),

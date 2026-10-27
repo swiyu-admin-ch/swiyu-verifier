@@ -48,7 +48,7 @@ public class TimeUtil {
      * @param nullableLongMs Milliseconds (nullable).
      * @return Nanoseconds, or null.
      */
-    public Long millisToNanos(@Nullable Long nullableLongMs) {
+    static Long millisToNanos(@Nullable Long nullableLongMs) {
         return nullableLongMs == null ? null : TimeUnit.MILLISECONDS.toNanos(nullableLongMs);
     }
 
@@ -57,7 +57,7 @@ public class TimeUtil {
      * @param expirationTimeNs Epoch in nanoseconds (nullable).
      * @return Nanoseconds until expiry, or null.
      */
-    public static Long nanosUntilExpiry(@Nullable Long expirationTimeNs) {
+    static Long nanosUntilExpiry(@Nullable Long expirationTimeNs) {
         return nanosUntilExpiry(expirationTimeNs, Clock.systemUTC());
     }
 
@@ -67,20 +67,11 @@ public class TimeUtil {
      * @param clock            Clock providing the current time.
      * @return Nanoseconds until expiry (never negative), or null.
      */
-    public static Long nanosUntilExpiry(@Nullable Long expirationTimeNs, Clock clock) {
+    static Long nanosUntilExpiry(@Nullable Long expirationTimeNs, Clock clock) {
         if (expirationTimeNs == null) {
             return null;
         }
         return Math.max(0, expirationTimeNs - millisToNanos(clock.millis()));
-    }
-
-    /**
-     * Calculates nanoseconds until expiry from a Date, based on the system clock.
-     * @param expirationTime Date (nullable).
-     * @return Nanoseconds until expiry, or null.
-     */
-    public static Long nanosUntilExpiry(@Nullable Date expirationTime) {
-        return nanosUntilExpiry(expirationTime, Clock.systemUTC());
     }
 
     /**
@@ -89,7 +80,7 @@ public class TimeUtil {
      * @param clock          Clock providing the current time.
      * @return Nanoseconds until expiry (never negative), or null.
      */
-    public static Long nanosUntilExpiry(@Nullable Date expirationTime, Clock clock) {
+    static Long nanosUntilExpiry(@Nullable Date expirationTime, Clock clock) {
         if (expirationTime == null) {
             return null;
         }
@@ -113,7 +104,7 @@ public class TimeUtil {
      * @param clock            Clock providing the current time.
      * @return Minimum of accumulator or time until expiry.
      */
-    public static long minNanosUntilExpiry(long accumulatorNs, @Nullable Long expirationTimeNs, Clock clock) {
+    static long minNanosUntilExpiry(long accumulatorNs, @Nullable Long expirationTimeNs, Clock clock) {
         if (expirationTimeNs == null) {
             return accumulatorNs;
         }
@@ -137,7 +128,7 @@ public class TimeUtil {
      * @param clock          Clock providing the current time.
      * @return Minimum of accumulator or time until expiry.
      */
-    public static long minNanosUntilExpiry(long accumulator, @Nullable Date expirationTime, Clock clock) {
+    static long minNanosUntilExpiry(long accumulator, @Nullable Date expirationTime, Clock clock) {
         if (expirationTime == null) {
             return accumulator;
         }

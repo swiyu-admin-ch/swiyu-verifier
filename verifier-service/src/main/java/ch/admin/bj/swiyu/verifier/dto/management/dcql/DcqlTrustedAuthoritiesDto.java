@@ -3,7 +3,9 @@ package ch.admin.bj.swiyu.verifier.dto.management.dcql;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -21,6 +23,8 @@ public record DcqlTrustedAuthoritiesDto(
                 "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'type'.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("type")
+        @Valid
+        @NotNull(message = "type must not be null")
         @NotEmpty(message = "type must not be empty")
         String type, // REQUIRED
 
@@ -30,7 +34,9 @@ public record DcqlTrustedAuthoritiesDto(
                 "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'values'.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("values")
+        @Valid
+        @NotNull(message = "values must not be null")
         @NotEmpty(message = "values must not be empty")
-        List<String> values // REQUIRED
+        List<@NotNull @NotEmpty String> values // REQUIRED
 ) {
 }

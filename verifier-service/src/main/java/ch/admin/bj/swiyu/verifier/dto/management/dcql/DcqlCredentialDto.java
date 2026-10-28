@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -89,5 +90,7 @@ public record DcqlCredentialDto(
         @Hidden
         @Schema(description = "An optional non-empty array of Trusted Authorities Query objects. Some aspects of trusted authorities processing are not implemented in this release.")
         @JsonProperty("trusted_authorities")
-        List<DcqlTrustedAuthoritiesDto> trustedAuthorities // OPTIONAL
+        @Valid
+        @Size(min = 1, message = "trusted_authorities must not be empty when provided") // Allows for null values
+        List<@NotNull DcqlTrustedAuthoritiesDto> trustedAuthorities // OPTIONAL
 ) { }

@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In response for verification only requested values are returned in new field `dcql_response`. `(#1201)`
 - Update default sizes for encrypted messages to be in MB as in swiss-profile instead of MiB `(#1397)`
 
+## Fixed
+- Updated validation of `trusted_authorities` to be compliant with OID4VP specification `(#1401)`
+
 # [5.0.1] - 2026-10-15
 
 - Fix hsm key selection with override `(#1404)`

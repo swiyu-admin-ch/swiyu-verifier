@@ -441,7 +441,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
      * Index 3: Custom Status (3)
      */
     @ParameterizedTest
-    @CsvSource(value = {"1:2"}, delimiter = ':')
+    @CsvSource(value = {"0:1", "1:2", "3:3"}, delimiter = ':')
     void shouldSucceedVerifyingSDJWTCredentialWithSD_thenFail(Integer index, Integer tokenStatusListStatusCode) throws Exception {
         // Integer index = "".equals(input) ? null : Integer.parseInt(input);
         // GIVEN

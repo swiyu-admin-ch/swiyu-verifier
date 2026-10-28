@@ -30,7 +30,7 @@ import java.util.UUID;
 @ActiveProfiles("test")
 @ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
 @Import(VerifierManagementPactFixture.class)
-class VerifierManagementPactProviderTest {
+class VerifierManagementPactProviderTest extends AbstractMock {
 
     @Autowired
     private VerifierManagementPactFixture fixture;

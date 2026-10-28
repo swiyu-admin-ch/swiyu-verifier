@@ -3,7 +3,6 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 import ch.admin.bj.swiyu.tsbuilder.IdTsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.PvaTsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.VqPsBuilder;
-import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
 import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
@@ -14,7 +13,6 @@ import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.trust.TrustStatementCacheService;
 import ch.admin.bj.swiyu.verifier.service.trust.TrustStatementValidator;
-import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
@@ -25,15 +23,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -73,22 +66,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Expected result: HTTP 200 with a JSON body where
  * {@code verifier_info[*].data} contains two non-blank JWT strings.</p>
  */
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {
-                "swiyu.trust-registry.api-url=https://trust-registry.example.ch",
-                "swiyu.trust-registry.max-cache-size=100",
-                "swiyu.trust-registry.clock-skew-buffer-seconds=0",
-                "swiyu.trust-registry.max-cache-ttl-seconds=3600"
-        }
-)
-@AutoConfigureMockMvc
-@Testcontainers
-@ActiveProfiles("test")
-@ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
-@Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Slf4j
-class VerificationControllerTrustStatementIT {
+@TestPropertySource(properties = {
+        "swiyu.trust-registry.api-url=https://trust-registry.example.ch",
+        "swiyu.trust-registry.max-cache-size=100",
+        "swiyu.trust-registry.clock-skew-buffer-seconds=0",
+        "swiyu.trust-registry.max-cache-ttl-seconds=3600"
+})
+class VerificationControllerTrustStatementIT extends BaseVerificationControllerTest {
 
     /**
      * A well-formed {@code kid} matching the Trust Registry DID pattern required by
@@ -137,7 +122,7 @@ class VerificationControllerTrustStatementIT {
     private TrustStatementValidator trustStatementValidator;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
 
         // DCQL query requesting last_name and first_name – both covered by the pvaTS stub below

@@ -4,13 +4,12 @@ import ch.admin.bj.swiyu.core.trust.client.api.VqpsSubmissionB2BApi;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsPublicationResult;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmission;
 import ch.admin.bj.swiyu.core.trust.client.model.VqpsSubmissionStatus;
-import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
+import ch.admin.bj.swiyu.verifier.AbstractMockMvcIT;
 import ch.admin.bj.swiyu.verifier.domain.vqps.Vqps;
 import ch.admin.bj.swiyu.verifier.domain.vqps.VqpsRepository;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationPurposeDto;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
-import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSASigner;
@@ -21,16 +20,12 @@ import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -58,11 +53,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Expected result: HTTP 201 is returned, a vqPS entry is persisted in the DB for
  * the given scope, and the mock API is called exactly once for a new registration.</p>
  */
-@ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
-@Testcontainers
-@ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
 @TestPropertySource(properties = {
         "swiyu.trust-registry.tms-authoring-url=http://tms.example.com",
         "swiyu.trust-registry.vqps-expiry-buffer-seconds=0",
@@ -70,7 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "swiyu.trust-registry.oauth-client-id=test-client",
         "swiyu.trust-registry.oauth-client-secret=test-secret"
 })
-class VqpsRegistrationIT {
+class VQPSRegistrationIT extends AbstractMockMvcIT {
 
     private static final String BASE_URL = "/management/api/verifications";
     private static final String TEST_SCOPE = "com.example.test_verification";

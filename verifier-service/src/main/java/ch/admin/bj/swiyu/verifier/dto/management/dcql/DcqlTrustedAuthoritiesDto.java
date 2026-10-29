@@ -20,7 +20,7 @@ import java.util.List;
 public record DcqlTrustedAuthoritiesDto(
 
         @Schema(description = "A string uniquely identifying the type of information about the issuer trust framework. " +
-                "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'type'.",
+                "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'type'. In swiyu context the value of this field should always be 'did'",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("type")
         @Valid

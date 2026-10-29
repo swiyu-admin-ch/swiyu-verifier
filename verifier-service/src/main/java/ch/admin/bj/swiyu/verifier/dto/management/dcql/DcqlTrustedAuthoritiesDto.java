@@ -30,7 +30,7 @@ public record DcqlTrustedAuthoritiesDto(
         @Schema(description = "A non-empty array of strings, where each string (value) contains information " +
                 "specific to the used Trusted Authorities Query type that allows the identification of " +
                 "an issuer, a trust framework, or a federation that an issuer belongs to. " +
-                "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'values'.",
+                "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'values'. In swiyu context this is the DID of trusted issuers.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("values")
         @Valid

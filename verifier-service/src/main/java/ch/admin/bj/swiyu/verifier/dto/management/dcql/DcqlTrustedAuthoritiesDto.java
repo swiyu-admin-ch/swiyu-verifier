@@ -12,6 +12,7 @@ import java.util.List;
 /**
  * Represents "Trusted Authorities Query" configuration in a DCQL query.
  * This DTO assists in identifying authorities or trust frameworks responsible for certifying issuers.
+ *
  * @see <a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1.1">6.1.1. Trusted Authorities Query</a>
  */
 @Schema(description = "Trusted Authorities Query according to " +
@@ -24,7 +25,7 @@ public record DcqlTrustedAuthoritiesDto(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("type")
         @Valid
-@NotEmpty(message = "type must not be set")
+        @NotEmpty(message = "values must not be null or empty")
         String type, // REQUIRED
 
         @Schema(description = "A non-empty array of strings, where each string (value) contains information " +
@@ -34,8 +35,7 @@ public record DcqlTrustedAuthoritiesDto(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("values")
         @Valid
-        @NotNull(message = "values must not be null")
-        @NotEmpty(message = "values must not be empty")
+        @NotEmpty(message = "values must not be null or empty")
         List<@NotNull @NotEmpty String> values // REQUIRED
 ) {
 }

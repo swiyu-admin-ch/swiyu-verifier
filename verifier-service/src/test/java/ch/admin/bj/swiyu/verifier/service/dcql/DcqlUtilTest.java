@@ -191,6 +191,20 @@ class DcqlUtilTest {
         assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, List.of(requestClaim)));
     }
 
+    /**
+     * Request with 2 credential queries, sporting a collision due to use of index in one case
+     */
+    @Test
+    void duplicateSelection_thenSuccess() {
+        var requestedClaims = List.of(createSimpleDCQLClaim("name"), new DcqlClaim("name", List.of("float_number"), null));
+        var claims = assertDoesNotThrow(() -> DcqlUtil.validateRequestedClaims(sdJwt, requestedClaims));
+        assertThat(claims).hasSize(1).containsKey("name");
+        assertThat(claims.get("name"))
+                .as("When a collision occurs both values are returned under the same key")
+                .hasSize(2)
+                .contains("Arthur Dent", 55.5);
+    }
+
     @Test
     void simpleSelection_whenValueMismatch_thenIllegalArgumentException() {
         var requestClaim = new DcqlClaim(null, List.of("name"), List.of("Bruce Wayne"));

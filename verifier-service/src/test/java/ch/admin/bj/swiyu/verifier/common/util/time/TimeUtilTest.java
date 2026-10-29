@@ -1,14 +1,18 @@
 package ch.admin.bj.swiyu.verifier.common.util.time;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Date;
 
 import org.junit.jupiter.api.Test;
 
 class TimeUtilTest {
+
+    private static final Instant NOW = Instant.parse("2025-01-01T12:00:00Z");
+    private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     // ==================== minWithNullable ====================
     @Test
@@ -85,77 +89,78 @@ class TimeUtilTest {
     // ==================== nanosUntilExpiry (Long) ====================
     @Test
     void nanosUntilExpiry_WithNullLong_ReturnsNull() {
-        assertThat(TimeUtil.nanosUntilExpiry((Long) null)).isNull();
+        assertThat(TimeUtil.nanosUntilExpiry((Long) null, CLOCK)).isNull();
     }
 
     @Test
     void nanosUntilExpiry_WithExpirationInPast_ReturnsZero() {
-        long pastTime = Instant.now().minusSeconds(10).toEpochMilli();
-        Long result = TimeUtil.nanosUntilExpiry(pastTime);
-        assertThat(result).isZero();
+        long pastTime = NOW.minusSeconds(10).toEpochMilli();
+        assertThat(TimeUtil.nanosUntilExpiry(TimeUtil.millisToNanos(pastTime), CLOCK)).isZero();
     }
 
     @Test
-    void nanosUntilExpiry_WithExpirationInFuture_ReturnsPositive() {
-        long futureTime = Instant.now().plusSeconds(10).toEpochMilli();
-        Long result = TimeUtil.nanosUntilExpiry(TimeUtil.millisToNanos(futureTime));
-        assertThat(result).isPositive();
-        assertThat(result).isCloseTo(10_000_000_000L, within(1_000_000L));
+    void nanosUntilExpiry_WithExpirationInFuture_ReturnsExactDifference() {
+        long futureTime = NOW.plusSeconds(10).toEpochMilli();
+        assertThat(TimeUtil.nanosUntilExpiry(TimeUtil.millisToNanos(futureTime), CLOCK))
+                .isEqualTo(10_000_000_000L);
+    }
+
+    @Test
+    void nanosUntilExpiry_WithSystemClock_ReturnsPositiveForFuture() {
+        long futureTime = Instant.now().plusSeconds(60).toEpochMilli();
+        assertThat(TimeUtil.nanosUntilExpiry(TimeUtil.millisToNanos(futureTime))).isPositive();
     }
 
     // ==================== nanosUntilExpiry (Date) ====================
     @Test
     void nanosUntilExpiry_WithNullDate_ReturnsNull() {
-        assertThat(TimeUtil.nanosUntilExpiry((Date) null)).isNull();
+        assertThat(TimeUtil.nanosUntilExpiry((Date) null, CLOCK)).isNull();
     }
 
     @Test
     void nanosUntilExpiry_WithDateInPast_ReturnsZero() {
-        Date pastDate = Date.from(Instant.now().minusSeconds(10));
-        Long result = TimeUtil.nanosUntilExpiry(pastDate);
-        assertThat(result).isZero();
+        assertThat(TimeUtil.nanosUntilExpiry(Date.from(NOW.minusSeconds(10)), CLOCK)).isZero();
     }
 
     @Test
-    void nanosUntilExpiry_WithDateInFuture_ReturnsPositive() {
-        Date futureDate = Date.from(Instant.now().plusSeconds(10));
-        Long result = TimeUtil.nanosUntilExpiry(futureDate);
-        assertThat(result).isPositive();
-        assertThat(result).isCloseTo(10_000_000_000L, within(1_000_000L));
+    void nanosUntilExpiry_WithDateInFuture_ReturnsExactDifference() {
+        assertThat(TimeUtil.nanosUntilExpiry(Date.from(NOW.plusSeconds(10)), CLOCK))
+                .isEqualTo(10_000_000_000L);
     }
 
     // ==================== minNanosUntilExpiry (Long) ====================
     @Test
     void minNanosUntilExpiry_WithNullExpiration_ReturnsAccumulator() {
-        long accumulator = 1_000_000_000L;
-        Long exp = null;
-        assertThat(TimeUtil.minNanosUntilExpiry(accumulator, exp)).isEqualTo(accumulator);
+        assertThat(TimeUtil.minNanosUntilExpiry(1_000_000_000L, (Long) null, CLOCK)).isEqualTo(1_000_000_000L);
     }
 
     @Test
-    void minNanosUntilExpiry_WithExpirationInFuture_ReturnsMin() {
-        long accumulator = 20_000_000_000L;
-        long futureTime = Instant.now().plusSeconds(10).toEpochMilli();
-        Long nanosUntilExpiry = TimeUtil.nanosUntilExpiry(futureTime);
-        long expectedMin = Math.min(accumulator, nanosUntilExpiry);
-        assertThat(TimeUtil.minNanosUntilExpiry(accumulator, futureTime))
-            .isCloseTo(expectedMin, within(1_000_000L));
+    void minNanosUntilExpiry_WithExpirationBeforeAccumulator_ReturnsTimeUntilExpiry() {
+        long exp = TimeUtil.millisToNanos(NOW.plusSeconds(10).toEpochMilli());
+        assertThat(TimeUtil.minNanosUntilExpiry(20_000_000_000L, exp, CLOCK)).isEqualTo(10_000_000_000L);
+    }
+
+    @Test
+    void minNanosUntilExpiry_WithAccumulatorBeforeExpiration_ReturnsAccumulator() {
+        long exp = TimeUtil.millisToNanos(NOW.plusSeconds(10).toEpochMilli());
+        assertThat(TimeUtil.minNanosUntilExpiry(5_000_000_000L, exp, CLOCK)).isEqualTo(5_000_000_000L);
     }
 
     // ==================== minNanosUntilExpiry (Date) ====================
     @Test
     void minNanosUntilExpiry_WithDateNull_ReturnsAccumulator() {
-        long accumulator = 1_000_000_000L;
-        assertThat(TimeUtil.minNanosUntilExpiry(accumulator, (Date) null)).isEqualTo(accumulator);
+        assertThat(TimeUtil.minNanosUntilExpiry(1_000_000_000L, (Date) null, CLOCK)).isEqualTo(1_000_000_000L);
     }
 
     @Test
-    void minNanosUntilExpiry_WithDateInFuture_ReturnsMin() {
-        long accumulator = 20_000_000_000L;
-        Date futureDate = Date.from(Instant.now().plusSeconds(10));
-        Long nanosUntilExpiry = TimeUtil.nanosUntilExpiry(futureDate);
-        long expectedMin = Math.min(accumulator, nanosUntilExpiry);
-        assertThat(TimeUtil.minNanosUntilExpiry(accumulator, futureDate))
-                .isCloseTo(expectedMin, within(1_000_000L));
+    void minNanosUntilExpiry_WithDateBeforeAccumulator_ReturnsTimeUntilExpiry() {
+        assertThat(TimeUtil.minNanosUntilExpiry(20_000_000_000L, Date.from(NOW.plusSeconds(10)), CLOCK))
+                .isEqualTo(10_000_000_000L);
+    }
+
+    @Test
+    void minNanosUntilExpiry_WithAccumulatorBeforeDate_ReturnsAccumulator() {
+        assertThat(TimeUtil.minNanosUntilExpiry(5_000_000_000L, Date.from(NOW.plusSeconds(10)), CLOCK))
+                .isEqualTo(5_000_000_000L);
     }
 }

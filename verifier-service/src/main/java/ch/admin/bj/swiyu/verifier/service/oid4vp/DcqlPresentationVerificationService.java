@@ -62,6 +62,7 @@ public class DcqlPresentationVerificationService {
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Missing vp_token object in presentation submission");
         }
         Map<String, List<Map<String, Object>>> verifiedResponses = new HashMap<>();
+        Map<String, Map<String, List<Object>>> dcqlResponse = new HashMap<>();
         Map<String, List<CredentialEvaluation>> evaluations = new HashMap<>();
         for (DcqlCredential requestedCredential : requestedCredentials) {
             String credentialRequestId = requestedCredential.getId();
@@ -73,13 +74,16 @@ public class DcqlPresentationVerificationService {
             evaluations.put(credentialRequestId, verificationResults.stream()
                 .map(VerificationMapper::toCredentialEvaluation).toList());
 
-            verifiedResponses.put(credentialRequestId, resolveDCQL(requestedCredential, verificationResults));
+
+            dcqlResponse.put(credentialRequestId, resolveDCQL(requestedCredential, verificationResults));
+            verifiedResponses.put(credentialRequestId, List.of(verificationResults.getFirst().sdJwt().getResolvedClaims()));
         }
         return VerificationResultData.builder()
             .vpTokens(vpTokens)
             .evaluations(evaluations)
             .verifiedResponses(verifiedResponses)
             .verifiedResponsesJsonString(writeAsString(verifiedResponses))
+            .dcqlResponse(dcqlResponse)
             .build();
     }
 
@@ -87,9 +91,9 @@ public class DcqlPresentationVerificationService {
      * Resolved the DCQL Query on the verified credentials
      * @param requestedCredential the DCQL credential request query
      * @param verificationResults the verified wallet presentations
-     * @return The claims requested in the DCQL Query
+     * @return The claims requested in the DCQL Query using the id or path as key
      */
-    private List<Map<String, Object>> resolveDCQL(DcqlCredential requestedCredential, List<SdJwtVerificationResult> verificationResults) {
+    private Map<String, List<Object>> resolveDCQL(DcqlCredential requestedCredential, List<SdJwtVerificationResult> verificationResults) {
         List<SdJwt> sdJwts = verificationResults.stream().map(SdJwtVerificationResult::sdJwt).toList();
         sdJwts = DcqlUtil.filterByVct(sdJwts, requestedCredential.getMeta());
         sdJwts = DcqlUtil.filterByTrustedAuthority(sdJwts, requestedCredential.getTrustedAuthorities());
@@ -98,8 +102,7 @@ public class DcqlPresentationVerificationService {
         }
 
         SdJwt sdjwt = sdJwts.getFirst(); // TODO EIDOMNI-887: Support for Claim Sets & credential sets
-        DcqlUtil.validateRequestedClaims(sdjwt, requestedCredential.getClaims());
-        return List.of(sdjwt.getResolvedClaims());
+        return DcqlUtil.validateRequestedClaims(sdjwt, requestedCredential.getClaims());
     }
 
     /**

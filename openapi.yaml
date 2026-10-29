@@ -794,10 +794,12 @@ components:
           type: string
         credential_subject_data:
           type: object
-          additionalProperties: {}
+          additionalProperties:
+            deprecated: true
+          deprecated: true
           description: "Requested Claims, where the key is the id of the credential\
             \ request. Only present if `application.additional-audit-information.credential-subject-data-enabled`\
-            \ is set to true (default: false)."
+            \ is set to true (default: true)."
         vp_token:
           type: object
           additionalProperties:
@@ -806,6 +808,28 @@ components:
               type: string
           description: "Full presentation as sent by the wallet. Only present if `application.additional-audit-information.vp-token-enabled`\
             \ is set to true (default: false)."
+        dcql_response:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: array
+              items: {}
+          description: |
+            Values requested by the DCQL query as a series of maps.
+            First map represents the dcql credential query where in the key is the id of the credential query.
+            Second map represents the claims requested of that credential. The key for the claims is the id, or if not provided the path.
+            Only present if `application.additional-audit-information.credential-subject-data-enabled` is set to true.
+            (default: true)
+          example:
+            my_hitchhiker_request:
+              name:
+              - Arthur Dent
+              address.street_address:
+              - 42 Market Street
+              education:
+              - Bachelor of Science
+              - Master of Science
     StatusVerificationResult:
       type: object
       properties:

@@ -198,6 +198,7 @@ public class Management {
         this.walletResponse = getInitializedWalletResponse().toBuilder()
         .credentialSubjectData(verificationResult.verifiedResponsesJsonString())
         .vpToken(verificationResult.vpTokens())
+        .dcqlResponseData(verificationResult.dcqlResponse())
         .build();
         this.credentialEvaluation = verificationResult.evaluations();
         this.state = isValidPresentation() ? VerificationStatus.SUCCESS : VerificationStatus.FAILED;

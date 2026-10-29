@@ -122,10 +122,10 @@ class VerifierManagementControllerIT {
                 nullContainingList.add(null);
                 nullContainingList.add("type");
                 var claims = List.of(
-                                new DcqlClaimDto(null, nullContainingList, null), // Select all elements of array
-                                new DcqlClaimDto(null, List.of("degrees", 1, "title"), null), // Select first element of
+                                new DcqlClaimDto("allArray", nullContainingList, null), // Select all elements of array
+                                new DcqlClaimDto("title", List.of("degrees", 1, "title"), null), // Select first element of
                                                                                               // array
-                                new DcqlClaimDto(null, List.of("first", "second", "third"), null) // Just selecting
+                                new DcqlClaimDto("selection", List.of("first", "second", "third"), null) // Just selecting
                                                                                                   // something a bit
                                                                                                   // deeper
                 );

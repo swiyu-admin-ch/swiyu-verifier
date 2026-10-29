@@ -94,19 +94,92 @@ verifier-agent-management>**/swagger-ui/index.html**
 
 To see more details and examples of the verification process please consult the [documentation](docs/verification_process.md).
 
-## Digital Credentials Query Language (DCQL)
+### Digital Credentials Query Language (DCQL)
+ The verifier service supports the [Digital Credentials Query Language (DCQL) as specified in the OpenID for Verifiable Presentations (OID4VP) Standard 1.0](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-digital-credentials-query-l).
 
-### Overview
-The verifier service now supports the Digital Credentials Query Language (DCQL) as specified in the OpenID for Verifiable Presentations (OID4VP) Standard 1.0. This replaces the previous DIF Presentation Exchange (PE) specification that was integrated into the "claims" request parameter.
+>[!WARNING] 
+> Generic Verifier currently does not support verification of `multiple` credentials or `claim_sets`
 
 
-### Verification Flow with DCQL
+#### Verification Flow with DCQL
 1. **Creation**: Business Verifier creates verification request with DCQL query
 2. **Storage**: Verifier Service stores request in database
 3. **Holder Retrieval**: Holder uses Verification URI to get request object containing DCQL query
 4. **Presentation**: Holder's wallet processes DCQL query to identify suitable credentials
 5. **Verification**: Service validates credentials against DCQL query criteria
 6. **Status Update**: Business Verifier receives status and requested data via polling or webhooks
+
+#### DCQL data response
+By default, the Generic Verifier only provides the values requested in the DCQL query in the `ManagementResponse` object.
+<details>
+  <summary>Example Verification</summary>
+
+Taking the example credential from OID4VP 1.0 specification
+```json
+{
+    "vct": "https://credentials.example.com/identity_credential",
+    "name": "Arthur Dent",
+    "address": {
+        "street_address": "42 Market Street",
+        "locality": "Milliways",
+        "postal_code": "12345"
+    },
+    "degrees": [
+        {
+            "type": "Bachelor of Science",
+            "university": "University of Betelgeuse"
+        },
+        {
+            "type": "Master of Science",
+            "university": "University of Betelgeuse"
+        }
+    ],
+    "nationalities": ["British", "Betelgeusian"]
+}
+```
+
+When requesting with the DCQL query
+```json
+{
+  "credentials": [
+    {
+      "id": "my_hitchhiker_request",
+      "format": "dc+sd-jwt",
+      "meta": {
+        "vct_values": [ "https://credentials.example.com/identity_credential" ]
+      },
+      "claims": [
+          {"path": ["name"]},
+          {"path": ["address", "street_address"]},
+          {"id": "education", "path":  ["degrees", null, "type"]}
+      ]
+    }
+  ]
+}
+```
+
+The response provided by the generic verifier will look as follows. 
+```json
+{
+    "state": "SUCCESS",
+    "wallet_response": {
+        "dcql_response": {
+            "my_hitchhiker_request": {
+                "name": ["Arthur Dent"],
+                "address.street_address": ["42 Market Street"],
+                "education": ["Bachelor of Science", "Master of Science"]
+            }
+        }
+    }
+}
+```
+
+>[!TIP]
+>The key of the returned claims is the full path joined by dots. For the path `"degrees", null, "type"` this results in 
+>`degrees.null.type`. As there is the potential for collisions and the full paths are unwieldy it is recommended to use `id`, 
+>which is beyond its uses in DCQL utilized in the return values.
+
+</details>
 
 ### VP Token Response Encryption
 - Required after transition period

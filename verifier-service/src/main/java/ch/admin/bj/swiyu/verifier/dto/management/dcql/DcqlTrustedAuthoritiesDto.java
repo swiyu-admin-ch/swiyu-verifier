@@ -25,7 +25,7 @@ public record DcqlTrustedAuthoritiesDto(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @JsonProperty("type")
         @Valid
-        @NotEmpty(message = "values must not be null or empty")
+        @NotEmpty(message = "type must not be null or empty")
         String type, // REQUIRED
 
         @Schema(description = "A non-empty array of strings, where each string (value) contains information " +
@@ -36,6 +36,6 @@ public record DcqlTrustedAuthoritiesDto(
         @JsonProperty("values")
         @Valid
         @NotEmpty(message = "values must not be null or empty")
-        List<@NotNull @NotEmpty String> values // REQUIRED
+        List<@NotEmpty String> values // REQUIRED
 ) {
 }

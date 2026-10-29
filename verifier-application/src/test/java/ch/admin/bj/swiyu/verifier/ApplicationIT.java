@@ -4,22 +4,12 @@ import ch.admin.bj.swiyu.verifier.infrastructure.web.management.VerifierManageme
 import ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp.VerificationController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-@Testcontainers
-@ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
 @Transactional
-class ApplicationIT {
+class ApplicationIT extends AbstractMockMvcIT {
 
     @Autowired
     private VerificationController verificationController;

@@ -1,24 +1,18 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.web.management;
 
-import ch.admin.bj.swiyu.verifier.PostgreSQLContainerInitializer;
+import ch.admin.bj.swiyu.verifier.AbstractMockMvcIT;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlClaimDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
-import tools.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,17 +23,14 @@ import static ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
-@Testcontainers
-@ContextConfiguration(initializers = PostgreSQLContainerInitializer.class)
 @Transactional
-class VerifierManagementControllerIT {
+class VerifierManagementControllerIT extends AbstractMockMvcIT {
 
     private static final String BASE_URL = "/management/api/verifications";
+
     @Autowired
     protected MockMvc mvc;
 
@@ -52,24 +43,7 @@ class VerifierManagementControllerIT {
     @Test
     void testCreateOffer_blockedDcqlProperties_thenThrowBadRequest() throws Exception {
 
-        var credential = new DcqlCredentialDto(
-                "identity_credential_dcql",
-                DC_SD_JWT_CREDENTIAL_FORMAT,
-                true,
-                getValidDCQLMetaDataDto(),
-                List.of(
-                        new DcqlClaimDto(null, List.of("first_name"), null),
-                        new DcqlClaimDto(null, List.of("last_name"),null)
-                ),
-                List.of(List.of("test")),
-                true,
-                List.of()
-        );
-
-        var dqclQuery = new DcqlQueryDto(
-                List.of(credential),
-                List.of()
-        );
+        var dqclQuery = getDqclQuery();
 
         var request = CreateVerificationManagementDto.builder()
                 .dcqlQuery(dqclQuery)
@@ -89,7 +63,7 @@ class VerifierManagementControllerIT {
                 .andReturn();
     }
 
-        @Test
+    @Test
         void testCreateOffer_withDcqlQuery_thenSuccess() throws Exception {
 
                 // Build a minimal DCQL query DTO
@@ -122,10 +96,10 @@ class VerifierManagementControllerIT {
                 nullContainingList.add(null);
                 nullContainingList.add("type");
                 var claims = List.of(
-                                new DcqlClaimDto(null, nullContainingList, null), // Select all elements of array
-                                new DcqlClaimDto(null, List.of("degrees", 1, "title"), null), // Select first element of
+                                new DcqlClaimDto("allArray", nullContainingList, null), // Select all elements of array
+                                new DcqlClaimDto("title", List.of("degrees", 1, "title"), null), // Select first element of
                                                                                               // array
-                                new DcqlClaimDto(null, List.of("first", "second", "third"), null) // Just selecting
+                                new DcqlClaimDto("selection", List.of("first", "second", "third"), null) // Just selecting
                                                                                                   // something a bit
                                                                                                   // deeper
                 );
@@ -161,4 +135,26 @@ class VerifierManagementControllerIT {
                                                 result.getResolvedException().getClass()))
                                 .andReturn();
         }
+
+    private DcqlQueryDto getDqclQuery() {
+        var credential = new DcqlCredentialDto(
+                "identity_credential_dcql",
+                DC_SD_JWT_CREDENTIAL_FORMAT,
+                true,
+                getValidDCQLMetaDataDto(),
+                List.of(
+                        new DcqlClaimDto(null, List.of("first_name"), null),
+                        new DcqlClaimDto(null, List.of("last_name"),null)
+                ),
+                List.of(List.of("test")),
+                true,
+                List.of()
+        );
+
+        var dqclQuery = new DcqlQueryDto(
+                List.of(credential),
+                List.of()
+        );
+        return dqclQuery;
+    }
 }

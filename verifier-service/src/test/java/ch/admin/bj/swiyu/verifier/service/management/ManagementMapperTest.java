@@ -42,6 +42,7 @@ class ManagementMapperTest {
     private static final String CLIENT_ID = "client_id";
     private static final String DEEPLINK_SCHEMA = "openid4vp";
     private static final String CLIENT_ID_PREFIX = "decentralized_identifier";
+    private static final String STATUS_LIST_TOKEN = "eyJ0eXAiOiJzdGF0dXNsaXN0K2p3dCJ9.eyJzdWIiOiJodHRwczovL2V4YW1wbGUuY29tL3N0YXR1cy8xIn0.c2ln";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private ApplicationProperties applicationProperties;
@@ -130,6 +131,7 @@ class ManagementMapperTest {
         var statusDto = evaluationDto.credentialStatus();
         assertThat(statusDto.valid()).isTrue();
         assertThat(statusDto.status()).isEqualTo(0);
+        assertThat(statusDto.statusListToken()).as("Status List Token flag is not enabled").isNull();
         var trustDto = evaluationDto.trustMarkers();
         assertThat(trustDto.isTrusted()).isTrue();
         assertThat(trustDto.identityTrustMarker()).isTrue();
@@ -239,6 +241,61 @@ class ManagementMapperTest {
     }
 
     /**
+     * With the status-list-token flag enabled (and credential_evaluation enabled, which contains it), the persisted
+     * Status List Token is returned unchanged in credential_status and serialized as status_list_token.
+     */
+    @Test
+    void toManagementResponseDto_withStatusListTokenAndCredentialEvaluationFlagsEnabled_returnsStatusListToken() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setCredentialEvaluationEnabled(true);
+        applicationProperties.getAdditionalAuditInformation().setStatusListTokenEnabled(true);
+        String dcqlId = "requested_data";
+        var management = managementWithSuccessfulVerification(dcqlId, "test_vp_token");
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        var statusDto = dto.credentialEvaluation().get(dcqlId).getFirst().credentialStatus();
+        assertThat(statusDto.valid()).isTrue();
+        assertThat(statusDto.status()).isEqualTo(0);
+        assertThat(statusDto.statusListToken()).isEqualTo(STATUS_LIST_TOKEN);
+        var json = assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
+        assertThat(json).contains("\"status_list_token\":\"" + STATUS_LIST_TOKEN + "\"");
+    }
+
+    /**
+     * The Status List Token is part of credential_evaluation, so it is not returned unless credential_evaluation is
+     * enabled as well.
+     */
+    @Test
+    void toManagementResponseDto_withOnlyStatusListTokenFlagEnabled_omitsCredentialEvaluation() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setStatusListTokenEnabled(true);
+        var management = managementWithSuccessfulVerification("requested_data", "test_vp_token");
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        assertThat(dto.credentialEvaluation()).isNull();
+    }
+
+    /**
+     * With the status-list-token flag disabled, a Status List Token persisted earlier (while the flag was enabled)
+     * must not be returned, and the field must not appear in the serialized response.
+     */
+    @Test
+    void toManagementResponseDto_withStatusListTokenFlagDisabled_omitsPersistedStatusListToken() {
+        setUpDisabledAuditInformation();
+        applicationProperties.getAdditionalAuditInformation().setCredentialEvaluationEnabled(true);
+        var management = managementWithSuccessfulVerification("requested_data", "test_vp_token");
+
+        var dto = toManagementResponseDto(management, applicationProperties);
+
+        var statusDto = dto.credentialEvaluation().get("requested_data").getFirst().credentialStatus();
+        assertThat(statusDto.statusListToken()).isNull();
+        var json = assertDoesNotThrow(() -> mapper.writeValueAsString(dto));
+        assertThat(json).doesNotContain("status_list_token");
+    }
+
+    /**
      * Replaces the stubbed {@link ApplicationProperties.AdditionalAuditInformationProperties} with an
      * instance having all flags set to {@code false} (the production default), so individual tests can
      * selectively re-enable single flags.
@@ -255,6 +312,7 @@ class ManagementMapperTest {
             .credentialStatus(StatusVerificationResult.builder()
                 .valid(true)
                 .status(0)
+                .statusListToken(STATUS_LIST_TOKEN)
                 .build())
             .trustMarkers(IssuerTrustMarker.builder()
                 .isTrusted(true)

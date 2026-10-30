@@ -513,6 +513,106 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         assertThat(credentialStatus.status()).as("Status should be propagated to business component").isEqualTo(1);
     }
 
+    /**
+     * Enables the {@code credential_evaluation} and {@code status_list_token} audit flags for the current test only,
+     * so that the Status List Token used for the status check is persisted and returned by the management API.
+     */
+    private void enableStatusListTokenAuditInformation(boolean statusListTokenEnabled) {
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        auditInformation.setCredentialEvaluationEnabled(true);
+        auditInformation.setStatusListTokenEnabled(statusListTokenEnabled);
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
+    }
+
+    /**
+     * With the status-list-token audit flag enabled, the Status List Token the verifier used for the status check must
+     * be persisted byte for byte and returned by the management API, both for accepted (index 2, VALID) and for
+     * rejected (index 0, INVALID) credentials, so the status at verification time can be audited independently.
+     */
+    @ParameterizedTest
+    @CsvSource(value = {"2:0:SUCCESS", "0:1:FAILED"}, delimiter = ':')
+    void shouldReturnStatusListTokenUsedForVerification_whenStatusListTokenAuditInformationEnabled(
+            int statusListIndex, int expectedStatus, VerificationStatus expectedState) throws Exception {
+        // GIVEN
+        enableStatusListTokenAuditInformation(true);
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var statusListToken = createTokenStatusListTokenVerifiableCredential(
+                StatusListGenerator.SPEC_STATUS_LIST,
+                emulator.getKey(),
+                emulator.getIssuerId(),
+                emulator.getKidHeaderValue());
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenReturn(statusListToken);
+
+        var sdJwt = emulator.createSDJWTMock(statusListIndex);
+        var vpToken = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, clientIdWithPrefix);
+        mockDidResolverResponse(emulator);
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
+        // WHEN
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+                .andExpect(status().isOk());
+
+        // THEN the Status List Token is persisted unchanged
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(expectedState);
+        var credentialStatus = managementEntity.getCredentialEvaluation()
+                .get(DEFAULT_DCQL_CREDENTIAL_ID).getFirst().credentialStatus();
+        assertThat(credentialStatus.status()).isEqualTo(expectedStatus);
+        assertThat(credentialStatus.statusListToken())
+                .as("Status List Token must be persisted exactly as fetched, so its signature stays verifiable")
+                .isEqualTo(statusListToken);
+
+        // AND it is returned by the management API
+        var mgmtResponse = getManagementObjectById(REQUEST_ID_SECURED.toString())
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode statusNode = objectMapper.readTree(mgmtResponse)
+                .get("credential_evaluation").get(DEFAULT_DCQL_CREDENTIAL_ID).get(0).get("credential_status");
+        assertThat(statusNode.get("status").asInt()).isEqualTo(expectedStatus);
+        assertThat(statusNode.get("status_list_token").asString()).isEqualTo(statusListToken);
+    }
+
+    @Test
+    void shouldNotPersistStatusListToken_whenStatusListTokenAuditInformationDisabled() throws Exception {
+        // GIVEN only credential_evaluation enabled
+        enableStatusListTokenAuditInformation(false);
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
+                .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
+                        StatusListGenerator.SPEC_STATUS_LIST,
+                        emulator.getKey(),
+                        emulator.getIssuerId(),
+                        emulator.getKidHeaderValue()));
+
+        var sdJwt = emulator.createSDJWTMock(2);
+        var vpToken = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, clientIdWithPrefix);
+        mockDidResolverResponse(emulator);
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
+        // WHEN
+        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+                .andExpect(status().isOk());
+
+        // THEN the status is evaluated, but no Status List Token is persisted or returned
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+        var credentialStatus = managementEntity.getCredentialEvaluation()
+                .get(DEFAULT_DCQL_CREDENTIAL_ID).getFirst().credentialStatus();
+        assertThat(credentialStatus.status()).isZero();
+        assertThat(credentialStatus.statusListToken()).isNull();
+
+        var mgmtResponse = getManagementObjectById(REQUEST_ID_SECURED.toString())
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode statusNode = objectMapper.readTree(mgmtResponse)
+                .get("credential_evaluation").get(DEFAULT_DCQL_CREDENTIAL_ID).get(0).get("credential_status");
+        assertThat(statusNode.has("status_list_token")).isFalse();
+    }
+
     @Test
     void twoTimesSameDisclosures_thenError() throws Exception {
         // GIVEN

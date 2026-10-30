@@ -196,6 +196,55 @@ curl -X GET \
 }
 ```
 
+### 2.3. Audit information of a completed verification
+
+Actor:
+- Business Verifier / Auditor: Stores the result of a verification to be able to re-verify it later on.
+
+Process:
+- Once the verification is completed, the management API can additionally return the presentation and the evidence
+  used to evaluate it. This is controlled by the `ADDITIONAL_AUDIT_INFORMATION_*` flags, which all default to `false`.
+- With `ADDITIONAL_AUDIT_INFORMATION_STATUS_LIST_TOKEN_ENABLED` (together with
+  `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED`), the Status List Token the verifier used to check the
+  status of each credential is returned exactly as fetched. As a Token Status List only holds the current status of a
+  credential, this is the only way to verify the status *at verification time* later on.
+- The Status List Token is only persisted while the flag is enabled; verifications completed before do not contain it.
+
+**Response** (with `ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED`, `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED`
+and `ADDITIONAL_AUDIT_INFORMATION_STATUS_LIST_TOKEN_ENABLED` set to `true`, tokens shortened):
+```json
+{
+    "id": "${VERIFICATION_ID}",
+    "request_nonce": "aIxs7p648grTy9IOQLfF1JIeSpHH2Cia",
+    "state": "SUCCESS",
+    "wallet_response": {
+        "vp_token": {
+            "${VERIFICATION_DCQL_QUERY_ID}": ["eyJ...~WyJ...~eyJ0eXAiOiJrYitqd3Qi..."]
+        }
+    },
+    "credential_evaluation": {
+        "${VERIFICATION_DCQL_QUERY_ID}": [
+            {
+                "credential_status": {
+                    "valid": true,
+                    "status": 0,
+                    "status_list_token": "eyJ0eXAiOiJzdGF0dXNsaXN0K2p3dCIs..."
+                },
+                "trust_markers": {
+                    "trust_method": "TRUSTED_AUTHORITY",
+                    "is_trusted": true
+                }
+            }
+        ]
+    }
+}
+```
+
+With this data an auditor can check, in addition to the `vp_token` itself (issuer signature, disclosures, KB-JWT),
+that the Status List Token is signed by the credential's issuer, that its `sub` matches the credential's
+`status.status_list.uri`, that its `iat` ≤ KB-JWT `iat` < its `exp`, and that the value at the credential's
+`status.status_list.idx` is `0` (VALID). See [Auditing verifications](../README.md#auditing-verifications) for details.
+
 ## 3. Implementation Details for Wallets (not needed if you use the provided wallet)
 
 ### 3.1. Get Request Object

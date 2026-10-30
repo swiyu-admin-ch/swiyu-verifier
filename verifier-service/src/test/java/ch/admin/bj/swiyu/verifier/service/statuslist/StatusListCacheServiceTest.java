@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -95,6 +96,29 @@ class StatusListCacheServiceTest {
         // Note: cache.getEstimatedSize() is flaky
         assertDoesNotThrow(() -> cacheService.getTokenStatusListTokenByUri(StatusListGenerator.SPEC_SUBJECT));
         verify(didJwtValidator, times(2)).validateJwt(eq(statusListJwt), any(JWK.class));
+    }
+
+    /**
+     * The raw Status List Token must be kept exactly as fetched, so that its signature can be verified by an auditor,
+     * also when it is served from the cache.
+     */
+    @Test
+    void getStatusListJwtByUri_keepsRawJwt() throws Exception {
+        cacheProperties.setStatusListCacheTtlMs(60_000L);
+        cacheService = new StatusListCacheService(cacheProperties, didJwtValidator, issuerPublicKeyLoader, statusListResolver);
+        ECKey testKey = createSigningKey();
+        when(issuerPublicKeyLoader.resolveKey(eq(testKey.getKeyID()))).thenReturn(testKey.toPublicJWK());
+        var statusListJwt = StatusListGenerator.createTokenStatusListTokenVerifiableCredential(StatusListGenerator.SPEC_STATUS_LIST, testKey, "did:example", testKey.getKeyID());
+        when(statusListResolver.resolveStatusList(eq(StatusListGenerator.SPEC_SUBJECT))).thenReturn(statusListJwt);
+
+        var resolved = cacheService.getStatusListJwtByUri(StatusListGenerator.SPEC_SUBJECT);
+        assertThat(resolved.getParsedString()).as("Raw Status List Token must be kept unchanged").isEqualTo(statusListJwt);
+        assertThat(StatusListCacheService.toTokenStatusListToken(resolved).getSub()).isEqualTo(StatusListGenerator.SPEC_SUBJECT);
+
+        // A cache hit returns the same token without fetching it again
+        var cached = cacheService.getStatusListJwtByUri(StatusListGenerator.SPEC_SUBJECT);
+        assertThat(cached.getParsedString()).isEqualTo(statusListJwt);
+        verify(statusListResolver, times(1)).resolveStatusList(StatusListGenerator.SPEC_SUBJECT);
     }
 
     @ParameterizedTest

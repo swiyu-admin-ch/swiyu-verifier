@@ -811,9 +811,19 @@ components:
       properties:
         valid:
           type: boolean
+          description: Whether the status of the credential is considered valid
         status:
           type: integer
           format: int32
+          description: "Status value read from the Status List Token, e.g. 0 (VALID),\
+            \ 1 (INVALID), 2 (SUSPENDED)"
+        status_list_token:
+          type: string
+          description: "The Status List Token used to evaluate the status, exactly\
+            \ as fetched from the status registry (compact JWS serialization), so\
+            \ that its signature can be verified later on for audit purposes. Only\
+            \ present if ADDITIONAL_AUDIT_INFORMATION_STATUS_LIST_TOKEN_ENABLED was\
+            \ enabled when the verification was completed."
     TrustMethod:
       type: string
       enum:

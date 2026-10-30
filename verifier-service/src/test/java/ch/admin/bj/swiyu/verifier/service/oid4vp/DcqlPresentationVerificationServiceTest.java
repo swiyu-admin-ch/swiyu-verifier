@@ -1,11 +1,11 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
-import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.StatusVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlClaim;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
@@ -69,7 +69,8 @@ class DcqlPresentationVerificationServiceTest {
 
         var sdJwt = mock(SdJwt.class);
         when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired()) ).thenReturn(
-            SdJwtVerificationResult.builder().sdJwt(sdJwt).statusVerificationResult(Optional.of(new StatusVerificationResultDto(true, Optional.of(0)))).build());
+            SdJwtVerificationResult.builder().sdJwt(sdJwt).statusVerificationResult(Optional.of(
+                StatusVerificationResult.builder().valid(true).status(0).build())).build());
 
         Map<String, Object> claimMap = Map.of("given_name", "Alice", "vct", "vct:test");
         // simulate extraction of claims from SdJwt via mocked JWTClaimsSet
@@ -85,6 +86,59 @@ class DcqlPresentationVerificationServiceTest {
         assertTrue(resultJson.contains("\"" + credentialId + "\""));
         assertTrue(resultJson.contains("\"given_name\":\"Alice\""));
         verify(sdJwtLegacyPresentationVerifier).verifySdJwtVpToken(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void process_statusListTokenAuditInformation_isOnlyPersistedWhenEnabled(boolean statusListTokenEnabled) {
+        // Arrange
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        auditInformation.setStatusListTokenEnabled(statusListTokenEnabled);
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
+
+        var management = mock(Management.class);
+        var credentialId = "cred-1";
+        var requestedCredential = DcqlCredential.builder()
+            .id(credentialId)
+            .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+            .meta(new DcqlCredentialMeta(null, List.of("vct:test"), null))
+            .claims(List.of(new DcqlClaim(null, List.of("given_name"), null)))
+            .requireCryptographicHolderBinding(true)
+            .multiple(false)
+            .build();
+        when(management.getDcqlQuery()).thenReturn(new DcqlQuery(List.of(requestedCredential), null));
+
+        var vpToken = "vp-token-sdjwt";
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(credentialId, List.of(vpToken)));
+
+        var statusListToken = "eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJodHRwczovL2V4YW1wbGUuY29tL3N0YXR1cy8xIn0.c2lnbmF0dXJl";
+        var sdJwt = mock(SdJwt.class);
+        when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(vpToken, management, true)).thenReturn(
+            SdJwtVerificationResult.builder().sdJwt(sdJwt).statusVerificationResult(Optional.of(
+                StatusVerificationResult.builder()
+                    .valid(true)
+                    .status(0)
+                    .statusListToken(statusListToken)
+                    .build())).build());
+
+        Map<String, Object> claimMap = Map.of("given_name", "Alice", "vct", "vct:test");
+        JWTClaimsSet claimsObj = mock(JWTClaimsSet.class);
+        when(claimsObj.getClaims()).thenReturn(claimMap);
+        when(sdJwt.getClaims()).thenReturn(claimsObj);
+        when(sdJwt.getResolvedClaims()).thenReturn(claimMap);
+
+        // Act
+        var result = dcqlPresentationVerificationService.processVerificationPresentation(management, request);
+
+        // Assert
+        var credentialStatus = result.evaluations().get(credentialId).getFirst().credentialStatus();
+        assertTrue(credentialStatus.valid());
+        assertEquals(0, credentialStatus.status());
+        if (statusListTokenEnabled) {
+            assertEquals(statusListToken, credentialStatus.statusListToken(), "Status List Token must be persisted unchanged");
+        } else {
+            assertNull(credentialStatus.statusListToken(), "Status List Token must not be persisted when disabled");
+        }
     }
 
     @Test

@@ -72,7 +72,7 @@ public class ApplicationProperties {
 
     /**
      * Fine-grained flags controlling which audit-related data (e.g. raw vp_token, credential_subject_data,
-     * credential_evaluation) is included in the management API responses sent to the business verifier.
+     * credential_evaluation, status list token) is included in the management API responses sent to the business verifier.
      * All flags default to {@code false} to keep the API response minimal unless explicitly configured.
      */
     @NotNull
@@ -110,6 +110,17 @@ public class ApplicationProperties {
          * results) is included in the management API response.
          */
         private boolean credentialEvaluationEnabled = false;
+
+        /**
+         * If {@code true}, the Status List Token used to evaluate the status of each credential is persisted with the
+         * verification and included in the {@code credential_status} of the
+         * {@code credential_evaluation} of the management API response. This allows an auditor to verify the status
+         * of a credential at verification time independently, as Token Status Lists only hold the current status.
+         * <p>
+         * Only takes effect in the response if {@link #credentialEvaluationEnabled} is {@code true} as well. Only
+         * verifications completed while this flag is enabled contain the Status List Token.
+         */
+        private boolean statusListTokenEnabled = false;
     }
 
     @Valid

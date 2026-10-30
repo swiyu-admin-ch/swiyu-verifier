@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
-import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -11,6 +10,8 @@ import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseCodeDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto;
 import lombok.experimental.UtilityClass;
+
+import java.util.Optional;
 
 @UtilityClass
 public class VerificationMapper {
@@ -23,23 +24,26 @@ public class VerificationMapper {
                 e.getErrorDescription());
     }
 
-    public static CredentialEvaluation toCredentialEvaluation(SdJwtVerificationResult result) {
+    /**
+     * Maps the verification result of a single credential to the evaluation persisted with the verification.
+     *
+     * @param result                 the verification result of a single credential
+     * @param includeStatusListToken if {@code true}, the Status List Token used for the status check is included
+     *                               as audit evidence
+     * @return the evaluation to be persisted
+     */
+    public static CredentialEvaluation toCredentialEvaluation(SdJwtVerificationResult result, boolean includeStatusListToken) {
         if ( result == null ) {
             return null;
         }
+        StatusVerificationResult status = Optional.ofNullable(result.statusVerificationResult())
+            .flatMap(statusVerificationResult -> statusVerificationResult)
+            .orElse(null);
         return CredentialEvaluation.builder()
-            .credentialStatus(toStatusVerificationResult(result.statusVerificationResult().orElse(null)))
+            .credentialStatus(includeStatusListToken || status == null
+                ? status
+                : status.toBuilder().statusListToken(null).build())
             .trustMarkers(result.trustMarkers())
-            .build();
-    }
-
-    private static StatusVerificationResult toStatusVerificationResult (StatusVerificationResultDto dto) {
-        if(dto == null) {
-            return null;
-        }
-        return StatusVerificationResult.builder()
-            .status(dto.status().orElse(null))
-            .valid(dto.valid())
             .build();
     }
 

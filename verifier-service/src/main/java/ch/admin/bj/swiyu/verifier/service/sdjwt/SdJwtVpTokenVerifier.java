@@ -6,9 +6,9 @@ import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtVcValidator;
 import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtParseException;
 import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtVerificationException;
-import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.verifier.domain.IssuerTrustMarker;
 import ch.admin.bj.swiyu.verifier.domain.SdJwtVerificationResult;
+import ch.admin.bj.swiyu.verifier.domain.StatusVerificationResult;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListVerificationService;
 import ch.admin.bj.swiyu.verifier.service.trust.IssuerTrustValidator;
@@ -66,7 +66,7 @@ public class SdJwtVpTokenVerifier {
                 throw credentialError(MALFORMED_CREDENTIAL, "Failed to extract information from JWT token");
             }
 
-            Optional<StatusVerificationResultDto> statusVerificationResult = statusListVerificationService.verifyStatus(sdJwt.getClaims().getClaims(), sdJwt.getHeader());
+            Optional<StatusVerificationResult> statusVerificationResult = statusListVerificationService.verifyStatus(sdJwt.getClaims().getClaims(), sdJwt.getHeader());
 
             // Resolve Disclosures
             sdJwtVcValidator.processDisclosures(sdJwt);

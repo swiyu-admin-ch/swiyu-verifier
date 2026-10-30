@@ -54,13 +54,13 @@ public class ManagementMapper {
             .verificationUrl(verificationUrl)
             .verificationDeeplink(buildVerificationDeeplink(verificationUrl, clientId, props.getDeeplinkSchema()))
             .credentialEvaluation(auditInformation.isCredentialEvaluationEnabled()
-                    ? toCredentialEvaluationDto(management.getCredentialEvaluation())
+                    ? toCredentialEvaluationDto(management.getCredentialEvaluation(), auditInformation.isStatusListTokenEnabled())
                     : null)
             .build();
     }
 
     private static Map<String, List<CredentialEvaluationDto>> toCredentialEvaluationDto(
-            Map<String, List<CredentialEvaluation>> credentialEvaluation) {
+            Map<String, List<CredentialEvaluation>> credentialEvaluation, boolean includeStatusListToken) {
         if(credentialEvaluation == null) {
             return Map.of();
         }
@@ -68,15 +68,16 @@ public class ManagementMapper {
             Collectors.toMap(
                 e -> e.getKey(), 
                 e -> e.getValue().stream()
-                    .map(ManagementMapper::toCredentialEvaluationDto).toList()
+                    .map(evaluation -> toCredentialEvaluationDto(evaluation, includeStatusListToken)).toList()
                 ));
     }
 
 
-    private static CredentialEvaluationDto toCredentialEvaluationDto(CredentialEvaluation credentialEvaluation) {
+    private static CredentialEvaluationDto toCredentialEvaluationDto(CredentialEvaluation credentialEvaluation,
+                                                                     boolean includeStatusListToken) {
         return CredentialEvaluationDto.builder()
             .trustMarkers(toIssuerTrustMarkerDto(credentialEvaluation.trustMarkers()))
-            .credentialStatus(toStatusVerificaitonResult(credentialEvaluation.credentialStatus()))
+            .credentialStatus(toStatusVerificaitonResult(credentialEvaluation.credentialStatus(), includeStatusListToken))
             .build();
     }
 
@@ -102,13 +103,22 @@ public class ManagementMapper {
     }
 
 
-    private static StatusVerificationResultDto toStatusVerificaitonResult(StatusVerificationResult dto) {
+    /**
+     * Maps the persisted status of a credential to the API representation.
+     *
+     * @param dto                    the persisted status
+     * @param includeStatusListToken if {@code true}, the persisted Status List Token is included.
+     *                               They are only present if the flag was also enabled when the verification was done.
+     */
+    private static StatusVerificationResultDto toStatusVerificaitonResult(StatusVerificationResult dto,
+                                                                          boolean includeStatusListToken) {
         if(dto == null) {
             return null;
         }
         return StatusVerificationResultDto.builder()
             .status(dto.status())
             .valid(dto.valid())
+            .statusListToken(includeStatusListToken ? dto.statusListToken() : null)
             .build();
     }
 

@@ -120,7 +120,7 @@ public class ApplicationProperties {
          * Only takes effect in the response if {@link #credentialEvaluationEnabled} is {@code true} as well. Only
          * verifications completed while this flag is enabled contain the Status List Token.
          */
-        private boolean statusListTokenEnabled = false;
+        private boolean statusListTokenEnabled;
     }
 
     @Valid

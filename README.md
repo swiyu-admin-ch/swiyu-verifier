@@ -306,6 +306,7 @@ On the base registry the public key is published. To generate the public key for
 | ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED | Includes the raw `vp_token` (full presentation as sent by the wallet) in `wallet_response` of the management API response. Disabled by default to keep the response minimal (non-breaking).                                                                                                                                                                   | bool               | false             |
 | ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED | Includes `credential_subject_data` (requested claims) in `wallet_response` of the management API response. Enabled by default to be non-breaking                                                                                                                                                                                               | bool               | true              |
 | ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED | Includes `credential_evaluation` (per-credential trust and status verification results) in the management API response. Disabled by default to keep the response minimal (non-breaking).                                                                                                                                                         | bool               | false             |
+| ADDITIONAL_AUDIT_INFORMATION_STATUS_LIST_TOKEN_ENABLED | Persists the Status List Token used to check the status of each credential and includes it as `status_list_token` in `credential_evaluation.<id>[].credential_status` of the management API response. Requires `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED` to be shown. Disabled by default, as a Status List Token can be up to 200 KB. See [Auditing verifications](#auditing-verifications). | bool | false |
 
 ### Kubernetes Vault Keys
 
@@ -469,6 +470,37 @@ If `SWIYU_TMS_AUTHORING_URL` is configured, you can optionally provide a `verifi
 > **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+) and `vc+sd-jwt` (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header.
 
 The response of this post call contains the URI which has to be provided to the holder.
+
+### Auditing verifications
+
+The management API can return the data an auditor needs to re-verify a completed verification independently of the
+verifier service. Enable the following flags (all default to `false`):
+
+| Flag                                                         | Returned data                                                                                     |
+|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| `ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED`              | `wallet_response.vp_token`: the presentation exactly as sent by the wallet                         |
+| `ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED` | `credential_evaluation`: the verifier's trust and status evaluation per credential                 |
+| `ADDITIONAL_AUDIT_INFORMATION_STATUS_LIST_TOKEN_ENABLED`     | `credential_evaluation.<id>[].credential_status.status_list_token`                                |
+
+A Token Status List only holds the *current* status of a credential and records no revocation time, and historical
+resolution is not supported by the Swiss Profile. Fetching the status list at audit time therefore cannot show the
+status at verification time. With the Status List Token the verifier actually used, an auditor can check, in addition
+to the usual checks of the `vp_token` (issuer signature, disclosures, KB-JWT):
+
+1. **Authenticity:** the Status List Token's signature is valid with the issuer key that was valid at the token's
+   `iat`, according to the issuer's DID log (did:webvh keeps its history, so it can be fetched at audit time).
+2. **Correct list:** the Status List Token's `sub` equals the `status.status_list.uri` of the credential.
+3. **Timing:** Status List Token `iat` ≤ KB-JWT `iat` < Status List Token `exp`. The KB-JWT is the last part of the
+   `vp_token`; its `iat` is signed by the holder's wallet.
+4. **Status:** the value at the credential's `status.status_list.idx` (read with the token's `bits`) is `0` (VALID).
+
+The token is stored exactly as fetched (compact JWS), so its signature remains verifiable. It is included for
+rejected credentials as well (e.g. status `1` INVALID or `2` SUSPENDED), as evidence of why a credential was refused.
+With `STATUS_LIST_CACHE_TTL_MILLI` > 0 the token used may be a cached copy fetched before the verification; check 3
+covers this, as it relates the token's own validity to the time of the presentation.
+
+Note that this evidence is bounded by the validity of the Status List Token: any authentic token is accepted until its
+`exp`, so the assurance it gives depends on how short-lived the issuer makes its Status List Tokens.
 
 ### Codes
 

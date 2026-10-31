@@ -71,8 +71,9 @@ public class DcqlPresentationVerificationService {
             }
             List<SdJwtVerificationResult> verificationResults = getVerifiedTokenResults(entity, vpTokens.get(credentialRequestId),
             requestedCredential);
+            boolean includeStatusListToken = isStatusListTokenAuditInformationEnabled();
             evaluations.put(credentialRequestId, verificationResults.stream()
-                .map(VerificationMapper::toCredentialEvaluation).toList());
+                .map(result -> VerificationMapper.toCredentialEvaluation(result, includeStatusListToken)).toList());
 
 
             dcqlResponse.put(credentialRequestId, resolveDCQL(requestedCredential, verificationResults));
@@ -146,6 +147,15 @@ public class DcqlPresentationVerificationService {
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Vp token list for requested credential id " + requestedCredential.getId() + " must not contain null entries");
         }
         return requestedVpTokens;
+    }
+
+    /**
+     * The Status List Token is only persisted when it is to be returned as audit information, as it can be large
+     * (up to 200 KB per the Swiss Profile) and would otherwise needlessly grow the verification table.
+     */
+    private boolean isStatusListTokenAuditInformationEnabled() {
+        var auditInformation = applicationProperties.getAdditionalAuditInformation();
+        return auditInformation != null && auditInformation.isStatusListTokenEnabled();
     }
 
     private String writeAsString(Object object) {

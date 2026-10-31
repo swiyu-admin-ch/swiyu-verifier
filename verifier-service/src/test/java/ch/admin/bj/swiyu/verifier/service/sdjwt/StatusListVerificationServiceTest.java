@@ -2,24 +2,29 @@ package ch.admin.bj.swiyu.verifier.service.sdjwt;
 
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
-import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.domain.StatusVerificationResult;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListVerificationService;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,14 +63,20 @@ class StatusListVerificationServiceTest {
                         )
                 )
         );
-        TokenStatusListTokenDto statusListToken = mock(TokenStatusListTokenDto.class);
-        StatusVerificationResultDto verificationResult = mock(StatusVerificationResultDto.class);
+        ECKey signingKey = new ECKeyGenerator(Curve.P_256).keyID("did:example#key-1").generate();
+        String rawStatusListJwt = StatusListGenerator.createTokenStatusListTokenVerifiableCredential(
+                StatusListGenerator.SPEC_STATUS_LIST, signingKey, "did:example", signingKey.getKeyID());
 
-        when(statusListResolver.getTokenStatusListTokenByUri("https://example.com/status/1")).thenReturn(statusListToken);
-        when(statusListVerifier.verifyStatus(any(), eq(statusListToken))).thenReturn(verificationResult);
+        when(statusListResolver.getStatusListJwtByUri("https://example.com/status/1"))
+                .thenReturn(SignedJWT.parse(rawStatusListJwt));
+        when(statusListVerifier.verifyStatus(any(), any())).thenReturn(new StatusVerificationResultDto(true, Optional.of(0)));
 
         assertThat(verifier.verifyStatus(claims, new JWSHeader.Builder(JWSAlgorithm.ES256).build()))
-                .contains(verificationResult);
+                .contains(StatusVerificationResult.builder()
+                        .valid(true)
+                        .status(0)
+                        .statusListToken(rawStatusListJwt)
+                        .build());
     }
 
     @Test
@@ -79,7 +90,7 @@ class StatusListVerificationServiceTest {
                 )
         );
 
-        when(statusListResolver.getTokenStatusListTokenByUri("https://example.com/status/1")).thenReturn(null);
+        when(statusListResolver.getStatusListJwtByUri("https://example.com/status/1")).thenReturn(null);
 
         VerificationException ex = assertThrows(VerificationException.class,
                 () -> verifier.verifyStatus(claims, new JWSHeader.Builder(JWSAlgorithm.ES256).build()));

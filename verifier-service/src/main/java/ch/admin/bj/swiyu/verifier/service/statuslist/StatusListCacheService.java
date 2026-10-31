@@ -36,7 +36,7 @@ public class StatusListCacheService {
     private final StatusListResolver statusListResolver;
 
     @Getter(value = AccessLevel.PROTECTED) // Allow Protected level access to cache for unit tests
-    private final Cache<String, Optional<TokenStatusListTokenDto>> cache;
+    private final Cache<String, Optional<SignedJWT>> cache;
 
     public StatusListCacheService(CacheProperties cacheProperties, DidJwtValidator didJwtValidator,
                                   DidResolverFacade issuerPublicKeyLoader, StatusListResolver statusListResolver) {
@@ -54,8 +54,34 @@ public class StatusListCacheService {
      * @return the TokenStatusListToken or null, if it cannot be resolved
      */
     public TokenStatusListTokenDto getTokenStatusListTokenByUri(String uri) {
+        return toTokenStatusListToken(getStatusListJwtByUri(uri));
+    }
+
+    /**
+     * Resolves the given URI to a verified Status List Token JWT, caching it if possible to reduce load.
+     * {@link SignedJWT#getParsedString()} returns the token exactly as fetched, so its signature stays verifiable.
+     *
+     * @param uri URI where the status list is located
+     * @return the verified Status List Token JWT
+     * @throws ch.admin.bj.swiyu.verifier.common.exception.VerificationException if the status list cannot be resolved
+     */
+    public SignedJWT getStatusListJwtByUri(String uri) {
         return cache.get(uri, this::resolveValidatedStatusList).orElseThrow(() ->
                 credentialError(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST, "Status List %s cannot be resolved".formatted(uri)));
+    }
+
+    /**
+     * Maps an already verified Status List Token JWT to its TokenStatusListToken representation.
+     *
+     * @param statusListJwt the verified Status List Token JWT
+     * @return the TokenStatusListToken
+     */
+    public static TokenStatusListTokenDto toTokenStatusListToken(SignedJWT statusListJwt) {
+        try {
+            return TokenStatusListMapper.toTokenStatusListToken(statusListJwt.getJWTClaimsSet().getClaims(), statusListJwt.getHeader());
+        } catch (ParseException e) {
+            throw credentialError(e, VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST, "Status List Token malformed");
+        }
     }
 
     /**
@@ -63,9 +89,9 @@ public class StatusListCacheService {
      * fulfilling the basic requirements of a token status list according to the spec.
      *
      * @param uri URI where the status list is located
-     * @return the TokenStatusListToken or null, if it cannot be resolved
+     * @return the verified Status List Token JWT or empty, if it cannot be resolved
      */
-    private Optional<TokenStatusListTokenDto> resolveValidatedStatusList(String uri) {
+    private Optional<SignedJWT> resolveValidatedStatusList(String uri) {
         try {
             String statusListJWT = statusListResolver.resolveStatusList(uri);
             SignedJWT tokenStatusListJWT = SignedJWT.parse(statusListJWT);
@@ -90,7 +116,7 @@ public class StatusListCacheService {
                 return Optional.empty();
             }
 
-            return Optional.of(statusList);
+            return Optional.of(tokenStatusListJWT);
         } catch (JwtUtilException | StatusListFetchFailedException | IllegalArgumentException | ParseException e) {
             log.info("Failed to load status list {}", uri, e);
             return Optional.empty();
@@ -103,7 +129,7 @@ public class StatusListCacheService {
      *
      * @return A new caffeine cache
      */
-    private Cache<String, Optional<TokenStatusListTokenDto>> buildTokenStatusListTokenCache() {
+    private Cache<String, Optional<SignedJWT>> buildTokenStatusListTokenCache() {
         var maxCacheTTLNs = TimeUnit.MILLISECONDS.toNanos(cacheProperties.getStatusListCacheTtlMs());
         return Caffeine.newBuilder()
                 .maximumSize(cacheProperties.getStatusListCacheSize())
@@ -116,35 +142,36 @@ public class StatusListCacheService {
      * @param maxCacheTTLNs TTL, if smaller than exp or ttl of status list overriding the status list's config
      * @return the caffeine expiry object with correct expiry times configured
      */
-    private Expiry<String, Optional<TokenStatusListTokenDto>> buildTokenStatusListExpire(long maxCacheTTLNs) {
+    private Expiry<String, Optional<SignedJWT>> buildTokenStatusListExpire(long maxCacheTTLNs) {
         return new Expiry<>() {
 
             @Override
-            public long expireAfterCreate(String key, Optional<TokenStatusListTokenDto> value, long currentTime) {
+            public long expireAfterCreate(String key, Optional<SignedJWT> value, long currentTime) {
                 return getTtlOrBackoff(value);
             }
 
             @Override
-            public long expireAfterUpdate(String key, Optional<TokenStatusListTokenDto> value, long currentTime,
+            public long expireAfterUpdate(String key, Optional<SignedJWT> value, long currentTime,
                                           long currentDuration) {
                 return getTtlOrBackoff(value);
             }
 
             @Override
-            public long expireAfterRead(String key, Optional<TokenStatusListTokenDto> value, long currentTime,
+            public long expireAfterRead(String key, Optional<SignedJWT> value, long currentTime,
                                         long currentDuration) {
                 return currentDuration;
             }
 
-            private long getTtlOrBackoff(Optional<TokenStatusListTokenDto> value) {
+            private long getTtlOrBackoff(Optional<SignedJWT> value) {
                 return value
                         .map(this::getTTLTime)
                         .orElse(TimeUnit.SECONDS.toNanos(cacheProperties.getRequestBackoffSeconds()));
             }
 
-            private long getTTLTime(TokenStatusListTokenDto value) {
-                long minimumTimeout = TimeUtil.minNanosUntilExpiry(maxCacheTTLNs, TimeUtil.secondsToNanos(value.getExp()));
-                return TimeUtil.minWithNullable(minimumTimeout, TimeUtil.secondsToNanos(value.getTtl()));
+            private long getTTLTime(SignedJWT value) {
+                TokenStatusListTokenDto token = toTokenStatusListToken(value);
+                long minimumTimeout = TimeUtil.minNanosUntilExpiry(maxCacheTTLNs, TimeUtil.secondsToNanos(token.getExp()));
+                return TimeUtil.minWithNullable(minimumTimeout, TimeUtil.secondsToNanos(token.getTtl()));
             }
         };
     }

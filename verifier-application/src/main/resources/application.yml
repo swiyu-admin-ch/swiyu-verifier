@@ -66,6 +66,9 @@ application:
     credential-subject-data-enabled: ${ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED:true}
     # If true, includes credential_evaluation (per-credential trust and status verification results) in management API response.
     credential-evaluation-enabled: ${ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED:false}
+    # If true, persists the Status List Token used to check the status of each credential and includes it in
+    # credential_evaluation.credential_status. Requires credential-evaluation-enabled to be shown.
+    status-list-token-enabled: ${ADDITIONAL_AUDIT_INFORMATION_STATUS_LIST_TOKEN_ENABLED:false}
 
   # ---- OpenID4VP Part ----
 
@@ -154,7 +157,8 @@ management:
         application.template-replacement.client-id,
         application.additional-audit-information.vp-token-enabled,
         application.additional-audit-information.credential-subject-data-enabled,
-        application.additional-audit-information.credential-evaluation-enabled
+        application.additional-audit-information.credential-evaluation-enabled,
+        application.additional-audit-information.status-list-token-enabled
   health:
     # Set to false if no static signing key is configured (e.g. dynamic key management via ConfigurationOverride).
     # Env: SIGNING_KEY_VERIFICATION_ENABLED

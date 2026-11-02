@@ -10,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -173,6 +174,41 @@ public class DcqlCredentialDtoTest {
                 "The claim_sets field is not yet supported");
     }
 
+    @Test
+    void whenValidate_shouldRejectEmptyTrustedAuthorities() {
+        DcqlCredentialDto dto = new DcqlCredentialDto(
+                "credential_1",
+                "vc+sd-jwt",
+                false,
+                getValidMeta(),
+                getValidClaims(),
+                null,
+                true,
+                List.of()
+        );
+
+        assertViolation(dto, "trustedAuthorities",
+                "trusted_authorities must not be empty when provided");
+    }
+
+    @Test
+    void whenValidate_shouldRejectNullInTrustedAuthorities() {
+        List<DcqlTrustedAuthoritiesDto> authorities = new ArrayList<>();
+        authorities.add(null);
+        DcqlCredentialDto dto = new DcqlCredentialDto(
+                "credential_1",
+                "vc+sd-jwt",
+                false,
+                getValidMeta(),
+                getValidClaims(),
+                null,
+                true,
+                authorities
+        );
+
+        assertViolation(dto, "trustedAuthorities[0].<list element>",
+                "must not be null");
+    }
 
     private void assertViolation(DcqlCredentialDto dto,
                                  String property,

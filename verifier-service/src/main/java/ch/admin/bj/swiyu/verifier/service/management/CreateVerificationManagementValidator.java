@@ -32,7 +32,7 @@ public class CreateVerificationManagementValidator {
             // Not yet supporting credential sets
             throw new IllegalArgumentException("credential sets not yet supported");
         }
-        if (dcqlQueryDto.credentials().stream().anyMatch(cred -> cred.meta().vctValues().isEmpty())) {
+        if (dcqlQueryDto.credentials().stream().anyMatch(cred -> CollectionUtils.isEmpty(cred.meta().vctValues()))) {
             throw new IllegalArgumentException("vct_values is required");
         }
     }

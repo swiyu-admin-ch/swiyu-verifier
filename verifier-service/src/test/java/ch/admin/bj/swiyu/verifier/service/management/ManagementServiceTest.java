@@ -1,6 +1,8 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.ConfigurationOverride;
@@ -121,6 +123,33 @@ class ManagementServiceTest {
         when(management.getConfigurationOverride()).thenReturn(new ConfigurationOverride(null, null, null, null, null, null));
         assertThrows(VerificationNotFoundException.class, () -> service.getManagementResponseDto(id, null));
         verify(repository).deleteById(id);
+    }
+
+    @Test
+    void getActiveManagementById_whenNotExpired_thenReturnsManagement() {
+        var management = mock(Management.class);
+        when(management.isExpired()).thenReturn(false);
+        when(repository.findById(id)).thenReturn(Optional.of(management));
+
+        var result = service.getActiveManagementById(id);
+
+        assertThat(result).isSameAs(management);
+    }
+
+    @Test
+    void getActiveManagementById_whenExpired_thenThrowsProcessClosedException() {
+        var management = mock(Management.class);
+        when(management.isExpired()).thenReturn(true);
+        when(repository.findById(id)).thenReturn(Optional.of(management));
+
+        assertThrows(ProcessClosedException.class, () -> service.getActiveManagementById(id));
+    }
+
+    @Test
+    void getActiveManagementById_whenUnknownId_thenThrowsVerificationException() {
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(VerificationException.class, () -> service.getActiveManagementById(id));
     }
 
     @NullSource

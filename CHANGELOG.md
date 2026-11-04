@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Updated validation of `trusted_authorities` to be compliant with OID4VP specification `(#1401)`
+- Fail early strategy when mgmt is expired and return 409 `(#1214)`
 
 # [5.0.1] - 2026-10-15
 

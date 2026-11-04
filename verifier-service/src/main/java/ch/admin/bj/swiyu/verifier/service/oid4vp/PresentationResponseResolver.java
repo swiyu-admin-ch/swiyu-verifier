@@ -46,7 +46,6 @@ public class PresentationResponseResolver {
      *   </li>
      * </ul>
      *
-     * @param managementEntity     management context providing response mode and keys
      * @param apiVersion           API version from the SWIYU-API-Version header
      * @param verificationResponse raw response sent by the wallet (possibly encrypted or a rejection)
      * @return the resolved {@code PresentationResult} (standard, DCQL, or rejection)
@@ -54,8 +53,7 @@ public class PresentationResponseResolver {
      *                                  or decryption fails
      */
     @Transactional(readOnly = true)
-    public PresentationResult mapToPresentationResult(Management managementEntity,
-                                                      VPApiVersion apiVersion,
+    public PresentationResult mapToPresentationResult(VPApiVersion apiVersion,
                                                       VerificationPresentationUnionDto verificationResponse) {
 
         // Rejection has priority, independent of the API version

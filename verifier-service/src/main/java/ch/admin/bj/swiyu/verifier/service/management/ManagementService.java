@@ -1,8 +1,10 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
+import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
@@ -14,12 +16,12 @@ import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.service.vqps.VqpsRegistrationService;
-import jakarta.annotation.Nullable;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -54,16 +56,24 @@ public class ManagementService {
     private final Optional<VqpsRegistrationService> vqpsRegistrationService;
 
     /**
-     * Retrieves a management entity by its ID.
+     * Retrieves an active management entity by its ID.
      *
      * @param requestId the UUID of the management entity
      * @return the Management entity
-     * @throws VerificationException if the entity is not found
+     * @throws VerificationException         if the entity is not found
+     * @throws VerificationNotFoundException if the entity is expired
      */
-    public Management getManagementById(UUID requestId) {
-        return managementTransactionalService.findById(requestId)
+    public Management getActiveManagementById(UUID requestId) {
+        var management = managementTransactionalService.findById(requestId)
                 .orElseThrow(() -> submissionError(VerificationErrorResponseCode.AUTHORIZATION_REQUEST_OBJECT_NOT_FOUND,
                         "Management entity not found: " + requestId));
+
+        if (management.isExpired()) {
+            log.info("Management entity for id {} is expired", requestId);
+            throw new ProcessClosedException();
+        }
+
+        return management;
     }
 
     /**

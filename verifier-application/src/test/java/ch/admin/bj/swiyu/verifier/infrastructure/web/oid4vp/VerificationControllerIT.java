@@ -2,8 +2,8 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.sdjwtutil.SdJwtConstants;
 import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
-import ch.admin.bj.swiyu.verifier.common.config.KeyOnlySignatureConfiguration;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.KeyOnlySignatureConfiguration;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
@@ -50,8 +50,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -120,7 +118,7 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
     }
 
     @Test
-    void shouldFailOnExpiredManagementObject() throws Exception {
+    void shouldFailOnExpiredManagementObject_thenReturnsGONE() throws Exception {
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
@@ -130,8 +128,12 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_EXPIRED, vpToken, REQUEST_ID_EXPIRED)
-                .andExpect(status().isBadRequest());
+        var vpTokenMap = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken));
+        var submissionData = objectMapper.writeValueAsString(vpTokenMap);
+
+        // WHEN / THEN
+        postVerificationResponse(REQUEST_ID_EXPIRED, submissionData, REQUEST_ID_EXPIRED)
+                .andExpect(status().isGone());
     }
 
     @Test

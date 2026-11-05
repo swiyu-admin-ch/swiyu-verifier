@@ -68,6 +68,26 @@ class CreateVerificationManagementValidatorTest {
     }
 
     @Test
+    void validate_shouldThrow_whenMetaIsMissing() {
+        List<DcqlCredentialDto> credentials = List.of(
+                new DcqlCredentialDto(
+                        null, // id
+                        null, // format
+                        false, // multiple
+                        null, // meta
+                        null, // claims
+                        null, // claimSets
+                        null, // requireCryptographicHolderBinding
+                        null // trustedAuthorities
+                )
+        );
+        var dcqlQuery = new DcqlQueryDto(credentials, List.of());
+        var request = createRequest(dcqlQuery);
+        var exception = assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
+        assertEquals("meta is required", exception.getMessage());
+    }
+
+    @Test
     void validate_shouldNotThrow_whenDcqlQueryIsValid() {
         List<DcqlCredentialDto> credentials = List.of(
                 new DcqlCredentialDto(

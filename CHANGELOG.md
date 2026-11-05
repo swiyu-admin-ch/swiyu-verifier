@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Updated validation of `trusted_authorities` to be compliant with OID4VP specification `(#1401)`
+- Missing `vct_values` in a DCQL credential query now returns HTTP 400 instead of HTTP 500
 
 # [5.0.1] - 2026-10-15
 

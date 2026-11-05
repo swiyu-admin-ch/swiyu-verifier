@@ -2,8 +2,8 @@ package ch.admin.bj.swiyu.verifier.infrastructure.web.oid4vp;
 
 import ch.admin.bj.swiyu.sdjwtutil.SdJwtConstants;
 import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
-import ch.admin.bj.swiyu.verifier.common.config.KeyOnlySignatureConfiguration;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
+import ch.admin.bj.swiyu.verifier.common.config.KeyOnlySignatureConfiguration;
 import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
@@ -50,8 +50,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -119,9 +117,17 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         assertThat(dcqlQuery.get("credential_sets")).isNull();
     }
 
+    /**
+     * Verifies that a wallet presentation sent to an expired management object is rejected early.
+     * <p>
+     * Boundary condition: the management object exists but its expiration timestamp lies in the past,
+     * and the submitted VP token is otherwise valid, so only the expiration can cause the rejection.
+     * <p>
+     * Expected result: HTTP 410 (GONE) and the management state remains unchanged ({@code PENDING}).
+     */
     @Test
-    void shouldFailOnExpiredManagementObject() throws Exception {
-
+    void givenExpiredManagement_whenPostPresentation_thenReturnsGone() throws Exception {
+        // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
@@ -129,9 +135,15 @@ class VerificationControllerIT extends BaseVerificationControllerTest {
         // mock did resolver response so we get a valid public key for the issuer
         mockDidResolverResponse(emulator);
 
+        var vpTokenMap = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken));
+        var submissionData = objectMapper.writeValueAsString(vpTokenMap);
+
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_EXPIRED, vpToken, REQUEST_ID_EXPIRED)
-                .andExpect(status().isBadRequest());
+        postVerificationResponse(REQUEST_ID_EXPIRED, submissionData, REQUEST_ID_EXPIRED)
+                .andExpect(status().isGone());
+
+        var managementEntity = managementEntityRepository.findById(REQUEST_ID_EXPIRED).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
     @Test

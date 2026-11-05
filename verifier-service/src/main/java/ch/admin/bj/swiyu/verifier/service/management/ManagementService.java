@@ -4,7 +4,6 @@ import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.ProcessClosedException;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.common.exception.VerificationNotFoundException;
 import ch.admin.bj.swiyu.verifier.domain.VerificationResultData;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ResponseModeType;
@@ -61,7 +60,7 @@ public class ManagementService {
      * @param requestId the UUID of the management entity
      * @return the Management entity
      * @throws VerificationException         if the entity is not found
-     * @throws VerificationNotFoundException if the entity is expired
+     * @throws ProcessClosedException        if the entity is expired
      */
     public Management getActiveManagementById(UUID requestId) {
         var management = managementTransactionalService.findById(requestId)

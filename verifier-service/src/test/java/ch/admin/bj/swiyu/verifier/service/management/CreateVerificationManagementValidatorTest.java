@@ -5,10 +5,13 @@ import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialMetaDto;
 import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlQueryDto;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CreateVerificationManagementValidatorTest {
@@ -41,6 +44,47 @@ class CreateVerificationManagementValidatorTest {
         var dcqlQuery = new DcqlQueryDto(credentials, List.of());
         var request = createRequest(dcqlQuery);
         assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void validate_shouldThrow_whenVctValuesAreMissing(List<String> vctValues) {
+        List<DcqlCredentialDto> credentials = List.of(
+                new DcqlCredentialDto(
+                        null, // id
+                        null, // format
+                        false, // multiple
+                        new DcqlCredentialMetaDto(null, vctValues, null), // meta
+                        null, // claims
+                        null, // claimSets
+                        null, // requireCryptographicHolderBinding
+                        null // trustedAuthorities
+                )
+        );
+        var dcqlQuery = new DcqlQueryDto(credentials, List.of());
+        var request = createRequest(dcqlQuery);
+        var exception = assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
+        assertEquals("vct_values is required", exception.getMessage());
+    }
+
+    @Test
+    void validate_shouldThrow_whenMetaIsMissing() {
+        List<DcqlCredentialDto> credentials = List.of(
+                new DcqlCredentialDto(
+                        null, // id
+                        null, // format
+                        false, // multiple
+                        null, // meta
+                        null, // claims
+                        null, // claimSets
+                        null, // requireCryptographicHolderBinding
+                        null // trustedAuthorities
+                )
+        );
+        var dcqlQuery = new DcqlQueryDto(credentials, List.of());
+        var request = createRequest(dcqlQuery);
+        var exception = assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
+        assertEquals("meta is required", exception.getMessage());
     }
 
     @Test

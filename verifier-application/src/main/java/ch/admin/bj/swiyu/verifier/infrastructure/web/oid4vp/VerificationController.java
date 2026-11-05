@@ -27,7 +27,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -230,14 +229,14 @@ public class VerificationController {
         log.info("Received verification presentation for request_id: {} with version: {}", requestId, versionString);
         VPApiVersion version = VPApiVersion.fromValue(versionString);
 
-        var managementEntity = managementService.getManagementById(requestId);
+        var managementEntity = managementService.getActiveManagementById(requestId);
         VerificationPresentationUnionDto decryptedUnionDto = presentationResponseResolver.decryptIfNecessary(managementEntity, unionDto);
 
         if (!managementEntity.matchesOauthState(decryptedUnionDto.getState())) {
             throw new IllegalArgumentException("OAuth2.0 State mismatch. Expected to receive the state as in Request Object");
         }
 
-        PresentationResult result = presentationResponseResolver.mapToPresentationResult(managementEntity, version, decryptedUnionDto);
+        PresentationResult result = presentationResponseResolver.mapToPresentationResult(version, decryptedUnionDto);
 
         var response = switch (result) {
             // Processing rejection

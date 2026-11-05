@@ -28,15 +28,15 @@ public class DidDocFixtures {
                 issuerPublicKeyAsMultibaseKey());
     }
 
-    public static DidDoc issuerDidDocWithJsonWebKey(String didTdw, String keyId, String jsonWekKey) throws DidSidekicksException {
+    public static DidDoc issuerDidDocWithJsonWebKey(String didWebvh, String keyId, String jsonWekKey) throws DidSidekicksException {
         var template = """
                 {
-                   "id": "${didTdw}",
-                   "controller": "${didTdw}",
+                   "id": "${didWebvh}",
+                   "controller": "${didWebvh}",
                    "verificationMethod": [
                      {
                        "id": "${keyId}",
-                       "controller": "${didTdw}",
+                       "controller": "${didWebvh}",
                        "type": "JsonWebKey2020",
                        "publicKeyJwk": ${publicKey}
                      }
@@ -44,33 +44,33 @@ public class DidDocFixtures {
                  }
                 """;
         var json = template
-                .replace("${didTdw}", didTdw)
+                .replace("${didWebvh}", didWebvh)
                 .replace("${keyId}", keyId)
                 .replace("${publicKey}", jsonWekKey);
         return DidDoc.Companion.fromJson(json);
     }
 
-    public static DidDoc issuerDidDocWithMultikey(String didTdw, String keyId, String publicKey) throws DidSidekicksException {
+    public static DidDoc issuerDidDocWithMultikey(String didWebvh, String keyId, String publicKey) throws DidSidekicksException {
         var template = """
                 {
-                   "id": "${didTdw}",
-                   "controller": "${didTdw}",
+                   "id": "${didWebvh}",
+                   "controller": "${didWebvh}",
                    "verificationMethod": [
                      {
                        "id": "${keyId}",
-                       "controller": "${didTdw}",
+                       "controller": "${didWebvh}",
                        "type": "Multikey",
                        "publicKeyMultibase": "${publicKey}"
                      },
                      {
-                       "id": "${didTdw}#key-2",
-                       "controller": "${didTdw}",
+                       "id": "${didWebvh}#key-2",
+                       "controller": "${didWebvh}",
                        "type": "Multikey",
                        "publicKeyMultibase": "u6wGm2Gto9X9z2v04BBXi5KzxCSotFocsFfimoguUzxDpiYGItnnk1pc8oIulbQqXEnkWz7NnDANmoS+6PJoK61T4mK8jvCVxa2ui0pA9D0JBGscWT4O4JPKqmAdid+PxIA4"
                      },
                      {
-                       "id": "${didTdw}#key-3",
-                       "controller": "${didTdw}",
+                       "id": "${didWebvh}#key-3",
+                       "controller": "${didWebvh}",
                        "type": "Multikey",
                        "publicKeyMultibase": "uaUhTY0IzRGl4SnBzckZSVnZqcGxXOTh1NWdTTlBvVEc"
                      }
@@ -78,7 +78,7 @@ public class DidDocFixtures {
                  }
                 """;
         var json = template
-                .replace("${didTdw}", didTdw)
+                .replace("${didWebvh}", didWebvh)
                 .replace("${keyId}", keyId)
                 .replace("${publicKey}", publicKey);
         return DidDoc.Companion.fromJson(json);

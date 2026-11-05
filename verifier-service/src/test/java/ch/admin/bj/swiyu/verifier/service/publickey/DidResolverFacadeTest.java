@@ -74,19 +74,19 @@ class DidResolverFacadeTest {
     }
 
     @Test
-    void resolveKey_withDidTdwKeyId_delegatesToAdapter() throws Exception {
+    void resolveKey_withDidWebvhKeyIdAndUrlMapping_delegatesToAdapter() throws Exception {
         // Given
-        String didTdwKeyId = "did:tdw:example.com:abc123#key-1";
+        String didWebvhKeyId = "did:webvh:example.com:abc123#key-1";
         Map<String, String> urlMappings = Map.of("example.com", "localhost:8080");
         when(urlRewriteProperties.getUrlMappings()).thenReturn(urlMappings);
-        when(didResolverAdapter.resolveKey(didTdwKeyId, urlMappings)).thenReturn(mockJwk);
+        when(didResolverAdapter.resolveKey(didWebvhKeyId, urlMappings)).thenReturn(mockJwk);
 
         // When
-        JWK result = didResolverFacade.resolveKey(didTdwKeyId);
+        JWK result = didResolverFacade.resolveKey(didWebvhKeyId);
 
         // Then
         assertThat(result).isEqualTo(mockJwk);
-        verify(didResolverAdapter).resolveKey(didTdwKeyId, urlMappings);
+        verify(didResolverAdapter).resolveKey(didWebvhKeyId, urlMappings);
     }
 
     @Test

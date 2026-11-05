@@ -514,7 +514,7 @@ components:
           type: string
           description: identifier of the verifier in a format defined in the
             swiss-profile-anchor 1.0
-          example: did:tdw:DEADBEEF0000000000000000000000000000000000000000000000000000000000000000000000000000000000000:identifier-data-service-d.bit.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000
+          example: did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000
         purpose_name:
           type: object
           additionalProperties:

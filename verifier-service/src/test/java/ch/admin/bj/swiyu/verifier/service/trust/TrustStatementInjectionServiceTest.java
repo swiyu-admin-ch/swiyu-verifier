@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
  */
 class TrustStatementInjectionServiceTest {
 
-    private static final String VERIFIER_DID = "did:tdw:example.com:verifier";
+    private static final String VERIFIER_DID = "did:webvh:example.com:verifier";
     private static final byte[] HMAC_SECRET = new byte[32];
 
     private TrustStatementCacheService cacheService;

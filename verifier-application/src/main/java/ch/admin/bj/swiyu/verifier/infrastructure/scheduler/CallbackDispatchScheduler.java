@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Service
@@ -61,6 +62,14 @@ public class CallbackDispatchScheduler {
                     "Callback to {} failed with status code {} with message {}",
                     webhookProperties.getCallbackUri(),
                     e.getStatusCode(),
+                    e.getMessage()
+            );
+        } catch (WebClientRequestException e) {
+            // Connection level failures (refused, closed channel, timeout, ...). Keep the event for retry
+            // and make sure remaining events are still processed.
+            log.error(
+                    "Callback to {} failed due to an I/O error: {}",
+                    webhookProperties.getCallbackUri(),
                     e.getMessage()
             );
         }

@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
@@ -112,5 +113,43 @@ class CallbackTest {
         callbackDispatchScheduler.triggerProcessCallback();
 
         verify(callbackEventRepository, never()).delete(event);
+    }
+
+    /**
+     * Connection level errors (e.g. connection refused) must not escape the scheduler.
+     * The failing event is kept and the following events are still processed.
+     */
+    @Test
+    void triggerProcessCallback_handlesConnectionError_andContinuesWithNextEvent() {
+        CallbackEvent failing = CallbackEvent.builder()
+                .id(UUID.randomUUID())
+                .verificationId(UUID.randomUUID())
+                .timestamp(Instant.now())
+                .build();
+        CallbackEvent succeeding = CallbackEvent.builder()
+                .id(UUID.randomUUID())
+                .verificationId(UUID.randomUUID())
+                .timestamp(Instant.now())
+                .build();
+        when(callbackEventRepository.findAll()).thenReturn(List.of(failing, succeeding));
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.header(anyString(), anyString())).thenReturn(requestBodySpec);
+        when(requestBodySpec.contentType(MediaType.APPLICATION_JSON)).thenReturn(requestBodySpec);
+        when(requestBodySpec.bodyValue(any(Object.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.toBodilessEntity()).thenReturn(
+                Mono.error(new WebClientRequestException(
+                        new java.nio.channels.ClosedChannelException(),
+                        org.springframework.http.HttpMethod.POST,
+                        java.net.URI.create("http://test/callback"),
+                        new org.springframework.http.HttpHeaders())),
+                Mono.empty()
+        );
+
+        callbackDispatchScheduler.triggerProcessCallback();
+
+        verify(callbackEventRepository, never()).delete(failing);
+        verify(callbackEventRepository).delete(succeeding);
     }
 }

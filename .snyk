@@ -5,6 +5,6 @@ ignore:
   SNYK-JAVA-ORGGLASSFISHJAXB-20883142:
     - '*':
         reason: No user controlled xml parsing on our side; no fix available yet
-        expires: 2026-11-09T00:00:00.000Z
+        expires: 2026-12-10T00:00:00.000Z
         created: 2026-10-15T13:18:18.066Z
 patch: {}

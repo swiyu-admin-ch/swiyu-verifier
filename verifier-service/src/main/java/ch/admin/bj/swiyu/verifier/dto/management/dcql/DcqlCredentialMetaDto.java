@@ -32,6 +32,7 @@ public record DcqlCredentialMetaDto(
 
         @Schema(description = "For IETF SD-JWT VC: A non-empty array of strings that specifies allowed " +
                 "values for the type of the requested Verifiable Credential. " +
+                "Currently required, as only the SD-JWT VC formats are supported. " +
                 "According to OpenID for Verifiable Presentations 1.0, Appendix B.3.5, property 'vct_values'.")
         @JsonProperty("vct_values")
         @Valid

@@ -34,7 +34,7 @@ import static org.mockito.Mockito.*;
  */
 class TrustStatementCacheServiceTest {
 
-    private static final String VERIFIER_DID = "did:tdw:example.com:verifier";
+    private static final String VERIFIER_DID = "did:webvh:example.com:verifier";
     private static final byte[] HMAC_SECRET = new byte[32]; // all-zeros, sufficient for test JWTs
 
     private TrustProtocol20Api trustProtocol20Api;

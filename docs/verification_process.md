@@ -77,7 +77,7 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -d '{
   "accepted_issuer_dids": [
-    "did:tdw:QmPEZPhDFR4nEYSFK5bMnvECqdpf1tPTPJuWs9QrMjCumw:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:9a5559f0-b81c-4368-a170-e7b4ae424527"
+    "did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1"
   ],
   "jwt_secured_authorization_request": true,
   "response_mode": "direct_post",

@@ -77,14 +77,14 @@ class VerificationControllerTrustStatementIT extends BaseVerificationControllerT
 
     /**
      * A well-formed {@code kid} matching the Trust Registry DID pattern required by
-     * the {@code swiyu-ts-builder} validation (did:tdw / did:webvh with SCID + key fragment).
+     * the {@code swiyu-ts-builder} validation (did:webvh with SCID + key fragment).
      */
     private static final String TRUST_REGISTRY_KID =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA1:identifier.admin.ch:api:v1:did#assert-key-01";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA1:identifier.admin.ch:api:v1:did#assert-key-01";
 
     /**
      * The issuer DID as configured in the test {@code application.yml}
-     * ({@code application.issuer-id=did:tdw:example}).
+     * ({@code application.issuer-id=did:webvh:example}).
      */
     private static final String VERIFIER_DID = "did:example:12345";
 
@@ -92,7 +92,7 @@ class VerificationControllerTrustStatementIT extends BaseVerificationControllerT
      * A syntactically valid subject DID used as the {@code sub} claim of the Trust Statements.
      */
     private static final String VERIFIER_SUBJECT_DID =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
 
     private static final UUID REQUEST_ID = UUID.fromString("aabbccdd-aabb-aabb-aabb-aabbccdd0001");
     private static final UUID REQUEST_ID_WITH_VQPS = UUID.fromString("aabbccdd-aabb-aabb-aabb-aabbccdd0002");

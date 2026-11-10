@@ -30,7 +30,7 @@ The metadata information will be provided to the holder on a dedicated endpoint 
 |-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `EXTERNAL_URL`                | This will be used to build the correct verification_deeplink. You must provide the /oid4vp endpoints there, which must use https-protocol otherwise the wallet will refuse to connect.                                                                                                                          |                                                                                                                                                                  |
 | `VERIFIER_DID`                | DID you created during the [onboarding](https://swiyu-admin-ch.github.io/cookbooks/onboarding-base-and-trust-registry/#create-a-did-or-create-the-did-log-you-need-to-continue)                                                                                                                                 | did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000             |
-| `DID_VERIFICATION_METHOD`     | Verification method, which can be taken from the did log response. The Verification Method must match the selected SIGNING_KEY! [onboarding process](https://swiyu-admin-ch.github.io/cookbooks/onboarding-base-and-trust-registry/#create-a-did-or-create-the-did-log-you-need-to-continue) method             | did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000#auth-key-01 |
+| `DID_VERIFICATION_METHOD`     | Verification method, which can be taken from the did log response. The Verification Method must match the selected SIGNING_KEY! [onboarding process](https://swiyu-admin-ch.github.io/cookbooks/onboarding-base-and-trust-registry/#create-a-did-or-create-the-did-log-you-need-to-continue) method             | did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000#assert-key-01 |
 | `SIGNING_KEY`                 | EC Private key, which can be taken from [onboarding process](https://swiyu-admin-ch.github.io/cookbooks/onboarding-base-and-trust-registry/#create-a-did-or-create-the-did-log-you-need-to-continue) you can use any generated key but it must match the `DID_VERIFICATION_METHOD`                              |
 | `OPENID_CLIENT_METADATA_FILE` | Path to the OpenID client metadata file. An example can be found [here](https://github.com/swiyu-admin-ch/swiyu-verifier/blob/main/verifier-application/src/main/resources/client_metadata.json) or in the [sample_compose](https://github.com/swiyu-admin-ch/swiyu-verifier/blob/main/sample.compose.yml#L40). |
 
@@ -61,7 +61,7 @@ curl -X 'POST' 'http://localhost:8083/management/api/verifications' \
   -H "Content-Type: application/json" \
   -d '{
   "accepted_issuer_dids": [
-    "did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000"
+    "did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1"
   ],
   "jwt_secured_authorization_request": true,
   "response_mode": "direct_post",
@@ -99,7 +99,7 @@ curl -X 'POST' 'http://localhost:8083/management/api/verifications' \
 
 
 > [!NOTE]
-> The field <strong><code>accepted_issuer_dids</code>:</strong> contains a list of DIDs from credential issuers whose credentials your verifier will accept. Replace the <code>${ISSUER_DID}</code> placeholder with the actual DID of your issuer. For quick testing with the Beta Credential Service (BCS) Public Beta, you can use: <code>did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000"https://www.bcs.admin.ch/bcs-web/#/">BCS Public Beta-ID</a> and verify it with your own verifier.
+> The field <strong><code>accepted_issuer_dids</code>:</strong> contains a list of DIDs from credential issuers whose credentials your verifier will accept. Replace the <code>${ISSUER_DID}</code> placeholder with the actual DID of your issuer. For quick testing with the Beta Credential Service (BCS) Public Beta, you can use: <code>did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1</code> and verify it with your own verifier.
 
 **Response**
 

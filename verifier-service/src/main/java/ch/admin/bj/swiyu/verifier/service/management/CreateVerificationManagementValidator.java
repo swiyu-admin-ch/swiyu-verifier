@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.verifier.service.management;
 
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
+import ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto;
 import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 
@@ -32,11 +33,12 @@ public class CreateVerificationManagementValidator {
             // Not yet supporting credential sets
             throw new IllegalArgumentException("credential sets not yet supported");
         }
-        if (dcqlQueryDto.credentials().stream().anyMatch(cred -> cred.meta() == null)) {
-            throw new IllegalArgumentException("meta is required");
+        if (dcqlQueryDto.credentials().stream().anyMatch(CreateVerificationManagementValidator::lacksVctValues)) {
+            throw new IllegalArgumentException("meta and vct_values are required");
         }
-        if (dcqlQueryDto.credentials().stream().anyMatch(cred -> CollectionUtils.isEmpty(cred.meta().vctValues()))) {
-            throw new IllegalArgumentException("vct_values is required");
-        }
+    }
+
+    private boolean lacksVctValues(DcqlCredentialDto cred) {
+        return cred.meta() == null || CollectionUtils.isEmpty(cred.meta().vctValues());
     }
 }

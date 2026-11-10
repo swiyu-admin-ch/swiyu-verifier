@@ -60,7 +60,7 @@ class VerifierManagementControllerIT extends AbstractMockMvcIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error_description").value(containsString("vct_values is required")));
+                .andExpect(jsonPath("$.error_description").value(containsString("meta and vct_values are required")));
     }
 
     /**

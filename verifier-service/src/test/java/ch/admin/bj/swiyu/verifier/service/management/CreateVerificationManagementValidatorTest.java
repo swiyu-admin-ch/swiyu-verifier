@@ -64,7 +64,7 @@ class CreateVerificationManagementValidatorTest {
         var dcqlQuery = new DcqlQueryDto(credentials, List.of());
         var request = createRequest(dcqlQuery);
         var exception = assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
-        assertEquals("vct_values is required", exception.getMessage());
+        assertEquals("meta and vct_values are required", exception.getMessage());
     }
 
     @Test
@@ -84,7 +84,7 @@ class CreateVerificationManagementValidatorTest {
         var dcqlQuery = new DcqlQueryDto(credentials, List.of());
         var request = createRequest(dcqlQuery);
         var exception = assertThrows(IllegalArgumentException.class, () -> CreateVerificationManagementValidator.validate(request));
-        assertEquals("meta is required", exception.getMessage());
+        assertEquals("meta and vct_values are required", exception.getMessage());
     }
 
     @Test

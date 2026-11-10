@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Updated validation of `trusted_authorities` to be compliant with OID4VP specification `(#1401)`
+- Missing `vct_values` in a DCQL credential query now returns HTTP 400 instead of HTTP 500
 - Fail early strategy when mgmt is expired and return 410 `(#1214)`
 - Regression regarding SCID linkage between webvh and did document by updating to did-resolver 2.10.1 `(#1516)`
 

@@ -38,6 +38,32 @@ class VerifierManagementControllerIT extends AbstractMockMvcIT {
 
 
     /**
+     * A credential query without vct_values must be rejected as bad request instead of failing with a server error
+     */
+    @Test
+    void testCreateOffer_withoutVctValues_thenThrowBadRequest() throws Exception {
+        var request = """
+                {
+                  "dcql_query": {
+                    "credentials": [
+                      {
+                        "id": "my_credential",
+                        "format": "dc+sd-jwt",
+                        "meta": {}
+                      }
+                    ]
+                  }
+                }
+                """;
+
+        mvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value(containsString("meta and vct_values are required")));
+    }
+
+    /**
      * Test to check if not supported fields are validated
      */
     @Test

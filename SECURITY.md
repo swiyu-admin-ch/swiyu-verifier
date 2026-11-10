@@ -4,7 +4,7 @@
 
 | Version                          | Supported |
 |----------------------------------|-----------|
-| Latest tagged release from 5.0.x | ✅         |
+| Latest tagged release from 5.1.x | ✅         |
 
 The configurations listed in [EXPERIMENTAL.md](https://github.com/swiyu-admin-ch/swiyu-verifier/blob/main/EXPERIMENTAL.md)
 are considered experimental and should be used at your own risk.
@@ -24,7 +24,7 @@ Thank you for helping us to make our project more secure.
 The bug bounty program is limited to the following branches and the newest tagged release on that branch. The relevant
 branches are:
 
-- [release/5.0.x](https://github.com/swiyu-admin-ch/swiyu-verifier/tree/release/5.0.x)
+- [release/5.1.x](https://github.com/swiyu-admin-ch/swiyu-verifier/tree/release/5.1.x)
 
 Vulnerabilities affecting any other branches, older tags, forks and code are out of scope unless explicitly announced as
 included.

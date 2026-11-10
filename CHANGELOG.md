@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [NEXT]
+# [5.1.0] - 2026-11-10
 
 ## Changed
 - In response for verification only requested values are returned in new field `dcql_response`. `(#1201)`
@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Updated validation of `trusted_authorities` to be compliant with OID4VP specification `(#1401)`
-- Missing `vct_values` in a DCQL credential query now returns HTTP 400 instead of HTTP 500
+- Missing `vct_values` or `meta` in a DCQL credential query now returns HTTP 400 instead of HTTP 500 `(#524)`
 - Fail early strategy when mgmt is expired and return 410 `(#1214)`
 - Regression regarding SCID linkage between webvh and did document by updating to did-resolver 2.10.1 `(#1516)`
+- Callback dispatching no longer aborts event processing on connection errors `(#215)`
+- Fixed primary key index of the management table `(#511)`
 
 
 # [5.0.1] - 2026-10-15

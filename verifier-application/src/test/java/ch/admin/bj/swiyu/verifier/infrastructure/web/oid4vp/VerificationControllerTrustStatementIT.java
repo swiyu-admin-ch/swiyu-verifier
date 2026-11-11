@@ -73,7 +73,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "swiyu.trust-registry.clock-skew-buffer-seconds=0",
         "swiyu.trust-registry.max-cache-ttl-seconds=3600"
 })
-class VerificationControllerTrustStatementIT extends BaseVerificationControllerTest {
+class VerificationControllerTrustStatementIT extends AbstractVerificationControllerIT {
 
     /**
      * A well-formed {@code kid} matching the Trust Registry DID pattern required by

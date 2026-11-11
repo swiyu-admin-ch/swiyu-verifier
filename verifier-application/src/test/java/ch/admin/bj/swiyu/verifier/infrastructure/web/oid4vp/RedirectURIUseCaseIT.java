@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-public class RedirectURIUseCaseIT extends BaseVerificationControllerTest {
+public class RedirectURIUseCaseIT extends AbstractVerificationControllerIT {
 
     @Autowired
     private MockMvc mock;
@@ -35,7 +35,7 @@ public class RedirectURIUseCaseIT extends BaseVerificationControllerTest {
     @EnumSource(ResponseModeTypeDto.class)
     public void givenResponseMode_whenVerificationCompletes_thenRedirectUriReturned(ResponseModeTypeDto responseModeTypeDto) throws Exception {
         var request = createVerificationManagement(responseModeTypeDto);
-        var mgmt = BaseVerificationControllerTest.createVerificationRequest(mock, request);
+        var mgmt = createVerificationRequest(mock, request);
         var requestObject = getRequestObject(mgmt.verificationUrl());
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock(null, "did:webvh:scid:example.com:api:v1:some-issuer-id" + "#key-1");

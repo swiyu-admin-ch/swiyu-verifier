@@ -77,7 +77,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-class VerificationControllerIT extends BaseVerificationControllerTest {
+class VerificationControllerIT extends AbstractVerificationControllerIT {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";

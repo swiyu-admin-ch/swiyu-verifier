@@ -50,8 +50,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
+/**
+ * Shared base for the OID4VP integration tests in this package: retrieval of the request object,
+ * submission or rejection of the wallet response, and the resulting management state.
+ */
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-public abstract class BaseVerificationControllerTest extends AbstractMockMvcIT {
+public abstract class AbstractVerificationControllerIT extends AbstractMockMvcIT {
 
     public static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 

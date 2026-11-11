@@ -165,7 +165,7 @@
                     <keysMapLocation>${maven.multiModuleProjectDirectory}/pgp/keys.list</keysMapLocation>
                     <verifyPomFiles>true</verifyPomFiles>
                     <!--  To skip verification locally mvn -Dpgpverify.skip=true -->
-                    <pgpKeyServer>hkps://keys.openpgp.org, hkps://keyserver.ubuntu.com</pgpKeyServer>
+                    <pgpKeyServer>hkps://keys.openpgp.org, hkps://keyserver.ubuntu.com, hkps://pgp.mit.edu</pgpKeyServer>
                     <pgpKeyServerLoadBalance>true</pgpKeyServerLoadBalance>
                     <failWeakSignature>true</failWeakSignature>
                 </configuration>

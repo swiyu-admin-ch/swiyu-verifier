@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class ErrorCodesIT extends BaseVerificationControllerTest {
+class ErrorCodesIT extends AbstractVerificationControllerIT {
 
     private static final String BASE_URL = "/management/api/verifications";
     private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";

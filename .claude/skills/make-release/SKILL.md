@@ -7,146 +7,146 @@ allowed-tools: Bash(git log:*), Bash(git status:*), Bash(git branch:*), Bash(git
 
 # Make Release
 
-Du agierst als erfahrener Release Manager. Folge strikt dem Workflow unten, überspring keine Schritte und erzeuge das
-Changelog erst, wenn die Commit-Logs vorliegen. Kommuniziere mit dem User auf Deutsch.
+You act as an experienced release manager. Follow the workflow below strictly, do not skip any steps, and only
+generate the changelog once the commit logs are available. Communicate with the user in English.
 
-## Step 1: Neue Version erfragen
+## Step 1: Ask for the new version
 
-Frage: "Welche Version möchtest du für dieses Release erstellen? (z.B. 1.2.0)". Warte auf die Antwort.
+Ask: "Which version do you want to create for this release? (e.g. 1.2.0)". Wait for the answer.
 
-## Step 2: Datum des letzten Releases erfragen
+## Step 2: Ask for the date of the last release
 
-Frage: "Welches Datum hatte das letzte Release? (Format: YYYY-MM-DD)". Warte auf die Antwort.
+Ask: "What was the date of the last release? (Format: YYYY-MM-DD)". Wait for the answer.
 
-## Step 3: Commits ermitteln
+## Step 3: Determine the commits
 
-Führe selbst aus (read-only):
+Run yourself (read-only):
 
 ```bash
-git log --since="[DATUM]" --oneline
+git log --since="[DATE]" --oneline
 ```
 
-Zeige dem User die Commits kurz. Falls die Ausgabe offensichtlich unvollständig wirkt, biete an, dass der User sie
-selbst einfügt.
+Briefly show the commits to the user. If the output obviously looks incomplete, offer that the user pastes them
+themselves.
 
-## Step 4: Changelog generieren
+## Step 4: Generate the changelog
 
-Strikte Regeln:
+Strict rules:
 
-- Gruppiere in "Added", "Fixed" und "Changed".
-- Nimm relevante Jira-Ticketnummern in Klammern auf -> (#XXX).
-- Kurze, klare Bullet Points.
-- Markdown im "Keep a Changelog"-Stil.
-- Nur user-facing Änderungen; Refactoring, Doku und Merge-Commits weglassen, ausser sie beeinflussen die Funktionalität.
+- Group into "Added", "Fixed" and "Changed".
+- Include relevant Jira ticket numbers in parentheses -> (#XXX).
+- Short, clear bullet points.
+- Markdown in "Keep a Changelog" style.
+- Only user-facing changes; omit refactoring, documentation and merge commits unless they affect functionality.
 
-## Step 5: pom.xml aktualisieren
+## Step 5: Update pom.xml
 
-Direkt nach dem Changelog: Zeige die XML-Snippets für die `<version>`-Tags von `swiyu-verifier-parent` und
-`swiyu-verifier-service` mit der neuen Version. Schlage zusätzlich als Alternative vor:
+Directly after the changelog: show the XML snippets for the `<version>` tags of `swiyu-verifier-parent` and
+`swiyu-verifier-service` with the new version. Additionally suggest as an alternative:
 
 ```bash
 mvn versions:set -DnewVersion=[VERSION]
 ```
 
-Führe Änderungen an den pom.xml-Dateien erst nach Bestätigung des Users aus.
+Only modify the pom.xml files after the user has confirmed.
 
-## Step 6: SECURITY.md und EXPERIMENTAL.md aktualisieren
+## Step 6: Update SECURITY.md and EXPERIMENTAL.md
 
-Dieser Schritt kommt vor dem Commit, damit die Änderungen im Release-Commit enthalten sind:
+This step comes before the commit so that the changes are included in the release commit:
 
-- **SECURITY.md:** Passe die Tabelle "Supported Versions" (z.B. "Latest tagged release 5.0.x") und die Branch-Liste unter
-  "Bug Bounty" (z.B. `release/5.0.x`) auf den Release-Branch der neuen Version an (Major.Minor aus Step 1, z.B. 5.1.x).
-  Frage den User, ob die bisherige Version weiterhin supported bleibt, bevor du sie entfernst.
-- **EXPERIMENTAL.md:** Prüfe anhand der Commits aus Step 3, ob Features neu experimentell wurden, produktiv freigegeben
-  wurden oder wegfielen, und aktualisiere die Liste entsprechend. Zeige dem User die vorgeschlagenen Änderungen.
+- **SECURITY.md:** Adjust the "Supported Versions" table (e.g. "Latest tagged release 5.0.x") and the branch list under
+  "Bug Bounty" (e.g. `release/5.0.x`) to the release branch of the new version (Major.Minor from Step 1, e.g. 5.1.x).
+  Ask the user whether the previous version remains supported before removing it.
+- **EXPERIMENTAL.md:** Based on the commits from Step 3, check whether features became newly experimental, were released
+  for production, or were removed, and update the list accordingly. Show the proposed changes to the user.
 
-Zeige beide Diffs und warte auf Bestätigung des Users. Der Commit-Befehl in Step 8 muss diese Dateien mit einschliessen
-(`git commit -am` erfasst bereits alle getrackten Änderungen).
+Show both diffs and wait for the user's confirmation. The commit command in Step 8 must include these files
+(`git commit -am` already picks up all tracked changes).
 
-## Step 7: Migration Guide prüfen
+## Step 7: Check the migration guide
 
-Prüfe anhand des Changelogs (Step 4) und der Commits (Step 3), ob ein Migration Guide von der vorherigen Minor-Version
-(z.B. 5.0.x) auf die neue (z.B. 5.1.x) nötig ist. Das ist bei jedem Release zwingend zu prüfen und dem User explizit zu
-begründen, auch wenn das Ergebnis "nicht nötig" lautet.
+Based on the changelog (Step 4) and the commits (Step 3), check whether a migration guide from the previous minor
+version (e.g. 5.0.x) to the new one (e.g. 5.1.x) is needed. This check is mandatory for every release and must be
+explicitly justified to the user, even if the result is "not needed".
 
-Ein Guide ist nötig bei Änderungen, die bestehende Setups beeinflussen:
+A guide is needed for changes that affect existing setups:
 
-- Breaking Changes in API, Issuer-Metadata oder Datenmodell (z.B. neue Pflichtfelder, entfernte Werte).
-- Neue, geänderte oder entfernte Umgebungsvariablen und geänderte Default-Werte.
-- Geändertes Verhalten, auf das Clients, Wallets oder Business Issuer reagieren müssen (z.B. neue HTTP-Status-Codes).
-- Datenbank-Migrationen oder Konfigurationsänderungen mit Handlungsbedarf für Operatoren.
+- Breaking changes in the API, issuer metadata or data model (e.g. new mandatory fields, removed values).
+- New, changed or removed environment variables and changed default values.
+- Changed behavior that clients, wallets or business issuers must react to (e.g. new HTTP status codes).
+- Database migrations or configuration changes that require action by operators.
 
-Nicht nötig bei rein additiven, optionalen Änderungen ohne Handlungsbedarf, Bugfixes, Dokumentation und
-Dependency-Updates (Patch-Releases ebenfalls in der Regel nicht).
+Not needed for purely additive, optional changes without required action, bug fixes, documentation and
+dependency updates (patch releases usually not either).
 
-Verifiziere Behauptungen im Code (z.B. Validierungsannotationen, Default-Werte in `application.yml`), bevor du sie in den
-Guide schreibst, und prüfe, ob die Änderungen im Changelog noch aktuell sind.
+Verify claims in the code (e.g. validation annotations, default values in `application.yml`) before writing them into
+the guide, and check whether the changes in the changelog are still up to date.
 
-Vorgehen:
+Procedure:
 
-1. Schaue dir die vorhandenen Guides in `migration-guides/` an (z.B. `guide-4.x.x-to-5.0.x.md`) und übernimm Aufbau und
-   Stil: Compatibility summary (Issuance clients / Business verifiers / Operators), danach Breaking Changes mit
-   Before/After-Beispielen.
-2. Dateiname: `migration-guides/guide-[ALTE_VERSION].x-to-[NEUE_VERSION].x.md` (z.B. `guide-5.0.x-to-5.1.x.md`).
-3. Sage dem User das Ergebnis der Prüfung (nötig / nicht nötig, mit Begründung) und zeige bei "nötig" den Entwurf. Lege die
-   Datei erst nach Bestätigung des Users an.
-4. Die neue Datei ist untracked: `git commit -am` erfasst sie nicht. Sie muss in Step 8 zusätzlich mit `git add`
-   aufgenommen werden.
+1. Look at the existing guides in `migration-guides/` (e.g. `guide-4.x.x-to-5.0.x.md`) and adopt their structure and
+   style: Compatibility summary (Issuance clients / Business verifiers / Operators), followed by breaking changes with
+   before/after examples.
+2. File name: `migration-guides/guide-[OLD_VERSION].x-to-[NEW_VERSION].x.md` (e.g. `guide-5.0.x-to-5.1.x.md`).
+3. Tell the user the result of the check (needed / not needed, with justification) and show the draft if "needed".
+   Only create the file after the user has confirmed.
+4. The new file is untracked: `git commit -am` does not pick it up. It must additionally be added with `git add` in
+   Step 8.
 
-## Step 8: Commit und Push
+## Step 8: Commit and push
 
-Zeige die Befehle (Version einsetzen) und führe sie NUR nach ausdrücklicher Bestätigung des Users aus:
+Show the commands (substituting the version) and run them ONLY after the user's explicit confirmation:
 
 ```bash
-git add migration-guides/guide-[ALTE_VERSION].x-to-[NEUE_VERSION].x.md   # nur falls in Step 7 ein Guide erstellt wurde
+git add migration-guides/guide-[OLD_VERSION].x-to-[NEW_VERSION].x.md   # only if a guide was created in Step 7
 git commit -am "chore(release): bump version to [VERSION]"
 git push
 ```
 
-Füge keine anderen untracked Dateien hinzu (z.B. `.claude/`, `review.txt`).
+Do not add any other untracked files (e.g. `.claude/`, `review.txt`).
 
-## Step 9: GitHub Release
+## Step 9: GitHub release
 
-Leite den Release-Branch aus Major.Minor ab (z.B. 2.4.3 -> `release/2.4.x`) und gib exakt diese Anleitung aus:
+Derive the release branch from Major.Minor (e.g. 2.4.3 -> `release/2.4.x`) and output exactly this guide:
 
-**Schritt 9: GitHub Release erstellen**
-Bitte führe nun die folgenden Schritte auf GitHub aus:
+**Step 9: Create the GitHub release**
+Please perform the following steps on GitHub:
 
-1. Öffne die Release-Seite: [https://github.com/swiyu-admin-ch/swiyu-verifier/releases](https://github.com/swiyu-admin-ch/swiyu-verifier/releases)
-2. Klicke auf den Button **"Draft a new release"**.
-3. **Choose a tag:** Tippe `[VERSION]` ein und wähle "Create new tag".
-4. **Target:** Wähle den entsprechenden Release-Branch aus (z.B. `[BERECHNETER_BRANCH]`).
-5. **Release title:** Gib `swiyu-verifier [VERSION]` ein.
-6. **Describe this release:** Kopiere das oben generierte Changelog und füge es hier ein.
-7. Klicke auf **"Publish release"**.
+1. Open the releases page: [https://github.com/swiyu-admin-ch/swiyu-verifier/releases](https://github.com/swiyu-admin-ch/swiyu-verifier/releases)
+2. Click the **"Draft a new release"** button.
+3. **Choose a tag:** Type `[VERSION]` and select "Create new tag".
+4. **Target:** Select the corresponding release branch (e.g. `[COMPUTED_BRANCH]`).
+5. **Release title:** Enter `swiyu-verifier [VERSION]`.
+6. **Describe this release:** Copy the changelog generated above and paste it here.
+7. Click **"Publish release"**.
 
-## Step 10: Confluence-Dokumentation, Jira-Filter & Highlights
+## Step 10: Confluence documentation, Jira filter & highlights
 
-Extrahiere alle eindeutigen Jira-Ticket-IDs (z.B. EIDOMNI-123) aus den Commits von Step 3, entferne Duplikate und
-erzeuge einen JQL-String: `key IN (TICKET-1, TICKET-2, TICKET-3)`
+Extract all unique Jira ticket IDs (e.g. EIDOMNI-123) from the commits of Step 3, remove duplicates and generate a JQL
+string: `key IN (TICKET-1, TICKET-2, TICKET-3)`
 
-Gib exakt diese Anleitung aus:
+Output exactly this guide:
 
-**Schritt 10: Confluence Dokumentation**
-Bitte trage das neue Release nun im Confluence ein:
+**Step 10: Confluence documentation**
+Please enter the new release in Confluence now:
 
-1. Gehe auf die Seite: **7.2. Generic Components Releases - e-ID Teamspace - Confluence**.
-2. Erstelle in der Tabelle einen neuen Eintrag für die Version `[VERSION]`.
-3. Nutze den folgenden JQL-Filter, um die zugehörigen Jira-Tickets zu hinterlegen:
-   `[GENERIERTER_JQL_FILTER]`
+1. Go to the page: **7.2. Generic Components Releases - e-ID Teamspace - Confluence**.
+2. Create a new entry in the table for version `[VERSION]`.
+3. Use the following JQL filter to attach the related Jira tickets:
+   `[GENERATED_JQL_FILTER]`
 
-### Swiyu Issuer Releases Seite
+### Swiyu Issuer Releases page
 
-Das Release muss zusätzlich auf dieser Seite eingetragen werden:
+The release must additionally be entered on this page:
 [7.2.1 Swiyu Issuer Releases](https://confluence.bit.admin.ch/spaces/EIDTEAM/pages/1555065503/7.2.1+Swiyu+Issuer+Releases)
 
-Generiere dafür eine kurze Highlights-Liste zum Copy-Paste in Confluence:
+Generate a short highlights list for copy-paste into Confluence:
 
-- Nur Bullet Points mit Stichworten, jeweils ein Satz auf Englisch, möglichst kurz.
-- Nur die wichtigsten user-facing Punkte aus dem Changelog (Step 4), keine Ticketnummern.
-- Ausgabe in einem Markdown-Codeblock, damit der User sie einfach kopieren kann.
+- Only bullet points with keywords, one sentence each in English, as short as possible.
+- Only the most important user-facing points from the changelog (Step 4), no ticket numbers.
+- Output in a Markdown code block so the user can easily copy it.
 
-Beispiel für den Stil:
+Example of the style:
 
 ```markdown
 - Migrated build to Java 25 (LTS) and upgraded to Spring Boot 4.1.1.
@@ -154,8 +154,8 @@ Beispiel für den Stil:
 - Added credential_refresh_disabled property to verifier metadata to let business verifiers disable the renewal flow per credential type.
 ```
 
-Gib danach die Anleitung aus:
+Afterwards output this guide:
 
-1. Öffne die Seite oben.
-2. Erstelle einen neuen Eintrag für die Version `[VERSION]` mit dem Release-Datum.
-3. Füge die Highlights-Liste ein.
+1. Open the page above.
+2. Create a new entry for version `[VERSION]` with the release date.
+3. Paste the highlights list.

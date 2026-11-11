@@ -8,7 +8,7 @@ allowed-tools: Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(git f
 # Branch Review
 
 You are a **strict but constructive Senior Java/Spring Boot code reviewer** for the `swiyu-verifier-service`
-repository (Java 21, Spring Boot, Maven multi-module: `verifier-service` + `verifier-application`).
+repository (Java 25, Spring Boot, Maven multi-module: `verifier-service` + `verifier-application`).
 
 Ticket context passed with the invocation: `$ARGUMENTS`
 

@@ -59,6 +59,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import static ch.admin.bj.swiyu.verifier.VerificationManagementSeeder.*;
 import static ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions.PROFILE_VERSION_PARAM;
 import static ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions.VERIFICATION_PROFILE_VERSION;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
@@ -85,7 +86,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
     /**
      * List of IDS to be used in Parameterized tests with different verification requests
      */
-    private static final List<UUID> DEFAULT_REQUEST_OBJECT_SOURCE = List.of(REQUEST_ID_SECURED, REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED);
+    private static final List<UUID> DEFAULT_REQUEST_OBJECT_SOURCE = List.of(FIXTURES.secured(), FIXTURES.sdjwtResponseEncrypted());
 
     @Autowired
     private ManagementRepository managementEntityRepository;
@@ -139,10 +140,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var submissionData = objectMapper.writeValueAsString(vpTokenMap);
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_EXPIRED, submissionData, REQUEST_ID_EXPIRED)
+        postVerificationResponse(FIXTURES.expired(), submissionData, FIXTURES.expired())
                 .andExpect(status().isGone());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_EXPIRED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.expired()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
@@ -161,8 +162,8 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_WITHOUT_ACCEPTED_ISSUER));
-        sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_WITHOUT_ACCEPTED_ISSUER), vpToken, requestObject)
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", FIXTURES.withoutAcceptedIssuer()));
+        sendVerificationResponse(String.format(responseDataUriFormat, FIXTURES.withoutAcceptedIssuer()), vpToken, requestObject)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
     }
@@ -170,7 +171,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
     @Test
     void shouldGetRequestObject() throws Exception {
         var expectedClientIdWithPrefix = applicationProperties.getClientIdPrefix() + ":" + applicationProperties.getClientId();
-        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
+        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
@@ -188,7 +189,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
                     assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
                     assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
                     assertThat(claims.getStringClaim("nonce")).isNotNull();
-                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), REQUEST_ID_SECURED));
+                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), FIXTURES.secured()));
 
                     assertDcqlIsComplete(claims);
 
@@ -199,7 +200,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
     @Test
     void shouldGetRequestObject_withoutClientIdPrefix() throws Exception {
         when(applicationProperties.getClientIdPrefix()).thenReturn(null);
-        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED))
+        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()))
                         .accept("application/oauth-authz-req+jwt"))
                 .andExpect(status().isOk())
                 .andDo(result -> {
@@ -211,22 +212,22 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
     @Test
     void shouldAcceptRefusalIWithValidErrorType() throws Exception {
-        mockMvc.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
-                        .formField("state", REQUEST_ID_SECURED.toString())
+        mockMvc.perform(post(String.format(responseDataUriFormat, FIXTURES.secured()))
+                        .formField("state", FIXTURES.secured().toString())
                         .formField("error", "vp_formats_not_supported")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isOk());
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     @Test
     void shouldFailWhenRefusalWithInvalidErrorTypeIs() throws Exception {
-        mockMvc.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+        mockMvc.perform(post(String.format(responseDataUriFormat, FIXTURES.secured()))
                         .formField("error", "non_existing_Type")
                         .formField("error_description", "I really just dont want to"))
                 .andExpect(status().isBadRequest());
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
 
     }
@@ -263,8 +264,8 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         assertThat(managementVpTokens).as("Only a single Credential entry in dcql query was requested").hasSize(1);
         var presentedVpTokens = managementVpTokens.values().stream().findFirst().get();
         assertThat(presentedVpTokens).as("Only a sinlge VC was presented").hasSize(1)
-            .as("The vp token saved should be the one presented")
-            .contains(vpToken);
+                .as("The vp token saved should be the one presented")
+                .contains(vpToken);
         var evaluations = managementEntity.getCredentialEvaluation();
         assertThat(evaluations).as("In DCQL query only has a single credential").hasSize(1);
         var presentationEvaluation = evaluations.values().stream().findFirst().get();
@@ -333,7 +334,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
         List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)));
 
-        int[] removeIdx = {3,2,1};
+        int[] removeIdx = {3, 2, 1};
         for (int idx : removeIdx) {
             if (idx < list.size()) {
                 list.remove(idx);
@@ -352,7 +353,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error_description").value("Requested DCQL path could not be found - Missing claim at index %s".formatted(notPresentIndex)))
-            .andReturn();
+                .andReturn();
     }
 
     @ParameterizedTest
@@ -491,10 +492,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isOk()).andReturn();
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
@@ -527,10 +528,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isOk()).andReturn();
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         var evaluations = managementEntity.getCredentialEvaluation();
         assertThat(evaluations).as("In DCQL query only has a single credential").hasSize(1);
@@ -564,9 +565,9 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var submissionData = objectMapper.writeValueAsString(vpTokenMap);
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
                 .andExpect(status().isOk());
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).as("The status was revoked, the suggested status is failed").isEqualTo(VerificationStatus.FAILED);
         var evaluations = managementEntity.getCredentialEvaluation();
         assertThat(evaluations).as("DCQL Query only has a single credential").hasSize(1);
@@ -597,11 +598,11 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_transaction_data"));
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
@@ -617,11 +618,11 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
         mockDidResolverResponse(emulator);
 
-        var response = postVerificationResponse(REQUEST_DIFFERENT_KB_ALGS, vpToken, REQUEST_DIFFERENT_KB_ALGS)
+        var response = postVerificationResponse(FIXTURES.differentKbAlgs(), vpToken, FIXTURES.differentKbAlgs())
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_DIFFERENT_KB_ALGS).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.differentKbAlgs()).orElseThrow();
 
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
 
@@ -645,12 +646,12 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
     }
@@ -670,12 +671,12 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
     }
@@ -696,12 +697,12 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Unused disclosures detected"));
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
     }
@@ -717,12 +718,12 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()));
 
-        sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_SECURED), vpToken, requestObject)
+        sendVerificationResponse(String.format(responseDataUriFormat, FIXTURES.secured()), vpToken, requestObject)
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
@@ -753,9 +754,9 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         mockDidResolverResponse(emulator);
 
         // WHEN / THEN
-        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()));
 
-        sendVerificationResponse(String.format(responseDataUriFormat, REQUEST_ID_SECURED), vpToken, requestObject)
+        sendVerificationResponse(String.format(responseDataUriFormat, FIXTURES.secured()), vpToken, requestObject)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
     }
@@ -788,7 +789,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("Status List Token malformed"));
@@ -808,7 +809,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
@@ -834,13 +835,13 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description", containsString("Status List Token malformed")))
                 .andReturn();
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
@@ -862,13 +863,13 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("error_description", containsString(expectedErrorMesssage)))
                 .andReturn();
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertThat(managementEntity.getWalletResponse().errorCode()).isEqualTo(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST);
     }
@@ -891,10 +892,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, dcqlVpToken, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
                 .andExpect(status().isBadRequest());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
@@ -923,10 +924,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         // remove unused list disclosures
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
 
         assertThat(managementEntity.getWalletResponse().credentialSubjectData())
@@ -948,10 +949,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
+        postVerificationResponse(FIXTURES.withDcqlAndHolderBinding(), submissionData, FIXTURES.withDcqlAndHolderBinding())
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndHolderBinding()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
@@ -966,10 +967,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_NESTED_SECURED, submissionData, REQUEST_ID_NESTED_SECURED)
+        postVerificationResponse(FIXTURES.nestedSecured(), submissionData, FIXTURES.nestedSecured())
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_NESTED_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.nestedSecured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
@@ -1052,10 +1053,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING)
+        postVerificationResponse(FIXTURES.withDcqlAndOptionalHolderBinding(), submissionData, FIXTURES.withDcqlAndOptionalHolderBinding())
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndOptionalHolderBinding()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
@@ -1070,10 +1071,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING)
+        postVerificationResponse(FIXTURES.withDcqlAndOptionalHolderBinding(), submissionData, FIXTURES.withDcqlAndOptionalHolderBinding())
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_OPTIONAL_HOLDER_BINDING).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndOptionalHolderBinding()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
     }
 
@@ -1086,10 +1087,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
+        postVerificationResponse(FIXTURES.withDcqlAndHolderBinding(), submissionData, FIXTURES.withDcqlAndHolderBinding())
                 .andExpect(status().isBadRequest());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndHolderBinding()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
@@ -1105,10 +1106,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
+        postVerificationResponse(FIXTURES.withDcqlAndHolderBinding(), submissionData, FIXTURES.withDcqlAndHolderBinding())
                 .andExpect(status().isBadRequest());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndHolderBinding()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
@@ -1122,10 +1123,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING, submissionData, REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING)
+        postVerificationResponse(FIXTURES.withDcqlAndHolderBinding(), submissionData, FIXTURES.withDcqlAndHolderBinding())
                 .andExpect(status().isBadRequest());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_WITH_DCQL_AND_HOLDER_BINDING).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndHolderBinding()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
@@ -1142,7 +1143,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
                 .andExpect(jsonPath("$.error_description").value("Key binding JWT is invalid"))
                 .andExpect(jsonPath("$.error_code").value("holder_binding_mismatch"))
                 .andExpect(status().isBadRequest());
@@ -1160,10 +1161,10 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, sdJwt);
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
                 .andExpect(status().isBadRequest());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
@@ -1181,12 +1182,12 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.error").value("invalid_transaction_data"))
                 .andExpect(jsonPath("$.error_code").value("holder_binding_mismatch"));
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertThat(managementEntity.getWalletResponse().credentialSubjectData()).isNull();
     }
@@ -1208,11 +1209,11 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, submissionData, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.error").value("invalid_transaction_data"));
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertThat(managementEntity.getWalletResponse().credentialSubjectData()).isNull();
     }
@@ -1224,11 +1225,11 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         String encryptedResponse = "eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0...";
 
         // WHEN / THEN
-        postVerificationResponse(REQUEST_ID_SECURED, encryptedResponse, REQUEST_ID_SECURED)
+        postVerificationResponse(FIXTURES.secured(), encryptedResponse, FIXTURES.secured())
                 .andExpect(status().is4xxClientError());
 
         // Verify that the management entity remains in pending state since the exception is thrown early
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
@@ -1238,11 +1239,11 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         String errorDescription = "User declined the verification request";
 
         // WHEN / THEN
-        postVerificationErrorResponse(REQUEST_ID_SECURED, REQUEST_ID_SECURED, "access_denied", errorDescription)
+        postVerificationErrorResponse(FIXTURES.secured(), FIXTURES.secured(), "access_denied", errorDescription)
                 .andExpect(status().isOk());
 
         // Verify that the management entity is marked as failed due to client rejection
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertThat(managementEntity.getWalletResponse().errorDescription()).isEqualTo(errorDescription);
     }
@@ -1250,26 +1251,26 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
     @Test
     void shouldHandleClientRejectionWithOnlyError() throws Exception {
         // WHEN / THEN
-        mockMvc.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+        mockMvc.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", FIXTURES.secured()))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("state", REQUEST_ID_SECURED.toString())
+                        .formField("state", FIXTURES.secured().toString())
                         .formField("error", "client_rejected"))
                 .andExpect(status().isOk());
 
         // Verify that the management entity is marked as failed due to client rejection
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     @Test
     void shouldHandleClientRejectionWithEmptyErrorDescription() throws Exception {
         // WHEN / THEN
-        postVerificationErrorResponse(REQUEST_ID_SECURED, REQUEST_ID_SECURED, "vp_formats_not_supported", "")
+        postVerificationErrorResponse(FIXTURES.secured(), FIXTURES.secured(), "vp_formats_not_supported", "")
                 .andExpect(status().isOk());
 
         // Verify that the management entity is marked as failed due to client rejection
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
         assertThat(managementEntity.getWalletResponse().errorDescription()).isEmpty();
     }
@@ -1277,22 +1278,22 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
     @Test
     void shouldFailClientRejectionOnExpiredRequest() throws Exception {
         // WHEN / THEN
-        postVerificationErrorResponse(REQUEST_ID_EXPIRED, REQUEST_ID_EXPIRED, "access_denied", "User cancelled")
+        postVerificationErrorResponse(FIXTURES.expired(), FIXTURES.expired(), "access_denied", "User cancelled")
                 .andExpect(status().isGone());
 
         // Verify that the management entity state remains unchanged
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_EXPIRED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.expired()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
     @Test
     void shouldFailClientRejectionWithInvalidErrorType() throws Exception {
         // WHEN / THEN
-        postVerificationErrorResponse(REQUEST_ID_SECURED, REQUEST_ID_SECURED, "invalid_error_type", "Some description")
+        postVerificationErrorResponse(FIXTURES.secured(), FIXTURES.secured(), "invalid_error_type", "Some description")
                 .andExpect(status().isBadRequest());
 
         // Verify that the management entity remains in pending state
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
@@ -1300,8 +1301,8 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
     void shouldHandleConcurrentVerificationRequests_whenExternalDependencyBlocks() throws Exception {
 
         final SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        final String sdJwt = emulator.createSDJWTMock();
-        String vpToken = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, clientIdWithPrefix);
+        final String sdJwt  = emulator.createSDJWTMock();
+        String vpToken = emulator.addKeyBindingProof(sdJwt , NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         final String finalVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -1323,8 +1324,9 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.submit(() -> {
             try {
-                postVerificationResponse(REQUEST_ID_SECURED, finalVpToken, REQUEST_ID_SECURED);
-            } catch (Exception ignored) {}
+                postVerificationResponse(FIXTURES.secured(), finalVpToken, FIXTURES.secured());
+            } catch (Exception ignored) {
+            }
         });
 
         assertThat(didCallStarted.await(5, TimeUnit.SECONDS)).isTrue();
@@ -1374,7 +1376,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
             executor.submit(() -> {
                 try {
                     mockMvc.perform(
-                            post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SECURED))
+                            post(String.format("/oid4vp/api/request-object/%s/response-data", FIXTURES.secured()))
                                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                                     .formField("vp_token", finalVpToken)
                     );

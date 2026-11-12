@@ -103,7 +103,7 @@ class DcqlPresentationVerificationServiceTest {
     }
 
     @Test
-    void process_missingVpToken_throwsIllegalArgumentException() {
+    void process_missingVpToken_throwsVerificationException() {
         // Arrange
         var management = mock(Management.class);
         var credentialId = "cred-1";
@@ -128,7 +128,7 @@ class DcqlPresentationVerificationServiceTest {
 
     @ParameterizedTest
     @MethodSource("faultyVpTokenSource")
-    void process_faultyVpToken_throwsIllegalArgumentException(List<String> vpTokens) {
+    void process_faultyVpToken_throwsVerificationException(List<String> vpTokens) {
         // Arrange
         var management = mock(Management.class);
         var credentialId = "cred-1";

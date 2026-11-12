@@ -13,7 +13,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class DcqlCredentialMetaDtoValidationTest {
+public class DcqlCredentialMetaDtoTest {
 
     private Validator validator;
 

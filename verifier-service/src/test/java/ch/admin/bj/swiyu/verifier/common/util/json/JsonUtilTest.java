@@ -1,6 +1,5 @@
-package ch.admin.bj.swiyu.verifier.service.oid4vp.common.json;
+package ch.admin.bj.swiyu.verifier.common.util.json;
 
-import ch.admin.bj.swiyu.verifier.common.util.json.JsonUtil;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

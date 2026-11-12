@@ -1,8 +1,6 @@
-package ch.admin.bj.swiyu.verifier.service.management.dcql;
+package ch.admin.bj.swiyu.verifier.domain.management.dcql;
 
 import org.junit.jupiter.api.Test;
-
-import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

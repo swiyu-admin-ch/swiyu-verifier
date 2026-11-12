@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.verifier.domain.management.ResponseSpecification;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import com.nimbusds.jose.*;
@@ -43,7 +42,6 @@ import java.util.UUID;
 
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -312,16 +310,6 @@ public abstract class AbstractVerificationControllerIT extends AbstractMockMvcIT
         );
 
         return assertDoesNotThrow(() -> objectMapper.readValue(createVerificationResult.getResponse().getContentAsString(), ManagementResponseDto.class));
-    }
-
-    void mockDidResolverResponse(SDJWTCredentialMock sdjwt) {
-        try {
-            // Parse the JSON Web Key string into a Nimbus JWK object to ensure correct type
-            JWK nimbusJwk = JWK.parse(KeyFixtures.issuerPublicKeyAsJsonWebKey());
-            when(didResolverFacade.resolveKey(sdjwt.getKidHeaderValue())).thenReturn(nimbusJwk);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
     }
 
     SignedJWT getRequestObject(String requestUri) throws Exception {

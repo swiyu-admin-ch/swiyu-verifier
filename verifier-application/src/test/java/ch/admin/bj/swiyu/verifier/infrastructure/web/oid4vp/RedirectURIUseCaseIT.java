@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidResolverTestHelper;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -39,7 +40,7 @@ public class RedirectURIUseCaseIT extends AbstractVerificationControllerIT {
         var requestObject = getRequestObject(mgmt.verificationUrl());
 
         SDJWTCredentialMock emulator = new SDJWTCredentialMock(null, "did:webvh:scid:example.com:api:v1:some-issuer-id" + "#key-1");
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, mgmt.requestNonce(), "decentralized_identifier:" + applicationProperties.getClientId());

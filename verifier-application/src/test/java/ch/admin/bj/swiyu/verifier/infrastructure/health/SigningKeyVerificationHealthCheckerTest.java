@@ -22,11 +22,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.Status;
 
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidResolverTestHelper.stubResolveKey;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidResolverTestHelper.stubResolveKeyFailure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -106,7 +108,7 @@ class SigningKeyVerificationHealthCheckerTest {
     void performCheck_shouldReturnUp_whenAllChecksPass() {
         // Given
         jwk = testKey.toPublicJWK();
-        when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        stubResolveKey(didResolverFacade, TEST_VERIFICATION_METHOD, jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
         Health.Builder builder = Health.up();
@@ -155,8 +157,7 @@ class SigningKeyVerificationHealthCheckerTest {
     @Test
     void performCheck_shouldReturnDown_whenDidResolutionFails() throws DidResolverException {
         // Given
-        when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD))
-                .thenThrow(new DidResolverException("Resolution failed"));
+        stubResolveKeyFailure(didResolverFacade, TEST_VERIFICATION_METHOD);
 
         Health.Builder builder = Health.up();
 
@@ -170,11 +171,10 @@ class SigningKeyVerificationHealthCheckerTest {
     }
 
 
-
     @Test
     void performCheck_shouldReturnDown_whenSigningFails() throws Exception {
         // Given
-        when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        stubResolveKey(didResolverFacade, TEST_VERIFICATION_METHOD, jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
 
         JWSSigner failingSigner = mock(JWSSigner.class);
@@ -196,10 +196,10 @@ class SigningKeyVerificationHealthCheckerTest {
     @Test
     void performCheck_shouldReturnDown_whenJwkParsingFails() {
         // Given
-        JWK jwk1  = mock(JWK.class);
+        JWK jwk1 = mock(JWK.class);
         when(jwk1.getKeyType()).thenReturn(KeyType.parse("teest?"));
 
-        when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk1);
+        stubResolveKey(didResolverFacade, TEST_VERIFICATION_METHOD, jwk1);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
 
@@ -220,7 +220,7 @@ class SigningKeyVerificationHealthCheckerTest {
         jwk = testKey.toECKey();
         String verificationMethodWithFragment = "did:example:123#key-1";
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn(verificationMethodWithFragment);
-        when(didResolverFacade.resolveKey("did:example:123" + "#" + FRAGMENT)).thenReturn(jwk);
+        stubResolveKey(didResolverFacade, "did:example:123" + "#" + FRAGMENT, jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
 
@@ -241,7 +241,7 @@ class SigningKeyVerificationHealthCheckerTest {
         jwk = testKey.toECKey();
         String didWithoutFragment = "did:example:123";
         when(applicationProperties.getSigningKeyVerificationMethod()).thenReturn(didWithoutFragment);
-        when(didResolverFacade.resolveKey(didWithoutFragment)).thenReturn(jwk);
+        stubResolveKey(didResolverFacade, didWithoutFragment, jwk);
 
         Health.Builder builder = Health.up();
 
@@ -263,7 +263,7 @@ class SigningKeyVerificationHealthCheckerTest {
                 .generate();
 
         jwk = differentKey.toECKey();
-        when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        stubResolveKey(didResolverFacade, TEST_VERIFICATION_METHOD, jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
 
@@ -285,7 +285,7 @@ class SigningKeyVerificationHealthCheckerTest {
     void performCheck_shouldVerifyJwtPayloadIsCorrect() {
         // This test verifies that the JWT creation includes the expected claims
         jwk = testKey.toECKey();
-        when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        stubResolveKey(didResolverFacade, TEST_VERIFICATION_METHOD, jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
 
@@ -303,7 +303,7 @@ class SigningKeyVerificationHealthCheckerTest {
     void performCheck_shouldCallDidResolverOnlyOnce() {
         // Given
         jwk = testKey.toECKey();
-        when(didResolverFacade.resolveKey(TEST_VERIFICATION_METHOD)).thenReturn(jwk);
+        stubResolveKey(didResolverFacade, TEST_VERIFICATION_METHOD, jwk);
         when(signerProvider.canProvideSigner()).thenReturn(true);
         when(signerProvider.getSigner()).thenReturn(testSigner);
 

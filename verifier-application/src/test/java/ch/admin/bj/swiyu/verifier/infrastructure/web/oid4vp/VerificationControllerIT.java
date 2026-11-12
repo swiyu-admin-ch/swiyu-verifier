@@ -16,6 +16,7 @@ import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidResolverTestHelper;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
@@ -133,7 +134,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var vpTokenMap = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken));
         var submissionData = objectMapper.writeValueAsString(vpTokenMap);
@@ -158,7 +159,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_WITHOUT_ACCEPTED_ISSUER));
@@ -248,7 +249,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", requestObjectId));
@@ -297,7 +298,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
@@ -344,7 +345,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(fixedSDJWT, createResponseDto.requestNonce(), clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
@@ -380,7 +381,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
@@ -431,7 +432,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, createResponseDto.requestNonce(), clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
@@ -486,7 +487,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -522,7 +523,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response, so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -558,7 +559,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var boundSdJwt = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var vpTokenMap = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(boundSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpTokenMap);
@@ -592,7 +593,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -615,7 +616,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
         var sdJWT = emulator.createSDJWTMock();
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var response = postVerificationResponse(REQUEST_DIFFERENT_KB_ALGS, vpToken, REQUEST_DIFFERENT_KB_ALGS)
                 .andExpect(status().isBadRequest())
@@ -640,7 +641,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -665,7 +666,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -691,7 +692,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -714,7 +715,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
@@ -750,7 +751,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", REQUEST_ID_SECURED));
@@ -783,7 +784,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -803,7 +804,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -829,7 +830,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
         var sdJWT = emulator.createSDJWTMock(100);
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -857,7 +858,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
         var sdJWT = emulator.createSDJWTMock(100);
         var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -886,7 +887,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
                 "kb+jwt");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -905,7 +906,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var unsignedSdJwt = emulator.createSDJWTMock();
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var parts = unsignedSdJwt.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER);
         var disclosures = Arrays.copyOfRange(parts, 1, parts.length);
         var discList = new java.util.ArrayList<>(Arrays.asList(disclosures));
@@ -944,7 +945,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var unsignedSdJwt = emulator.createSDJWTMock();
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -962,7 +963,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var unsignedSdJwt = emulator.createNestedSDJWTMock();
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1032,7 +1033,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
         var sdJwt = emulator.addKeyBindingProof(test, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(dcqlCredentialId, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1048,7 +1049,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1066,7 +1067,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var unsignedSdJwt = emulator.createSDJWTMock(true);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1082,7 +1083,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1101,7 +1102,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "incorrect-audience");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1118,7 +1119,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock(true);
 
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1138,7 +1139,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost:8080");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1156,7 +1157,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, sdJwt);
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1177,7 +1178,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var parts = sdJwt.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER);
         sdJwt = parts[0] + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER + parts[1] + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER + parts[parts.length - 1];
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1204,7 +1205,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
@@ -1413,7 +1414,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), prefix + ":" + verifierDid);
 
         // mock did resolver response so we get a valid public key for the issuer
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var keyOnlySignatureConfiguration = new KeyOnlySignatureConfiguration();
         keyOnlySignatureConfiguration.setPrivateKey(key);

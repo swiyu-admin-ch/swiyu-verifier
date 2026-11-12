@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.dto.management.VerificationStatusDto;
 import ch.admin.bj.swiyu.verifier.service.management.fixtures.ApiFixtures;
+import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidResolverTestHelper;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
@@ -178,7 +179,7 @@ class EncryptionUseCaseIT extends AbstractVerificationControllerIT {
      */
     private String createMockCredential(String nonce) throws NoSuchAlgorithmException, ParseException, JOSEException {
         SDJWTCredentialMock emulator = new SDJWTCredentialMock(ACCEPTED_ISSUER, ACCEPTED_ISSUER + "#key-1");
-        mockDidResolverResponse(emulator);
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
         var sdJWT = emulator.createSDJWTMockWithRecursiveListArray();
         return emulator.addKeyBindingProof(sdJWT, nonce, "decentralized_identifier:" + VERIFIER_DID);

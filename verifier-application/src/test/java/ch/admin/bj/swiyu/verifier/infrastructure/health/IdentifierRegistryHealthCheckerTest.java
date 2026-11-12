@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.verifier.infrastructure.health;
 
-import ch.admin.bj.swiyu.didresolveradapter.DidResolverException;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import ch.admin.eid.did_sidekicks.DidDoc;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,12 +10,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.Status;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
-
 import java.util.List;
+
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidResolverTestHelper.stubResolveDid;
+import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidResolverTestHelper.stubResolveDidFailure;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class IdentifierRegistryHealthCheckerTest {
@@ -42,8 +42,9 @@ class IdentifierRegistryHealthCheckerTest {
 
     @Test
     void performCheck_shouldReturnUp_whenAllDidsResolve() throws Exception {
-        when(didResolverFacade.resolveDid(didId1)).thenReturn(didDoc);
-        when(didResolverFacade.resolveDid(didId2)).thenReturn(didDoc);
+
+        stubResolveDid(didResolverFacade, didId1, didDoc);
+        stubResolveDid(didResolverFacade, didId2, didDoc);
 
         var builder = Health.unknown();
         identifierRegistryHealthChecker.performCheck(builder);
@@ -61,8 +62,8 @@ class IdentifierRegistryHealthCheckerTest {
 
     @Test
     void performCheck_shouldReturnDown_whenOneDidResolveFails() throws Exception {
-        when(didResolverFacade.resolveDid(didId1)).thenReturn(didDoc);
-        when(didResolverFacade.resolveDid(didId2)).thenThrow(new DidResolverException("Test"));
+        stubResolveDid(didResolverFacade, didId1, didDoc);
+        stubResolveDidFailure(didResolverFacade, didId2);
 
         var builder = Health.unknown();
         identifierRegistryHealthChecker.performCheck(builder);
@@ -77,7 +78,8 @@ class IdentifierRegistryHealthCheckerTest {
 
     @Test
     void performCheck_shouldReturnDown_whenAllDidResolvesFails() throws Exception {
-        when(didResolverFacade.resolveDid(any())).thenThrow(new DidResolverException("test exception"));
+        stubResolveDidFailure(didResolverFacade, didId1);
+        stubResolveDidFailure(didResolverFacade, didId2);
 
         var builder = Health.unknown();
         identifierRegistryHealthChecker.performCheck(builder);
@@ -89,5 +91,4 @@ class IdentifierRegistryHealthCheckerTest {
         assertEquals(Status.DOWN, ((Status) health.getDetails().get(didId1)));
         assertEquals(Status.DOWN, ((Status) health.getDetails().get(didId2)));
     }
-
 }

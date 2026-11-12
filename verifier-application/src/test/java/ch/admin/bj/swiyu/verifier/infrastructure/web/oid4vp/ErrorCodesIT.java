@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static ch.admin.bj.swiyu.verifier.VerificationManagementSeeder.FIXTURES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -26,31 +27,31 @@ class ErrorCodesIT extends AbstractVerificationControllerIT {
 
     @Test
     void testExistingErrorCodesFromClientToManagement_thenSuccess() throws Exception {
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, FIXTURES.secured()))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("state", REQUEST_ID_SECURED.toString())
+                        .formField("state", FIXTURES.secured().toString())
                         .formField("error", "access_denied"))
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     @ParameterizedTest
     @EnumSource(VerificationClientErrorDto.class)
     void testExistingErrorCodesFromClientToManagement_thenSuccess(VerificationClientErrorDto verificationClientErrorCode) throws Exception {
-        mock.perform(post(String.format(responseDataUriFormat, REQUEST_ID_SECURED))
+        mock.perform(post(String.format(responseDataUriFormat, FIXTURES.secured()))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .formField("state", REQUEST_ID_SECURED.toString())
+                        .formField("state", FIXTURES.secured().toString())
                         .formField("error", verificationClientErrorCode.toString()))
                 .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SECURED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
 
         var expectedStatus = ManagementMapper.toVerificationErrorResponseCode(verificationClientErrorCode);
 
-        mock.perform(get(BASE_URL + "/" + REQUEST_ID_SECURED))
+        mock.perform(get(BASE_URL + "/" + FIXTURES.secured()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value(VerificationStatus.FAILED.toString()))
                 .andExpect(jsonPath("$.wallet_response.error_code").value(expectedStatus.toString()));

@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static ch.admin.bj.swiyu.verifier.VerificationManagementSeeder.DEFAULT_DCQL_CREDENTIAL_ID;
+import static ch.admin.bj.swiyu.verifier.VerificationManagementSeeder.FIXTURES;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -106,12 +108,12 @@ class EncryptionUseCaseIT extends AbstractVerificationControllerIT {
     void encryptedResponse_whenCompressedCipherTextExceedsConfiguredLimit_thenBadRequestAndRemainsPending()
             throws Exception {
         // GIVEN
-        var managementEntity = managementEntityRepository.findById(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED).orElseThrow();
+        var managementEntity = managementEntityRepository.findById(FIXTURES.sdjwtResponseEncrypted()).orElseThrow();
         var responseSpecification = managementEntity.getResponseSpecification();
         ECKey publicKey = JWKSet.parse(responseSpecification.getJwks()).getKeys().getFirst().toECKey();
         String payload = new JWTClaimsSet.Builder()
                 .claim("vp_token", Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of("payload".repeat(1_000))))
-                .claim("state", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED.toString())
+                .claim("state", FIXTURES.sdjwtResponseEncrypted().toString())
                 .build()
                 .toString();
         JWEObject jweObject = new JWEObject(
@@ -126,13 +128,13 @@ class EncryptionUseCaseIT extends AbstractVerificationControllerIT {
                 .when(applicationProperties).getMaxCompressedCipherTextLength();
 
         // WHEN / THEN
-        mockMvc.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED))
+        mockMvc.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", FIXTURES.sdjwtResponseEncrypted()))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("response", jweObject.serialize()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error_description").value("Response cannot be decrypted."));
 
-        assertThat(managementEntityRepository.findById(REQUEST_ID_SDJWT_RESPONSE_ENCRYPTED).orElseThrow().getState())
+        assertThat(managementEntityRepository.findById(FIXTURES.sdjwtResponseEncrypted()).orElseThrow().getState())
                 .isEqualTo(PENDING);
     }
 

@@ -9,7 +9,6 @@ import ch.admin.bj.swiyu.verifier.dto.requestobject.RequestObjectDto;
 import ch.admin.bj.swiyu.verifier.service.management.ManagementService;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.*;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.Dcql;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.EncryptedDcql;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.PresentationResult.Rejection;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
@@ -246,11 +245,6 @@ public class VerificationController {
             // Processing DCQL presentation
             case Dcql(var dcqlDto) ->
                     presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, dcqlDto);
-
-            // Processing encrypted DCQL presentation
-            case EncryptedDcql(var encryptedDcqlDto) ->
-                    presentationVerificationUsecase.receiveVerificationPresentationDCQL(requestId, encryptedDcqlDto);
-
         };
 
         log.info("Successfully processed verification presentation for request_id: {}", requestId);

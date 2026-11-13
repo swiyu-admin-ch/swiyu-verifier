@@ -131,7 +131,7 @@ public class DcqlPresentationVerificationService {
      *         would make processing take too long
      */
     private List<String> validatePresentedTokens(List<String> requestedVpTokens, DcqlCredential requestedCredential) {
-        if (requestedVpTokens == null) {
+        if (requestedVpTokens == null || requestedVpTokens.isEmpty()) {
             throw submissionError(VerificationErrorResponseCode.INVALID_PRESENTATION_SUBMISSION, "Vp token entry for requested credential id " + requestedCredential.getId() + " must not be null");
         }
         if (!Boolean.TRUE.equals(requestedCredential.getMultiple()) && requestedVpTokens.size() > 1) {

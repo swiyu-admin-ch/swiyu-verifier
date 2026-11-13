@@ -52,7 +52,6 @@ public class SdJwtVpTokenVerifier {
 
             sdJwtVcValidator.validateAndSetJwt(sdJwt, publicKey);
 
-            // require_cryptographic_holder_binding default is true therefore if not set to false it will be treated as true
             holderKeyBindingVerificationService.validateKeyBinding(sdJwt, holderBindingRequired, management, sdJwtVcValidator);
 
             // Perform issuer trust validation based on claims

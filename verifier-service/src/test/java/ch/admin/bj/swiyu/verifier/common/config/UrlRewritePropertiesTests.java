@@ -1,6 +1,5 @@
-package ch.admin.bj.swiyu.verifier.service.oid4vp.common.config;
+package ch.admin.bj.swiyu.verifier.common.config;
 
-import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import tools.jackson.core.JacksonException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

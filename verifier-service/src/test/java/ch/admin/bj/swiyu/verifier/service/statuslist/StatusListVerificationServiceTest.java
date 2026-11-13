@@ -1,11 +1,9 @@
-package ch.admin.bj.swiyu.verifier.service.sdjwt;
+package ch.admin.bj.swiyu.verifier.service.statuslist;
 
 import ch.admin.bj.swiyu.statuslist.TokenStatusListVerifier;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
 import ch.admin.bj.swiyu.statuslist.dto.TokenStatusListTokenDto;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListCacheService;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListVerificationService;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import org.junit.jupiter.api.BeforeEach;

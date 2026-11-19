@@ -20,14 +20,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ErrorCodesIT extends AbstractVerificationControllerIT {
 
     private static final String BASE_URL = "/management/api/verifications";
-    private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";
 
     @Autowired
     private MockMvc mock;
 
     @Test
     void testExistingErrorCodesFromClientToManagement_thenSuccess() throws Exception {
-        mock.perform(post(String.format(responseDataUriFormat, FIXTURES.secured()))
+        mock.perform(post(String.format(RESPONSE_DATA_URI_FORMAT, FIXTURES.secured()))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("state", FIXTURES.secured().toString())
                         .formField("error", "access_denied"))
@@ -40,7 +39,7 @@ class ErrorCodesIT extends AbstractVerificationControllerIT {
     @ParameterizedTest
     @EnumSource(VerificationClientErrorDto.class)
     void testExistingErrorCodesFromClientToManagement_thenSuccess(VerificationClientErrorDto verificationClientErrorCode) throws Exception {
-        mock.perform(post(String.format(responseDataUriFormat, FIXTURES.secured()))
+        mock.perform(post(String.format(RESPONSE_DATA_URI_FORMAT, FIXTURES.secured()))
                         .contentType(APPLICATION_FORM_URLENCODED_VALUE)
                         .formField("state", FIXTURES.secured().toString())
                         .formField("error", verificationClientErrorCode.toString()))

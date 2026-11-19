@@ -21,6 +21,7 @@ import static ch.admin.bj.swiyu.verifier.service.statuslist.pact.if005.StatusReg
 import static ch.admin.bj.swiyu.verifier.service.statuslist.pact.if005.StatusRegistryDataConsumerPactSupport.STATUS_LIST_PATH;
 import static ch.admin.bj.swiyu.verifier.service.statuslist.pact.if005.StatusRegistryDataConsumerPactSupport.STATUS_LIST_URI;
 import static ch.admin.bj.swiyu.verifier.service.statuslist.pact.if005.StatusRegistryDataConsumerPactSupport.buildStatusListResolver;
+import static ch.admin.bj.swiyu.verifier.service.statuslist.pact.if005.StatusRegistryDataConsumerPactSupport.rewrittenMockServerUrl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -89,7 +90,7 @@ class StatusListResolutionConsumerPactTest {
         assertThatThrownBy(() -> buildStatusListResolver(mockServer).resolveStatusList(STATUS_LIST_URI))
                 .isExactlyInstanceOf(StatusListFetchFailedException.class)
                 .hasMessage("Status list with uri: %s%s could not be retrieved",
-                        mockServer.getUrl(), STATUS_LIST_PATH);
+                        rewrittenMockServerUrl(mockServer), STATUS_LIST_PATH);
     }
 
     @Test
@@ -98,6 +99,6 @@ class StatusListResolutionConsumerPactTest {
         assertThatThrownBy(() -> buildStatusListResolver(mockServer).resolveStatusList(STATUS_LIST_URI))
                 .isExactlyInstanceOf(StatusListFetchFailedException.class)
                 .hasMessage("Status list with uri: %s%s could not be retrieved",
-                        mockServer.getUrl(), STATUS_LIST_PATH);
+                        rewrittenMockServerUrl(mockServer), STATUS_LIST_PATH);
     }
 }

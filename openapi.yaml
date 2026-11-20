@@ -633,18 +633,6 @@ components:
       description: Represents metadata parameters within a Credential Query according
         to https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1
       properties:
-        type_values:
-          type: array
-          description: "For W3C Verifiable Credentials: A non-empty array of arrays\
-            \ of strings that specifies allowed values for the 'type' of the requested\
-            \ Verifiable Credential. According to OpenID for Verifiable Presentations\
-            \ 1.0, Appendix B.1.1, property 'type_values'."
-          items:
-            type: array
-            items:
-              type: string
-          maxItems: 2147483647
-          minItems: 1
         vct_values:
           type: array
           description: "For IETF SD-JWT VC: A non-empty array of strings that specifies\
@@ -656,12 +644,6 @@ components:
             type: string
           maxItems: 2147483647
           minItems: 1
-        doctype_value:
-          type: string
-          description: "For ISO mdoc: A string that specifies an allowed value for\
-            \ the 'doctype' of the requested Verifiable Credential. It MUST be a valid\
-            \ doctype identifier. According to OpenID for Verifiable Presentations\
-            \ 1.0, Appendix B.2.3, property 'doctype_value'."
     DcqlCredentialSetDto:
       type: object
       description: Represents a Credential Set Query within a DCQL query according
@@ -980,14 +962,18 @@ components:
           type:
           - array
           - "null"
+          deprecated: true
           description: |
+            Deprecated, use the 'trusted_authorities' of the DCQL credential queries instead.
             List of dids from issuers whose credentials are accepted for this verification.
             Will be evaluated before trust anchor.
             If not specified and trust anchor specified in environment variables no presentations are trusted.
+            For credential queries without trusted authorities, the dids are added as trusted authorities of type 'did'.
           example:
           - did:example:12345
           items:
             type: string
+            deprecated: true
         jwt_secured_authorization_request:
           type: boolean
           description: Toggle whether the request-object is available as plain object

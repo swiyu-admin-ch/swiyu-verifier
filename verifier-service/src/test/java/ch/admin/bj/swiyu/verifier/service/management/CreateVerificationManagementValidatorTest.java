@@ -34,7 +34,7 @@ class CreateVerificationManagementValidatorTest {
                         null, // id
                         null, // format
                         true, // multiple
-                        new DcqlCredentialMetaDto(List.of(List.of("vct")), null, null), // meta
+                        new DcqlCredentialMetaDto(null, List.of("vct"), null), // meta
                         null, // claims
                         null, // claimSets
                         null, // requireCryptographicHolderBinding

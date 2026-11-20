@@ -20,12 +20,15 @@ public record CreateVerificationManagementDto(
         @Valid
         @Nullable
         @Schema(description = """
+                Deprecated, use the 'trusted_authorities' of the DCQL credential queries instead.
                 List of dids from issuers whose credentials are accepted for this verification.
                 Will be evaluated before trust anchor.
                 If not specified and trust anchor specified in environment variables no presentations are trusted.
-                """, example = """
+                For credential queries without trusted authorities, the dids are added as trusted authorities of type 'did'.
+                """, deprecated = true, example = """
                 ["did:example:12345"]
                 """)
+        @Deprecated(since = "5.2.0")
         @JsonProperty("accepted_issuer_dids")
         List<String> acceptedIssuerDids,
 

@@ -238,7 +238,7 @@ public class DcqlCredentialDtoTest {
     }
 
     private DcqlCredentialMetaDto getValidMeta() {
-        return new DcqlCredentialMetaDto(List.of(List.of("vct")), null, null);
+        return new DcqlCredentialMetaDto(null, List.of("vct"), null);
     }
 
     private List<DcqlClaimDto> getValidClaims() {

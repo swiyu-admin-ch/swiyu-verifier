@@ -10,10 +10,13 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class DcqlCredentialMetaDtoTest {
+class DcqlCredentialMetaDtoTest {
+
+    private static final String VCT = "eu.europa.ec.eudi.pid.1";
+    private static final String TYPE_VALUES_NOT_SUPPORTED = "The type_values field is not yet supported";
+    private static final String DOCTYPE_VALUE_NOT_SUPPORTED = "The doctype_value field is not yet supported";
 
     private Validator validator;
 
@@ -25,105 +28,83 @@ public class DcqlCredentialMetaDtoTest {
     }
 
     @Test
-    void shouldPassValidation_whenAllFieldsAreNull() {
+    void whenValidate_shouldAcceptMetaWithoutAnyValue() {
+        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(null, null, null);
+
+        assertThat(validator.validate(dto)).isEmpty();
+    }
+
+    @Test
+    void whenValidate_shouldAcceptVctValues() {
+        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(null, List.of(VCT), null);
+
+        assertThat(validator.validate(dto)).isEmpty();
+    }
+
+    @Test
+    void whenValidate_shouldRejectEmptyVctValues() {
+        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(null, List.of(), null);
+
+        assertViolation(dto, "vctValues", "vct_values must not be empty when provided");
+    }
+
+    @Test
+    void whenValidate_shouldRejectTypeValues() {
         DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(
-                null,
-                null,
+                List.of(List.of("VerifiableCredential", "UniversityDegreeCredential")),
+                List.of(VCT),
                 null
         );
 
-        Set<ConstraintViolation<DcqlCredentialMetaDto>> violations = validator.validate(dto);
-
-         assertTrue(violations.isEmpty());
+        assertViolation(dto, "typeValues", TYPE_VALUES_NOT_SUPPORTED);
     }
 
     @Test
-    void shouldPassValidation_whenTypeValuesContainsElements() {
-        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(
-                List.of(
-                        List.of("VerifiableCredential", "UniversityDegreeCredential")
-                ),
-                null,
-                null
-        );
+    void whenValidate_shouldRejectEmptyTypeValues() {
+        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(List.of(), List.of(VCT), null);
 
-        Set<ConstraintViolation<DcqlCredentialMetaDto>> violations = validator.validate(dto);
-
-         assertTrue(violations.isEmpty());
+        assertViolation(dto, "typeValues", TYPE_VALUES_NOT_SUPPORTED);
     }
 
     @Test
-    void shouldFailValidation_whenTypeValuesIsEmpty() {
-        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(
-                List.of(),
-                null,
-                null
-        );
+    void whenValidate_shouldRejectDoctypeValue() {
+        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(null, List.of(VCT), "org.iso.18013.5.1.mDL");
 
-        Set<ConstraintViolation<DcqlCredentialMetaDto>> violations = validator.validate(dto);
-
-        assertEquals(1, violations.size());
-
-        ConstraintViolation<DcqlCredentialMetaDto> violation = violations.iterator().next();
-
-        assertEquals("typeValues", violation.getPropertyPath().toString());
-        assertEquals("type_values must not be empty when provided", violation.getMessage());
+        assertViolation(dto, "doctypeValue", DOCTYPE_VALUE_NOT_SUPPORTED);
     }
 
     @Test
-    void shouldPassValidation_whenVctValuesContainsElements() {
-        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(
-                null,
-                List.of("eu.europa.ec.eudi.pid.1"),
-                null
-        );
-
-        Set<ConstraintViolation<DcqlCredentialMetaDto>> violations = validator.validate(dto);
-
-        assertTrue(violations.isEmpty());
-    }
-
-    @Test
-    void shouldFailValidation_whenVctValuesIsEmpty() {
-        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(
-                null,
-                List.of(),
-                null
-        );
-
-        Set<ConstraintViolation<DcqlCredentialMetaDto>> violations = validator.validate(dto);
-
-        assertEquals(1, violations.size());
-
-        ConstraintViolation<DcqlCredentialMetaDto> violation = violations.iterator().next();
-
-        assertEquals("vctValues", violation.getPropertyPath().toString());
-        assertEquals("vct_values must not be empty when provided", violation.getMessage());
-    }
-
-    @Test
-    void shouldPassValidation_whenDoctypeValueIsPresent() {
-        DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(
-                null,
-                null,
-                "org.iso.18013.5.1.mDL"
-        );
-
-        Set<ConstraintViolation<DcqlCredentialMetaDto>> violations = validator.validate(dto);
-
-         assertTrue(violations.isEmpty());
-    }
-
-    @Test
-    void shouldPassValidation_whenAllFieldsAreValid() {
+    void whenValidate_shouldRejectAllUnsupportedFields() {
         DcqlCredentialMetaDto dto = new DcqlCredentialMetaDto(
                 List.of(List.of("VerifiableCredential")),
-                List.of("eu.europa.ec.eudi.pid.1"),
+                List.of(VCT),
                 "org.iso.18013.5.1.mDL"
         );
 
         Set<ConstraintViolation<DcqlCredentialMetaDto>> violations = validator.validate(dto);
 
-         assertTrue(violations.isEmpty());
+        assertThat(violations).hasSize(2);
+        assertThat(violations)
+                .anySatisfy(violation -> {
+                    assertThat(violation.getPropertyPath().toString()).isEqualTo("typeValues");
+                    assertThat(violation.getMessage()).isEqualTo(TYPE_VALUES_NOT_SUPPORTED);
+                })
+                .anySatisfy(violation -> {
+                    assertThat(violation.getPropertyPath().toString()).isEqualTo("doctypeValue");
+                    assertThat(violation.getMessage()).isEqualTo(DOCTYPE_VALUE_NOT_SUPPORTED);
+                });
+    }
+
+    private void assertViolation(DcqlCredentialMetaDto dto,
+                                 String property,
+                                 String message) {
+
+        Set<ConstraintViolation<DcqlCredentialMetaDto>> violations = validator.validate(dto);
+
+        assertThat(violations)
+                .anySatisfy(violation -> {
+                    assertThat(violation.getPropertyPath().toString()).isEqualTo(property);
+                    assertThat(violation.getMessage()).isEqualTo(message);
+                });
     }
 }

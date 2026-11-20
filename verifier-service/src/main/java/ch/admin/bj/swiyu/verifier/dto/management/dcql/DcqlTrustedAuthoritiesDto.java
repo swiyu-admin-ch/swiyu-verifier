@@ -3,9 +3,8 @@ package ch.admin.bj.swiyu.verifier.dto.management.dcql;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import java.util.List;
 
@@ -21,21 +20,23 @@ import java.util.List;
 public record DcqlTrustedAuthoritiesDto(
 
         @Schema(description = "A string uniquely identifying the type of information about the issuer trust framework. " +
-                "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'type'. In swiyu context the value of this field should always be 'did'",
-                requiredMode = Schema.RequiredMode.REQUIRED)
+                "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'type'. In swiyu context the only supported value of this field is 'did'",
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                allowableValues = {"did"})
         @JsonProperty("type")
-        @Valid
         @NotEmpty(message = "type must not be null or empty")
+        @Pattern(regexp = "^did$", message = "type must be 'did'")
         String type, // REQUIRED
 
         @Schema(description = "A non-empty array of strings, where each string (value) contains information " +
                 "specific to the used Trusted Authorities Query type that allows the identification of " +
                 "an issuer, a trust framework, or a federation that an issuer belongs to. " +
-                "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'values'. In swiyu context this is the DID of trusted issuers.",
-                requiredMode = Schema.RequiredMode.REQUIRED)
+                "According to OpenID for Verifiable Presentations 1.0, Section 6.1.1, property 'values'. " +
+                "In swiyu context this is the DID of trusted issuers and MUST be a valid did:tdw or did:webvh DID.",
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                example = "[\"did:tdw:<scid>:www.example.com\", \"did:webvh:<scid>:www.admin.ch\", \"did:tdw:<scid>:www.ch.ch\"]")
         @JsonProperty("values")
-        @Valid
         @NotEmpty(message = "values must not be null or empty")
-        List<@NotEmpty String> values // REQUIRED
+        List<@NotEmpty @ValidTrustedAuthorityDid String> values // REQUIRED
 ) {
 }

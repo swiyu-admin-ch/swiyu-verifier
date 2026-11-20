@@ -42,8 +42,12 @@ public class DcqlQuery {
 
     /**
      * Adds the acceptedDids as Trusted Authorities of the type did to all credential queries missing
-     * trusted authorities
-     * @param acceptedDids the dids to be added as trusted authorities
+     * trusted authorities.
+     * Credential queries that already define trusted authorities are left unchanged, so explicitly
+     * provided trusted authorities take precedence over the accepted dids.
+     *
+     * @param acceptedDids the dids to be added as trusted authorities; the method does nothing if the
+     *                     list is null or empty
      */
     public void addTrustedAuthorityDids(List<String> acceptedDids) {
         if (acceptedDids == null || acceptedDids.isEmpty() || credentials == null) {

@@ -2,8 +2,10 @@ package ch.admin.bj.swiyu.verifier.dto.management.dcql;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -21,13 +23,14 @@ import java.util.List;
         "https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-6.1")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record DcqlCredentialMetaDto(
-        @Schema(description = "For W3C Verifiable Credentials: A non-empty array of arrays of strings that " +
+        @Hidden
+        @Null(message = "The type_values field is not yet supported")
+        @Schema(description = "[EXPERIMENTAL] For W3C Verifiable Credentials: A non-empty array of arrays of strings that " +
                 "specifies allowed values for the 'type' of the requested Verifiable Credential. " +
                 "According to OpenID for Verifiable Presentations 1.0, Appendix B.1.1, property 'type_values'.")
         @JsonProperty("type_values")
         @Valid
         @Size(min = 1, message = "type_values must not be empty when provided")
-        // TODO: EIDOMNI-1203 Check if validation matches oid4vp and swiss-profile
         List<List<String>> typeValues,
 
         @Schema(description = "For IETF SD-JWT VC: A non-empty array of strings that specifies allowed " +
@@ -37,11 +40,13 @@ public record DcqlCredentialMetaDto(
         @JsonProperty("vct_values")
         @Valid
         @Size(min = 1, message = "vct_values must not be empty when provided")
-        // TODO: EIDOMNI-1203 Check if validation matches oid4vp and swiss-profile
         List<String> vctValues,
 
-        @Schema(description = "For ISO mdoc: A string that specifies an allowed value for the 'doctype' " +
-                "of the requested Verifiable Credential. It MUST be a valid doctype identifier. " +
+
+        @Hidden
+        @Null(message = "The doctype_value field is not yet supported")
+        @Schema(description = "[EXPERIMENTAL] For ISO mdoc: A string that specifies an allowed value for the " +
+                "'doctype' of the requested Verifiable Credential. It MUST be a valid doctype identifier. " +
                 "According to OpenID for Verifiable Presentations 1.0, Appendix B.2.3, property 'doctype_value'.")
         @JsonProperty("doctype_value")
         String doctypeValue

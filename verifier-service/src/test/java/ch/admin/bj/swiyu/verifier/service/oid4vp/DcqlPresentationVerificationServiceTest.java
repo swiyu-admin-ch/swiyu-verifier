@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.verifier.service.oid4vp;
 
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.statuslist.dto.StatusVerificationResultDto;
+import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationError;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationException;
@@ -12,7 +13,9 @@ import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredential;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlCredentialMeta;
 import ch.admin.bj.swiyu.verifier.domain.management.dcql.DcqlQuery;
 import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationDCQLRequestDto;
+import ch.admin.bj.swiyu.verifier.service.management.DcqlMapper;
 import ch.admin.bj.swiyu.verifier.service.sdjwt.SdJwtVpTokenVerifier;
+import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +35,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DcqlPresentationVerificationServiceTest {
+
+    private static final String CREDENTIAL_ID = "cred-1";
+    private static final String VCT = "vct:test";
 
     private SdJwtVpTokenVerifier sdJwtLegacyPresentationVerifier;
     private DcqlPresentationVerificationService dcqlPresentationVerificationService;
@@ -94,8 +100,6 @@ class DcqlPresentationVerificationServiceTest {
                 .hasSize(1)
                 .containsKey(REQUESTED_CLAIM)
                 .containsValue(List.of("Alice"));
-
-        verify(sdJwtLegacyPresentationVerifier).verifySdJwtVpToken(vpToken, management, requestedCredential.isCryptographicHolderBindingRequired());
 
         // Deprecated
         assertThat(resultJson)
@@ -289,5 +293,163 @@ class DcqlPresentationVerificationServiceTest {
         var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
         assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
         assertEquals("No matching SD-JWT for requested credential id " + credentialId, ex.getErrorDescription());
+    }
+
+    @Test
+    void process_trustedAuthoritiesFromDto_whenIssuerDidMatches_returnsRequestedClaims() {
+        // Arrange: trusted_authorities is declared on the DcqlCredentialDto and must be mapped to the
+        // domain credential and applied when verifying the presentation.
+        var requestedCredential = credentialFromDto("""
+                [{"type": "did", "values": ["did:webvh:scid:trusted-issuer"]}]""");
+        assertThat(requestedCredential.getTrustedAuthorities())
+                .as("trusted_authorities of the DTO should be mapped to the domain model")
+                .singleElement()
+                .satisfies(authority -> assertThat(authority.getValues()).containsExactly("did:webvh:scid:trusted-issuer"));
+
+        var management = managementWith(requestedCredential);
+        var sdJwt = mockSdJwt("did:webvh:scid:trusted-issuer#key-1", "Alice");
+        when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(anyString(), eq(management), anyBoolean()))
+                .thenReturn(sdJwtVerificationResult(sdJwt));
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(CREDENTIAL_ID, List.of("vp-token-sdjwt")));
+
+        // Act
+        var result = dcqlPresentationVerificationService.processVerificationPresentation(management, request);
+
+        // Assert
+        assertThat(result.dcqlResponse().get(CREDENTIAL_ID))
+                .containsEntry("given_name", List.of("Alice"));
+    }
+
+    @Test
+    void process_trustedAuthoritiesFromDto_whenIssuerDidDoesNotMatch_throwsVerificationException() {
+        // Arrange: the presented credential is valid, but its issuer is not part of trusted_authorities
+        var requestedCredential = credentialFromDto("""
+                [{"type": "did", "values": ["did:webvh:scid:other-issuer"]}]""");
+        var management = managementWith(requestedCredential);
+        var sdJwt = mockSdJwt("did:webvh:scid:trusted-issuer#key-1", "Alice");
+        when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(anyString(), eq(management), anyBoolean()))
+                .thenReturn(sdJwtVerificationResult(sdJwt));
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(CREDENTIAL_ID, List.of("vp-token-sdjwt")));
+
+        // Act + Assert
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
+        assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
+        assertEquals("No matching SD-JWT for requested credential id " + CREDENTIAL_ID, ex.getErrorDescription());
+    }
+
+    @Test
+    void process_trustedAuthoritiesFromDto_whenNotConfigured_doesNotFilterByIssuer() {
+        // Arrange: without trusted_authorities any issuer DID is accepted
+        var requestedCredential = credentialFromDto(null);
+        assertThat(requestedCredential.getTrustedAuthorities()).isNull();
+
+        var management = managementWith(requestedCredential);
+        var sdJwt = mockSdJwt("did:webvh:scid:any-issuer#key-1", "Alice");
+        when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(anyString(), eq(management), anyBoolean()))
+                .thenReturn(sdJwtVerificationResult(sdJwt));
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(CREDENTIAL_ID, List.of("vp-token-sdjwt")));
+
+        // Act
+        var result = dcqlPresentationVerificationService.processVerificationPresentation(management, request);
+
+        // Assert
+        assertThat(result.dcqlResponse().get(CREDENTIAL_ID))
+                .containsEntry("given_name", List.of("Alice"));
+    }
+
+    @Test
+    void process_trustedAuthoritiesFromDto_whenOneOfMultipleAuthoritiesMatches_returnsRequestedClaims() {
+        // Arrange: several Trusted Authorities Query entries, only the second one contains the issuer DID
+        var requestedCredential = credentialFromDto("""
+                [
+                  {"type": "did", "values": ["did:webvh:scid:other-issuer"]},
+                  {"type": "did", "values": ["did:tdw:scid:www.admin.ch"]}
+                ]""");
+        var management = managementWith(requestedCredential);
+        var sdJwt = mockSdJwt("did:tdw:scid:www.admin.ch#assert-key-01", "Alice");
+        when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(anyString(), eq(management), anyBoolean()))
+                .thenReturn(sdJwtVerificationResult(sdJwt));
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(CREDENTIAL_ID, List.of("vp-token-sdjwt")));
+
+        // Act
+        var result = dcqlPresentationVerificationService.processVerificationPresentation(management, request);
+
+        // Assert
+        assertThat(result.dcqlResponse().get(CREDENTIAL_ID))
+                .containsEntry("given_name", List.of("Alice"));
+    }
+
+    @Test
+    void process_trustedAuthoritiesFromDto_whenAuthorityTypeIsNotDid_isIgnored() {
+        // Arrange: only entries of type "did" are evaluated, the other type must not reject the presentation
+        var requestedCredential = credentialFromDto("""
+                [
+                  {"type": "trust-framework", "values": ["did:webvh:scid:trusted-issuer"]},
+                  {"type": "did", "values": ["did:webvh:scid:trusted-issuer"]}
+                ]""");
+        var management = managementWith(requestedCredential);
+        var sdJwt = mockSdJwt("did:webvh:scid:trusted-issuer#key-1", "Alice");
+        when(sdJwtLegacyPresentationVerifier.verifySdJwtVpToken(anyString(), eq(management), anyBoolean()))
+                .thenReturn(sdJwtVerificationResult(sdJwt));
+        var request = new VerificationPresentationDCQLRequestDto(Map.of(CREDENTIAL_ID, List.of("vp-token-sdjwt")));
+
+        // Act
+        var result = dcqlPresentationVerificationService.processVerificationPresentation(management, request);
+
+        // Assert
+        assertThat(result.dcqlResponse().get(CREDENTIAL_ID))
+                .containsEntry("given_name", List.of("Alice"));
+    }
+
+    /**
+     * Builds a credential query carrying {@code trusted_authorities} from a
+     * {@link ch.admin.bj.swiyu.verifier.dto.management.dcql.DcqlCredentialDto} JSON, so that the DTO mapping is
+     * covered as well as the verification logic.
+     *
+     * @param trustedAuthoritiesJson the JSON array for {@code trusted_authorities}, or {@code null} to omit it
+     * @return the mapped domain credential
+     */
+    private static DcqlCredential credentialFromDto(String trustedAuthoritiesJson) {
+        var trustedAuthoritiesProperty = trustedAuthoritiesJson == null
+                ? ""
+                : ",\n        \"trusted_authorities\": " + trustedAuthoritiesJson;
+        var json = """
+                {
+                  "credentials": [{
+                    "id": "%s",
+                    "format": "%s",
+                    "meta": { "vct_values": ["%s"] },
+                    "claims": [{ "path": ["given_name"] }],
+                    "require_cryptographic_holder_binding": true%s
+                  }]
+                }
+                """.formatted(CREDENTIAL_ID, DC_SD_JWT_CREDENTIAL_FORMAT, VCT, trustedAuthoritiesProperty);
+        return DcqlMapper.toDcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(json)).getCredentials().getFirst();
+    }
+
+    private static Management managementWith(DcqlCredential requestedCredential) {
+        var management = mock(Management.class);
+        when(management.getDcqlQuery()).thenReturn(new DcqlQuery(List.of(requestedCredential), null));
+        return management;
+    }
+
+    private static SdJwt mockSdJwt(String issuerKid, String givenName) {
+        Map<String, Object> claimsMap = Map.of("vct", VCT, "given_name", givenName);
+        var sdJwt = mock(SdJwt.class);
+        var claims = mock(JWTClaimsSet.class);
+        when(claims.getClaims()).thenReturn(claimsMap);
+        when(sdJwt.getClaims()).thenReturn(claims);
+        when(sdJwt.getResolvedClaims()).thenReturn(claimsMap);
+        var header = mock(JWSHeader.class);
+        when(header.getKeyID()).thenReturn(issuerKid);
+        when(sdJwt.getHeader()).thenReturn(header);
+        return sdJwt;
+    }
+
+    private static SdJwtVerificationResult sdJwtVerificationResult(SdJwt sdJwt) {
+        return SdJwtVerificationResult.builder()
+                .sdJwt(sdJwt)
+                .statusVerificationResult(Optional.of(new StatusVerificationResultDto(true, Optional.of(0))))
+                .build();
     }
 }

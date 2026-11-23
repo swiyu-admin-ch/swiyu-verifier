@@ -520,9 +520,8 @@ components:
         redirect_uri:
           type: string
           format: uri
-          description: "[EXPERIMENTAL] Optional: Only provided if set in the initial\
-            \ request. It is used to route the response back to the business verifier's\
-            \ endpoint."
+          description: "Optional: Only provided if set in the initial request. It\
+            \ is used to route the response back to the business verifier's endpoint."
           example: https://shop.ch/callback?session_nonce=123&response_code=xyz
     ApiErrorDto:
       type: object
@@ -1015,8 +1014,8 @@ components:
         redirect_uri:
           type: string
           format: uri
-          description: "[EXPERIMENTAL] Optional absolute URI to redirect the user\
-            \ after the verification process. Must contain a session_nonce parameter."
+          description: Optional absolute URI to redirect the user after the verification
+            process. Must contain a session_nonce parameter.
           example: https://example.com/redirect?session_nonce=12345
       required:
       - dcql_query

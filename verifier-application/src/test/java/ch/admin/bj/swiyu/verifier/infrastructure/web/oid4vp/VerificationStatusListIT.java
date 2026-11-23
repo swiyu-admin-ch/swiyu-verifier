@@ -204,7 +204,7 @@ public class VerificationStatusListIT extends AbstractVerificationControllerIT {
     @ParameterizedTest
     @ValueSource(strings = {"", "2"})
     void givenAbsentOrValidStatusListIndex_whenPostVerificationResponse_thenSuccess(String statusListIndexInput) throws Exception {
-        Integer statusListIndex = "".equals(statusListIndexInput) ? null : Integer.parseInt(statusListIndexInput);
+        Integer statusListIndex = StringUtils.isEmpty(statusListIndexInput) ? null : Integer.parseInt(statusListIndexInput);
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         stubStatusListResolver(mockedStatusListResolverAdapter, emulator);

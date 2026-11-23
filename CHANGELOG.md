@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Changed
 - In response for verification only requested values are returned in new field `dcql_response`. `(#1201)`
 - Update default sizes for encrypted messages to be in MB as in swiss-profile instead of MiB `(#1397)`
+- jwt_secured_authorization_request is now deprecated and marked for removal, as it is not used anymore. JWT-Secured Authorization Request are always used. `(#1212)` 
 
 ## Fixed
 - Updated validation of `trusted_authorities` to be compliant with OID4VP specification `(#1401)`

@@ -74,7 +74,12 @@ public class DcqlCredential {
     @JsonProperty("trusted_authorities")
     @Nullable
     private List<TrustedAuthority> trustedAuthorities;
-    
+
+    /**
+     * Denotes the requirement given by require_cryptographic_holder_binding.
+     * default is true therefore if not set to false it will be treated as true
+     * @return true if the verifier requires a cryptographic holder binding.
+     */
     @JsonIgnore
     public boolean isCryptographicHolderBindingRequired() {
         return requireCryptographicHolderBinding == null || requireCryptographicHolderBinding;

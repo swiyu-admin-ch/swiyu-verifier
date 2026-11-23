@@ -33,6 +33,7 @@ public record CreateVerificationManagementDto(
                 "as jwt object signed by the verifier as additional security measure")
         @Valid
         @JsonProperty("jwt_secured_authorization_request")
+        @Deprecated(forRemoval = true)
         Boolean jwtSecuredAuthorizationRequest,
 
         @Schema(description = """

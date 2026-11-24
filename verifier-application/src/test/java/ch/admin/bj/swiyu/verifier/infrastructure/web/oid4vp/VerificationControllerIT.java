@@ -4,13 +4,11 @@ import ch.admin.bj.swiyu.sdjwtutil.SdJwtConstants;
 import ch.admin.bj.swiyu.verifier.common.DcqlTestHelper;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.KeyOnlySignatureConfiguration;
-import ch.admin.bj.swiyu.verifier.common.config.VerificationProperties;
 import ch.admin.bj.swiyu.verifier.common.exception.VerificationErrorResponseCode;
 import ch.admin.bj.swiyu.verifier.domain.TrustMethod;
 import ch.admin.bj.swiyu.verifier.domain.management.Management;
 import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus;
-import ch.admin.bj.swiyu.verifier.dto.VPApiVersion;
 import ch.admin.bj.swiyu.verifier.dto.management.ConfigurationOverrideDto;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
@@ -18,33 +16,25 @@ import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidDocFixtures;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.DidResolverTestHelper;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.KeyFixtures;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator;
 import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
-import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListMaxSizeExceededException;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
 import com.authlete.sd.Disclosure;
 import com.authlete.sd.SDObjectBuilder;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
-import com.nimbusds.jose.shaded.gson.internal.LinkedTreeMap;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import org.apache.commons.lang3.StringUtils;
-import org.jspecify.annotations.NonNull;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.FieldSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.JsonNode;
@@ -61,39 +51,31 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static ch.admin.bj.swiyu.verifier.VerificationManagementSeeder.*;
-import static ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions.PROFILE_VERSION_PARAM;
-import static ch.admin.bj.swiyu.verifier.common.profile.SwissProfileVersions.VERIFICATION_PROFILE_VERSION;
 import static ch.admin.bj.swiyu.verifier.domain.management.VerificationStatus.PENDING;
-import static ch.admin.bj.swiyu.verifier.dto.VerificationErrorTypeDto.INVALID_CREDENTIAL;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.fixtures.StatusListGenerator.createTokenStatusListTokenVerifiableCredential;
 import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_ISSUER_ID;
-import static ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock.DEFAULT_VCT;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
+/**
+ * Verifies the OID4VP verification flow of the request-object and response-data endpoints end to end.
+ */
 class VerificationControllerIT extends AbstractVerificationControllerIT {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String responseDataUriFormat = "/oid4vp/api/request-object/%s/response-data";
 
     /**
-     * List of IDS to be used in Parameterized tests with different verification requests
+     * List of request object ids used by parameterized tests with different verification requests.
      */
     private static final List<UUID> DEFAULT_REQUEST_OBJECT_SOURCE = List.of(FIXTURES.secured(), FIXTURES.sdjwtResponseEncrypted());
 
     @Autowired
     private ManagementRepository managementEntityRepository;
-
-    @Autowired
-    private VerificationProperties verificationProperties;
 
     @Autowired
     private DataSource dataSource;
@@ -105,30 +87,11 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
     private final String prefix = "decentralized_identifier";
     private final String clientIdWithPrefix = prefix + ":" + clientId;
 
-    private static void assertDcqlIsComplete(JWTClaimsSet claims) {
-        var dcqlQuery = (LinkedTreeMap) claims.getClaim("dcql_query");
-        assertThat(dcqlQuery).isNotNull().isNotEmpty();
-        var dcqlRequestedCredentials = (List<?>) dcqlQuery.get("credentials");
-        assertThat(dcqlRequestedCredentials).isNotNull().isNotEmpty();
-        var firstRequestedCredential = (Map<?, ?>) dcqlRequestedCredentials.getFirst();
-        assertThat(firstRequestedCredential.get("id")).isNotNull().asString().isNotBlank();
-        assertThat(firstRequestedCredential.get("format")).isNotNull().asString().isNotBlank();
-        assertThat(firstRequestedCredential.get("meta")).isNotNull();
-        assertThat(firstRequestedCredential.get("claims")).isNotNull();
-
-        assertThat(dcqlQuery.get("credential_sets")).isNull();
-    }
-
     /**
-     * Verifies that a wallet presentation sent to an expired management object is rejected early.
-     * <p>
-     * Boundary condition: the management object exists but its expiration timestamp lies in the past,
-     * and the submitted VP token is otherwise valid, so only the expiration can cause the rejection.
-     * <p>
-     * Expected result: HTTP 410 (GONE) and the management state remains unchanged ({@code PENDING}).
+     * Verifies that a presentation sent to an expired management object returns HTTP 410 and leaves it PENDING.
      */
     @Test
-    void givenExpiredManagement_whenPostPresentation_thenReturnsGone() throws Exception {
+    void givenExpiredManagement_whenPostVerificationResponse_thenGone() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSDJWTMock();
@@ -148,101 +111,12 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
-    @Test
-    @Disabled("Behavior changed: IssuerTrustValidator now requires explicit trust configuration. " +
-            "When both acceptedIssuerDids AND trustAnchors are empty, all credentials are rejected. " +
-            "This test assumed empty list = any issuer allowed, which is no longer the case.")
-    void shouldSucceedOnNoAcceptedIssuers() throws Exception {
-        var ARBITRARY_DID = "did:webvh:some-scid:example.com:api:v1:some-issuer-id";
-        var ARBITRARY_KID = ARBITRARY_DID + "#" + "key-1";
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(ARBITRARY_DID, ARBITRARY_KID);
-        var sdJWT = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        // WHEN / THEN
-        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", FIXTURES.withoutAcceptedIssuer()));
-        sendVerificationResponse(String.format(responseDataUriFormat, FIXTURES.withoutAcceptedIssuer()), vpToken, requestObject)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
-    }
-
-    @Test
-    void shouldGetRequestObject() throws Exception {
-        var expectedClientIdWithPrefix = applicationProperties.getClientIdPrefix() + ":" + applicationProperties.getClientId();
-        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()))
-                        .accept("application/oauth-authz-req+jwt"))
-                .andExpect(status().isOk())
-                .andDo(result -> {
-                    var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
-                    assertThat(responseJwt.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
-                    assertThat(responseJwt.getHeader().getKeyID()).isEqualTo(applicationProperties.getSigningKeyVerificationMethod());
-                    assertThat(responseJwt.getHeader().getCustomParam(PROFILE_VERSION_PARAM))
-                            .as("Signed Request Object JOSE header must identify the Swiss verification profile")
-                            .isEqualTo(VERIFICATION_PROFILE_VERSION);
-                    assertThat(responseJwt.verify(new ECDSAVerifier(ECKey.parse(PUBLIC_KEY)))).isTrue();
-
-                    // checking claims
-                    var claims = responseJwt.getJWTClaimsSet();
-                    assertThat(claims.getStringClaim("client_id")).isEqualTo(expectedClientIdWithPrefix);
-                    assertThat(claims.getStringClaim("response_type")).isEqualTo("vp_token");
-                    assertThat(claims.getStringClaim("response_mode")).isEqualTo("direct_post");
-                    assertThat(claims.getStringClaim("nonce")).isNotNull();
-                    assertThat(claims.getStringClaim("response_uri")).isEqualTo(String.format("%s/oid4vp/api/request-object/%s/response-data", applicationProperties.getExternalUrl(), FIXTURES.secured()));
-
-                    assertDcqlIsComplete(claims);
-
-                    assertThat(result.getResponse().getContentAsString()).doesNotContain("null");
-                });
-    }
-
-    @Test
-    void shouldGetRequestObject_withoutClientIdPrefix() throws Exception {
-        when(applicationProperties.getClientIdPrefix()).thenReturn(null);
-        mockMvc.perform(get(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()))
-                        .accept("application/oauth-authz-req+jwt"))
-                .andExpect(status().isOk())
-                .andDo(result -> {
-                    var responseJwt = SignedJWT.parse(result.getResponse().getContentAsString());
-                    var claims = responseJwt.getJWTClaimsSet();
-                    assertThat(claims.getStringClaim("client_id")).isEqualTo(applicationProperties.getClientId());
-                });
-    }
-
-    @Test
-    void shouldAcceptRefusalIWithValidErrorType() throws Exception {
-        mockMvc.perform(post(String.format(responseDataUriFormat, FIXTURES.secured()))
-                        .formField("state", FIXTURES.secured().toString())
-                        .formField("error", "vp_formats_not_supported")
-                        .formField("error_description", "I really just dont want to"))
-                .andExpect(status().isOk());
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-    }
-
-    @Test
-    void shouldFailWhenRefusalWithInvalidErrorTypeIs() throws Exception {
-        mockMvc.perform(post(String.format(responseDataUriFormat, FIXTURES.secured()))
-                        .formField("error", "non_existing_Type")
-                        .formField("error_description", "I really just dont want to"))
-                .andExpect(status().isBadRequest());
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(PENDING);
-
-    }
-
-    @Test
-    void shouldRespond404onGetRequestObject() throws Exception {
-        UUID notExistingRequestId = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        mockMvc.perform(get(String.format("/request-object/%s", notExistingRequestId)))
-                .andExpect(status().isNotFound());
-    }
-
+    /**
+     * Verifies that a valid credential submitted for a signed or encrypted request object yields a SUCCESS verification.
+     */
     @ParameterizedTest
     @FieldSource("DEFAULT_REQUEST_OBJECT_SOURCE")
-    void shouldSucceedVerifyingSDJWTCredentialFullVC_thenSuccess(UUID requestObjectId) throws Exception {
+    void givenValidCredential_whenSendVerificationResponse_thenSuccess(UUID requestObjectId) throws Exception {
         assertThat(requestObjectId).isIn(DEFAULT_REQUEST_OBJECT_SOURCE); // Nonsense Assert to stop linters going insane about unused field
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -255,7 +129,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", requestObjectId));
 
-        sendVerificationResponse(String.format(responseDataUriFormat, requestObjectId), vpToken, requestObject)
+        sendVerificationResponse(String.format(RESPONSE_DATA_URI_FORMAT, requestObjectId), vpToken, requestObject)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
 
@@ -278,9 +152,12 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         assertThat(trust.isTrusted()).isTrue();
     }
 
+    /**
+     * Verifies that a nested credential carrying all disclosures returns only the requested address claim.
+     */
     @ParameterizedTest
-    @MethodSource("dcqlQueryProvider")
-    void shouldSucceedVerifyingSDJWTCredentialFullVCWithNested_thenSuccess(
+    @MethodSource("DCQLQueryProvider")
+    void givenNestedCredentialWithAllDisclosures_whenSendVerificationResponse_thenOnlyRequestedClaimReturned(
             int expectedIndex,
             String expectedCountry) throws Exception {
 
@@ -295,8 +172,8 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
 
         List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)));
 
-        var fixedSdjwt = String.join(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER, list) + "~";
-        var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), clientIdWithPrefix);
+        var fixedSDJWT = String.join(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER, list) + "~";
+        var vpToken = emulator.addKeyBindingProof(fixedSDJWT, createResponseDto.requestNonce(), clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
         DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
@@ -304,7 +181,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
 
-        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+        sendVerificationResponse(String.format(RESPONSE_DATA_URI_FORMAT, createResponseDto.id()), vpToken, requestObject)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
 
@@ -323,43 +200,12 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         assertThat(addresses.get(0).asString()).isEqualTo(expectedCountry);
     }
 
-    @Test
-    void verifySDJWTCredential_withMissingListElement_thenFail() throws Exception {
-
-        var notPresentIndex = 0;
-        var createResponseDto = getManagementByAddressArrayIndex(notPresentIndex);
-
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSimpleNestedSDJWTMock();
-
-        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)));
-
-        int[] removeIdx = {3, 2, 1};
-        for (int idx : removeIdx) {
-            if (idx < list.size()) {
-                list.remove(idx);
-            }
-        }
-
-        var fixedSDJWT = String.join(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER, list) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
-        var vpToken = emulator.addKeyBindingProof(fixedSDJWT, createResponseDto.requestNonce(), clientIdWithPrefix);
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        // WHEN / THEN
-        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
-
-        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error_description").value("Requested DCQL path could not be found - Missing claim at index %s".formatted(notPresentIndex)))
-                .andReturn();
-    }
-
+    /**
+     * Verifies that a nested credential disclosing only the requested address still returns that claim.
+     */
     @ParameterizedTest
-    @MethodSource("dcqlQueryProvider")
-    void shouldSucceedVerifyingSDJWTCredentialFullVCWithNestedOnlyWithNecessaryDisclosures_thenSuccess(
+    @MethodSource("DCQLQueryProvider")
+    void givenNestedCredentialWithMinimalDisclosures_whenSendVerificationResponse_thenOnlyRequestedClaimReturned(
             int expectedIndex,
             String expectedCountry,
             int disclosureIndexStart,
@@ -387,7 +233,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
 
-        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+        sendVerificationResponse(String.format(RESPONSE_DATA_URI_FORMAT, createResponseDto.id()), vpToken, requestObject)
                 .andExpect(status().isOk());
 
         var mgmtResponse = getManagementObjectById(createResponseDto.id().toString())
@@ -402,27 +248,15 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         assertThat(addresses.get(0).asString()).isEqualTo(expectedCountry);
     }
 
+    /**
+     * Verifies that a null claim path returns all matching address claims
+     */
     @Test
-    void shouldReturnMultipleClaimsWhenRequestedWithNull_thenSuccess() throws Exception {
+    void givenNullClaimPath_whenSendVerificationResponse_thenAllMatchingClaimsReturned() throws Exception {
         // credential_subject_data is only included in the management API response when explicitly enabled (EIDOMNI-1321)
         enableCredentialSubjectDataAuditInformation();
 
-        var createResponseDto = createVerificationRequest("""
-                {
-                "credentials": [
-                    {
-                      "id": "%s",
-                      "format": "%s",
-                      "meta": {
-                        "vct_values": [ "%s" ]
-                      },
-                      "claims": [
-                          {"path": ["addresses", null, "country"]}
-                      ]
-                    }
-                  ]
-                }
-                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT), null);
+        var createResponseDto = getAddressArrayManagement(null, "CH", null);
 
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
@@ -438,7 +272,7 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
 
-        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+        sendVerificationResponse(String.format(RESPONSE_DATA_URI_FORMAT, createResponseDto.id()), vpToken, requestObject)
                 .andExpect(status().isOk());
 
         var mgmtResponse = getManagementObjectById(createResponseDto.id().toString())
@@ -455,529 +289,47 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         assertThat(addresses.valueStream().map(JsonNode::asString)).containsExactly("CH", "GB");
     }
 
-    private HikariPoolMXBean hikariPool() {
-        return ((HikariDataSource) dataSource).getHikariPoolMXBean();
+    /**
+     * Verifies that a requested address object missing from the credential yields HTTP 400 with a missing claim error.
+     */
+    @Test
+    void givenNestedCredentialMissingRequestedClaim_whenSendVerificationResponse_thenBadRequest() throws Exception {
+        var notPresentIndex = 0;
+        var createResponseDto = getAddressObjectManagement(notPresentIndex);
+
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var sdJWT = emulator.createSimpleNestedSDJWTMock();
+
+        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)));
+
+        int[] removeIdx = {3, 2, 1};
+        for (int idx : removeIdx) {
+            if (idx < list.size()) {
+                list.remove(idx);
+            }
+        }
+
+        var fixedSDJWT = String.join(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER, list) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
+        var vpToken = emulator.addKeyBindingProof(fixedSDJWT, createResponseDto.requestNonce(), clientIdWithPrefix);
+
+        // mock did resolver response so we get a valid public key for the issuer
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
+
+        // WHEN / THEN
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
+
+        sendVerificationResponse(String.format(RESPONSE_DATA_URI_FORMAT, createResponseDto.id()), vpToken, requestObject)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description").value("Requested DCQL path could not be found - Missing claim at index %s".formatted(notPresentIndex)))
+                .andReturn();
     }
 
     /**
-     * Enables the {@code credential_subject_data} audit flag for the current test only, overriding the default
-     * (disabled) configuration (see EIDOMNI-1321), so that the requested claims are included in the
-     * management API response and can be asserted against.
+     * Verifies that a DCQL path selecting a single array element is resolved and the verification succeeds.
      */
-    private void enableCredentialSubjectDataAuditInformation() {
-        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
-        auditInformation.setCredentialSubjectDataEnabled(true);
-        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"", "2"})
-    void shouldSucceedVerifyingSDJWTCredentialWithSD_thenSuccess(String input) throws Exception {
-        Integer statusListIndex = "".equals(input) ? null : Integer.parseInt(input);
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
-                .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
-                        StatusListGenerator.SPEC_STATUS_LIST,
-                        emulator.getKey(),
-                        emulator.getIssuerId(),
-                        emulator.getKidHeaderValue())
-                );
-
-        var sdJWT = emulator.createSDJWTMock(statusListIndex);
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isOk()).andReturn();
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
-    }
-
-    /**
-     * Test using the Example status list values to ensure that statuses are detected correctly
-     * Index 0: REVOKED (1)
-     * Index 1: SUSPENDED (2)
-     * Index 3: Custom Status (3)
-     */
-    @ParameterizedTest
-    @CsvSource(value = {"0:1", "1:2", "3:3"}, delimiter = ':')
-    void shouldSucceedVerifyingSDJWTCredentialWithSD_thenFail(Integer index, Integer tokenStatusListStatusCode) throws Exception {
-        // Integer index = "".equals(input) ? null : Integer.parseInt(input);
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
-                .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
-                        StatusListGenerator.SPEC_STATUS_LIST,
-                        emulator.getKey(),
-                        emulator.getIssuerId(),
-                        emulator.getKidHeaderValue())
-                );
-
-        var sdJWT = emulator.createSDJWTMock(index);
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-        // mock did resolver response, so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isOk()).andReturn();
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        var evaluations = managementEntity.getCredentialEvaluation();
-        assertThat(evaluations).as("In DCQL query only has a single credential").hasSize(1);
-        var presentationEvaluation = evaluations.values().stream().findFirst().get();
-        assertThat(presentationEvaluation).as("Only a single VC was presented").hasSize(1);
-        var credentialStatus = presentationEvaluation.getFirst().credentialStatus();
-        assertThat(credentialStatus.valid()).as("Credential was revoked and should not be valid").isFalse();
-        assertThat(credentialStatus.status()).as("Status should be propagated to business component").isEqualTo(tokenStatusListStatusCode);
-    }
-
     @Test
-    void shouldRejectDCQLPresentation_whenCredentialIsRevoked_thenAccepted_statusFailed() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        // idx=0 has status value 1 (revoked) in SPEC_STATUS_LIST
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
-                .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
-                        StatusListGenerator.SPEC_STATUS_LIST,
-                        emulator.getKey(),
-                        emulator.getIssuerId(),
-                        emulator.getKidHeaderValue())
-                );
-
-        var sdJwt = emulator.createSDJWTMock(0);
-        var boundSdJwt = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var vpTokenMap = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(boundSdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpTokenMap);
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
-                .andExpect(status().isOk());
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).as("The status was revoked, the suggested status is failed").isEqualTo(VerificationStatus.FAILED);
-        var evaluations = managementEntity.getCredentialEvaluation();
-        assertThat(evaluations).as("DCQL Query only has a single credential").hasSize(1);
-        var presentationEvaluation = evaluations.values().stream().findFirst().get();
-        assertThat(presentationEvaluation).as("Only a single VC was presented").hasSize(1);
-        var credentialStatus = presentationEvaluation.getFirst().credentialStatus();
-        assertThat(credentialStatus.valid()).as("Credential was revoked and should not be valid").isFalse();
-        assertThat(credentialStatus.status()).as("Status should be propagated to business component").isEqualTo(1);
-    }
-
-    @Test
-    void twoTimesSameDisclosures_thenError() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-
-        var sdJWT = emulator.createSDJWTMock();
-        var parts = sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER);
-
-        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
-        var newCred = parts[0] + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER
-                + StringUtils.join(sd, SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER
-                + StringUtils.join(sd, SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
-        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("invalid_transaction_data"));
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-    }
-
-
-    @Test
-    @Disabled("Management entity REQUEST_DIFFERENT_KB_ALGS was migrated to DCQL format and no longer enforces " +
-            "kb-jwt algorithm restrictions. The presentationDefinitionJsonDiffKbAlgs() config is unused.")
-    void wrongKeyBindingAlgorithm_thenError() throws Exception {
-
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-
-        var sdJWT = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var response = postVerificationResponse(FIXTURES.differentKbAlgs(), vpToken, FIXTURES.differentKbAlgs())
-                .andExpect(status().isBadRequest())
-                .andReturn();
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.differentKbAlgs()).orElseThrow();
-
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-
-        var responseBody = response.getResponse().getContentAsString();
-        assertThat(response.getResponse().getContentAsString())
-                .withFailMessage("Should have response body").isNotBlank();
-        assertThat(responseBody).contains(INVALID_CREDENTIAL.toString(), "holder_binding_mismatch");
-    }
-
-    @Test
-    void sdjwtPremature_thenError() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-
-        var sdJWT = emulator.createSDJWTMock(Instant.now().plus(7, ChronoUnit.DAYS).getEpochSecond());
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
-    }
-
-    @Test
-    void sdJWTExpired_thenError() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-
-        var sdJWT = emulator.createSDJWTMock(null, Instant.now().minus(10, ChronoUnit.MINUTES).getEpochSecond());
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
-    }
-
-    @Test
-    void sdJWTAdditionalDisclosure_thenError() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSDJWTMock();
-        var additionalDisclosure = new Disclosure("additional", "definetly_wrong");
-        var newCred = sdJWT + additionalDisclosure + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
-        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
-
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("Unused disclosures detected"));
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
-    }
-
-    @Test
-    void shouldVerifyNestedSDJWTCredentialSD_thenSuccess() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        // WHEN / THEN
-        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()));
-
-        sendVerificationResponse(String.format(responseDataUriFormat, FIXTURES.secured()), vpToken, requestObject)
-                .andExpect(status().isOk());
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT})
-    void shouldSucceedVerifyingCredentialWithLegacyCNFFormat_thenSuccess(String credentialFormat) throws Exception {
-
-        var requestId = UUID.randomUUID();
-        managementEntityRepository.save(Management.builder()
-                .id(requestId)
-                .requestNonce(NONCE_SD_JWT_SQL)
-                .state(PENDING)
-                .oauthState(requestId.toString())
-                .walletResponse(null)
-                .expirationInSeconds(86400)
-                .expiresAt(4070908800000L)
-                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
-                .jwtSecuredAuthorizationRequest(true)
-                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson(credentialFormat)))
-                .build());
-
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSDJWTMock(true, credentialFormat);
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        // WHEN / THEN
-        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()));
-
-        sendVerificationResponse(String.format(responseDataUriFormat, FIXTURES.secured()), vpToken, requestObject)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
-    }
-
-    @Test
-    void shouldFailVerifyingCredentialOnInvalidStatuslistSignature_thenError() throws Exception {
-        Integer statusListIndex = Integer.parseInt("2");
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT)).thenAnswer(invocation -> {
-            // holder key is not the one that should have signed the statuslist
-            return createTokenStatusListTokenVerifiableCredential(
-                    StatusListGenerator.SPEC_STATUS_LIST,
-                    emulator.getHolderKey(),
-                    emulator.getIssuerId(),
-                    emulator.getKidHeaderValue()
-            );
-        });
-
-        var sdJWT = emulator.createSDJWTMock(statusListIndex);
-        var parts = sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER);
-
-        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
-        var newCred = parts[0] + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER + StringUtils.join(sd, SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
-        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("Status List Token malformed"));
-    }
-
-
-    @Test
-    void shouldVerifyingSDJWTCredentialSDWithDifferentPrivateKey_thenException() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock(new ECKeyGenerator(Curve.P_256).generate());
-        var sdJWT = emulator.createSDJWTMock();
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
-    }
-
-    @Test
-    void sendIdxOutOfStatusListBounds_thenException() throws Exception {
-
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
-                .thenAnswer(invocation -> createTokenStatusListTokenVerifiableCredential(
-                        StatusListGenerator.SPEC_STATUS_LIST,
-                        emulator.getKey(),
-                        emulator.getIssuerId(),
-                        emulator.getKidHeaderValue())
-                );
-
-        var sdJWT = emulator.createSDJWTMock(100);
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description", containsString("Status List Token malformed")))
-                .andReturn();
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-    }
-
-    @Test
-    void statusListResponseBodyTooBig_thenException() throws Exception {
-
-        // GIVEN
-        var expectedErrorMesssage = "Status list size from %s exceeds maximum allowed size".formatted("https://example.com/statuslists/1");
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-
-        // ContetLengthInterceptor throws invalid argument exception if status list is too big
-        when(mockedStatusListResolverAdapter.resolveStatusList(StatusListGenerator.SPEC_SUBJECT))
-                .thenThrow(new StatusListMaxSizeExceededException(expectedErrorMesssage));
-
-        var sdJWT = emulator.createSDJWTMock(100);
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("error_description", containsString(expectedErrorMesssage)))
-                .andReturn();
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertThat(managementEntity.getWalletResponse().errorCode()).isEqualTo(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST);
-    }
-
-
-    @Test
-    void expiredProof_thenException() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var sdJWT = emulator.createSDJWTMock();
-        // Use window + 10s to reliably be outside the acceptable proof time window
-        // (boundary at exactly window seconds is not considered expired: isBefore is strict)
-        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix,
-                Instant.now().minusSeconds(verificationProperties.getAcceptableProofTimeWindowSeconds() + 10).getEpochSecond(),
-                "kb+jwt");
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-
-        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
-
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
-                .andExpect(status().isBadRequest());
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-    }
-
-    @Test
-    void testDCQLEndpoint_thenSuccess() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var parts = unsignedSdJwt.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER);
-        var disclosures = Arrays.copyOfRange(parts, 1, parts.length);
-        var discList = new java.util.ArrayList<>(Arrays.asList(disclosures));
-        // remove index 2 first, then index 1 to keep indices stable
-        discList.remove(2);
-        discList.remove(1);
-        var rebuiltSdJwt = parts[0]
-                + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER
-                + StringUtils.join(discList, SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)
-                + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
-
-        var sdJwt = emulator.addKeyBindingProof(rebuiltSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
-
-        // remove unused list disclosures
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
-                .andExpect(status().isOk());
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
-
-        assertThat(managementEntity.getWalletResponse().credentialSubjectData())
-                .contains("first_name")
-                .contains("TestFirstname")
-                .contains("last_name")
-                .contains("TestLastName")
-                .contains("languages");
-    }
-
-    @Test
-    void testDCQLEndpoint_withKeybinding_thenSuccess() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
-
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.withDcqlAndHolderBinding(), submissionData, FIXTURES.withDcqlAndHolderBinding())
-                .andExpect(status().isOk());
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndHolderBinding()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
-    }
-
-    @Test
-    void testDCQLNestedEndpoint_withKeybinding_thenSuccess() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createNestedSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
-
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.nestedSecured(), submissionData, FIXTURES.nestedSecured())
-                .andExpect(status().isOk());
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.nestedSecured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
-    }
-
-    @Test
-    void testDCQLNestedEndpoint_forArray_thenSuccess() throws Exception {
-
+    void givenRequestedArrayElement_whenSendVerificationResponse_thenSuccess() throws Exception {
         var dcqlCredentialId = UUID.randomUUID();
 
         var dcqlQuery = """
@@ -1027,131 +379,238 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         builder.putSDClaim(languagesDisclosure);
 
         var used = disclosures.stream().filter(disc -> (Objects.equals(disc.getClaimName(), "languages") || disc.getClaimValue().equals("IT"))).toList();
-        var sdjwtWithoutKeyBinding = emulator.createSdJWT(builder, disclosures, null, null, null, DEFAULT_VCT, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, JWSAlgorithm.ES256, false);
-        var test = sdjwtWithoutKeyBinding.split("~")[0]
+        var sdjwtWithoutKeyBinding = emulator.createSdJWT(builder, disclosures, null, null, null, SDJWTCredentialMock.DEFAULT_VCT, false, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, JWSAlgorithm.ES256, false);
+        var sdJwtWithoutDuplicates = sdjwtWithoutKeyBinding.split("~")[0]
                 .concat(used.stream().map(disc -> "~" + disc.toString()).reduce("", String::concat))
                 .concat("~");
 
-        var sdJwt = emulator.addKeyBindingProof(test, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
+        var sdJwt = emulator.addKeyBindingProof(sdJwtWithoutDuplicates, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
 
         DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
         var vpToken = Map.of(dcqlCredentialId, List.of(sdJwt));
         var submissionData = objectMapper.writeValueAsString(vpToken);
+
         // WHEN / THEN
         postVerificationResponse(dcqlCredentialId, submissionData, UUID.fromString(mgmt.getOauthState()))
                 .andExpect(status().isOk());
     }
 
+    /**
+     * Verifies that a credential issued in the future is rejected with HTTP 400 and a FAILED verification.
+     */
     @Test
-    void testDCQLEndpoint_withKeybindingButNotRequested_thenSuccess() throws Exception {
+    void givenFutureIssuanceTime_whenPostVerificationResponse_thenBadRequest() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
+
+        var sdJWT = emulator.createSDJWTMock(Instant.now().plus(7, ChronoUnit.DAYS).getEpochSecond());
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
         DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.withDcqlAndOptionalHolderBinding(), submissionData, FIXTURES.withDcqlAndOptionalHolderBinding())
-                .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndOptionalHolderBinding()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
+        // WHEN / THEN
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
+                .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
+
+        checkIfManagementEntityFailedAndWalletResponseIsNotDefined(FIXTURES.secured());
     }
 
+    /**
+     * Verifies that an expired credential is rejected with HTTP 400 and a FAILED verification.
+     */
     @Test
-    void testDCQLEndpoint_withoutKeybinding_thenSuccess() throws Exception {
+    void givenExpiredCredential_whenPostVerificationResponse_thenBadRequest() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock(true);
+
+        var sdJWT = emulator.createSDJWTMock(null, Instant.now().minus(10, ChronoUnit.MINUTES).getEpochSecond());
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
+
 
         // mock did resolver response so we get a valid public key for the issuer
         DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.withDcqlAndOptionalHolderBinding(), submissionData, FIXTURES.withDcqlAndOptionalHolderBinding())
-                .andExpect(status().isOk());
 
-        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndOptionalHolderBinding()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
+        // WHEN / THEN
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
+                .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
+
+        checkIfManagementEntityFailedAndWalletResponseIsNotDefined(FIXTURES.secured());
     }
 
+    /**
+     * Verifies that an unused additional disclosure is rejected as MALFORMED_CREDENTIAL.
+     */
     @Test
-    void testDCQLEndpoint_missingHolderBinding_thenBadRequest() throws Exception {
+    void givenUnusedAdditionalDisclosure_whenPostVerificationResponse_thenMalformedCredential() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.withDcqlAndHolderBinding(), submissionData, FIXTURES.withDcqlAndHolderBinding())
-                .andExpect(status().isBadRequest());
+        var sdJWT = emulator.createSDJWTMock();
+        var additionalDisclosure = new Disclosure("additional", "definetly_wrong");
+        var newCred = sdJWT + additionalDisclosure + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
+        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
 
-        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndHolderBinding()).orElseThrow();
+
+        // mock did resolver response so we get a valid public key for the issuer
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
+
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
+        // WHEN / THEN
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
+                .andExpect(jsonPath("error_description").value("Unused disclosures detected"));
+
+        var managementEntity = checkIfManagementEntityFailedAndWalletResponseIsNotDefined(FIXTURES.secured());
+        assertEquals(VerificationErrorResponseCode.MALFORMED_CREDENTIAL, managementEntity.getWalletResponse().errorCode());
+    }
+
+    /**
+     * Verifies that presenting the same disclosures twice is rejected with HTTP 400.
+     */
+    @Test
+    void givenDuplicatedDisclosures_whenPostVerificationResponse_thenBadRequest() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+
+        var sdJWT = emulator.createSDJWTMock();
+        var parts = sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER);
+
+        var sd = Arrays.copyOfRange(parts, 1, parts.length - 2);
+        var newCred = parts[0] + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER
+                + StringUtils.join(sd, SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER
+                + StringUtils.join(sd, SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER) + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
+        var vpToken = emulator.addKeyBindingProof(newCred, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
+
+        // mock did resolver response so we get a valid public key for the issuer
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
+
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
+        // WHEN / THEN
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("invalid_transaction_data"));
+
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
-    @Test
-    void testDCQLEndpoint_invalidHolderBinding_thenBadRequest() throws Exception {
+    /**
+     * Verifies that both supported legacy cnf credential formats are accepted.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {DcqlTestHelper.VC_SD_JWT_CREDENTIAL_FORMAT, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT})
+    void givenLegacyCnfCredentialFormat_whenSendVerificationResponse_thenSuccess(String credentialFormat) throws Exception {
+
+        var requestId = UUID.randomUUID();
+        managementEntityRepository.save(Management.builder()
+                .id(requestId)
+                .requestNonce(NONCE_SD_JWT_SQL)
+                .state(PENDING)
+                .oauthState(requestId.toString())
+                .walletResponse(null)
+                .expirationInSeconds(86400)
+                .expiresAt(4070908800000L)
+                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
+                .jwtSecuredAuthorizationRequest(true)
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQuery(dcqlQueryJson(credentialFormat)))
+                .build());
+
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "incorrect-audience");
+        var sdJWT = emulator.createSDJWTMock(true, credentialFormat);
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, "decentralized_identifier:did:example:12345");
 
         // mock did resolver response so we get a valid public key for the issuer
         DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.withDcqlAndHolderBinding(), submissionData, FIXTURES.withDcqlAndHolderBinding())
-                .andExpect(status().isBadRequest());
 
-        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndHolderBinding()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+        // WHEN / THEN
+        var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", FIXTURES.secured()));
+
+        sendVerificationResponse(String.format(RESPONSE_DATA_URI_FORMAT, FIXTURES.secured()), vpToken, requestObject)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
     }
 
+    /**
+     * Verifies that a credential whose signature does not match the resolved issuer key is rejected with HTTP 400.
+     */
     @Test
-    void testDCQLEndpoint_holderBindingRequestedButNotPossible_thenBadRequest() throws Exception {
+    void givenCredentialSignedWithDifferentKey_whenPostVerificationResponse_thenBadRequest() throws Exception {
         // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock(true);
-
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(unsignedSdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.withDcqlAndHolderBinding(), submissionData, FIXTURES.withDcqlAndHolderBinding())
-                .andExpect(status().isBadRequest());
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.withDcqlAndHolderBinding()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-    }
-
-
-    @Test
-    void shouldBadRequestForDCQLEndpoint_whenWrongAudience() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost:8080");
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock(new ECKeyGenerator(Curve.P_256).generate());
+        var sdJWT = emulator.createSDJWTMock();
+        var vpToken = emulator.addKeyBindingProof(sdJWT, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         // mock did resolver response so we get a valid public key for the issuer
         DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
+
+        var dcqlVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
+
+        // WHEN / THEN
+        postVerificationResponse(FIXTURES.secured(), dcqlVpToken, FIXTURES.secured())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("error").value("invalid_transaction_data"))
+                .andExpect(jsonPath("error_description").value("SD-JWT claims are not valid"));
+    }
+
+    /**
+     * Verifies that a credential with surplus disclosures trimmed still succeeds and keeps the required claim data.
+     */
+    @Test
+    void givenCredentialWithUnrequestedDisclosuresRemoved_whenPostVerificationResponse_thenSuccess() throws Exception {
+        // GIVEN
+        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
+        var unsignedSdJwt = emulator.createSDJWTMock();
+
+        // mock did resolver response so we get a valid public key for the issuer
+        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
+        var parts = unsignedSdJwt.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER);
+        var disclosures = Arrays.copyOfRange(parts, 1, parts.length);
+        var discList = new java.util.ArrayList<>(Arrays.asList(disclosures));
+        // remove index 2 first, then index 1 to keep indices stable
+        discList.remove(2);
+        discList.remove(1);
+        var rebuiltSdJwt = parts[0]
+                + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER
+                + StringUtils.join(discList, SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)
+                + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER;
+
+        var sdJwt = emulator.addKeyBindingProof(rebuiltSdJwt, NONCE_SD_JWT_SQL, applicationProperties.getClientIdWithPrefix());
         var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
+
+        // remove unused list disclosures
         var submissionData = objectMapper.writeValueAsString(vpToken);
         // WHEN / THEN
         postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
-                .andExpect(jsonPath("$.error_description").value("Key binding JWT is invalid"))
-                .andExpect(jsonPath("$.error_code").value("holder_binding_mismatch"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
+
+        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.SUCCESS);
+
+        assertThat(managementEntity.getWalletResponse().credentialSubjectData())
+                .contains("first_name")
+                .contains("TestFirstname")
+                .contains("last_name")
+                .contains("TestLastName")
+                .contains("languages");
     }
 
+    /**
+     * Verifies that a malformed vp_token yields HTTP 400 and leaves the request unconsumed (PENDING).
+     */
     @Test
-    void shouldBadRequestForDCQLEndpoint_whenMalformedVpToken_notConsumedPresentationRequest() throws Exception {
+    void givenMalformedVpToken_whenPostVerificationResponse_thenBadRequestAndRequestNotConsumed() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
@@ -1168,33 +627,11 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
-
+    /**
+     * Verifies that a credential missing a requested claim yields HTTP 400 and a FAILED verification.
+     */
     @Test
-    void shouldBadRequestForDCQLEndpoint_whenAlteredSdJwt() throws Exception {
-        // GIVEN
-        SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        var unsignedSdJwt = emulator.createSDJWTMock();
-        var sdJwt = emulator.addKeyBindingProof(unsignedSdJwt, NONCE_SD_JWT_SQL, "http://localhost");
-        // Split jwt, disclosures & binding proof
-        var parts = sdJwt.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER);
-        sdJwt = parts[0] + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER + parts[1] + SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER + parts[parts.length - 1];
-        // mock did resolver response so we get a valid public key for the issuer
-        DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
-        var vpToken = Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(sdJwt));
-        var submissionData = objectMapper.writeValueAsString(vpToken);
-        // WHEN / THEN
-        postVerificationResponse(FIXTURES.secured(), submissionData, FIXTURES.secured())
-                .andExpect(status().is4xxClientError())
-                .andExpect(jsonPath("$.error").value("invalid_transaction_data"))
-                .andExpect(jsonPath("$.error_code").value("holder_binding_mismatch"));
-
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertThat(managementEntity.getWalletResponse().credentialSubjectData()).isNull();
-    }
-
-    @Test
-    void shouldBadRequestForDCQLEndpoint_whenMissingClaim() throws Exception {
+    void givenMissingRequestedClaim_whenPostVerificationResponse_thenBadRequest() throws Exception {
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var unsignedSdJwt = emulator.createSDJWTMock();
@@ -1214,96 +651,37 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.error").value("invalid_transaction_data"));
 
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertThat(managementEntity.getWalletResponse().credentialSubjectData()).isNull();
+        checkIfManagementEntityFailedAndWalletResponseIsNotDefined(FIXTURES.secured());
     }
 
+    /**
+     * Verifies that an unparsable vp_token yields HTTP 400 and leaves the request PENDING.
+     */
     @Test
-    void shouldThrowUnsupportedOperationExceptionForDCQLEncryptedEndpoint() throws Exception {
+    void givenUnparsableVpToken_whenPostVerificationResponse_thenBadRequestAndRequestNotConsumed() throws Exception {
         // GIVEN
         // Create encrypted DCQL response string
         String encryptedResponse = "eyJhbGciOiJSU0ExXzUiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiSldFIn0...";
 
         // WHEN / THEN
         postVerificationResponse(FIXTURES.secured(), encryptedResponse, FIXTURES.secured())
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description", startsWith("Failed to parse vp_token as DCQL format: Unrecognized token")));
 
         // Verify that the management entity remains in pending state since the exception is thrown early
         var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
         assertThat(managementEntity.getState()).isEqualTo(PENDING);
     }
 
+    /**
+     * Verifies that a blocking DID resolution does not leak JDBC connections during concurrent verification requests.
+     */
     @Test
-    void shouldHandleClientRejectionThroughRejectionEndpoint() throws Exception {
-        // GIVEN
-        String errorDescription = "User declined the verification request";
-
-        // WHEN / THEN
-        postVerificationErrorResponse(FIXTURES.secured(), FIXTURES.secured(), "access_denied", errorDescription)
-                .andExpect(status().isOk());
-
-        // Verify that the management entity is marked as failed due to client rejection
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertThat(managementEntity.getWalletResponse().errorDescription()).isEqualTo(errorDescription);
-    }
-
-    @Test
-    void shouldHandleClientRejectionWithOnlyError() throws Exception {
-        // WHEN / THEN
-        mockMvc.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", FIXTURES.secured()))
-                        .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                        .header("SWIYU-API-Version", VPApiVersion.V1.getValue())
-                        .formField("state", FIXTURES.secured().toString())
-                        .formField("error", "client_rejected"))
-                .andExpect(status().isOk());
-
-        // Verify that the management entity is marked as failed due to client rejection
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-    }
-
-    @Test
-    void shouldHandleClientRejectionWithEmptyErrorDescription() throws Exception {
-        // WHEN / THEN
-        postVerificationErrorResponse(FIXTURES.secured(), FIXTURES.secured(), "vp_formats_not_supported", "")
-                .andExpect(status().isOk());
-
-        // Verify that the management entity is marked as failed due to client rejection
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
-        assertThat(managementEntity.getWalletResponse().errorDescription()).isEmpty();
-    }
-
-    @Test
-    void shouldFailClientRejectionOnExpiredRequest() throws Exception {
-        // WHEN / THEN
-        postVerificationErrorResponse(FIXTURES.expired(), FIXTURES.expired(), "access_denied", "User cancelled")
-                .andExpect(status().isGone());
-
-        // Verify that the management entity state remains unchanged
-        var managementEntity = managementEntityRepository.findById(FIXTURES.expired()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(PENDING);
-    }
-
-    @Test
-    void shouldFailClientRejectionWithInvalidErrorType() throws Exception {
-        // WHEN / THEN
-        postVerificationErrorResponse(FIXTURES.secured(), FIXTURES.secured(), "invalid_error_type", "Some description")
-                .andExpect(status().isBadRequest());
-
-        // Verify that the management entity remains in pending state
-        var managementEntity = managementEntityRepository.findById(FIXTURES.secured()).orElseThrow();
-        assertThat(managementEntity.getState()).isEqualTo(PENDING);
-    }
-
-    @Test
-    void shouldHandleConcurrentVerificationRequests_whenExternalDependencyBlocks() throws Exception {
+    void givenBlockingDidResolution_whenPostVerificationResponseConcurrently_thenNoJdbcConnectionLeaked() throws Exception {
 
         final SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        final String sdJwt  = emulator.createSDJWTMock();
-        String vpToken = emulator.addKeyBindingProof(sdJwt , NONCE_SD_JWT_SQL, clientIdWithPrefix);
+        final String sdJwt = emulator.createSDJWTMock();
+        String vpToken = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, clientIdWithPrefix);
 
         final String finalVpToken = objectMapper.writeValueAsString(Map.of(DEFAULT_DCQL_CREDENTIAL_ID, List.of(vpToken)));
 
@@ -1341,93 +719,42 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         executor.shutdownNow();
     }
 
-    @Disabled("EIDOMNI-962: Race condition in test design - pool.getActiveConnections() is checked before " +
-            "all submitted threads have actually started, making the assertion trivially true and the test unreliable.")
-    @Test
-    void shouldNotDeadlockVerificationFlow_whenExternalDependencyBlocks() throws Exception {
-        final int concurrentRequests = 5;
-        final SDJWTCredentialMock emulator = new SDJWTCredentialMock();
-        final String sdJwt = emulator.createSDJWTMock();
-        String vpToken = emulator.addKeyBindingProof(sdJwt, NONCE_SD_JWT_SQL, clientIdWithPrefix);
-        vpToken = SDJWTCredentialMock.createMultipleVPTokenMock(vpToken);
-
-
-        final CountDownLatch didCallStarted = new CountDownLatch(concurrentRequests);
-        final CountDownLatch allowDidToFinish = new CountDownLatch(concurrentRequests);
-
-        // Simulate did resolution blocking
-        when(didResolverFacade.resolveKey(emulator.getKidHeaderValue()))
-                .thenAnswer(invocation -> {
-                    didCallStarted.countDown();
-                    try {
-                        allowDidToFinish.await(30, TimeUnit.SECONDS);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    // Parse the JSON Web Key string into a Nimbus JWK object to ensure correct type
-                    return JWK.parse(KeyFixtures.issuerPublicKeyAsJsonWebKey());
-                });
-
-        final HikariPoolMXBean pool = hikariPool();
-
-        final ExecutorService executor = Executors.newFixedThreadPool(5);
-
-        for (int i = 0; i < concurrentRequests; i++) {
-            final String finalVpToken = vpToken;
-            executor.submit(() -> {
-                try {
-                    mockMvc.perform(
-                            post(String.format("/oid4vp/api/request-object/%s/response-data", FIXTURES.secured()))
-                                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                                    .formField("vp_token", finalVpToken)
-                    );
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        }
-
-        final int activeConnections = pool.getActiveConnections();
-
-        assertThat(activeConnections)
-                .as("Concurrent blocked requests must not exhaust JDBC pool")
-                .isZero();
-
-        allowDidToFinish.countDown();
-        executor.shutdown();
-        executor.awaitTermination(5, TimeUnit.SECONDS);
-    }
-
-    @Test
-    void shouldVerifyNestedSDJWTCredentialSD_withOverride_thenSuccess() throws Exception {
+    /**
+     * Verifies that a configuration override for the verifier DID and signing key is honoured and the verification succeeds.
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void givenConfigurationOverride_whenSendVerificationResponse_thenSuccess(boolean needsOverride) throws Exception {
         // GIVEN
         var verifierDid = "did:webvh:mySCID12345213:identifier-reg.trust-infra.swiyu.admin.ch:api:v1:did:00000000-0000-0000-0000-000000000000";
         var verificationMethod = verifierDid + "#myVerificationMethod-xx";
         var key = createPemForKid(verificationMethod);
-        var createResponseDto = getAddressArrayManagement(0, "CH", new ConfigurationOverrideDto(null, verifierDid, verificationMethod, null, null, null));
+        var override = needsOverride ? new ConfigurationOverrideDto(null, verifierDid, verificationMethod, null, null, null) : null;
+        var createResponseDto = getAddressArrayManagement(0, "CH", override);
 
         // GIVEN
         SDJWTCredentialMock emulator = new SDJWTCredentialMock();
         var sdJWT = emulator.createSimpleNestedSDJWTMock();
 
-        List<String> list = new ArrayList<>(Arrays.asList(sdJWT.split(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER)));
-
-        var fixedSdjwt = String.join(SdJwtConstants.SD_JWT_PART_DELINEATION_CHARACTER, list) + "~";
-        var vpToken = emulator.addKeyBindingProof(fixedSdjwt, createResponseDto.requestNonce(), prefix + ":" + verifierDid);
+        var audSuffix = needsOverride ? verifierDid : clientId;
+        var aud = prefix + ":" + audSuffix;
+        var vpToken = emulator.addKeyBindingProof(sdJWT, createResponseDto.requestNonce(), aud);
 
         // mock did resolver response so we get a valid public key for the issuer
         DidResolverTestHelper.stubResolveKey(didResolverFacade, emulator);
 
-        var keyOnlySignatureConfiguration = new KeyOnlySignatureConfiguration();
-        keyOnlySignatureConfiguration.setPrivateKey(key);
-        keyOnlySignatureConfiguration.setVerificationMethod(verificationMethod);
+        if (needsOverride) {
+            var keyOnlySignatureConfiguration = new KeyOnlySignatureConfiguration();
+            keyOnlySignatureConfiguration.setPrivateKey(key);
+            keyOnlySignatureConfiguration.setVerificationMethod(verificationMethod);
 
-        when(applicationProperties.getSigningKeys()).thenReturn(List.of(keyOnlySignatureConfiguration));
+            when(applicationProperties.getSigningKeys()).thenReturn(List.of(keyOnlySignatureConfiguration));
+        }
 
         // WHEN / THEN
         var requestObject = getRequestObject(String.format("/oid4vp/api/request-object/%s", createResponseDto.id()));
 
-        sendVerificationResponse(String.format(responseDataUriFormat, createResponseDto.id()), vpToken, requestObject)
+        sendVerificationResponse(String.format(RESPONSE_DATA_URI_FORMAT, createResponseDto.id()), vpToken, requestObject)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.redirect_uri").doesNotExist()).andReturn();
 
@@ -1443,34 +770,54 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         assertThat(addresses).hasSize(1);
     }
 
-    private @NonNull ResultActions postVerificationResponse(UUID requestObjectId, String dcqlVpToken, UUID state) throws Exception {
-        return mockMvc.perform(post(String.format(responseDataUriFormat, requestObjectId))
-                .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                .formField("state", state.toString())
-                .formField("vp_token", dcqlVpToken));
-    }
-
-    private @NonNull ResultActions postVerificationErrorResponse(UUID requestObjectId, UUID state, String error, String errorDescription) throws Exception {
-        return mockMvc.perform(post(String.format("/oid4vp/api/request-object/%s/response-data", requestObjectId))
-                .contentType(APPLICATION_FORM_URLENCODED_VALUE)
-                .formField("state", state.toString())
-                .formField("error", error)
-                .formField("error_description", errorDescription));
-    }
-
+    /**
+     * Fetches the management object through the management API by request object id.
+     */
     private ResultActions getManagementObjectById(String requestObjectId) throws Exception {
         return mockMvc.perform(get("/management/api/verifications/" + requestObjectId));
     }
 
-    private static Stream<Arguments> dcqlQueryProvider() {
+    /**
+     * Provides the address index, country and disclosure range parameters for the nested credential tests.
+     */
+    private static Stream<Arguments> DCQLQueryProvider() {
         return Stream.of(
                 Arguments.of(0, "CH", 4, 6),
                 Arguments.of(1, "GB", 1, 3)
         );
     }
 
-    private ManagementResponseDto getAddressArrayManagement(int expectedIndex, String expectedCountry, ConfigurationOverrideDto override) {
-        var dcqlQuery = """
+    /**
+     * Creates a verification request that asks for a single nested address country claim.
+     */
+    private ManagementResponseDto getAddressArrayManagement(Integer expectedIndex, String expectedCountry, ConfigurationOverrideDto override) {
+        var values = expectedCountry == null ? "" : ", \"values\": [\"" + expectedCountry + "\"]";
+        var DCQLQuery = """
+                {
+                "credentials": [
+                    {
+                      "id": "%s",
+                      "format": "%s",
+                      "meta": {
+                        "vct_values": [ "%s" ]
+                      },
+                      "require_cryptographic_holder_binding": true,
+                      "claims": [
+                          {"path": ["addresses", %s, "country"]%s}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex, values);
+
+        return createVerificationRequest(DCQLQuery, override);
+    }
+
+    /**
+     * Creates a verification request that asks for the whole address object at the given array index.
+     */
+    private ManagementResponseDto getAddressObjectManagement(int expectedIndex) {
+        var DCQLQuery = """
                 {
                 "credentials": [
                     {
@@ -1480,22 +827,25 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
                         "vct_values": [ "%s" ]
                       },
                       "claims": [
-                          {"path": ["addresses", %s, "country"], "values": ["%s"]}
+                          {"path": ["addresses", %s]}
                       ]
                     }
                   ]
                 }
-                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex, expectedCountry);
+                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex);
 
-        return createVerificationRequest(dcqlQuery, override);
+        return createVerificationRequest(DCQLQuery, null);
     }
 
-    private ManagementResponseDto createVerificationRequest(String dcqlQuery, ConfigurationOverrideDto override) {
+    /**
+     * Creates a verification request through the management API with the given DCQL query and optional override.
+     */
+    private ManagementResponseDto createVerificationRequest(String DCQLQuery, ConfigurationOverrideDto override) {
         var createVerificationManagementDto = CreateVerificationManagementDto.builder()
                 .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
                 .jwtSecuredAuthorizationRequest(true)
                 .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
-                .dcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(dcqlQuery));
+                .dcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(DCQLQuery));
 
         if (override != null) {
             createVerificationManagementDto.configuration_override(override);
@@ -1504,7 +854,9 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         return createVerificationRequest(mockMvc, createVerificationManagementDto.build());
     }
 
-
+    /**
+     * Builds an EC private key in PEM format for the given verification method key id.
+     */
     public static String createPemForKid(String kid) throws JOSEException {
         var ecKey = new ECKeyGenerator(Curve.P_256)
                 .keyID(kid)
@@ -1523,31 +875,29 @@ class VerificationControllerIT extends AbstractVerificationControllerIT {
         );
     }
 
-    private ManagementResponseDto getManagementByAddressArrayIndex(int expectedIndex) {
-        var dcqlQuery = """
-                {
-                "credentials": [
-                    {
-                      "id": "%s",
-                      "format": "%s",
-                      "meta": {
-                        "vct_values": [ "%s" ]
-                      },
-                      "claims": [
-                          {"path": ["addresses", %s]}
-                      ]
-                    }
-                  ]
-                }
-                """.formatted(DEFAULT_DCQL_CREDENTIAL_ID, DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT, SDJWTCredentialMock.DEFAULT_VCT, expectedIndex);
+    /**
+     * Enables the {@code credential_subject_data} audit flag for the current test only (see EIDOMNI-1321).
+     */
+    private void enableCredentialSubjectDataAuditInformation() {
+        var auditInformation = new ApplicationProperties.AdditionalAuditInformationProperties();
+        auditInformation.setCredentialSubjectDataEnabled(true);
+        when(applicationProperties.getAdditionalAuditInformation()).thenReturn(auditInformation);
+    }
 
-        var createVerificationManagementDto = CreateVerificationManagementDto.builder()
-                .acceptedIssuerDids(List.of(DEFAULT_ISSUER_ID))
-                .jwtSecuredAuthorizationRequest(true)
-                .responseMode(ResponseModeTypeDto.DIRECT_POST_JWT)
-                .dcqlQuery(DcqlTestHelper.stringToDcqlQueryDto(dcqlQuery))
-                .build();
+    /**
+     * Asserts that the verification FAILED without credential subject data and returns the management entity.
+     */
+    private Management checkIfManagementEntityFailedAndWalletResponseIsNotDefined(UUID managementEntityId) {
+        var managementEntity = managementEntityRepository.findById(managementEntityId).orElseThrow();
+        assertThat(managementEntity.getState()).isEqualTo(VerificationStatus.FAILED);
+        assertThat(managementEntity.getWalletResponse().credentialSubjectData()).isNull();
+        return managementEntity;
+    }
 
-        return createVerificationRequest(mockMvc, createVerificationManagementDto);
+    /**
+     * Returns the Hikari connection pool MX bean of the test datasource.
+     */
+    private HikariPoolMXBean hikariPool() {
+        return ((HikariDataSource) dataSource).getHikariPoolMXBean();
     }
 }

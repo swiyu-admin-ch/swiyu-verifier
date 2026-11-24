@@ -8,13 +8,13 @@ import ch.admin.bj.swiyu.verifier.domain.management.ManagementRepository;
 import ch.admin.bj.swiyu.verifier.dto.management.CreateVerificationManagementDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ManagementResponseDto;
 import ch.admin.bj.swiyu.verifier.dto.management.ResponseModeTypeDto;
-import ch.admin.bj.swiyu.verifier.service.oid4vp.test.mock.SDJWTCredentialMock;
 import ch.admin.bj.swiyu.verifier.service.publickey.DidResolverFacade;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +33,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
@@ -51,6 +52,11 @@ public abstract class AbstractVerificationControllerIT extends AbstractMockMvcIT
     public static final String PUBLIC_KEY = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"oqBwmYd3RAHs-sFe_U7UFTXbkWmPAaqKTHCvsV8tvxU\",\"y\":\"np4PjpDKNfEDk9qwzZPqjAawiZ8sokVOozHR-Kt89T4\"}";
 
     protected static final String NONCE_SD_JWT_SQL = "P2vZ8DKAtTuCIU1M7daWLA65Gzoa76tL";
+
+    /**
+     * URI template of the response-data endpoint, taking the request object id as parameter.
+     */
+    protected static final String RESPONSE_DATA_URI_FORMAT = "/oid4vp/api/request-object/%s/response-data";
 
     @Autowired
     protected ManagementRepository managementEntityRepository;
@@ -174,5 +180,21 @@ public abstract class AbstractVerificationControllerIT extends AbstractMockMvcIT
         );
         jweObject.encrypt(new ECDHEncrypter(jwk.toECKey()));
         return jweObject.serialize();
+    }
+
+    /**
+     * Posts a vp_token to the response-data endpoint of the given request object and state.
+     *
+     * @param requestObjectId the id of the request object the response belongs to
+     * @param dcqlVpToken     the serialized DCQL vp_token map
+     * @param state           the OAuth state of the verification request
+     * @return the performed request, allowing assertions on the response
+     * @throws Exception if the request cannot be performed
+     */
+    @NonNull ResultActions postVerificationResponse(UUID requestObjectId, String dcqlVpToken, UUID state) throws Exception {
+        return mockMvc.perform(post(String.format(RESPONSE_DATA_URI_FORMAT, requestObjectId))
+                .contentType(APPLICATION_FORM_URLENCODED_VALUE)
+                .formField("state", state.toString())
+                .formField("vp_token", dcqlVpToken));
     }
 }

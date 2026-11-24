@@ -4,6 +4,7 @@ import au.com.dius.pact.consumer.MockServer;
 import ch.admin.bj.swiyu.verifier.common.config.ApplicationProperties;
 import ch.admin.bj.swiyu.verifier.common.config.UrlRewriteProperties;
 import ch.admin.bj.swiyu.verifier.service.statuslist.StatusListResolver;
+import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.net.URI;
@@ -33,14 +34,31 @@ final class StatusRegistryDataConsumerPactSupport {
 
     static StatusListResolver buildStatusListResolver(final MockServer mockServer) {
         final UrlRewriteProperties urlRewriteProperties = new UrlRewriteProperties();
-        urlRewriteProperties.setUrlMappings(Map.of(STATUS_REGISTRY_ORIGIN, mockServer.getUrl()));
+        urlRewriteProperties.setUrlMappings(Map.of(STATUS_REGISTRY_ORIGIN, rewrittenMockServerUrl(mockServer)));
 
         final ApplicationProperties applicationProperties = new ApplicationProperties();
         applicationProperties.setAcceptedRegistryHosts(List.of(URI.create(mockServer.getUrl()).getHost()));
 
         return new StatusListResolver(
                 urlRewriteProperties,
-                WebClient.builder().build(),
+                mockServerWebClient(),
                 applicationProperties);
+    }
+
+    /**
+     * The status list resolver requires the rewritten URL to use HTTPS, but the Pact mock server only
+     * speaks plain HTTP. This client redirects the HTTPS request to the mock server's HTTP endpoint so
+     * the contract (path, headers, status) can still be verified.
+     */
+    private static WebClient mockServerWebClient() {
+        return WebClient.builder()
+                .filter((request, next) -> next.exchange(ClientRequest.from(request)
+                        .url(URI.create(request.url().toString().replaceFirst("^https://", "http://")))
+                        .build()))
+                .build();
+    }
+
+    static String rewrittenMockServerUrl(final MockServer mockServer) {
+        return mockServer.getUrl().replace("http://", "https://");
     }
 }

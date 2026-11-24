@@ -36,10 +36,16 @@ public class StatusListResolver {
         var rewrittenUrl = urlRewriteProperties.getRewrittenUrl(uri);
         log.debug("HTTP Request after url rewrite to status list from {}", rewrittenUrl);
         try {
-            // check if https request otherwise throw exception
-            if (!isHttpsUrl(uri)) {
+            // the issuer-provided url must always use HTTPS
+            if (isNotHttpsUrl(uri)) {
                 throw new IllegalArgumentException("StatusList %s does not use HTTPS"
                         .formatted(uri));
+            }
+
+            // the rewritten url is what is actually fetched, so it must not be downgraded to HTTP
+            if (isNotHttpsUrl(rewrittenUrl)) {
+                throw new IllegalArgumentException("StatusList %s is rewritten to a non-HTTPS URL %s"
+                        .formatted(uri, rewrittenUrl));
             }
 
             if (!containsValidHost(rewrittenUrl)) {
@@ -76,8 +82,8 @@ public class StatusListResolver {
         return result;
     }
 
-    private boolean isHttpsUrl(String url) {
-        return url.startsWith("https://");
+    private boolean isNotHttpsUrl(String url) {
+        return !url.startsWith("https://");
     }
 
     private boolean containsValidHost(String rewrittenUrl) throws MalformedURLException {

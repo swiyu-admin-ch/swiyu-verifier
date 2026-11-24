@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that do not define any `(#1606)`
 
 ## Fixed
+- Status list URLs are now validated to use HTTPS after URL rewriting as well, so a rewrite that
+  downgrades a status list URL to HTTP is rejected in addition to the HTTPS requirement on the
+  issuer-provided URL `(#1215)`
 
 
 # [5.1.0] - 2026-11-10

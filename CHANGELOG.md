@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+# [5.1.1] - 2026-11-25
+
+## Security
+- Updated Java 25 base image (`eclipse-temurin`) to **`jdk-25.0.5.1+2`** (`25.0.5.1`).
+  - Fixes **CVE-2026-114938** (Java4Shell / AVX-512 Base64 intrinsic memory corruption vulnerability) .
+  - Supersedes the temporary JVM workaround (`-XX:-UseBASE64Intrinsics`), which can now be removed from deployment configurations.
+
 # [5.1.0] - 2026-11-10
 
 ## Changed

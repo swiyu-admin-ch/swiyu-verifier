@@ -1,6 +1,6 @@
 ![github-banner](https://github.com/swiyu-admin-ch/swiyu-admin-ch.github.io/blob/main/assets/images/github-banner.jpg)
 
-# SWIYU generic verifier service
+# swiyu generic verifier service
 
 This software is a web server implementing the technical standards as specified in
 the [swiyu Trust Infrastructure Interoperability Profile](https://swiyu-admin-ch.github.io/specifications/interoperability-profile/).

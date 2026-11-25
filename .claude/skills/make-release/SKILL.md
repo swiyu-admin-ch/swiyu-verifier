@@ -50,7 +50,7 @@ mvn versions:set -DnewVersion=[VERSION]
 
 Only modify the pom.xml files after the user has confirmed.
 
-## Step 6: Update SECURITY.md and EXPERIMENTAL.md
+## Step 6: Update SECURITY.md, EXPERIMENTAL.md and README comments
 
 This step comes before the commit so that the changes are included in the release commit:
 
@@ -59,8 +59,11 @@ This step comes before the commit so that the changes are included in the releas
   Ask the user whether the previous version remains supported before removing it.
 - **EXPERIMENTAL.md:** Based on the commits from Step 3, check whether features became newly experimental, were released
   for production, or were removed, and update the list accordingly. Show the proposed changes to the user.
+- **README comments:** Check whether notes and comments in `README.md` about experimental features are still up to date
+  (features that became experimental, were released for production, or were removed according to the commits from
+  Step 3) and consistent with `EXPERIMENTAL.md`. Update them accordingly and show the proposed changes to the user.
 
-Show both diffs and wait for the user's confirmation. The commit command in Step 8 must include these files
+Show all diffs and wait for the user's confirmation. The commit command in Step 8 must include these files
 (`git commit -am` already picks up all tracked changes).
 
 ## Step 7: Check the migration guide

@@ -25,7 +25,7 @@ import java.util.List;
 public record DcqlCredentialMetaDto(
         @Hidden
         @Null(message = "The type_values field is not yet supported")
-        @Schema(description = "[EXPERIMENTAL] For W3C Verifiable Credentials: A non-empty array of arrays of strings that " +
+        @Schema(description = "[NOT SUPPORTED] For W3C Verifiable Credentials: A non-empty array of arrays of strings that " +
                 "specifies allowed values for the 'type' of the requested Verifiable Credential. " +
                 "According to OpenID for Verifiable Presentations 1.0, Appendix B.1.1, property 'type_values'.")
         @JsonProperty("type_values")
@@ -45,7 +45,7 @@ public record DcqlCredentialMetaDto(
 
         @Hidden
         @Null(message = "The doctype_value field is not yet supported")
-        @Schema(description = "[EXPERIMENTAL] For ISO mdoc: A string that specifies an allowed value for the " +
+        @Schema(description = "[NOT SUPPORTED] For ISO mdoc: A string that specifies an allowed value for the " +
                 "'doctype' of the requested Verifiable Credential. It MUST be a valid doctype identifier. " +
                 "According to OpenID for Verifiable Presentations 1.0, Appendix B.2.3, property 'doctype_value'.")
         @JsonProperty("doctype_value")

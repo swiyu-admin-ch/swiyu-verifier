@@ -60,11 +60,7 @@ The following request can be performed by using the [swagger endpoint](http://lo
 curl -X 'POST' 'http://localhost:8083/management/api/verifications' \
   -H "Content-Type: application/json" \
   -d '{
-  "accepted_issuer_dids": [
-    "did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1"
-  ],
-  "jwt_secured_authorization_request": true,
-  "response_mode": "direct_post",
+  "response_mode": "direct_post.jwt",
   "verification_purpose": {
     "scope": "ch.some.test.scope",
     "purpose_name": {
@@ -82,6 +78,9 @@ curl -X 'POST' 'http://localhost:8083/management/api/verifications' \
         "meta": {
           "vct_values": ["betaid-sdjwt"]
         },
+        "trusted_authorities": [
+          "did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1"
+        ],
         "claims": [
           {
             "path": ["age_over_18"]
@@ -99,7 +98,7 @@ curl -X 'POST' 'http://localhost:8083/management/api/verifications' \
 
 
 > [!NOTE]
-> The field <strong><code>accepted_issuer_dids</code>:</strong> contains a list of DIDs from credential issuers whose credentials your verifier will accept. Replace the <code>${ISSUER_DID}</code> placeholder with the actual DID of your issuer. For quick testing with the Beta Credential Service (BCS) Public Beta, you can use: <code>did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1</code> and verify it with your own verifier.
+> The field <strong><code>trusted_authorities</code>:</strong> contains a list of DIDs from credential issuers whose credentials your verifier will accept. Replace the <code>${ISSUER_DID}</code> placeholder with the actual DID of your issuer. For quick testing with the Beta Credential Service (BCS) Public Beta, you can use: <code>did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1</code> and verify it with your own verifier.
 
 **Response**
 

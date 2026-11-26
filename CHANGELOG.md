@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 
 ## Changed
+- DCQL `trusted_authorities` are now validated more strictly: `type` only accepts `did` and `values` must
+  contain valid `did:tdw` or `did:webvh` DIDs, e.g. `did:webvh:<scid>:www.example.com` `(#1606)`
+- DCQL credential query `meta` now rejects the unsupported fields `type_values` and `doctype_value` with
+  HTTP 400 instead of accepting them silently; only `vct_values` for the SD-JWT VC format is supported `(#1606)`
+
+## Deprecated
+- `accepted_issuer_dids` is deprecated and marked to be removed in favour of the DCQL `trusted_authorities` of the credential queries.
+  It is still accepted and its DIDs are added as `trusted_authorities` of type `did` to credential queries
+  that do not define any `(#1606)`
 
 ## Fixed
 - Status list URLs are now validated to use HTTPS after URL rewriting as well, so a rewrite that

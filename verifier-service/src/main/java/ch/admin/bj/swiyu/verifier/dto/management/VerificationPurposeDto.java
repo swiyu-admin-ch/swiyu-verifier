@@ -27,7 +27,8 @@ public record VerificationPurposeDto(
         @Valid
         @NotBlank
         @Schema(
-                description = "Unique scope identifier for this specific query, e.g. 'com.example.age_verification'",
+                description = "Scope identifier for this specific query, e.g. 'com.example.age_verification' which can " +
+                        "be reused for verifications with the same dcql_query",
                 example = "com.example.age_verification"
         )
         @JsonProperty("scope")

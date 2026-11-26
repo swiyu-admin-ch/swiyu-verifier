@@ -76,11 +76,7 @@ Process:
 curl -X POST \
   -H "Content-Type: application/json" \
   -d '{
-  "accepted_issuer_dids": [
-    "did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1"
-  ],
-  "jwt_secured_authorization_request": true,
-  "response_mode": "direct_post",
+  "response_mode": "direct_post.jwt",
   "verification_purpose": {
     "scope": "ch.some.test.scope",
     "purpose_name": {
@@ -96,8 +92,11 @@ curl -X POST \
         "id": "age_check_dcql",
         "format": "dc+sd-jwt",
         "meta": {
-          "vct_values": ["betaid-sdjwt"]
+          "vct_values": ["betaid-sdjwt", "urn:vct:ch.admin.bcs.betaid"]
         },
+        "trusted_authorities": [
+          "did:webvh:QmdPxnNc9MzGYZ6qcHuvi8YpDVYWW7mmefnCTPcKapNEL5:identifier-reg.trust-infra.swiyu-int.admin.ch:api:v1:did:5f8a3c95-1772-4ebf-ada0-c88bafb258e1"
+        ],
         "claims": [
           {
             "path": ["age_over_18"]
@@ -111,11 +110,25 @@ curl -X POST \
 http://localhost:8083/management/api/verifications
 ```
 
-> **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+, per [draft-ietf-oauth-sd-jwt-vc-09 §A.2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt)) and `vc+sd-jwt` (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header.
+> **Note:** The verifier accepts both `dc+sd-jwt` (current spec, SD-JWT VC Draft 06+, per [draft-ietf-oauth-sd-jwt-vc-09 §A.2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-09#name-application-dcsd-jwt)) and `vc+sd-jwt` 
+> (legacy SD-JWT VC drafts ≤ 05) on the credential's `typ` header (even when a specific `format`is requested).
 
-To limit the accepted issuers, you must either set the `accepted_issuer_dids` or the `trust_anchors` (not recommended, as it will be deprecated in the future) to create a verification request. 
+To limit the accepted issuers, you must either set the `dcql_query.credentials[x].trusted_authorities` or the `accepted_issuer_dids` (not recommended, as it will be deprecated in the future) to create a verification request. 
 
-In the example above the `accepted_issuer_dids` contains the id of the beta-id issuer. If you want to check your own issuer you have to set the value in here.
+In the example above the `trusted_authorities` contains the id of the beta-id issuer. If you want to check your own issuer you have to set the value in here.
+```json
+{
+    "credentials": [
+        {
+            "id": "...",
+            "trusted_authorities": [
+                "Your ISSUER_DID"
+            ]
+        }
+    ]
+}
+```
+Alternatively, you can set the `accepted_issuer_dids` parameter to restrict the accepted issuers.
 ```json
 {
     "...": "...",
@@ -124,19 +137,10 @@ In the example above the `accepted_issuer_dids` contains the id of the beta-id i
     ]
 }
 ```
-Alternatively, you can set the `trust_anchors` parameter to restrict the accepted issuers to those issued by trusted from the trust-registry.
-List of trust anchor dids from the trust registry.
-```json
-{
-    "...": "...",
-    "trust_anchors": [
-        "YOUR-TRUST-REGISTRY-ENTRY-DID"
-    ]
-}
-```
 
 > [!IMPORTANT]  
-> The following example about vqps (Verification Query Public Statement) is under development and requires additional configuration. Please do not use it until further notice.
+> If neither `trusted_authorities` nor `accepted_issuer_dids` are set, the verifier will trust the issuer provided in 
+> `SWIYU_TRUST_ISSUER_DID` environment variable (which is set by default to the [Trust statement issuer](https://swiyu-admin-ch.github.io/specifications/swiss-profile-trust/#root-trust-anchors)).
 
 To set the vqps, you also have to set the `verification_purpose`
 ```json
@@ -153,6 +157,9 @@ To set the vqps, you also have to set the `verification_purpose`
     }
 }
 ```
+
+> [!NOTE]
+> The `scope` is a unique identifier for this specific query, e.g. 'com.example.age_verification' which should be reused for verifications with the same dcql_query.
 
 **Response:**
 
@@ -258,11 +265,9 @@ Returns a signed JWT. A decoded example of the response could look like:
         "vp_formats_supported": {
             "dc+sd-jwt": {
                 "sd-jwt_alg_values": [
-                    "ES256",
                     "Ed25519"
                 ],
                 "kb-jwt_alg_values": [
-                    "ES256",
                     "Ed25519"
                 ]
             }

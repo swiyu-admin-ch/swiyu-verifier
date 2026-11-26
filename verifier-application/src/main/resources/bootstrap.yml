@@ -8,6 +8,7 @@ spring:
       enabled: false
   application:
     name: swiyu-verifier-service
+    version: 5.2.0-SNAPSHOT
   cloud:
     kubernetes:
       config:

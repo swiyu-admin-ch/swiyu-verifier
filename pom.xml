@@ -35,17 +35,17 @@
         <archunit-junit5.verion>1.5.1</archunit-junit5.verion>
         <javacrumbs.shedlock.version>7.11.0</javacrumbs.shedlock.version>
         <jacoco-maven-plugin.version>0.8.16</jacoco-maven-plugin.version>
-        <springdoc-openapi-starter-webmvc-ui.version>3.2.0</springdoc-openapi-starter-webmvc-ui.version>
+        <springdoc-openapi-starter-webmvc-ui.version>3.2.1</springdoc-openapi-starter-webmvc-ui.version>
         <spring-cloud-starter-bootstrap.version>5.1.0</spring-cloud-starter-bootstrap.version>
         <openapi-generator-maven-plugin.version>7.27.0</openapi-generator-maven-plugin.version>
         <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
-        <logback.version>1.6.7</logback.version>
+        <logback.version>1.6.8</logback.version>
         <json-path.version>2.10.0</json-path.version>
         <spring-cloud-dependencies.version>2026.0.0</spring-cloud-dependencies.version>
         <bcprov-jdk18on.version>1.87</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.87</bcpkix-jdk18on.version>
-        <postgres.version>42.7.14</postgres.version>
-        <swagger-parser.version>2.1.48</swagger-parser.version>
+        <postgres.version>42.7.15</postgres.version>
+        <swagger-parser.version>2.1.49</swagger-parser.version>
         <mockserver-client-java.version>7.6.0</mockserver-client-java.version>
         <!-- Fixes various SNYK-JAVA-IONETTY errors -->
         <netty.version>4.2.18.Final</netty.version>
@@ -65,11 +65,11 @@
         <jjwt-impl.version>0.12.6</jjwt-impl.version>
         <jjwt-jackson.version>0.12.6</jjwt-jackson.version>
         <skip.doc-generate>true</skip.doc-generate>
-        <generic-java-lib.version>3.3.0</generic-java-lib.version>
+        <generic-java-lib.version>3.4.0</generic-java-lib.version>
         <pact.version>4.7.7</pact.version>
         <openapi-generator-maven-plugin.version>7.27.0</openapi-generator-maven-plugin.version>
         <!-- Fixes CVE-2026-13006 -->
-        <logback-core.version>1.6.7</logback-core.version>
+        <logback-core.version>1.6.8</logback-core.version>
         <!-- Fixes various SNYK-JAVA-ORGAPACHETOMCATEMBED -->
         <tomcat.version>11.0.27</tomcat.version>
         <!-- Fixes CVE-2026-59889 and SNYK-JAVA-TOOLSJACKSONCORE-19778371. Spring Boot 4.1.1 manages
@@ -82,25 +82,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Fixes CVE-2026-100656 -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-http</artifactId>
-                <version>4.2.20.Final</version>
-            </dependency>
-            <!-- Fixes CVE-2026-100664 -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-http3</artifactId>
-                <version>4.2.20.Final</version>
-            </dependency>
-            <!-- Fixes CVE-2026-100665 -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-classes-quic</artifactId>
-                <version>4.2.20.Final</version>
-            </dependency>
-
             <dependency>
                 <groupId>ch.admin.swiyu</groupId>
                 <artifactId>swiyu-jws-signature-service</artifactId>

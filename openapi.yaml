@@ -989,6 +989,7 @@ components:
             type: string
         jwt_secured_authorization_request:
           type: boolean
+          deprecated: true
           description: Toggle whether the request-object is available as plain object
             oras jwt object signed by the verifier as additional security measure
         response_mode:

@@ -45,7 +45,7 @@
         <bcprov-jdk18on.version>1.87</bcprov-jdk18on.version>
         <bcpkix-jdk18on.version>1.87</bcpkix-jdk18on.version>
         <postgres.version>42.7.14</postgres.version>
-        <swagger-parser.version>2.1.48</swagger-parser.version>
+        <swagger-parser.version>2.1.49</swagger-parser.version>
         <mockserver-client-java.version>7.6.0</mockserver-client-java.version>
         <!-- Fixes various SNYK-JAVA-IONETTY errors -->
         <netty.version>4.2.18.Final</netty.version>

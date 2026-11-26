@@ -20,14 +20,13 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Stream;
 
 import static ch.admin.bj.swiyu.verifier.common.DcqlTestHelper.DC_SD_JWT_CREDENTIAL_FORMAT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -108,7 +107,7 @@ class DcqlPresentationVerificationServiceTest {
     }
 
     @Test
-    void process_missingVpToken_throwsIllegalArgumentException() {
+    void process_missingVpToken_throwsVerificationException() {
         // Arrange
         var management = mock(Management.class);
         var credentialId = "cred-1";
@@ -125,6 +124,33 @@ class DcqlPresentationVerificationServiceTest {
         when(management.getDcqlQuery()).thenReturn(dcqlQuery);
 
         var request = new VerificationPresentationDCQLRequestDto(Map.of()); // missing token for cred-1
+
+        // Act + Assert
+        var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
+        assertEquals(VerificationError.INVALID_REQUEST, ex.getErrorType());
+    }
+
+    @ParameterizedTest
+    @MethodSource("faultyVpTokenSource")
+    void process_faultyVpToken_throwsVerificationException(List<String> vpTokens) {
+        // Arrange
+        var management = mock(Management.class);
+        var credentialId = "cred-1";
+        var meta = new DcqlCredentialMeta(null, List.of("vct:test"), null);
+        var requestedCredential = DcqlCredential.builder()
+                .id(credentialId)
+                .format(DC_SD_JWT_CREDENTIAL_FORMAT)
+                .meta(meta)
+                .claims(List.of())
+                .requireCryptographicHolderBinding(true)
+                .multiple(false)
+                .build();
+        var dcqlQuery = new DcqlQuery(List.of(requestedCredential), null);
+        when(management.getDcqlQuery()).thenReturn(dcqlQuery);
+
+        var presentation = new HashMap<String, List<String>>();
+        presentation.put(credentialId, vpTokens);
+        var request = new VerificationPresentationDCQLRequestDto(presentation);
 
         // Act + Assert
         var ex = assertThrows(VerificationException.class, () -> dcqlPresentationVerificationService.processVerificationPresentation(management, request));
@@ -451,5 +477,9 @@ class DcqlPresentationVerificationServiceTest {
                 .sdJwt(sdJwt)
                 .statusVerificationResult(Optional.of(new StatusVerificationResultDto(true, Optional.of(0))))
                 .build();
+    private static Stream<List<String>> faultyVpTokenSource() {
+        var nullContainingList = new LinkedList<String>();
+        nullContainingList.add(null);
+        return Stream.of(null, List.of(), nullContainingList);
     }
 }

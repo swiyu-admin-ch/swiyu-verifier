@@ -8,19 +8,12 @@ import ch.admin.bj.swiyu.verifier.dto.VerificationPresentationRejectionDto;
  * verification presentation in a type-safe way
  */
 public sealed interface PresentationResult
-        permits PresentationResult.Dcql, PresentationResult.EncryptedDcql, PresentationResult.Rejection {
+        permits PresentationResult.Dcql, PresentationResult.Rejection {
 
     /**
      * DCQL presentation (OID4VP v1) with structured vp_token.
      */
     record Dcql(VerificationPresentationDCQLRequestDto request) implements PresentationResult {
-    }
-
-    /**
-     * Encrypted DCQL presentation (OID4VP v1 with direct_post.jwt),
-     * where the payload (after decryption) is already mapped to a DCQL request.
-     */
-    record EncryptedDcql(VerificationPresentationDCQLRequestDto request) implements PresentationResult {
     }
 
     /**
